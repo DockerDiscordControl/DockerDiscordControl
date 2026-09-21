@@ -1014,7 +1014,7 @@ class ToggleButton(Button):
             channel_has_control = self._control_allowed_for(channel_id, user_id, current_config)
 
             # Create optimized view
-            view = self._create_ultra_optimized_control_view(running, channel_has_control)
+            view = self._create_ultra_optimized_control_view(running, channel_has_control, channel_id)
 
             return embed, view
 
@@ -1022,14 +1022,16 @@ class ToggleButton(Button):
             logger.error(f"[ULTRA_FAST_TOGGLE] Error in ultra-fast toggle generation for '{self.display_name}': {e}", exc_info=True)
             return None, None
 
-    def _create_ultra_optimized_control_view(self, is_running: bool, channel_has_control_permission: bool) -> 'ControlView':
+    def _create_ultra_optimized_control_view(self, is_running: bool, channel_has_control_permission: bool,
+                                             channel_id: Optional[int] = None) -> 'ControlView':
         """Creates an ultra-optimized ControlView with all optimizations."""
         return ControlView(
             self.cog,
             self.server_config,
             is_running,
             channel_has_control_permission=channel_has_control_permission,
-            allow_toggle=True
+            allow_toggle=True,
+            channel_id=channel_id,
         )
 
 # =============================================================================
@@ -1040,7 +1042,7 @@ class ControlView(View):
     """Ultra-optimized view with control buttons for a Docker container."""
     cog: 'DockerControlCog'
 
-    def __init__(self, cog_instance: Optional['DockerControlCog'], server_config: Optional[dict], is_running: bool, channel_has_control_permission: bool, allow_toggle: bool = True):
+    def __init__(self, cog_instance: Optional['DockerControlCog'], server_config: Optional[dict], is_running: bool, channel_has_control_permission: bool, allow_toggle: bool = True, channel_id: Optional[int] = None):
         super().__init__(timeout=None)
         self.cog = cog_instance
         self.allow_toggle = allow_toggle
@@ -1081,7 +1083,8 @@ class ControlView(View):
 
         # Check if channel has info permission
         config = load_config()
-        channel_has_info_permission = self._channel_has_info_permission(channel_has_control_permission, config)
+        channel_has_info_permission = self._channel_has_info_permission(
+            channel_has_control_permission, config, channel_id)
 
         # Add buttons based on state and permissions
         if is_running:
@@ -1111,16 +1114,36 @@ class ControlView(View):
             if channel_has_info_permission:
                 self.add_item(InfoButton(cog_instance, server_config, row=0))
 
-    def _channel_has_info_permission(self, channel_has_control_permission: bool, config: dict) -> bool:
-        """Check if channel has info permission (control permission also grants info access)."""
+    def _channel_has_info_permission(self, channel_has_control_permission: bool,
+                                     config: dict, channel_id: Optional[int]) -> bool:
+        """Whether this channel may see the Info button. Control also grants info.
+
+        This used to end in `return True` under the note "We need the actual
+        channel_id, but we don't have it in this context". It did have it: the
+        channel id is at hand at every call site, including the one two lines
+        above the caller (`_control_allowed_for(channel_id, ...)`). So the Info
+        button was added to every view, including in a channel with neither
+        permission - a plain status channel, which is an ordinary setup - where
+        pressing it is correctly refused by InfoButton's own check. A button
+        that is shown and can only say no (review D32).
+
+        It is now the same check the callback makes, so what is offered and
+        what is allowed cannot disagree.
+
+        Without a channel id the old answer stands, deliberately: defaulting to
+        "hide it" would take the Info button away from an info-only channel the
+        moment a caller forgot to pass one, which is the worse of the two
+        mistakes. That case says so in the log rather than passing quietly.
+        """
         from .control_helpers import _channel_has_permission
         # If we already know they have control permission, they can access info
         if channel_has_control_permission:
             return True
-        # Otherwise check specifically for info permission
-        # Note: We need the actual channel_id, but we don't have it in this context
-        # This will be handled properly in the InfoButton callback
-        return True  # Let InfoButton handle the actual permission check
+        if channel_id is None:
+            logger.warning("[ControlView] No channel id given - offering the Info "
+                           "button without checking, InfoButton will decide")
+            return True
+        return _channel_has_permission(channel_id, 'info', config)
 
 # =============================================================================
 # INFO BUTTON COMPONENT

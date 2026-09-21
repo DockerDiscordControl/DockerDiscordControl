@@ -941,7 +941,8 @@ class StatusHandlersMixin:
                 if allow_toggle and running and details_allowed:
                     view = ControlView(
                         self, server_conf, is_running=running,
-                        channel_has_control_permission=_channel_has_permission(channel_id, server_conf)
+                        channel_has_control_permission=_channel_has_permission(channel_id, server_conf),
+                        channel_id=channel_id
                     )
                 else:
                     view = None
@@ -1096,7 +1097,7 @@ class StatusHandlersMixin:
 
             else:
                 # CONTROL CHANNEL: Use standard ControlView
-                view = ControlView(self, server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle)
+                view = ControlView(self, server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle, channel_id=channel_id)
         else:
             view = None # Ensure view is None if server_conf is missing or critical error
 

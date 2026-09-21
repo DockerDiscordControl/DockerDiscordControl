@@ -14,11 +14,19 @@ cogs/admin_overview.py:1-821
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-227
 
-## Section 02  (1991 lines, 1 piece)
-cogs/control_ui.py:1-1991
+## Section 02  (1824 lines, 1 piece)
+# Cut moved up from 1991 to 1801 on 2026-09-21, to the class boundary at
+# PasswordProtectedView. Section 02 had reached 1,991 of the 2,000 lines a
+# section may hold and the next repair in this file (review D32) did not fit.
+# Same reasoning as section 38: the cut is an instrument for reading the code,
+# not a budget the code has to stay inside. Both halves of control_ui.py were
+# already fully reviewed in both passes, and every finding of either pass in
+# this file is dealt with, so no finding label ends up naming a section that
+# no longer holds its lines.
+cogs/control_ui.py:1-1824
 
-## Section 03  (1588 lines, 1 piece)
-cogs/control_ui.py:1992-3579
+## Section 03  (1778 lines, 1 piece)
+cogs/control_ui.py:1825-3602
 
 ## Section 04  (1946 lines, 1 piece)
 cogs/docker_control.py:1-1946
@@ -32,8 +40,8 @@ cogs/docker_control.py:3806-5294
 ## Section 07  (665 lines, 1 piece)
 cogs/enhanced_info_modal_simple.py:1-665
 
-## Section 08  (1380 lines, 1 piece)
-cogs/status_handlers.py:1-1380
+## Section 08  (1381 lines, 1 piece)
+cogs/status_handlers.py:1-1381
 
 ## Section 09  (1978 lines, 1 piece)
 cogs/status_info_integration.py:1-1978
