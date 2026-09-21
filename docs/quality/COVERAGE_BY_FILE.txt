@@ -41,7 +41,7 @@ app/blueprints/action_log_routes.py	91	pass1:s31:plan pass2:s31:1-86  [5 of 91 l
 app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
 app/blueprints/main_routes.py	1514	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package]
-app/blueprints/security_routes.py	193	pass1:s32:plan pass2:s32:1-193
+app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
 app/blueprints/tasks_bp.py	314	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	363	pass1:s33:1-350  [13 of 363 lines never in a package]
 app/bootstrap/__init__.py	34	pass1:s33:1-34
@@ -107,7 +107,7 @@ services/automation/automation_service.py	527	NONE
 services/config/__init__.py	16	NONE
 services/config/channel_config_service.py	549	NONE
 services/config/config_cache_service.py	142	NONE
-services/config/config_form_parser_service.py	506	pass1:s12:1-483  [23 of 506 lines never in a package]
+services/config/config_form_parser_service.py	517	pass1:s12:1-483  [23 of 506 lines never in a package]
 services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
 services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 lines never in a package]
 services/config/config_service.py	1211	NONE
@@ -201,7 +201,7 @@ services/web/mech_music_service.py	224	pass1:s30:1-224
 services/web/mech_status_details_service.py	410	pass1:s30:1-401  [9 of 410 lines never in a package]
 services/web/mech_web_service.py	676	pass1:s30:1-676
 services/web/performance_stats_service.py	181	pass1:s30:1-172  [9 of 181 lines never in a package]
-services/web/security_service.py	345	pass1:s30:1-339  [6 of 345 lines never in a package]
+services/web/security_service.py	350	pass1:s30:1-339  [6 of 345 lines never in a package]
 services/web/task_management_service.py	1087	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150
@@ -216,4 +216,4 @@ utils/observability.py	593	pass1:s36:1-579  [14 of 593 lines never in a package]
 utils/performance_metrics.py	419	pass1:s36:1-389  [30 of 419 lines never in a package]
 utils/settings.py	113	pass1:s36:1-98  [15 of 113 lines never in a package]
 utils/time_utils.py	387	pass1:s36:1-374  [13 of 387 lines never in a package]
-utils/token_security.py	318	NONE
+utils/token_security.py	330	NONE

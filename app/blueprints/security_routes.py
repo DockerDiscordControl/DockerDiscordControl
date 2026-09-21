@@ -12,6 +12,7 @@ Handles token security, encryption status, and migration features.
 
 from flask import Blueprint, request, jsonify
 from app.auth import auth
+from services.exceptions import ConfigServiceError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -97,6 +98,17 @@ def encrypt_token():
                 'error': result.error
             }), result.status_code
 
+    except ConfigServiceError as e:
+        # What the encryption below actually raises (TokenEncryptionError
+        # descends from it). The two tuples that follow could not catch it, and
+        # neither could the two layers under this route - so the operator
+        # pressed a security button and Flask answered with a blank 500 page
+        # (review E11).
+        logger.error(f"Token encryption failed: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'The bot token could not be encrypted: {e.message}'
+        }), 500
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (security_service unavailable, service method failures)
         logger.error(f"Service error in encrypt_token route: {e}", exc_info=True)

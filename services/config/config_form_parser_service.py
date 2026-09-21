@@ -399,7 +399,18 @@ class ConfigFormParserService:
                     return current_config, False, "The Web UI password could not be changed. Nothing was saved."
                 try:
                     change_web_ui_password(new_password)
-                except ValueError as e:
+                except (ValueError, ConfigServiceError) as e:
+                    # All three the function documents, in two names:
+                    # ValueError (too short, empty), and ConfigServiceError,
+                    # which covers ConfigSaveError (the write failed) and
+                    # TokenEncryptionError (the bot token could not be
+                    # re-encrypted). Only ValueError used to be caught, so a
+                    # full disk left this branch and came back to the operator
+                    # from save_config_api as "Error saving configuration" -
+                    # true, and no answer to the one question they have: is my
+                    # password changed or not? Nothing is lost either way, the
+                    # write had not happened; what was wrong is what they were
+                    # told (review E10).
                     return current_config, False, f"Web UI password not changed: {e}. Nothing was saved."
                 password_changed = True
                 logger.info("Web UI password changed via configuration form")

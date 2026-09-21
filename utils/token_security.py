@@ -126,11 +126,23 @@ class TokenSecurityManager:
                 logger.error("Failed to encrypt bot token")
                 return False
 
-        except (OSError, ValueError, AttributeError, TypeError, RuntimeError) as e:
+        except Exception as e:  # noqa: BLE001
             # OSError: unreadable/root-owned file; ValueError: truncated/empty JSON
             # (JSONDecodeError); AttributeError/TypeError: JSON that isn't an object.
             # The migration is optional - never let it break the startup.
-            logger.error(f"Error during token encryption migration: {e}", exc_info=True)
+            #
+            # Broad since review E11, because the tuple that used to stand here
+            # did NOT keep that promise: encrypt_token raises TokenEncryptionError
+            # (-> ConfigServiceError -> DDCBaseException), which was in none of
+            # those types. It escaped this layer, the security service above it
+            # and the route above that - three handlers in a row - and the
+            # operator pressed a button and got a blank 500 page.
+            #
+            # Caught by class and not by importing services.exceptions: utils/
+            # importing from services/ at module level is a layering inversion
+            # and broke a whole test group the last time I tried it (E7).
+            logger.error(f"Error during token encryption migration: {type(e).__name__}: {e}",
+                         exc_info=True)
             return False
 
     def verify_token_encryption_status(self) -> Dict[str, Any]:

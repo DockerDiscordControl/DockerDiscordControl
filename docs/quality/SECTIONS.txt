@@ -63,8 +63,8 @@ services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-549
 services/config/config_cache_service.py:1-142
 
-## Section 12  (1453 lines, 3 pieces)
-services/config/config_form_parser_service.py:1-506
+## Section 12  (1464 lines, 3 pieces)
+services/config/config_form_parser_service.py:1-517
 services/config/config_loader_service.py:1-481
 services/config/config_migration_service.py:1-466
 
@@ -190,12 +190,12 @@ services/web/donation_status_service.py:1-251
 services/web/donation_tracking_service.py:1-163
 services/web/i18n_service.py:1-214
 
-## Section 30  (1836 lines, 5 pieces)
+## Section 30  (1841 lines, 5 pieces)
 services/web/mech_music_service.py:1-224
 services/web/mech_status_details_service.py:1-410
 services/web/mech_web_service.py:1-676
 services/web/performance_stats_service.py:1-181
-services/web/security_service.py:1-345
+services/web/security_service.py:1-350
 
 ## Section 31  (1954 lines, 6 pieces)
 services/web/task_management_service.py:1-1087
@@ -277,12 +277,12 @@ utils/observability.py:1-593
 utils/settings.py:1-113
 utils/time_utils.py:1-387
 
-## Section 37  (821 lines, 3 pieces)
+## Section 37  (833 lines, 3 pieces)
 utils/performance_metrics.py:1-419
 utils/key_crypto.py:1-84
-utils/token_security.py:1-318
+utils/token_security.py:1-330
 
-## Section 38  (193 lines, 1 piece)
+## Section 38  (205 lines, 1 piece)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
 # lines a section may hold, and the next repair in main_routes.py (review D25)
 # did not fit. The section cut is an instrument for reading the code, not a
@@ -290,4 +290,4 @@ utils/token_security.py:1-318
 # written would be the wrong way round. security_routes.py is the piece that
 # moves because no finding of either pass points at it, so no finding label
 # ends up naming a section that no longer holds its file.
-app/blueprints/security_routes.py:1-193
+app/blueprints/security_routes.py:1-205
