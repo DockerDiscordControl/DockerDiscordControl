@@ -848,8 +848,17 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                     except (ImportError, AttributeError, RuntimeError) as service_error:
                         logger.warning(f"SERVICE_FIRST: Error in overview decision service: {service_error}")
-                        # Fallback to original logic on service error
-                        tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
+                        # Fall back to the channel's own interval - the same
+                        # fallback the admin overview below has always used.
+                        #
+                        # This used to queue the update unconditionally, and the
+                        # loop runs every minute: with the decision service
+                        # broken, the overview was edited sixty times an hour for
+                        # an operator who had asked for once (review E18). Two
+                        # messages taking the same decision had two different
+                        # fallbacks, and nobody decided that they should.
+                        if last_update_time is None or (now_utc - last_update_time) >= update_interval_delta:
+                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
 
                     continue  # Overview message handled, move to next message
 
