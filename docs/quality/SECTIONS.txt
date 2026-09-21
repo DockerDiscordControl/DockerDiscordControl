@@ -250,14 +250,14 @@ app/web/background.py:1-85
 app/web/blueprints.py:1-31
 app/web/compat.py:1-102
 
-## Section 35  (1859 lines, 15 pieces)
+## Section 35  (1869 lines, 15 pieces)
 app/web/config.py:1-169
 app/web/csrf.py:1-125
 app/web/diagnostics.py:1-30
 app/web/extensions.py:1-26
 app/web/i18n.py:1-64
 app/web/logging.py:1-60
-app/web/routes.py:1-181
+app/web/routes.py:1-191
 app/web/security.py:1-86
 app/web_ui.py:1-36
 utils/__init__.py:1-7

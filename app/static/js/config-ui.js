@@ -633,22 +633,43 @@ let pendingAdminChanges = [];
 // an entry the operator did not make. An empty array means "none".
 let adminContainers = {};
 let availableContainers = [];
+// Whether the state above came from a SUCCESSFUL read. An empty admin list is
+// a legitimate thing to have; an empty admin list because the read failed is
+// not, and the two are indistinguishable once assigned (review E22). Only a
+// completed load sets this, and only this lets a save go out.
+let adminDataLoaded = false;
 
 function openAdminModal() {
     // Load admin users from server
     fetch('/api/admin-users')
-        .then(response => response.json())
+        .then(response => {
+            // fetch() rejects on a network failure and on nothing else - not on
+            // a 500, and not on a 200 carrying {"success": false}. Both used to
+            // fall through to the success path below, where an error body reads
+            // exactly like "there are no admins": the modal opened saying so,
+            // and the next Save wrote that empty list over the real one
+            // (review E22).
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data || data.success === false) {
+                throw new Error(data && data.error ? data.error : 'unreadable admin data');
+            }
             adminUsers = data.discord_admin_users || [];
             adminNotes = data.admin_notes || {};
             adminContainers = data.admin_containers || {};
             availableContainers = data.available_containers || [];
             pendingAdminChanges = [];
+            adminDataLoaded = true;
             renderAdminUsers();
             const modal = new bootstrap.Modal(document.getElementById('adminModal'));
             modal.show();
         })
         .catch(error => {
+            adminDataLoaded = false;
             console.error('Error loading admin users:', error);
             alert(t('admin.failed_load_users'));
         });
@@ -788,6 +809,17 @@ function removeAdminUser(index) {
 }
 
 function saveAdminUsers() {
+    // Never write a list that was never read (review E22). This POST replaces
+    // the whole document - admins, notes and the per-admin container
+    // assignment - so saving from state that a failed load left empty deletes
+    // all three. openAdminModal() is the only thing that sets this flag, and
+    // only on a payload it checked.
+    if (!adminDataLoaded) {
+        console.error('Refusing to save admin users: the list was never loaded');
+        alert(t('admin.failed_load_users'));
+        return;
+    }
+
     // Assignments for people who are no longer admins would be refused by the
     // route, and rightly - this mapping narrows a right and cannot be written
     // for somebody who has none.
