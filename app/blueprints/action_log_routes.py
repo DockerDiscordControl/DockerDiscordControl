@@ -11,38 +11,43 @@ from flask import (
 import time
 from app.auth import auth
 
-# Import the rate limiting decorator from log_routes.py
-try:
-    from app.blueprints.log_routes import rate_limit
-except ImportError:
-    # Fallback: Own rate limit implementation if import fails
-    from functools import wraps
-    # Simple rate limiting for log requests
-    _last_log_request = {}  # IP -> timestamp
-    _min_request_interval = 60.0  # Increased to 60 seconds to match client-side auto-refresh interval
+# The rate limit for the action log. It used to sit in the `except ImportError`
+# arm of a `try: from app.blueprints.log_routes import rate_limit`, under a
+# comment reading "Fallback: ... if import fails" - but log_routes defines no
+# rate_limit and never did, so the import always failed and this was never a
+# fallback. It is the only implementation there has ever been.
+#
+# The try/except is gone rather than kept "just in case": an except ImportError
+# around a module that DOES exist would also swallow an ImportError raised
+# inside log_routes.py itself, and a broken dependency there would quietly
+# become "use the fallback" with nobody told (review D30).
+from functools import wraps
 
-    def rate_limit(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # Get client IP (simplified)
-            client_ip = request.remote_addr if 'request' in globals() else 'unknown'
+_last_log_request = {}  # IP -> timestamp
+_min_request_interval = 60.0  # Matches the client-side auto-refresh interval
 
-            # Check if the last request from this IP was too recent
-            current_time = time.time()
-            if client_ip in _last_log_request:
-                elapsed = current_time - _last_log_request[client_ip]
-                if elapsed < _min_request_interval:
-                    return Response(
-                        "TOO MANY REQUESTS: Please wait before requesting logs again.",
-                        status=429,
-                        mimetype='text/plain'
-                    )
 
-            # Update the timestamp of the last request
-            _last_log_request[client_ip] = current_time
+def rate_limit(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        client_ip = request.remote_addr or 'unknown'
 
-            return f(*args, **kwargs)
-        return decorated_function
+        # Check if the last request from this IP was too recent
+        current_time = time.time()
+        if client_ip in _last_log_request:
+            elapsed = current_time - _last_log_request[client_ip]
+            if elapsed < _min_request_interval:
+                return Response(
+                    "TOO MANY REQUESTS: Please wait before requesting logs again.",
+                    status=429,
+                    mimetype='text/plain'
+                )
+
+        # Update the timestamp of the last request
+        _last_log_request[client_ip] = current_time
+
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Import the central ACTION_LOG_FILE constant and log_user_action function
 try:
