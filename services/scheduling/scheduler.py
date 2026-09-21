@@ -169,7 +169,11 @@ class ScheduledTask:
         'task_id', 'container_name', 'action', 'cycle', 'status', 'is_active',
         'cron_string', 'time_str', 'year_val', 'month_val', 'day_val', 'weekday_val',
         'last_run_success', 'last_run_error', 'description', 'created_by',
-        'timezone_str', 'created_at_dt', 'created_at_ts', 'last_run_ts', 'next_run_ts'
+        'timezone_str', 'created_at_dt', 'created_at_ts', 'last_run_ts', 'next_run_ts',
+        # Whether the LAST is_valid() fell over rather than deciding. In slots
+        # because this class has no __dict__ - setting it without declaring it
+        # here raises inside __init__, which calls is_valid() (review E5).
+        'validation_errored'
     ]
 
     def __init__(self,
@@ -303,7 +307,14 @@ class ScheduledTask:
         return True
 
     def is_valid(self) -> bool:
-        """Check if the task is valid."""
+        """Check if the task is valid.
+
+        Sets ``validation_errored`` when the check itself fell over. Callers
+        that REFUSE on a False may ignore that - nothing is lost by refusing.
+        The cleanup in load_tasks() DELETES on a False and must not, because a
+        check that could not be made is not a verdict (review E5).
+        """
+        self.validation_errored = False
         try:
             # Check for system tasks first
             if self.is_system_task():
@@ -364,8 +375,12 @@ class ScheduledTask:
                 return False
 
         except (ValueError, TypeError, AttributeError) as e:
-            # Data errors (cycle validation, method calls)
+            # Data errors (cycle validation, method calls). Still False, because
+            # every caller that REFUSES on a False is right to refuse - but the
+            # reason is recorded, because the one caller that DELETES on a False
+            # must not act on this (review E5).
             logger.error(f"Data error validating task {self.task_id}: {e}", exc_info=True)
+            self.validation_errored = True
             return False
 
     def _validate_once_or_yearly(self) -> bool:
@@ -1178,9 +1193,21 @@ def load_tasks() -> List[ScheduledTask]:
     # would otherwise be retried on every load and rewrite tasks.json on every scheduler
     # cycle (B5). We remember the failing ids and stay quiet until the set changes.
     global _failed_cleanup_ids
-    valid_tasks = [task for task in tasks if task.is_valid()]
+    # A task is removed only when it is DEFINITELY invalid. is_valid() also
+    # answers False when the check itself raised, and deleting on that would
+    # take a task out of the operator's schedule for good because a validator
+    # met an unexpected value - with no backup and nobody asked (review E5).
+    def _is_definitely_invalid(task: ScheduledTask) -> bool:
+        invalid = not task.is_valid()
+        if invalid and getattr(task, 'validation_errored', False):
+            logger.warning("Keeping task %s: its validation could not be completed, "
+                           "which is not the same as invalid", task.task_id)
+            return False
+        return invalid
+
+    valid_tasks = [task for task in tasks if not _is_definitely_invalid(task)]
     if len(valid_tasks) != len(tasks):
-        removed_ids = frozenset(task.task_id for task in tasks if not task.is_valid())
+        removed_ids = frozenset(task.task_id for task in tasks if _is_definitely_invalid(task))
         if removed_ids == _failed_cleanup_ids:
             logger.debug("Skipping cleanup rewrite: the same %d invalid task(s) could not be "
                          "removed earlier", len(removed_ids))
