@@ -14,7 +14,6 @@ for various log types including container logs, bot logs, Discord logs, and acti
 
 import os
 import logging
-import asyncio
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
@@ -247,58 +246,6 @@ class ContainerLogService:
             # Fallback validation if utility is not available
             import re
             return bool(re.match(r'^[a-zA-Z0-9_.-]+$', container_name))
-
-    async def _get_docker_client_async(self):
-        """Get Docker client with SERVICE FIRST pattern."""
-        try:
-            # SERVICE FIRST: Use Docker Client Service
-            from services.docker_service.docker_client_pool import get_docker_client_async
-            return get_docker_client_async(operation='logs', timeout=30.0)
-        except (ImportError, AttributeError, TypeError, RuntimeError) as e:
-            # Service/import errors (missing docker service, attribute errors, runtime errors)
-            self.logger.error(f"Failed to get Docker client: {e}", exc_info=True)
-            return None
-
-    async def _fetch_container_logs_async(self, client, container_name: str, max_lines: int) -> Optional[str]:
-        """Fetch logs from Docker container with error handling using SERVICE FIRST pattern."""
-        try:
-            import docker
-            import asyncio
-
-            # Use async thread execution for Docker API calls
-            container = await asyncio.to_thread(client.containers.get, container_name)
-            logs = await asyncio.to_thread(
-                lambda: container.logs(tail=max_lines, stdout=True, stderr=True)
-            )
-            return logs.decode('utf-8', errors='replace')
-
-        except docker.errors.NotFound:
-            self.logger.warning(f"Log request for non-existent container: {container_name}")
-            return None
-        except docker.errors.APIError as e:
-            self.logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
-            raise RuntimeError("Could not retrieve logs due to a Docker API error")
-        except (ImportError, AttributeError, TypeError, UnicodeDecodeError, RuntimeError) as e:
-            # Import/decode/async errors (missing modules, attribute errors, decode errors, runtime errors)
-            self.logger.error(f"Error fetching container logs: {e}", exc_info=True)
-            raise
-
-    async def _get_container_logs_service_first(self, container_name: str, max_lines: int) -> Optional[str]:
-        """Get container logs using SERVICE FIRST Docker Client Service."""
-        try:
-            # Get Docker client using SERVICE FIRST pattern
-            client_context = await self._get_docker_client_async()
-            if not client_context:
-                return None
-
-            # Use the context manager for proper cleanup
-            async with client_context as client:
-                return await self._fetch_container_logs_async(client, container_name, max_lines)
-
-        except (AttributeError, TypeError, RuntimeError) as e:
-            # Async/context errors (missing attributes, type errors, runtime errors)
-            self.logger.error(f"Error in SERVICE FIRST container logs: {e}", exc_info=True)
-            return None
 
     def _get_bot_logs(self, max_lines: int) -> LogResult:
         """Get bot-specific logs with file fallback."""
