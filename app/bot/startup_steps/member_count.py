@@ -33,8 +33,14 @@ async def initialize_member_count_step(context: StartupContext) -> None:
 
         if await _refresh_member_count(context, state.level, member_count, member_count_service):
             await _recalculate_goal(progress_service.mech_id, logger)
-    except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, asyncio.TimeoutError, json.JSONDecodeError) as e:
-        logger.error("Error initializing Level 1 member count: %s", e, exc_info=True)
+    except Exception as e:  # noqa: BLE001
+        # Same reason as grant_power_gift_step: update_member_count heals first
+        # and can raise MechStateError since D1, which none of the nine types
+        # that used to stand here could catch. This is the LAST step, so the
+        # cost of an escape is smaller - but the gap is the same one and the
+        # member count is not worth a startup either (review E8).
+        logger.error("Error initializing Level 1 member count: %s: %s",
+                     type(e).__name__, e, exc_info=True)
 
 
 async def _refresh_member_count(

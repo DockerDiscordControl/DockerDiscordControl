@@ -59,9 +59,9 @@ app/bot/startup_steps/__init__.py	52	pass1:s33:1-52
 app/bot/startup_steps/commands.py	120	pass1:s33:1-120
 app/bot/startup_steps/cooldowns.py	29	pass1:s33:1-29
 app/bot/startup_steps/diagnostics.py	26	pass1:s33:1-26
-app/bot/startup_steps/member_count.py	120	pass1:s33:1-120
+app/bot/startup_steps/member_count.py	126	pass1:s33:1-120
 app/bot/startup_steps/notifications.py	35	pass1:s33:1-35
-app/bot/startup_steps/power.py	36	pass1:s33:1-36
+app/bot/startup_steps/power.py	53	pass1:s33:1-36
 app/bot/startup_steps/scheduler.py	27	pass1:s33:1-27
 app/bot/startup_steps/sequence.py	25	pass1:s33:1-25
 app/bot/token.py	123	pass1:s33:1-101

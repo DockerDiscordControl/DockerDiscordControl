@@ -209,7 +209,7 @@ app/blueprints/log_routes.py:1-242
 app/blueprints/main_routes.py:1-1514
 app/blueprints/tasks_bp.py:1-314
 
-## Section 33  (1958 lines, 25 pieces)
+## Section 33  (1981 lines, 25 pieces)
 app/blueprints/translation_routes.py:1-363
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
@@ -226,9 +226,9 @@ app/bot/startup_steps/__init__.py:1-52
 app/bot/startup_steps/commands.py:1-120
 app/bot/startup_steps/cooldowns.py:1-29
 app/bot/startup_steps/diagnostics.py:1-26
-app/bot/startup_steps/member_count.py:1-120
+app/bot/startup_steps/member_count.py:1-126
 app/bot/startup_steps/notifications.py:1-35
-app/bot/startup_steps/power.py:1-36
+app/bot/startup_steps/power.py:1-53
 app/bot/startup_steps/scheduler.py:1-27
 app/bot/startup_steps/sequence.py:1-25
 app/bot/token.py:1-123
