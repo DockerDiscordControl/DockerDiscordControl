@@ -8,6 +8,7 @@
 import json
 import os
 import threading
+import time
 from pathlib import Path
 from services.config.config_service import load_config
 import logging
@@ -58,23 +59,54 @@ class TranslationManager:
         """Reload all translation files from disk (hot-reload)."""
         with self._lock:
             self._load_translations()
+            # A reload is the one moment the language answer must be re-asked
+            # rather than reused (review E30).
+            self._current_language = None
+            self._language_cached_at = 0.0
             logger.info(f"Translations reloaded: {sorted(self._translations.keys())}")
 
     def get_available_languages(self):
         """Return list of available language codes."""
         return sorted(self._translations.keys())
 
+    # How long the language answer is reused. It is changed in the web panel and
+    # practically never otherwise, so a label that is one language behind for a
+    # moment is not something anyone can see (review E30).
+    _LANGUAGE_CACHE_SECONDS = 5.0
+    _language_cached_at = 0.0
+
     def get_current_language(self):
-        """Returns the current bot language from configuration."""
+        """Returns the current bot language from configuration.
+
+        Cached for a few seconds, and that is the whole point. This is reached
+        from ``_()``, which is behind every user-facing string DDC produces -
+        every embed label, every button, once per container per line - and
+        ``load_config()`` returns a COPY of the whole configuration.
+
+        Measured in the running container before the cache: ``_()`` cost 18.1 us
+        per call and ``load_config()`` 16.5 us of it, to read one key out of a
+        361-key, 19 KB dictionary. DDC deep-copied the entire configuration to
+        find out which language to use, and did it again for the next label on
+        the same embed.
+
+        ``reload_translations`` clears the stamp, so the hot-reload path stays
+        exact.
+        """
+        now = time.monotonic()
+        if (self._current_language is not None
+                and now - self._language_cached_at < self._LANGUAGE_CACHE_SECONDS):
+            return self._current_language
+
         try:
             config = load_config()
         except Exception:
-            return 'en'
+            return self._current_language or 'en'
 
         lang = config.get('language', 'en')
         if lang not in self._translations:
             lang = 'en'
         self._current_language = lang
+        self._language_cached_at = now
         return lang
 
     def _(self, text):

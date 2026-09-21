@@ -96,7 +96,7 @@ cogs/docker_control.py	5441	passE:loops+embeds+donationmodal:767-1021,2471-3290,
 cogs/enhanced_info_modal_simple.py	693	passE:E27+bothscans:519-700
 cogs/status_handlers.py	1398	passE:E15,E16:80-200,560-700
 cogs/status_info_integration.py	2397	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203
-cogs/translation_manager.py	117	NONE
+cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	97	NONE
 services/__init__.py	51	NONE
 services/admin/__init__.py	5	NONE
