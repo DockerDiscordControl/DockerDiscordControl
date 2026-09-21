@@ -112,6 +112,34 @@ class ContainerInfoService:
         self.config_file = get_config_dir() / "docker_config.json"  # Keep for backward compatibility
         logger.info(f"Container info service initialized using container files in: {self.containers_dir}")
 
+    def _find_by_stored_name(self, container_name: str) -> Optional[Path]:
+        """The container's file when it is not stored under its own name.
+
+        This scan reads files belonging to OTHER containers, so one of them
+        being unreadable must not decide this container's fate. The loop used
+        to open and parse each file unguarded, three times over in this class:
+        a half-written legacy leftover or a hand-edited file raised out of the
+        loop, and the caller's own handler turned that into "not found" or a
+        failed save for a container whose file was perfectly fine (review D19).
+        """
+        for file in sorted(self.containers_dir.glob("*.json")):
+            try:
+                with open(file, 'r', encoding='utf-8') as handle:
+                    data = json.load(handle)
+            except (OSError, json.JSONDecodeError, UnicodeDecodeError) as e:
+                logger.warning(f"Skipping {file.name} while looking for "
+                               f"'{container_name}': {e}")
+                continue
+            if not isinstance(data, dict):
+                logger.warning(f"Skipping {file.name} while looking for "
+                               f"'{container_name}': not an object")
+                continue
+            if (data.get('container_name') == container_name or
+                    data.get('docker_name') == container_name or
+                    data.get('name') == container_name):
+                return file
+        return None
+
     def get_container_info(self, container_name: str) -> ServiceResult:
         """Get container information by name from individual container JSON file.
 
@@ -129,15 +157,8 @@ class ContainerInfoService:
 
             if not container_file.exists():
                 # Try alternative naming patterns
-                for file in self.containers_dir.glob("*.json"):
-                    with open(file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if (data.get('container_name') == container_name or
-                            data.get('docker_name') == container_name or
-                            data.get('name') == container_name):
-                            container_file = file
-                            break
-                else:
+                container_file = self._find_by_stored_name(container_name)
+                if container_file is None:
                     # Container not found - return default info
                     default_info = ContainerInfo(
                         enabled=False,
@@ -207,15 +228,8 @@ class ContainerInfoService:
 
             if not container_file.exists():
                 # Try alternative naming patterns
-                for file in self.containers_dir.glob("*.json"):
-                    with open(file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if (data.get('container_name') == container_name or
-                            data.get('docker_name') == container_name or
-                            data.get('name') == container_name):
-                            container_file = file
-                            break
-                else:
+                container_file = self._find_by_stored_name(container_name)
+                if container_file is None:
                     error_msg = f"Container file not found for: {container_name}"
                     logger.error(error_msg)
                     return ServiceResult(success=False, error=error_msg)
@@ -265,15 +279,8 @@ class ContainerInfoService:
 
             if not container_file.exists():
                 # Try alternative naming patterns
-                for file in self.containers_dir.glob("*.json"):
-                    with open(file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if (data.get('container_name') == container_name or
-                            data.get('docker_name') == container_name or
-                            data.get('name') == container_name):
-                            container_file = file
-                            break
-                else:
+                container_file = self._find_by_stored_name(container_name)
+                if container_file is None:
                     logger.debug(f"Container file not found for: {container_name}")
                     return ServiceResult(success=True)  # Not an error if container doesn't exist
 
