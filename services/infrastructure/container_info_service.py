@@ -37,6 +37,13 @@ def _validate_path_safety(name: str, base_dir: Path) -> None:
     if not str(resolved).startswith(str(base_dir.resolve())):
         raise ValueError(f"Path traversal detected: {name!r}")
 
+# What the protected info fields may hold. They were written into from_dict as
+# bare slices, where they silently shortened on READ while both writers kept
+# whatever they were given (review D18).
+MAX_PROTECTED_CONTENT = 250
+MAX_PROTECTED_PASSWORD = 60
+
+
 @dataclass(frozen=True)
 class ContainerInfo:
     """Immutable container information data structure."""
@@ -60,8 +67,14 @@ class ContainerInfo:
             custom_port=str(data.get('custom_port', '')),
             custom_text=str(data.get('custom_text', '')),
             protected_enabled=bool(data.get('protected_enabled', False)),
-            protected_content=str(data.get('protected_content', ''))[:250],  # Max 250 chars
-            protected_password=str(data.get('protected_password', ''))[:60]   # Max 60 chars
+            # What is stored, unchanged. These used to be bare slices here, so a
+            # value the writers had kept in full came back shorter on every
+            # read - the operator saved 300 characters, saw them saved, and
+            # found 250 the next time the panel loaded them. A reader that
+            # edits its data is how the two came to disagree; the limit is
+            # applied once, at the save below (review D18).
+            protected_content=str(data.get('protected_content', '')),
+            protected_password=str(data.get('protected_password', ''))
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -154,6 +167,27 @@ class ContainerInfoService:
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
 
+    def _within_limits(self, container_name: str, info: ContainerInfo) -> ContainerInfo:
+        """The one place the protected-info limits are applied - and said aloud.
+
+        They used to be applied on READ, inside ContainerInfo.from_dict, while
+        neither writer enforced anything: the web handler passes the form field
+        through untouched, and an HTML maxlength is a suggestion to the browser,
+        not a rule for the server. So a value was stored in full and came back
+        shortened, without a word to anybody (review D18).
+        """
+        from dataclasses import replace
+
+        trimmed = {}
+        for field, limit in (("protected_content", MAX_PROTECTED_CONTENT),
+                             ("protected_password", MAX_PROTECTED_PASSWORD)):
+            value = getattr(info, field)
+            if len(value) > limit:
+                logger.warning(f"{field} for {container_name} is {len(value)} characters "
+                               f"and is stored shortened to {limit}")
+                trimmed[field] = value[:limit]
+        return replace(info, **trimmed) if trimmed else info
+
     def save_container_info(self, container_name: str, container_info: ContainerInfo) -> ServiceResult:
         """Save container information to individual container JSON file.
 
@@ -165,6 +199,7 @@ class ContainerInfoService:
             ServiceResult indicating success or failure
         """
         try:
+            container_info = self._within_limits(container_name, container_info)
             _validate_path_safety(container_name, self.containers_dir)
 
             # Find container JSON file
