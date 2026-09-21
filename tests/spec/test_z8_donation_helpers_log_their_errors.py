@@ -54,3 +54,55 @@ def test_set_donation_disable_key_says_why(broken_config_service, caplog):
     with caplog.at_level(logging.DEBUG):
         assert donation_config.set_donation_disable_key("some-key") is False
     assert _errors(caplog), "the key was not saved and nothing was logged"
+
+
+# --- review E13, the DDC-exception scan -------------------------------------
+#
+# The three tests above use a RuntimeError, which every tuple in those files
+# happens to list. The error these helpers ACTUALLY meet does not appear in
+# any of them: ConfigService.save_config never returns success=False - it
+# either returns a result or raises ConfigSaveError (a DDCBaseException). So
+# the one failure these functions exist to absorb was the one that walked
+# straight past them, and a helper documented to return a bool raised instead.
+#
+# Neither has a production caller today (only the package re-export and this
+# file), so nothing was broken in the running app. It is pinned anyway,
+# because the contract is what the first caller will rely on.
+
+class _RaisesConfigError:
+    """A config service that fails the way the real one fails."""
+
+    def get_config(self):
+        return {}
+
+    def save_config(self, _config):
+        from services.exceptions import ConfigSaveError
+        raise ConfigSaveError("read-only file system")
+
+
+@pytest.fixture
+def config_service_that_raises(monkeypatch):
+    monkeypatch.setattr("services.config.config_service.get_config_service",
+                        lambda: _RaisesConfigError())
+
+
+def test_a_failed_save_returns_false_not_an_exception(config_service_that_raises, caplog):
+    with caplog.at_level(logging.DEBUG):
+        assert donation_config.set_donation_disable_key("some-key") is False, (
+            "the key was not written, and the function said it was"
+        )
+    assert _errors(caplog)
+
+
+class _GetRaises(_RaisesConfigError):
+    def get_config(self):
+        from services.exceptions import ConfigServiceError
+        raise ConfigServiceError("configuration could not be loaded")
+
+
+def test_an_unreadable_config_returns_empty_not_an_exception(monkeypatch, caplog):
+    monkeypatch.setattr("services.config.config_service.get_config_service",
+                        lambda: _GetRaises())
+    with caplog.at_level(logging.DEBUG):
+        assert donation_config.get_donation_disable_key() == ""
+    assert _errors(caplog)
