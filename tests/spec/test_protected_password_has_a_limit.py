@@ -40,6 +40,12 @@ def _modal(monkeypatch):
     modal.display_name = "V-Rising"
     modal.container_info = dict(INFO)
     modal.password_input = SimpleNamespace(value="")
+    # Since review E27 the modal re-reads the container info when the password
+    # is submitted, so the test has to supply that read - with exactly what the
+    # snapshot holds, which leaves every case below saying what it always said.
+    monkeypatch.setattr(modals, "get_container_info_service",
+                        lambda: SimpleNamespace(get_container_info=lambda _n: SimpleNamespace(
+                            success=True, data=SimpleNamespace(to_dict=lambda: dict(INFO)))))
     monkeypatch.setattr("services.infrastructure.action_logger.log_user_action",
                         MagicMock(), raising=False)
     return modal

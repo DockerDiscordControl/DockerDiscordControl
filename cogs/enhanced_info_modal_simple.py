@@ -585,8 +585,34 @@ class PasswordValidationModal(DDCModal):
                 )
                 return
 
+            # Ask now, not when the button was built (review E27). self.container_info
+            # is a snapshot taken by StatusInfoView.__init__, and that view is
+            # persistent (timeout=None) - it is rebuilt only when the status message
+            # is regenerated, which is every 5 minutes by default and up to an hour
+            # if the operator set update_interval_minutes that high. In between, a
+            # password changed in the web panel had no effect here and the replaced
+            # secret kept being handed out.
+            #
+            # Same sentence as review B3 / SPEC.md Z5, and the same answer: ask at
+            # the moment of the action. One small JSON read per password submission
+            # is not a cost worth trading a stale secret for.
+            info = self.container_info
+            try:
+                result = get_container_info_service().get_container_info(self.container_name)
+                if result.success and result.data:
+                    info = result.data.to_dict()
+            except Exception as e:  # noqa: BLE001
+                # Falling back to the snapshot on purpose: refusing outright would
+                # lock the operator out of their own data over a transient error,
+                # and a read failure is no reason to hand the secret out either.
+                logger.warning(
+                    "Could not re-read the protected info for %s (%s: %s) - checking "
+                    "against the snapshot the button was built with, which may be "
+                    "up to one refresh interval old",
+                    self.container_name, type(e).__name__, e)
+
             entered_password = self.password_input.value.strip()
-            stored_password = self.container_info.get('protected_password', '')
+            stored_password = info.get('protected_password', '')
 
             if not stored_password:
                 await interaction.response.send_message(
@@ -611,8 +637,9 @@ class PasswordValidationModal(DDCModal):
                 )
                 return
 
-            # Password correct - show protected info
-            protected_content = self.container_info.get('protected_content', '')
+            # Password correct - show protected info, from the same fresh read as
+            # the password above: they belong together (review E27).
+            protected_content = info.get('protected_content', '')
 
             if not protected_content:
                 await interaction.response.send_message(
