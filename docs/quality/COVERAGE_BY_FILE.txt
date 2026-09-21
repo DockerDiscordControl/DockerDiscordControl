@@ -50,7 +50,7 @@ app/bootstrap/runtime.py	200	pass1:s33:1-200
 app/bot/__init__.py	13	pass1:s33:1-13
 app/bot/commands.py	45	pass1:s33:1-45
 app/bot/dependencies.py	62	pass1:s33:1-62
-app/bot/events.py	92	pass1:s33:1-83  [9 of 92 lines never in a package]
+app/bot/events.py	134	pass1:s33:1-83  [9 of 92 lines never in a package]
 app/bot/factory.py	44	pass1:s33:1-44
 app/bot/runtime.py	62	pass1:s33:1-62
 app/bot/startup.py	39	pass1:s33:1-39
