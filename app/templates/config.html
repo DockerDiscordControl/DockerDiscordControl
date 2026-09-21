@@ -1799,25 +1799,6 @@
             `;
         }
         
-                    body: JSON.stringify({
-                        donor_name: donorName,
-                        amount: amount,
-                        total_donations: parseInt(totalDonations)
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification('Test broadcast sent successfully!', 'success');
-                    } else {
-                        showNotification('Error: ' + data.message, 'danger');
-                    }
-                })
-                .catch(error => {
-                    showNotification('Error sending broadcast: ' + error, 'danger');
-                });
-            }
-        }
     </script>
 
     <p class="text-center" style="color:#ffc107;"><strong>{{ _t('web.config.important_label') }}</strong> {{ _t('web.config.restart_warning') }}</p>
