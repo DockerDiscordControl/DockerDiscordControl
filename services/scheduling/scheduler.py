@@ -1929,6 +1929,44 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
         task.update_after_execution()
         _persist_executed_task(task)
         return False
+    except asyncio.CancelledError:
+        # The scheduler is going down; this is not the task's failure.
+        raise
+    except BaseException as e:
+        # Deliberately not a type list, and it belongs here rather than in a
+        # wider tuple above: the one error a scheduled container action really
+        # fails with is a DDC exception, and DDCBaseException descends from
+        # Exception and from nothing the four handlers above name. The chain is
+        # execute_task -> docker_action_service_first -> execute_docker_action
+        # -> get_docker_client_async -> raise DockerConnectionError, and not
+        # one link catches it.
+        #
+        # It escaped all the way to the scheduler service's broad handler,
+        # which logs it - C6 saw to that. What it did NOT do was write anything
+        # on the TASK, so the panel kept showing the previous run, quite
+        # possibly a success, while the nightly restart was not happening. The
+        # log had it; the operator did not (review E3).
+        execution_time = time.time() - execution_start
+        error_msg = f"Error executing task {task.task_id}: {e}"
+        logger.error(error_msg, exc_info=True)
+
+        task.last_run_success = False
+        task.last_run_error = str(e)
+
+        log_user_action(
+            action=f"{task.action.upper()}_ERROR",
+            target=task.container_name,
+            user="Scheduled Task",
+            source="Scheduled Task",
+            details=f"Task ID: {task.task_id}, Cycle: {task.cycle}, Duration: {execution_time:.2f}s, Error: {str(e)}"
+        )
+
+        # Moved on to its next run like every other failure here. A connection
+        # error is not more retryable than "Docker action failed", and that one
+        # has never been retried on the next cycle either.
+        task.update_after_execution()
+        _persist_executed_task(task)
+        return False
 
 # --- Validation & Parsing Functions (Maintain and adjust if needed) ---
 
