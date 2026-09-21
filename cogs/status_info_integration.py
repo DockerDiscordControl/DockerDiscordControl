@@ -396,7 +396,8 @@ class LiveLogView(DDCView):
                     color=0x00ff00,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
+                embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
+                    seconds=self.refresh_interval, remaining=remaining))
             else:
                 # Auto-refresh is not running
                 embed = discord.Embed(
@@ -405,7 +406,7 @@ class LiveLogView(DDCView):
                     color=0x0099ff,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text="📄 Static logs • Click ▶️ to start live updates")
+                embed.set_footer(text=_("📄 Static logs • Click ▶️ to start live updates"))
 
             # Edit the message with new view
             await self.message_ref.edit(embed=embed, view=new_view)
@@ -466,9 +467,10 @@ class LiveLogView(DDCView):
                     remaining = self.max_refreshes - self.refresh_count
 
                     if remaining > 0:
-                        embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
+                        embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
+                    seconds=self.refresh_interval, remaining=remaining))
                     else:
-                        embed.set_footer(text="✅ Auto-refresh completed • Click ▶️ to restart live updates")
+                        embed.set_footer(text=_("✅ Auto-refresh completed • Click ▶️ to restart live updates"))
                         embed.color = 0x808080  # Change to gray when done
                         self.auto_refresh_enabled = False
                         self.auto_refresh_task = None  # Clear task reference
@@ -547,7 +549,7 @@ class LiveLogView(DDCView):
                     color=0x0099ff,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text="🔄 Manually refreshed • Click again to update")
+                embed.set_footer(text=_("🔄 Manually refreshed • Click again to update"))
 
                 try:
                     await self.message_ref.edit(embed=embed, view=self)
@@ -584,7 +586,7 @@ class LiveLogView(DDCView):
                         color=0xff6600,
                         timestamp=datetime.now(timezone.utc)
                     )
-                    embed.set_footer(text="⏹️ Auto-refresh stopped • Click Start to restart")
+                    embed.set_footer(text=_("⏹️ Auto-refresh stopped • Click Start to restart"))
 
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
@@ -610,7 +612,8 @@ class LiveLogView(DDCView):
                         color=0x00ff00,
                         timestamp=datetime.now(timezone.utc)
                     )
-                    embed.set_footer(text=f"▶️ Auto-refresh restarted • Updating every {self.refresh_interval} seconds")
+                    embed.set_footer(text=_("▶️ Auto-refresh restarted • Updating every {seconds} seconds").format(
+                        seconds=self.refresh_interval))
 
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
@@ -654,7 +657,7 @@ class LiveLogView(DDCView):
                     # Get current embed and update it
                     current_embed = self.message_ref.embeds[0] if self.message_ref.embeds else None
                     if current_embed:
-                        current_embed.set_footer(text="⏰ Live Logs view timed out • Use /info command to create new Live Logs")
+                        current_embed.set_footer(text=_("⏰ Live Logs view timed out • Use /info command to create new Live Logs"))
                         current_embed.color = 0x808080  # Gray color
                         await self.message_ref.edit(embed=current_embed, view=self)
                     logger.info(f"Live Logs view timed out for container {self.container_name}")

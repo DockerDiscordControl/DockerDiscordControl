@@ -1655,5 +1655,12 @@
   "Day": "День",
   "Month": "Місяць",
   "Year": "Рік",
-  "Weekday": "День тижня"
+  "Weekday": "День тижня",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Оновлення кожні {seconds}с • залишилось {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Автооновлення перезапущено • кожні {seconds} секунд",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Статичні журнали • Натисніть ▶️ для оновлення наживо",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Автооновлення завершено • Натисніть ▶️ для перезапуску",
+  "🔄 Manually refreshed • Click again to update": "🔄 Оновлено вручну • Натисніть ще раз для оновлення",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Автооновлення зупинено • Натисніть «Старт» для перезапуску",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Перегляд живих журналів завершився • Скористайтеся /info для нових"
 }

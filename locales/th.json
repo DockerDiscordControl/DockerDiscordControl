@@ -1655,5 +1655,12 @@
   "Day": "วัน",
   "Month": "เดือน",
   "Year": "ปี",
-  "Weekday": "วันในสัปดาห์"
+  "Weekday": "วันในสัปดาห์",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 รีเฟรชทุก {seconds} วินาที • เหลืออีก {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ เริ่มรีเฟรชอัตโนมัติใหม่ • ทุก {seconds} วินาที",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 บันทึกแบบคงที่ • คลิก ▶️ เพื่อเริ่มอัปเดตสด",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ รีเฟรชอัตโนมัติเสร็จสิ้น • คลิก ▶️ เพื่อเริ่มใหม่",
+  "🔄 Manually refreshed • Click again to update": "🔄 รีเฟรชด้วยตนเองแล้ว • คลิกอีกครั้งเพื่ออัปเดต",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ หยุดรีเฟรชอัตโนมัติแล้ว • คลิก Start เพื่อเริ่มใหม่",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ มุมมองบันทึกสดหมดเวลา • ใช้ /info เพื่อสร้างใหม่"
 }

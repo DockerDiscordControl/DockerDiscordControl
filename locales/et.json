@@ -1655,5 +1655,12 @@
   "Day": "Päev",
   "Month": "Kuu",
   "Year": "Aasta",
-  "Weekday": "Nädalapäev"
+  "Weekday": "Nädalapäev",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Värskendatakse iga {seconds} s järel • {remaining} jäänud",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automaatne värskendamine taaskäivitatud • iga {seconds} s järel",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Staatilised logid • Klõpsa ▶️ reaalajas värskenduste jaoks",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automaatne värskendamine lõpetatud • Klõpsa ▶️ taaskäivitamiseks",
+  "🔄 Manually refreshed • Click again to update": "🔄 Käsitsi värskendatud • Klõpsa uuesti värskendamiseks",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automaatne värskendamine peatatud • Klõpsa Start taaskäivitamiseks",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Reaalajas logide vaade aegus • Kasuta uue loomiseks /info"
 }

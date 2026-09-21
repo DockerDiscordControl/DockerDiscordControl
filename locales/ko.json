@@ -1655,5 +1655,12 @@
   "Day": "일",
   "Month": "월",
   "Year": "년",
-  "Weekday": "요일"
+  "Weekday": "요일",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 {seconds}초마다 새로 고침 • {remaining}회 남음",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ 자동 새로 고침을 다시 시작했습니다 • {seconds}초마다",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 정적 로그 • 실시간 업데이트는 ▶️ 클릭",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ 자동 새로 고침이 완료되었습니다 • 다시 시작하려면 ▶️ 클릭",
+  "🔄 Manually refreshed • Click again to update": "🔄 수동으로 새로 고쳤습니다 • 다시 클릭하면 업데이트",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ 자동 새로 고침이 중지되었습니다 • 다시 시작하려면 시작 클릭",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ 실시간 로그 보기가 만료되었습니다 • /info 로 새로 만드세요"
 }

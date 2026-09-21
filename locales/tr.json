@@ -1655,5 +1655,12 @@
   "Day": "Gün",
   "Month": "Ay",
   "Year": "Yıl",
-  "Weekday": "Haftanın günü"
+  "Weekday": "Haftanın günü",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Her {seconds}sn yenileniyor • {remaining} kaldı",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Otomatik yenileme yeniden başlatıldı • her {seconds} saniyede",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statik günlükler • Canlı güncellemeler için ▶️ tıklayın",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Otomatik yenileme tamamlandı • Yeniden başlatmak için ▶️ tıklayın",
+  "🔄 Manually refreshed • Click again to update": "🔄 Elle yenilendi • Güncellemek için tekrar tıklayın",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Otomatik yenileme durduruldu • Yeniden başlatmak için Başlat'a tıklayın",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Canlı günlük görünümü zaman aşımına uğradı • Yeni için /info kullanın"
 }

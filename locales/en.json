@@ -1655,5 +1655,12 @@
   "Day": "Day",
   "Month": "Month",
   "Year": "Year",
-  "Weekday": "Weekday"
+  "Weekday": "Weekday",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Auto-refresh restarted • Updating every {seconds} seconds",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Static logs • Click ▶️ to start live updates",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Auto-refresh completed • Click ▶️ to restart live updates",
+  "🔄 Manually refreshed • Click again to update": "🔄 Manually refreshed • Click again to update",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Auto-refresh stopped • Click Start to restart",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live Logs view timed out • Use /info command to create new Live Logs"
 }

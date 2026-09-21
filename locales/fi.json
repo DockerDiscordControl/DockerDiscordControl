@@ -1655,5 +1655,12 @@
   "Day": "Päivä",
   "Month": "Kuukausi",
   "Year": "Vuosi",
-  "Weekday": "Viikonpäivä"
+  "Weekday": "Viikonpäivä",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Päivitetään {seconds} s välein • {remaining} jäljellä",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automaattinen päivitys käynnistetty uudelleen • {seconds} s välein",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Staattiset lokit • Napsauta ▶️ live-päivityksiä varten",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automaattinen päivitys valmis • Napsauta ▶️ aloittaaksesi uudelleen",
+  "🔄 Manually refreshed • Click again to update": "🔄 Päivitetty käsin • Napsauta uudelleen päivittääksesi",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automaattinen päivitys pysäytetty • Napsauta Käynnistä",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-lokinäkymä vanheni • Luo uusi komennolla /info"
 }

@@ -1655,5 +1655,12 @@
   "Day": "יום",
   "Month": "חודש",
   "Year": "שנה",
-  "Weekday": "יום בשבוע"
+  "Weekday": "יום בשבוע",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 מתרענן כל {seconds} שניות • נותרו {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ הרענון האוטומטי הופעל מחדש • כל {seconds} שניות",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 יומנים סטטיים • לחץ על ▶️ לעדכונים חיים",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ הרענון האוטומטי הסתיים • לחץ על ▶️ להפעלה מחדש",
+  "🔄 Manually refreshed • Click again to update": "🔄 רוענן ידנית • לחץ שוב לעדכון",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ הרענון האוטומטי הופסק • לחץ על התחל להפעלה מחדש",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ תצוגת היומנים החיים פגה • השתמש ב-/info ליצירת חדשים"
 }

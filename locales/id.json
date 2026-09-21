@@ -1655,5 +1655,12 @@
   "Day": "Hari",
   "Month": "Bulan",
   "Year": "Tahun",
-  "Weekday": "Hari dalam seminggu"
+  "Weekday": "Hari dalam seminggu",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Menyegarkan setiap {seconds}d • sisa {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Penyegaran otomatis dimulai ulang • setiap {seconds} detik",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Log statis • Klik ▶️ untuk pembaruan langsung",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Penyegaran otomatis selesai • Klik ▶️ untuk memulai ulang",
+  "🔄 Manually refreshed • Click again to update": "🔄 Disegarkan manual • Klik lagi untuk memperbarui",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Penyegaran otomatis dihentikan • Klik Mulai untuk memulai ulang",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Tampilan log langsung kedaluwarsa • Gunakan /info untuk membuat baru"
 }

@@ -1655,5 +1655,12 @@
   "Day": "Dag",
   "Month": "Maand",
   "Year": "Jaar",
-  "Weekday": "Weekdag"
+  "Weekday": "Weekdag",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Ververst elke {seconds}s • nog {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automatisch verversen herstart • elke {seconds} seconden",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statische logboeken • Klik op ▶️ voor live updates",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatisch verversen voltooid • Klik op ▶️ om opnieuw te starten",
+  "🔄 Manually refreshed • Click again to update": "🔄 Handmatig ververst • Klik opnieuw om te verversen",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatisch verversen gestopt • Klik op Start om opnieuw te starten",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-logweergave verlopen • Gebruik /info voor nieuwe live-logs"
 }

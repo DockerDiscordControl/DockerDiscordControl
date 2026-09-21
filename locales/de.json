@@ -1655,5 +1655,12 @@
   "Day": "Tag",
   "Month": "Monat",
   "Year": "Jahr",
-  "Weekday": "Wochentag"
+  "Weekday": "Wochentag",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Aktualisiert alle {seconds}s • noch {remaining} Aktualisierungen",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automatische Aktualisierung neu gestartet • alle {seconds} Sekunden",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statische Logs • ▶️ klicken für Live-Aktualisierung",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatische Aktualisierung beendet • ▶️ klicken zum Neustart",
+  "🔄 Manually refreshed • Click again to update": "🔄 Manuell aktualisiert • Erneut klicken zum Aktualisieren",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatische Aktualisierung gestoppt • Start klicken zum Neustart",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Live-Log-Ansicht abgelaufen • Mit /info neue Live-Logs erstellen"
 }

@@ -1655,5 +1655,12 @@
   "Day": "दिन",
   "Month": "महीना",
   "Year": "वर्ष",
-  "Weekday": "सप्ताह का दिन"
+  "Weekday": "सप्ताह का दिन",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 हर {seconds}से ताज़ा • {remaining} शेष",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ स्वतः ताज़ा पुनः आरंभ • हर {seconds} सेकंड",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 स्थिर लॉग • लाइव अपडेट के लिए ▶️ दबाएँ",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ स्वतः ताज़ा पूर्ण • पुनः आरंभ के लिए ▶️ दबाएँ",
+  "🔄 Manually refreshed • Click again to update": "🔄 मैन्युअल रूप से ताज़ा • अपडेट के लिए फिर दबाएँ",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ स्वतः ताज़ा रुका • पुनः आरंभ के लिए Start दबाएँ",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ लाइव लॉग दृश्य समाप्त • नए के लिए /info का उपयोग करें"
 }

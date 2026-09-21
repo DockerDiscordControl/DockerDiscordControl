@@ -1655,5 +1655,12 @@
   "Day": "Dag",
   "Month": "Måned",
   "Year": "År",
-  "Weekday": "Ukedag"
+  "Weekday": "Ukedag",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Oppdateres hvert {seconds}. sekund • {remaining} igjen",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automatisk oppdatering startet på nytt • hvert {seconds}. sekund",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statiske logger • Klikk ▶️ for sanntidsoppdateringer",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatisk oppdatering fullført • Klikk ▶️ for å starte på nytt",
+  "🔄 Manually refreshed • Click again to update": "🔄 Manuelt oppdatert • Klikk igjen for å oppdatere",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatisk oppdatering stoppet • Klikk Start for å starte på nytt",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Sanntidsloggvisningen er utløpt • Bruk /info for å lage nye"
 }

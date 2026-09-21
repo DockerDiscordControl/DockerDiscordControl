@@ -1655,5 +1655,12 @@
   "Day": "Dan",
   "Month": "Mjesec",
   "Year": "Godina",
-  "Weekday": "Dan u tjednu"
+  "Weekday": "Dan u tjednu",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Osvježavanje svakih {seconds}s • preostalo {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automatsko osvježavanje ponovno pokrenuto • svakih {seconds} s",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statični zapisi • Kliknite ▶️ za ažuriranja uživo",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatsko osvježavanje završeno • Kliknite ▶️ za ponovno pokretanje",
+  "🔄 Manually refreshed • Click again to update": "🔄 Ručno osvježeno • Kliknite ponovno za ažuriranje",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatsko osvježavanje zaustavljeno • Kliknite Start za ponovno pokretanje",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Prikaz zapisa uživo je istekao • Upotrijebite /info za nove"
 }

@@ -1655,5 +1655,12 @@
   "Day": "Ngày",
   "Month": "Tháng",
   "Year": "Năm",
-  "Weekday": "Ngày trong tuần"
+  "Weekday": "Ngày trong tuần",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Tự động làm mới mỗi {seconds}s • còn {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Đã khởi động lại tự động làm mới • mỗi {seconds} giây",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Nhật ký tĩnh • Nhấn ▶️ để cập nhật trực tiếp",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Đã hoàn tất tự động làm mới • Nhấn ▶️ để bắt đầu lại",
+  "🔄 Manually refreshed • Click again to update": "🔄 Đã làm mới thủ công • Nhấn lại để cập nhật",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Đã dừng tự động làm mới • Nhấn Bắt đầu để khởi động lại",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Chế độ xem nhật ký trực tiếp đã hết hạn • Dùng /info để tạo mới"
 }

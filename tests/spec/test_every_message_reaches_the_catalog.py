@@ -81,7 +81,7 @@ DELIBERATE_GLITCH = {
 # number here comes down with them.
 KNOWN = {
     "cogs/control_ui.py": 12,
-    "cogs/status_info_integration.py": 12,
+    "cogs/status_info_integration.py": 2,
 }
 
 

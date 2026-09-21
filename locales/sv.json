@@ -1655,5 +1655,12 @@
   "Day": "Dag",
   "Month": "Månad",
   "Year": "År",
-  "Weekday": "Veckodag"
+  "Weekday": "Veckodag",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Uppdateras var {seconds}:e sekund • {remaining} kvar",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automatisk uppdatering återupptagen • var {seconds}:e sekund",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statiska loggar • Klicka på ▶️ för liveuppdateringar",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatisk uppdatering klar • Klicka på ▶️ för att starta om",
+  "🔄 Manually refreshed • Click again to update": "🔄 Manuellt uppdaterad • Klicka igen för att uppdatera",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatisk uppdatering stoppad • Klicka på Start för att starta om",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Livelogg-vyn har gått ut • Använd /info för att skapa nya"
 }

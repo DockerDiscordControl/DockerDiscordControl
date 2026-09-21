@@ -1655,5 +1655,12 @@
   "Day": "Zi",
   "Month": "Lună",
   "Year": "An",
-  "Weekday": "Zi a săptămânii"
+  "Weekday": "Zi a săptămânii",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Reîmprospătare la fiecare {seconds}s • {remaining} rămase",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Reîmprospătarea automată a repornit • la fiecare {seconds} secunde",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Jurnale statice • Apăsați ▶️ pentru actualizări live",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Reîmprospătarea automată s-a încheiat • Apăsați ▶️ pentru a reporni",
+  "🔄 Manually refreshed • Click again to update": "🔄 Reîmprospătat manual • Apăsați din nou pentru actualizare",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Reîmprospătarea automată oprită • Apăsați Start pentru a reporni",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Vizualizarea jurnalelor live a expirat • Folosiți /info pentru altele noi"
 }

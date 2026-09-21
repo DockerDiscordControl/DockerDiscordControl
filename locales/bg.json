@@ -1655,5 +1655,12 @@
   "Day": "Ден",
   "Month": "Месец",
   "Year": "Година",
-  "Weekday": "Ден от седмицата"
+  "Weekday": "Ден от седмицата",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Обновяване на всеки {seconds}s • остават {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Автоматичното обновяване е рестартирано • на всеки {seconds} секунди",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Статични дневници • Натиснете ▶️ за обновяване на живо",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Автоматичното обновяване приключи • Натиснете ▶️ за рестарт",
+  "🔄 Manually refreshed • Click again to update": "🔄 Обновено ръчно • Натиснете отново за обновяване",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Автоматичното обновяване е спряно • Натиснете Старт за рестарт",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Изгледът на дневниците на живо изтече • Използвайте /info за нови"
 }

@@ -1655,5 +1655,12 @@
   "Day": "Diena",
   "Month": "Mēnesis",
   "Year": "Gads",
-  "Weekday": "Nedēļas diena"
+  "Weekday": "Nedēļas diena",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Atsvaidzina ik {seconds} s • atlikuši {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automātiskā atsvaidzināšana atsākta • ik {seconds} s",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statiski žurnāli • Noklikšķiniet ▶️, lai iegūtu tiešraides atjauninājumus",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automātiskā atsvaidzināšana pabeigta • Noklikšķiniet ▶️, lai sāktu no jauna",
+  "🔄 Manually refreshed • Click again to update": "🔄 Manuāli atsvaidzināts • Noklikšķiniet vēlreiz, lai atjauninātu",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automātiskā atsvaidzināšana apturēta • Noklikšķiniet Sākt",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Tiešraides žurnālu skats beidzies • Izmantojiet /info jauniem"
 }

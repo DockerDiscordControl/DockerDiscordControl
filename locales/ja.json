@@ -1655,5 +1655,12 @@
   "Day": "日",
   "Month": "月",
   "Year": "年",
-  "Weekday": "曜日"
+  "Weekday": "曜日",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 {seconds} 秒ごとに更新 • 残り {remaining} 回",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ 自動更新を再開しました • {seconds} 秒ごと",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 静的ログ • ライブ更新は ▶️ をクリック",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ 自動更新が完了しました • 再開するには ▶️ をクリック",
+  "🔄 Manually refreshed • Click again to update": "🔄 手動で更新しました • もう一度クリックで更新",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ 自動更新を停止しました • 再開するにはスタートをクリック",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ ライブログ表示がタイムアウトしました • /info で新しく作成してください"
 }

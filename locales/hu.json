@@ -1655,5 +1655,12 @@
   "Day": "Nap",
   "Month": "Hónap",
   "Year": "Év",
-  "Weekday": "Hét napja"
+  "Weekday": "Hét napja",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Frissítés {seconds} másodpercenként • még {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automatikus frissítés újraindítva • {seconds} másodpercenként",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statikus naplók • Kattintson a ▶️ gombra az élő frissítéshez",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatikus frissítés befejeződött • Kattintson a ▶️ gombra az újraindításhoz",
+  "🔄 Manually refreshed • Click again to update": "🔄 Kézzel frissítve • Kattintson újra a frissítéshez",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatikus frissítés leállítva • Kattintson a Start gombra",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Az élő naplónézet lejárt • Használja az /info parancsot újhoz"
 }

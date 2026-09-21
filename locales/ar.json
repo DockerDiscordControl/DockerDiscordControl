@@ -1655,5 +1655,12 @@
   "Day": "اليوم",
   "Month": "الشهر",
   "Year": "السنة",
-  "Weekday": "يوم الأسبوع"
+  "Weekday": "يوم الأسبوع",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 تحديث كل {seconds} ثانية • متبقٍ {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ أُعيد تشغيل التحديث التلقائي • كل {seconds} ثانية",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 سجلات ثابتة • اضغط ▶️ للتحديث المباشر",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ اكتمل التحديث التلقائي • اضغط ▶️ لإعادة التشغيل",
+  "🔄 Manually refreshed • Click again to update": "🔄 تم التحديث يدوياً • اضغط مرة أخرى للتحديث",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ أُوقف التحديث التلقائي • اضغط «ابدأ» لإعادة التشغيل",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ انتهت مهلة عرض السجلات المباشرة • استخدم /info لإنشاء سجلات جديدة"
 }

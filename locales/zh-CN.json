@@ -1655,5 +1655,12 @@
   "Day": "日",
   "Month": "月",
   "Year": "年",
-  "Weekday": "星期"
+  "Weekday": "星期",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 每 {seconds} 秒刷新 • 剩余 {remaining} 次",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ 已重新开始自动刷新 • 每 {seconds} 秒",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 静态日志 • 点击 ▶️ 开始实时更新",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ 自动刷新已完成 • 点击 ▶️ 重新开始",
+  "🔄 Manually refreshed • Click again to update": "🔄 已手动刷新 • 再次点击以更新",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ 自动刷新已停止 • 点击“开始”重新启动",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ 实时日志视图已超时 • 使用 /info 创建新的实时日志"
 }

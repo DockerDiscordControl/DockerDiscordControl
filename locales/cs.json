@@ -1655,5 +1655,12 @@
   "Day": "Den",
   "Month": "Měsíc",
   "Year": "Rok",
-  "Weekday": "Den v týdnu"
+  "Weekday": "Den v týdnu",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Obnovuje se každých {seconds}s • zbývá {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automatické obnovování restartováno • každých {seconds} s",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statické protokoly • Klikněte na ▶️ pro živé aktualizace",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatické obnovování dokončeno • Klikněte na ▶️ pro restart",
+  "🔄 Manually refreshed • Click again to update": "🔄 Ručně obnoveno • Klikněte znovu pro aktualizaci",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatické obnovování zastaveno • Klikněte na Start pro restart",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Zobrazení živých protokolů vypršelo • Použijte /info pro nové"
 }

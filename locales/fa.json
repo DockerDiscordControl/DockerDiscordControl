@@ -1655,5 +1655,12 @@
   "Day": "روز",
   "Month": "ماه",
   "Year": "سال",
-  "Weekday": "روز هفته"
+  "Weekday": "روز هفته",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 هر {seconds} ثانیه به‌روزرسانی • {remaining} باقی‌مانده",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ به‌روزرسانی خودکار دوباره آغاز شد • هر {seconds} ثانیه",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 گزارش‌های ثابت • برای به‌روزرسانی زنده ▶️ را بزنید",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ به‌روزرسانی خودکار پایان یافت • برای شروع دوباره ▶️ را بزنید",
+  "🔄 Manually refreshed • Click again to update": "🔄 به‌صورت دستی به‌روزرسانی شد • برای به‌روزرسانی دوباره بزنید",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ به‌روزرسانی خودکار متوقف شد • برای شروع دوباره «شروع» را بزنید",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ نمای گزارش زنده منقضی شد • برای ایجاد موارد جدید از /info استفاده کنید"
 }

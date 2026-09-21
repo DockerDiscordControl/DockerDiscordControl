@@ -1655,5 +1655,12 @@
   "Day": "日",
   "Month": "月",
   "Year": "年",
-  "Weekday": "星期"
+  "Weekday": "星期",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 每 {seconds} 秒重新整理 • 剩餘 {remaining} 次",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ 已重新開始自動重新整理 • 每 {seconds} 秒",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 靜態記錄 • 點擊 ▶️ 開始即時更新",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ 自動重新整理已完成 • 點擊 ▶️ 重新開始",
+  "🔄 Manually refreshed • Click again to update": "🔄 已手動重新整理 • 再次點擊以更新",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ 自動重新整理已停止 • 點擊「開始」重新啟動",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ 即時記錄檢視已逾時 • 使用 /info 建立新的即時記錄"
 }

@@ -1655,5 +1655,12 @@
   "Day": "Diena",
   "Month": "Mėnuo",
   "Year": "Metai",
-  "Weekday": "Savaitės diena"
+  "Weekday": "Savaitės diena",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Atnaujinama kas {seconds} s • liko {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Automatinis atnaujinimas paleistas iš naujo • kas {seconds} s",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Statiniai žurnalai • Spustelėkite ▶️, kad gautumėte tiesioginius atnaujinimus",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Automatinis atnaujinimas baigtas • Spustelėkite ▶️, kad paleistumėte iš naujo",
+  "🔄 Manually refreshed • Click again to update": "🔄 Atnaujinta rankiniu būdu • Spustelėkite dar kartą",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Automatinis atnaujinimas sustabdytas • Spustelėkite Pradėti",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Tiesioginių žurnalų rodinys baigėsi • Naudokite /info naujiems"
 }

@@ -1655,5 +1655,12 @@
   "Day": "День",
   "Month": "Месяц",
   "Year": "Год",
-  "Weekday": "День недели"
+  "Weekday": "День недели",
+  "🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining": "🔄 Обновление каждые {seconds}с • осталось {remaining}",
+  "▶️ Auto-refresh restarted • Updating every {seconds} seconds": "▶️ Автообновление перезапущено • каждые {seconds} секунд",
+  "📄 Static logs • Click ▶️ to start live updates": "📄 Статические журналы • Нажмите ▶️ для обновления в реальном времени",
+  "✅ Auto-refresh completed • Click ▶️ to restart live updates": "✅ Автообновление завершено • Нажмите ▶️ для перезапуска",
+  "🔄 Manually refreshed • Click again to update": "🔄 Обновлено вручную • Нажмите ещё раз для обновления",
+  "⏹️ Auto-refresh stopped • Click Start to restart": "⏹️ Автообновление остановлено • Нажмите «Старт» для перезапуска",
+  "⏰ Live Logs view timed out • Use /info command to create new Live Logs": "⏰ Просмотр живых журналов истёк • Используйте /info для новых"
 }
