@@ -149,7 +149,7 @@ services/infrastructure/__init__.py	0	pass2:s18:1-0
 services/infrastructure/action_log_service.py	387	pass1:s18:plan pass2:s18:1-376  [11 of 387 lines never in a package]
 services/infrastructure/action_logger.py	103	pass1:s18:plan pass2:s18:1-86  [17 of 103 lines never in a package]
 services/infrastructure/container_info_service.py	326	pass1:s18:plan pass2:s18:1-282  [44 of 326 lines never in a package]
-services/infrastructure/container_status_service.py	830	pass1:s19:1-816  [14 of 830 lines never in a package]
+services/infrastructure/container_status_service.py	833	pass1:s19:1-816  [14 of 830 lines never in a package]
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239
 services/infrastructure/dynamic_cooldown_manager.py	193	pass1:s19:1-179  [14 of 193 lines never in a package]
 services/infrastructure/event_manager.py	118	pass1:s19:1-118
