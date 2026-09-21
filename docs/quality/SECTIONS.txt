@@ -100,14 +100,14 @@ services/donation/unified/models.py:1-97
 services/donation/unified/processors.py:1-61
 services/donation/unified/reset.py:1-177
 
-## Section 18  (1586 lines, 8 pieces)
+## Section 18  (1603 lines, 8 pieces)
 services/donation/unified/service.py:1-468
 services/donation/unified/validation.py:1-44
 services/donation/unified_donation_service.py:1-31
 services/exceptions.py:1-299
 services/infrastructure/__init__.py:1-0
 services/infrastructure/action_log_service.py:1-376
-services/infrastructure/action_logger.py:1-86
+services/infrastructure/action_logger.py:1-103
 services/infrastructure/container_info_service.py:1-282
 
 ## Section 19  (1933 lines, 5 pieces)
@@ -173,8 +173,8 @@ services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-554
 services/web/configuration_save_service.py:1-565
 
-## Section 29  (1874 lines, 7 pieces)
-services/web/container_log_service.py:1-462
+## Section 29  (1882 lines, 7 pieces)
+services/web/container_log_service.py:1-470
 services/web/container_refresh_service.py:1-207
 services/web/diagnostics_service.py:1-263
 services/web/donation_service.py:1-314

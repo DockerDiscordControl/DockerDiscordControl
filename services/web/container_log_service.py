@@ -432,8 +432,16 @@ class ContainerLogService:
     def _get_action_logs_json(self, limit: int) -> LogResult:
         """Get action logs in JSON format."""
         try:
-            from services.infrastructure.action_logger import get_action_logs_json
-            action_logs = get_action_logs_json(limit=limit)
+            from services.infrastructure.action_logger import (
+                ActionLogUnreadable, get_action_logs_json)
+            try:
+                action_logs = get_action_logs_json(limit=limit)
+            except ActionLogUnreadable as e:
+                # A log that could not be read is a failed request, not an empty
+                # history. Without this the empty list came back wrapped in
+                # success=True and the route never saw a failure (review D5).
+                self.logger.error(f"Action logs could not be read: {e}")
+                return LogResult(success=False, error=str(e), status_code=500)
 
             return LogResult(
                 success=True,
