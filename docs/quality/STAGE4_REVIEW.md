@@ -159,6 +159,15 @@ sentence - a failure that looks like an empty result - which is what made a
 mechanical scan of every falsy-answering handler worth doing. Sections 13 and
 37 are still unread.
 
+**`cogs/docker_control.py` was opened on 2026-09-21** - 5,294 lines, the
+largest file in DDC, holding the status display, every slash command and eight
+background loops, and in no review package ever
+(`reviews/DOCKER_CONTROL.md`). Two findings so far, one of them the worst
+shape a defect can have: a single bad cycle ended a background loop for the
+rest of the run, with no line in DDC's log (E17). The read is not finished -
+the embed builders, the donation modal and the startup steps are still
+unread, and the coverage ledger says so rather than claiming the file.
+
 **Two mechanical scans came out of that section** and are now closed
 (`reviews/SCANS_2026-09-21.md`): the falsy-answer scan (33 hits, 1 finding -
 E6/SPEC B14) and the DDC-exception scan (9 hits, all judged: 7 fixed as
