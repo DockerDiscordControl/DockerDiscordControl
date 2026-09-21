@@ -50,6 +50,7 @@ from .control_helpers import get_guild_id, container_select, _channel_has_permis
 
 # Import the status handlers mixin that contains status-related functionality
 from .status_handlers import StatusHandlersMixin
+from .ddc_ui import DDCModal, DDCView
 
 # Import the command handlers mixin that contains Docker action command functionality
 # Command handlers removed - using UI buttons for all container control
@@ -4590,28 +4591,28 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Create persistent views for mech buttons
             # These views will persist across bot restarts
-            class PersistentMechExpandView(discord.ui.View):
+            class PersistentMechExpandView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
                     self.add_item(MechExpandButton(cog_instance, channel_id))
 
-            class PersistentMechCollapseView(discord.ui.View):
+            class PersistentMechCollapseView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
                     self.add_item(MechCollapseButton(cog_instance, channel_id))
 
-            class PersistentMechDonateView(discord.ui.View):
+            class PersistentMechDonateView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
                     self.add_item(MechDonateButton(cog_instance, channel_id))
 
-            class PersistentMechHistoryView(discord.ui.View):
+            class PersistentMechHistoryView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
                     self.add_item(MechHistoryButton(cog_instance, channel_id))
 
             # Create persistent views for mech selection buttons (levels 1-11)
-            class PersistentMechSelectionView(discord.ui.View):
+            class PersistentMechSelectionView(DDCView):
                 def __init__(self, cog_instance):
                     super().__init__(timeout=None)
                     # Add buttons for all possible mech levels (1-11). Registered as locked: the
@@ -4623,7 +4624,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     self.add_item(EpilogueButton(cog_instance))
 
             # Create persistent views for story buttons (levels 1-11)
-            class PersistentMechStoryView(discord.ui.View):
+            class PersistentMechStoryView(DDCView):
                 def __init__(self, cog_instance):
                     super().__init__(timeout=None)
                     # Add story and music buttons for all possible levels (1-11)
@@ -4663,7 +4664,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 _register_loop_error_handlers(DockerControlCog)
 
 
-class DonationView(discord.ui.View):
+class DonationView(DDCView):
     """View with donation buttons that track clicks."""
 
     def __init__(self, donation_manager_available: bool, message=None, bot=None):
@@ -4749,7 +4750,7 @@ class DonationView(discord.ui.View):
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in broadcast_clicked: {e}", exc_info=True)
 
-class DonationBroadcastModal(discord.ui.Modal):
+class DonationBroadcastModal(DDCModal):
     """Modal for donation broadcast details."""
 
     def __init__(self, donation_manager_available: bool, default_name: str, bot=None):
@@ -5167,7 +5168,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                 logger.error(f"Could not send error response: {edit_error}", exc_info=True)
 
 
-class AddAdminModal(discord.ui.Modal):
+class AddAdminModal(DDCModal):
     """Modal for adding a new admin user."""
 
     def __init__(self):

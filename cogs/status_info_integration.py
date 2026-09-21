@@ -26,6 +26,7 @@ from .translation_manager import _
 import asyncio
 import aiohttp
 from services.automation import get_auto_action_config_service
+from .ddc_ui import DDCView
 
 logger = get_module_logger('status_info_integration')
 
@@ -74,7 +75,7 @@ async def container_logs_text(container_name: str) -> str:
         logger.debug(f"Error getting logs for {container_name}: {e}")
         return f"Error retrieving logs: {str(e)[:100]}"
 
-class ContainerInfoAdminView(discord.ui.View):
+class ContainerInfoAdminView(DDCView):
     """
     Admin view for container info with Edit and Debug buttons (control channels only).
     """
@@ -288,7 +289,7 @@ class EditInfoButton(discord.ui.Button):
             except Exception:
                 pass
 
-class LiveLogView(discord.ui.View):
+class LiveLogView(DDCView):
     """View for live-updating debug logs with refresh controls."""
 
     def __init__(self, container_name: str, auto_refresh: bool = False):
@@ -797,7 +798,7 @@ class DebugLogsButton(discord.ui.Button):
             except Exception:
                 pass
 
-class StatusInfoView(discord.ui.View):
+class StatusInfoView(DDCView):
     """
     View for status-only channels that provides info display without control buttons.
     Only shows info button when container has info enabled.
@@ -823,7 +824,7 @@ class StatusInfoView(discord.ui.View):
         if self.info_config.get('protected_enabled', False):
             self.add_item(ProtectedInfoButton(cog_instance, server_config, self.info_config))
 
-class ProtectedInfoOnlyView(discord.ui.View):
+class ProtectedInfoOnlyView(DDCView):
     """
     View for /info command in status channels that only shows protected info button.
     """
@@ -1306,7 +1307,7 @@ class TaskManagementButton(discord.ui.Button):
             except Exception:
                 pass  # Interaction might have expired
 
-class TaskManagementView(discord.ui.View):
+class TaskManagementView(DDCView):
     """View with buttons for task management (Add Task, Delete Tasks, Auto-Action)."""
 
     def __init__(self, cog_instance, container_name: str):
@@ -1546,7 +1547,7 @@ def _get_allowed_task_actions(container_name: str) -> List[str]:
     return []
 
 
-class TaskCreationView(discord.ui.View):
+class TaskCreationView(DDCView):
     """View for task creation using sequential dropdowns."""
 
     def __init__(self, cog_instance, container_name: str, allowed_actions: Optional[List[str]] = None):
@@ -2222,7 +2223,7 @@ def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) 
     # The StatusInfoView will be used only for status-only channels, control channels use ControlView
     return True
 
-class ContainerTaskDeleteView(discord.ui.View):
+class ContainerTaskDeleteView(DDCView):
     """View for deleting tasks specific to a container."""
 
     def __init__(self, cog_instance, tasks: list, container_name: str):

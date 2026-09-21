@@ -29,6 +29,7 @@ from utils.logging_utils import get_module_logger
 from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
+from .ddc_ui import DDCView
 
 logger = get_module_logger('control_ui')
 
@@ -1044,7 +1045,7 @@ class ToggleButton(Button):
 # ULTRA-OPTIMIZED CONTROL VIEW CLASS
 # =============================================================================
 
-class ControlView(View):
+class ControlView(DDCView):
     """Ultra-optimized view with control buttons for a Docker container."""
     cog: 'DockerControlCog'
 
@@ -1493,7 +1494,7 @@ class TaskDeleteButton(Button):
 # disabled label button that nothing ever built, and whose callback said of
 # itself "This should never be called since button is disabled" (review B22).
 
-class MechView(View):
+class MechView(DDCView):
     """View with simplified buttons for Mech status in /ss command."""
 
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
@@ -1633,7 +1634,7 @@ class InfoDropdownButton(Button):
                 # Interaction may have expired
                 pass
 
-class ContainerInfoSelectView(View):
+class ContainerInfoSelectView(DDCView):
     """View with dropdown for selecting a container to view info."""
 
     def __init__(self, cog_instance: 'DockerControlCog', containers: list):
@@ -1830,7 +1831,7 @@ class ContainerInfoDropdown(discord.ui.Select):
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
-class PasswordProtectedView(View):
+class PasswordProtectedView(DDCView):
     """View with button for entering password to access protected info."""
 
     def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, info_config: dict):
@@ -2021,7 +2022,7 @@ class AdminButton(Button):
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
-class AdminContainerSelectView(View):
+class AdminContainerSelectView(DDCView):
     """View with dropdown for selecting a container for admin control."""
 
     def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int,
@@ -3156,7 +3157,7 @@ class MechHistoryButton(Button):
         await channel.send(embed=embed, ephemeral=True)
 
 
-class MechSelectionView(View):
+class MechSelectionView(DDCView):
     """View with buttons for each unlocked mech."""
 
     def __init__(self, cog_instance: 'DockerControlCog', current_level: int):
@@ -3386,7 +3387,7 @@ And those who dare… sp34k its ████ do s0 only once.
             await interaction.response.send_message(_("❌ Error loading epilogue."), ephemeral=True)
 
 
-class MechStoryView(View):
+class MechStoryView(DDCView):
     """View with Read Story and Play Song buttons - only for unlocked mechs."""
 
     def __init__(self, cog_instance: 'DockerControlCog', level: int, unlocked: bool = True):
@@ -3545,7 +3546,7 @@ class PlaySongButton(Button):
 # MECH DETAILS VIEW FOR PRIVATE MESSAGES
 # =============================================================================
 
-class MechDetailsView(View):
+class MechDetailsView(DDCView):
     """View for private mech details messages with Spenden and History buttons."""
 
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):

@@ -8,9 +8,9 @@
 # tests/spec/test_stage4_sections.py checks: every source file lies in exactly
 # one section, without gaps or overlaps.
 
-## Section 01  (1265 lines, 4 pieces)
+## Section 01  (1266 lines, 4 pieces)
 cogs/__init__.py:1-7
-cogs/admin_overview.py:1-900
+cogs/admin_overview.py:1-901
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-284
 
@@ -25,8 +25,8 @@ cogs/control_helpers.py:1-284
 # no longer holds its lines.
 cogs/control_ui.py:1-1832
 
-## Section 03  (1806 lines, 1 piece)
-cogs/control_ui.py:1833-3638
+## Section 03  (1807 lines, 1 piece)
+cogs/control_ui.py:1833-3639
 
 ## Section 04  (1794 lines, 1 piece)
 cogs/docker_control.py:1-1794
@@ -34,11 +34,11 @@ cogs/docker_control.py:1-1794
 ## Section 05  (1803 lines, 1 piece)
 cogs/docker_control.py:1795-3597
 
-## Section 06  (1843 lines, 1 piece)
-cogs/docker_control.py:3598-5440
+## Section 06  (1844 lines, 1 piece)
+cogs/docker_control.py:3598-5441
 
-## Section 07  (665 lines, 1 piece)
-cogs/enhanced_info_modal_simple.py:1-665
+## Section 07  (666 lines, 1 piece)
+cogs/enhanced_info_modal_simple.py:1-666
 
 ## Section 08  (1398 lines, 1 piece)
 cogs/status_handlers.py:1-1398
@@ -46,8 +46,8 @@ cogs/status_handlers.py:1-1398
 ## Section 09  (1966 lines, 1 piece)
 cogs/status_info_integration.py:1-1966
 
-## Section 10  (1828 lines, 8 pieces)
-cogs/status_info_integration.py:1967-2396
+## Section 10  (1829 lines, 8 pieces)
+cogs/status_info_integration.py:1967-2397
 cogs/translation_manager.py:1-117
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51
@@ -282,7 +282,7 @@ utils/performance_metrics.py:1-419
 utils/key_crypto.py:1-84
 utils/token_security.py:1-330
 
-## Section 38  (205 lines, 1 piece)
+## Section 38  (299 lines, 2 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
 # lines a section may hold, and the next repair in main_routes.py (review D25)
 # did not fit. The section cut is an instrument for reading the code, not a
@@ -291,3 +291,4 @@ utils/token_security.py:1-330
 # moves because no finding of either pass points at it, so no finding label
 # ends up naming a section that no longer holds its file.
 app/blueprints/security_routes.py:1-205
+cogs/ddc_ui.py:1-94

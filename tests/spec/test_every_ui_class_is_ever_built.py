@@ -28,7 +28,13 @@ SOURCE_DIRECTORIES = ("cogs", "services", "app", "utils")
 CALL_IN_TEXT = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
 
 
-UI_BASES = {"View", "Select", "Button", "Modal", "Item", "InputText"}
+# DDCView and DDCModal are DDC's own bases (cogs/ddc_ui.py, review E24). They
+# are discord.ui.View and discord.ui.Modal with an on_error that answers the
+# user, and every view and modal in the project inherits one of them - so
+# without these two names here the scan would go blind to the whole UI, which
+# is exactly what test_the_scan_sees_the_live_ones below is for.
+UI_BASES = {"View", "Select", "Button", "Modal", "Item", "InputText",
+            "DDCView", "DDCModal"}
 
 
 def _is_ui_base(base):
@@ -87,9 +93,31 @@ def test_the_scan_sees_the_live_ones():
         assert name in classes and name in called, f"{name} should be seen as built"
 
 
+@lru_cache(maxsize=1)
+def _base_names():
+    """Every name used as a base class under cogs/.
+
+    A class that other classes inherit from is used, whether or not anything
+    calls it. Without this, DDC's own DDCView and DDCModal read as dead code
+    the moment they were introduced (review E24) - and so would any future
+    base. The question this test asks is "is this class reachable", and being
+    somebody's base is one of the ways.
+    """
+    names = set()
+    for path in sorted((PROJECT / "cogs").glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                for base in node.bases:
+                    written = ast.unparse(base)
+                    names.add(written.rsplit(".", 1)[-1])
+    return names
+
+
 def test_every_ui_class_is_ever_built():
     classes = _ui_classes()
+    reachable = _called_names() | _base_names()
     never_built = sorted(f"{name} ({where})" for name, where in classes.items()
-                         if name not in _called_names())
+                         if name not in reachable)
 
     assert not never_built, f"nothing ever builds these, so they are dead: {never_built}"

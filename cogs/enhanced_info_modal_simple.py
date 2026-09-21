@@ -21,6 +21,7 @@ from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
 from services.infrastructure.action_logger import log_user_action
 from cogs.translation_manager import _
+from .ddc_ui import DDCModal
 # Channel-based security is handled by the calling UI button
 
 logger = get_module_logger('enhanced_info_modal_simple')
@@ -40,7 +41,7 @@ def _info_summary(info: dict) -> str:
             f"password={'set' if info.get('protected_password') else 'unset'}")
 
 
-class SimplifiedContainerInfoModal(discord.ui.Modal):
+class SimplifiedContainerInfoModal(DDCModal):
     """Simplified modal with all options in one dialog."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str = None):
@@ -318,7 +319,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
                 )
 
 
-class ProtectedInfoModal(discord.ui.Modal):
+class ProtectedInfoModal(DDCModal):
     """Modal for managing protected container information."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str = None):
@@ -545,7 +546,7 @@ def _clear_password_attempts(user_id) -> None:
     _PASSWORD_ATTEMPTS.pop(user_id, None)
 
 
-class PasswordValidationModal(discord.ui.Modal):
+class PasswordValidationModal(DDCModal):
     """Modal for validating password to access protected information."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str, container_info: dict):
