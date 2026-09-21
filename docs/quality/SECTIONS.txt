@@ -144,8 +144,8 @@ services/mech/progress/__init__.py:1-17
 services/mech/progress/runtime.py:1-158
 services/mech/progress_paths.py:1-189
 
-## Section 24  (1699 lines, 1 piece)
-services/mech/progress_service.py:1-1699
+## Section 24  (1740 lines, 1 piece)
+services/mech/progress_service.py:1-1740
 
 ## Section 25  (1263 lines, 7 pieces)
 services/mech/speed_levels.py:1-427

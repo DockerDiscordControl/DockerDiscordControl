@@ -396,6 +396,89 @@ def current_bin(user_count: int) -> int:
 
 
 
+def validated_level(level) -> int:
+    """The level as the pricing uses it: an int in 1..11."""
+    if not isinstance(level, int) or level < 1 or level > 11:
+        logger.error(f"Invalid level: {level} (type: {type(level)}). Must be int between 1-11. Using level 1.")
+        return 1
+    return level
+
+
+def base_cost_cents(level) -> int:
+    """The base part of a level's price - the only definition of it.
+
+    Same reason as dynamic_cost_cents next to it: the goal log line read this
+    straight out of the configuration while the price had already substituted
+    a default for a missing or nonsensical entry, so a level with no configured
+    base cost was priced at $10.00 and logged as $0.00 (review D27).
+    """
+    base = int(CFG.get("level_base_costs", {}).get(str(validated_level(level)), 0))
+    if base <= 0:
+        logger.error(f"Invalid base cost for level {level}: {base}. Using default $10.00")
+        return 1000  # Default $10.00
+    if base > 1000000:  # Cap at $10,000
+        logger.warning(f"Base cost {base} exceeds max $10,000. Capping.")
+        return 1000000
+    return base
+
+
+def validated_member_count(member_count) -> Optional[int]:
+    """The member count as the pricing uses it: an int in 0..100000, or None."""
+    if member_count is None:
+        return None
+    if not isinstance(member_count, int):
+        try:
+            member_count = int(member_count)
+        except (TypeError, ValueError):
+            logger.error(f"Invalid member_count type: {type(member_count)}. Using None.")
+            return None
+    if member_count < 0:
+        logger.warning(f"Negative member_count: {member_count}. Using 0.")
+        return 0
+    if member_count > 100000:  # Discord's theoretical limit
+        logger.warning(f"Member_count {member_count} exceeds Discord limit. Capping at 100000.")
+        return 100000
+    return member_count
+
+
+def dynamic_cost_cents(member_count, b: int) -> int:
+    """The dynamic part of a level's price - the only definition of it.
+
+    First ten members free, ten cents each after that; without a member count
+    the old bin table is the fallback.
+
+    It lives here because it used to be worked out twice: once for the price,
+    and once again - from the bin table, whatever formula the price had used -
+    for the log line in set_new_goal_for_next_level. The two disagreed in the
+    normal case, so that line read "requirement=$40.10 ($40.00 base + $4.00
+    dynamic)", an arithmetic that does not add up to its own total, and on a
+    fresh installation it charged $4.00 for a mech with no members at all. Two
+    numbers that have to agree are not computed twice any more (review D27).
+    """
+    member_count = validated_member_count(member_count)
+
+    if member_count is not None:
+        FREEBIE_MEMBERS = 10
+        COST_PER_MEMBER_CENTS = 10  # $0.10 = 10 cents
+        if member_count <= FREEBIE_MEMBERS:
+            return 0
+        billable_members = member_count - FREEBIE_MEMBERS
+        if billable_members > 999990:  # Would exceed $100k
+            logger.warning(f"Dynamic cost would exceed $100k with {billable_members} billable members. Capping.")
+            return 1000000  # Cap at $10,000
+        return billable_members * COST_PER_MEMBER_CENTS
+
+    # Fallback to bin-based cost if member_count not provided
+    cost = int(CFG.get("bin_to_dynamic_cost", {}).get(str(b), 0))
+    if cost < 0:
+        logger.warning(f"Negative dynamic cost for bin {b}: {cost}. Using 0.")
+        return 0
+    if cost > 1000000:  # Cap at $10,000
+        logger.warning(f"Dynamic cost {cost} exceeds max $10,000. Capping.")
+        return 1000000
+    return cost
+
+
 def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) -> int:
     """
     Calculate total requirement respecting Static Difficulty Override setting.
@@ -416,76 +499,32 @@ def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) 
     # INPUT VALIDATION & BOUNDS
     # =========================
 
-    # Validate level (must be 1-11)
-    if not isinstance(level, int) or level < 1 or level > 11:
-        logger.error(f"Invalid level: {level} (type: {type(level)}). Must be int between 1-11. Using level 1.")
-        level = 1
+    level = validated_level(level)
 
     # Validate bin (must be 1-21)
     if not isinstance(b, int) or b < 1 or b > 21:
         logger.warning(f"Invalid bin: {b} (type: {type(b)}). Must be int between 1-21. Using bin 1.")
         b = 1
 
-    # Validate member_count if provided
-    if member_count is not None:
-        if not isinstance(member_count, int):
-            try:
-                member_count = int(member_count)
-            except (TypeError, ValueError):
-                logger.error(f"Invalid member_count type: {type(member_count)}. Using None.")
-                member_count = None
-        elif member_count < 0:
-            logger.warning(f"Negative member_count: {member_count}. Using 0.")
-            member_count = 0
-        elif member_count > 100000:  # Discord's theoretical limit
-            logger.warning(f"Member_count {member_count} exceeds Discord limit. Capping at 100000.")
-            member_count = 100000
+    # Validate member_count if provided - the same rule the dynamic part uses,
+    # so the debug line below names the count that was actually priced.
+    member_count = validated_member_count(member_count)
 
     # =========================
     # BASE COST CALCULATION
     # =========================
 
-    # Get base cost for this level (minimum cost even for 1-person channel)
-    base_cost = int(CFG.get("level_base_costs", {}).get(str(level), 0))
-
-    # Validate base cost
-    if base_cost <= 0:
-        logger.error(f"Invalid base cost for level {level}: {base_cost}. Using default $10.00")
-        base_cost = 1000  # Default $10.00
-    elif base_cost > 1000000:  # Cap at $10,000
-        logger.warning(f"Base cost {base_cost} exceeds max $10,000. Capping.")
-        base_cost = 1000000
+    # Minimum cost even for a 1-person channel - see base_cost_cents, which the
+    # goal log line uses as well, so the two cannot drift apart.
+    base_cost = base_cost_cents(level)
 
     # =========================
     # DYNAMIC COST CALCULATION
     # =========================
 
-    # Calculate PRECISE dynamic cost based on actual member count
-    # Formula: First 10 members FREE, then $0.10/member
-    if member_count is not None and member_count >= 0:
-        # Use precise member-based calculation
-        FREEBIE_MEMBERS = 10
-        COST_PER_MEMBER_CENTS = 10  # $0.10 = 10 cents
-
-        if member_count <= FREEBIE_MEMBERS:
-            dynamic_cost = 0
-        else:
-            billable_members = member_count - FREEBIE_MEMBERS
-            # Check for potential overflow
-            if billable_members > 999990:  # Would exceed $100k
-                logger.warning(f"Dynamic cost would exceed $100k with {billable_members} billable members. Capping.")
-                dynamic_cost = 1000000  # Cap at $10,000
-            else:
-                dynamic_cost = billable_members * COST_PER_MEMBER_CENTS
-    else:
-        # Fallback to bin-based cost if member_count not provided
-        dynamic_cost = int(CFG.get("bin_to_dynamic_cost", {}).get(str(b), 0))
-        if dynamic_cost < 0:
-            logger.warning(f"Negative dynamic cost for bin {b}: {dynamic_cost}. Using 0.")
-            dynamic_cost = 0
-        elif dynamic_cost > 1000000:  # Cap at $10,000
-            logger.warning(f"Dynamic cost {dynamic_cost} exceeds max $10,000. Capping.")
-            dynamic_cost = 1000000
+    # First 10 members FREE, then $0.10/member - see dynamic_cost_cents, which
+    # is also what the goal log line uses, so the two cannot drift apart.
+    dynamic_cost = dynamic_cost_cents(member_count, b)
 
     # =========================
     # TOTAL COST CALCULATION
@@ -629,9 +668,11 @@ def set_new_goal_for_next_level(snap: Snapshot, user_count: int) -> None:
     snap.power_decay_per_day = decay_per_day(snap.level)
     snap.last_user_count_sample = user_count
 
-    # Get base and dynamic costs for logging
-    base_cost = int(CFG.get("level_base_costs", {}).get(str(snap.level), 0))
-    dynamic_cost = int(CFG.get("bin_to_dynamic_cost", {}).get(str(b), 0))
+    # The same two numbers the price was made of - not a second opinion. The
+    # dynamic part used to be read straight from the bin table here while the
+    # price above had used the per-member formula (review D27).
+    base_cost = base_cost_cents(snap.level)
+    dynamic_cost = dynamic_cost_cents(user_count, b)
 
     logger.info(f"Set new goal for mech {snap.mech_id}: Level {snap.level} -> {snap.level + 1}, "
                 f"requirement=${req/100:.2f} (${base_cost/100:.2f} base + ${dynamic_cost/100:.2f} dynamic, "
