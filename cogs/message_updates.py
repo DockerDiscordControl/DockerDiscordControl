@@ -23,7 +23,6 @@ from discord.ext import tasks
 
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
-from services.docker_service.server_order import load_server_order
 from utils.logging_utils import setup_logger
 
 from .loop_safety import survives_one_bad_cycle

@@ -1610,9 +1610,9 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/web/two_factor_service.py:189 TwoFactorStore.verify
 [ ] services/web/two_factor_service.py:211 TwoFactorStore.disable
 
-## Section 40  (944 lines, 2 public names)
-[ ] cogs/message_updates.py:36 MessageUpdatesMixin
-[ ] cogs/message_updates.py:43 MessageUpdatesMixin.periodic_message_edit_loop
+## Section 40  (943 lines, 2 public names)
+[ ] cogs/message_updates.py:35 MessageUpdatesMixin
+[ ] cogs/message_updates.py:42 MessageUpdatesMixin.periodic_message_edit_loop
 
 ## Section 41  (1228 lines, 32 public names)
 [ ] cogs/task_ui.py:33 TaskManagementButton
