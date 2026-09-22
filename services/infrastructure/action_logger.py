@@ -75,8 +75,10 @@ def log_user_action(action: str, target: str, user: str = "System",
     result = service.log_action(action, target, user, source, details)
 
     if not result.success:
-        import sys
-        print(f"ERROR: Failed to log action: {result.error}", file=sys.stderr)
+        # logger.error, not stderr: this line is the only trace that an action
+        # went unrecorded, and under supervisord stderr does not reach the log
+        # the panel shows. SPEC.md Z8.
+        logger.error(f"Action was not written to the action log: {result.error}")
 
 def get_action_logs_json(limit: int = 500) -> List[Dict[str, Any]]:
     """
@@ -119,6 +121,7 @@ def get_action_logs_text(limit: int = 500) -> str:
     if result.success:
         return result.data
     else:
-        import sys
-        print(f"ERROR: Failed to get text logs: {result.error}", file=sys.stderr)
+        # Same reason as above - the caller still gets its placeholder, but the
+        # reason ends up where the operator reads it.
+        logger.error(f"Action log could not be read: {result.error}")
         return "Error loading action logs"
