@@ -136,6 +136,11 @@ auth_limiter = SimpleRateLimiter(limit=100, per_seconds=60)  # 100 requests per 
 # this limit an attacker could brute-force the bootstrap window.
 setup_limiter = SimpleRateLimiter(limit=5, per_seconds=60)
 
+# Second-factor codes (v3.0): six digits and three valid codes per window mean
+# ~330,000 guesses on average for whoever already has the password - braked
+# like the setup bootstrap, 5 attempts per minute and address.
+two_factor_limiter = SimpleRateLimiter(limit=5, per_seconds=60)
+
 
 def init_limiter(app):
     """Initializes rate limiting for login attempts"""

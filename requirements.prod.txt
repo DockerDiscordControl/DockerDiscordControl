@@ -42,3 +42,6 @@ croniter>=6.0.0,<8.0.0
 # System/process memory stats for the performance endpoint (musllinux abi3 wheels for amd64 + arm64).
 # Capped below 8: the builder has no linux-headers, so a release without a musllinux wheel would break the build.
 psutil>=7.0.0,<8.0.0
+
+# QR code for the 2FA setup page (v3.0). Pure Python, no dependencies, SVG output.
+segno==1.6.6

@@ -1,0 +1,25 @@
+{# The second factor while it is off (v3.0; operator decision 2026-09-22: offered and
+   strongly recommended, never forced). First a setup dialog with "Later", then a
+   notice that stays until 2FA is on. No script: plain forms work under the CSP. #}
+{% if two_factor is defined and two_factor.show %}
+  {% if two_factor.prompt %}
+  <div class="alert alert-warning shadow-sm my-3" role="dialog" data-two-factor="prompt">
+    <h5 class="alert-heading"><i class="bi bi-shield-lock me-2"></i>{{ _t('web.two_factor.prompt_title') }}</h5>
+    <p class="mb-2">{{ _t('web.two_factor.prompt_text') }}</p>
+    {% if not two_factor.secure %}<p class="mb-2 small">{{ _t('web.two_factor.needs_tls_short') }}</p>{% endif %}
+    <div class="d-flex gap-2">
+      <a class="btn btn-warning btn-sm" href="{{ url_for('two_factor.status') }}">{{ _t('web.two_factor.set_up_now') }}</a>
+      <form method="post" action="{{ url_for('two_factor.dismiss') }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">{{ _t('web.two_factor.later') }}</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-secondary py-2 my-3 small" role="status" data-two-factor="notice">
+    <i class="bi bi-shield-exclamation me-1"></i>{{ _t('web.two_factor.notice_text') }}
+    <a href="{{ url_for('two_factor.status') }}" class="ms-1">{{ _t('web.two_factor.set_up_now') }}</a>
+  </div>
+  {% endif %}
+{% endif %}

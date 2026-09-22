@@ -1215,7 +1215,7 @@
 [ ] services/web/security_service.py:199 SecurityService.get_security_audit
 [ ] services/web/security_service.py:345 get_security_service
 
-## Section 31  (1954 lines, 51 public names)
+## Section 31  (1959 lines, 51 public names)
 [ ] services/web/task_management_service.py:25 AddTaskRequest
 [ ] services/web/task_management_service.py:37 AddTaskResult
 [ ] services/web/task_management_service.py:46 ListTasksRequest
@@ -1241,10 +1241,10 @@
 [ ] app/auth.py:92 SimpleRateLimiter
 [ ] app/auth.py:99 SimpleRateLimiter.is_rate_limited
 [ ] app/auth.py:121 SimpleRateLimiter.cleanup_old_entries
-[ ] app/auth.py:140 init_limiter
-[ ] app/auth.py:143 init_limiter.check_auth_rate_limit
-[ ] app/auth.py:170 verify_password
-[ ] app/auth.py:222 auth_error
+[ ] app/auth.py:145 init_limiter
+[ ] app/auth.py:148 init_limiter.check_auth_rate_limit
+[ ] app/auth.py:175 verify_password
+[ ] app/auth.py:227 auth_error
 [ ] app/blueprints/action_log_routes.py:30 rate_limit
 [ ] app/blueprints/action_log_routes.py:32 rate_limit.decorated_function
 [ ] app/blueprints/action_log_routes.py:64 get_action_log
@@ -1363,7 +1363,7 @@
 [ ] app/utils/container_info_web_handler.py:63 load_container_info_for_web
 [ ] app/utils/container_info_web_handler.py:103 save_container_configs_from_web
 
-## Section 34  (1999 lines, 35 public names)
+## Section 34  (1901 lines, 30 public names)
 [ ] app/bot/startup_steps/sequence.py:18 run_startup_sequence
 [ ] app/utils/port_diagnostics.py:19 PortDiagnostics
 [ ] app/utils/port_diagnostics.py:233 PortDiagnostics.check_port_binding
@@ -1391,14 +1391,9 @@
 [ ] app/utils/web_helpers.py:794 stop_mech_decay_background
 [ ] app/utils/web_helpers.py:841 set_initial_password_from_env
 [ ] app/web/action_logger.py:17 ensure_action_logger
-[ ] app/web/app_factory.py:34 create_app
+[ ] app/web/app_factory.py:35 create_app
 [ ] app/web/background.py:51 register_background_services
-[ ] app/web/blueprints.py:23 register_blueprints
-[ ] app/web/compat.py:39 initialize_gevent
-[ ] app/web/compat.py:64 apply_gevent_fork_workaround
-[ ] app/web/compat.py:72 apply_gevent_fork_workaround.safer_after_fork_in_child
-[ ] app/web/compat.py:85 spawn_delayed
-[ ] app/web/compat.py:90 spawn_delayed.runner
+[ ] app/web/blueprints.py:24 register_blueprints
 
 ## Section 35  (1932 lines, 80 public names)
 [ ] app/web/config.py:125 resolve_secret_key
@@ -1574,17 +1569,29 @@
 [ ] utils/token_security.py:272 encrypt_existing_plaintext_token
 [ ] utils/token_security.py:276 verify_token_encryption_status
 
-## Section 38  (324 lines, 8 public names)
+## Section 38  (426 lines, 13 public names)
 [ ] app/blueprints/security_routes.py:25 get_token_security_status
 [ ] app/blueprints/security_routes.py:78 encrypt_token
 [ ] app/blueprints/security_routes.py:129 get_migration_help
 [ ] app/blueprints/security_routes.py:169 get_security_audit
+[ ] app/web/compat.py:39 initialize_gevent
+[ ] app/web/compat.py:64 apply_gevent_fork_workaround
+[ ] app/web/compat.py:72 apply_gevent_fork_workaround.safer_after_fork_in_child
+[ ] app/web/compat.py:85 spawn_delayed
+[ ] app/web/compat.py:90 spawn_delayed.runner
 [ ] cogs/ddc_ui.py:77 DDCView
 [ ] cogs/ddc_ui.py:80 DDCView.on_error
 [ ] cogs/ddc_ui.py:87 DDCModal
 [ ] cogs/ddc_ui.py:90 DDCModal.on_error
 
-## Section 39  (655 lines, 24 public names)
+## Section 39  (844 lines, 31 public names)
+[ ] app/blueprints/two_factor_routes.py:98 install_two_factor
+[ ] app/blueprints/two_factor_routes.py:108 status
+[ ] app/blueprints/two_factor_routes.py:116 setup
+[ ] app/blueprints/two_factor_routes.py:134 confirm
+[ ] app/blueprints/two_factor_routes.py:147 verify
+[ ] app/blueprints/two_factor_routes.py:165 disable
+[ ] app/blueprints/two_factor_routes.py:179 dismiss
 [ ] app/web/tls.py:56 tls_mode
 [ ] app/web/tls.py:67 apply_tls_mode
 [ ] app/web/tls.py:97 Certificate

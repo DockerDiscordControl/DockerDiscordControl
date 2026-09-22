@@ -302,6 +302,7 @@ Licensed under the MIT License
     {% include 'base.html' %} {# Navbar #}
     
     <div class="container">
+        {% include '_two_factor_notice.html' %}
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}

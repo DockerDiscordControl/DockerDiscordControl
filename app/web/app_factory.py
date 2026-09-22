@@ -29,6 +29,7 @@ from .i18n import register_i18n
 from .routes import register_routes
 from .security import install_security_handlers
 from .tls import apply_tls_mode, tls_mode
+from .two_factor import install_two_factor
 
 
 def create_app(test_config: Optional[Mapping[str, object]] = None) -> Flask:
@@ -56,6 +57,7 @@ def create_app(test_config: Optional[Mapping[str, object]] = None) -> Flask:
     init_rate_limiting(app)
     register_blueprints(app)
     install_csrf_protection(app)
+    install_two_factor(app)
     install_security_handlers(app)
     run_startup_diagnostics(app)
     ensure_action_logger(app)
