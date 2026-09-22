@@ -83,11 +83,11 @@ services/discord/status_overview_service.py:1-363
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-283
 
-## Section 15  (745 lines, 1 piece)
-services/docker_service/docker_client_pool.py:1-745
+## Section 15  (771 lines, 1 piece)
+services/docker_service/docker_client_pool.py:1-771
 
-## Section 16  (1929 lines, 5 pieces)
-services/docker_service/docker_utils.py:1-1432
+## Section 16  (1948 lines, 5 pieces)
+services/docker_service/docker_utils.py:1-1451
 services/docker_service/server_order.py:1-111
 services/docker_service/status_cache_runtime.py:1-101
 services/docker_status/__init__.py:1-34

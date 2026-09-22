@@ -86,6 +86,71 @@ async def test_the_diagnostics_answer_too(docker_is_gone):
     assert isinstance(await docker_is_gone.test_docker_performance(), dict)
 
 
+# --------------------------------------------------------------------------- #
+# Review E49: two more of the same, and one assertion above that could not fail
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_container_stats_answer_a_pair(docker_is_gone):
+    """E49: `get_docker_stats` is documented "Tuple of (CPU percentage, memory
+    usage) or (None, None) on error". Its handlers are
+    `(DockerException, OSError, RuntimeError, KeyError, ValueError)` - E43
+    repaired the function forty lines below it and left this one."""
+    result = await docker_is_gone.get_docker_stats("minecraft")
+
+    assert result == (None, None), (
+        "get_docker_stats raised where it promises a pair"
+    )
+
+
+@pytest.mark.asyncio
+async def test_container_info_answers_none(docker_is_gone):
+    """E49: `get_docker_info` is declared `-> Optional[Dict[str, Any]]` and its
+    one live caller, the automation service's `_get_running_state`, reads None
+    as "could not be determined" and says so in the log."""
+    result = await docker_is_gone.get_docker_info("minecraft")
+
+    assert result is None, "get_docker_info raised where it promises None"
+
+
+@pytest.mark.asyncio
+async def test_the_performance_report_reaches_its_containers(docker_is_gone):
+    """E49: the assertion in test_the_diagnostics_answer_too calls
+    `test_docker_performance()` with no names. That path asks
+    `get_containers_data()`, which E43 taught to answer `[]` with Docker gone,
+    so the function returns `{}` before its loop ever runs. It could not fail
+    on the finding it was written for.
+
+    With names it reaches the loop - and what keeps it alive there is one
+    keyword. `get_docker_info` and `get_docker_stats` are awaited through
+
+        asyncio.gather(info_task, stats_task, return_exceptions=True)
+
+    so an unreachable daemon arrives as a VALUE that line 958 records as an
+    error string, not as a raise. The per-container handler below it lists only
+    `(DockerException, RuntimeError)`; drop `return_exceptions` and the tool
+    dies on the first container it was asked to diagnose, which is C57's
+    sentence and C57's comment sits right above that handler.
+
+    A scan cannot see that keyword. This test is what stands in for it."""
+    result = await docker_is_gone.test_docker_performance(["minecraft", "valheim"],
+                                                          iterations=1)
+
+    assert isinstance(result, dict)
+    assert result.get('total_containers') == 2, (
+        "the report never reached its containers"
+    )
+    recorded = result.get('container_results', {})
+    assert set(recorded) == {"minecraft", "valheim"}, (
+        "the report dropped a container it was asked about"
+    )
+    for name, entry in recorded.items():
+        assert entry['errors'], (
+            f"{name} was unreachable and the report says nothing about it"
+        )
+
+
 @pytest.mark.asyncio
 async def test_the_reason_is_logged(docker_is_gone, caplog):
     """Counter-check: answering must not mean swallowing."""
