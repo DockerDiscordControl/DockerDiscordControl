@@ -171,6 +171,19 @@ def test_an_unreadable_state_file_closes_the_panel(panel, tmp_path):
     assert client.get("/health").status_code in (200, 500)  # /health is not behind 2FA
 
 
+@pytest.mark.parametrize("path,method", [("/security/2fa", "get"), ("/security/2fa/verify", "get"),
+                                         ("/security/2fa/verify", "post"), ("/security/2fa/disable", "post")])
+def test_an_unreadable_state_file_closes_the_2fa_pages_too(panel, tmp_path, path, method):
+    """The 2FA pages themselves are exempt from the gate - they must still answer
+    the deliberate 503 rather than raising a 500 out of TwoFactorStore."""
+    app, _ = panel
+    (tmp_path / "two_factor.json").write_text("{broken")
+
+    answer = getattr(app.test_client(), method)(path, headers=_basic(), data={"code": "000000"})
+
+    assert answer.status_code == 503, answer.status_code
+
+
 def test_the_panel_offers_setup_until_later_then_keeps_a_notice(panel):
     app, store = panel
     from flask import render_template_string
