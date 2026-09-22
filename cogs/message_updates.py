@@ -32,6 +32,25 @@ from .translation_manager import _
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
+def mech_change(current_glvl, current_power, last_glvl):
+    """(level changed, power depleted, level to remember) for one cycle.
+
+    A state that could not be read is UNKNOWN, not zero. Zero is a value: with
+    a channel that last saw level 5 it fired both triggers, deleted and
+    reposted the overview, and wrote 0 into the remembered level - so the next
+    successful cycle saw 5 against 0 and did it again.
+    """
+    if current_glvl is None:
+        return False, False, None
+    last_glvl = last_glvl or 0
+    depleted = bool(current_power is not None and current_power <= 0 and last_glvl > 0)
+    if abs(current_glvl - last_glvl) >= 1:
+        return True, depleted, current_glvl
+    if last_glvl == 0:                      # first cycle for this channel: just remember
+        return False, depleted, current_glvl
+    return False, depleted, None
+
+
 class MessageUpdatesMixin:
     """Status and overview message maintenance, mixed into DockerControlCog."""
 
@@ -485,36 +504,30 @@ class MessageUpdatesMixin:
                                 # BUGFIX: Extract current_Power from cache for power depletion check
                                 current_Power = mech_cache_result.power
                             else:
-                                current_glvl = 0
-                                current_Power = 0.0
+                                # Unknown, not zero - see mech_change() above
+                                current_glvl = None
+                                current_Power = None
                         except (KeyError, ValueError, AttributeError) as e:
                             logger.debug(f"Could not get current Glvl: {e}")
-                            # BUGFIX: Set fallback values if cache fails
-                            current_glvl = 0
-                            current_Power = 0.0
+                            current_glvl = None
+                            current_Power = None
 
                         # Check if Glvl changed significantly (>= 1 level difference) or power reached 0
                         glvl_changed = False
                         power_depleted = False
 
-                        if current_glvl is not None:
-                            last_glvl = self.last_glvl_per_channel.get(channel_id, 0)
-
-                            # Special check: if power reached exactly 0, always force update
-                            if current_Power <= 0 and last_glvl > 0:
-                                power_depleted = True
-                                from .translation_manager import _
-                                logger.info(_("Mech power depleted - forcing animation update to show offline state"))
-                            if abs(current_glvl - last_glvl) >= 1:
-                                glvl_changed = True
-                                from .translation_manager import _
-                                glvl_change_text = _("Significant Glvl change detected")
-                                logger.info(f"{glvl_change_text}: {last_glvl} → {current_glvl}")
-                                self.last_glvl_per_channel[channel_id] = current_glvl
-                                self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
-                            elif last_glvl == 0:  # First time tracking
-                                self.last_glvl_per_channel[channel_id] = current_glvl
-                                self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
+                        last_glvl = self.last_glvl_per_channel.get(channel_id, 0)
+                        glvl_changed, power_depleted, remember = mech_change(
+                            current_glvl, current_Power, last_glvl)
+                        if power_depleted:
+                            from .translation_manager import _
+                            logger.info(_("Mech power depleted - forcing animation update to show offline state"))
+                        if glvl_changed:
+                            from .translation_manager import _
+                            logger.info(f"{_('Significant Glvl change detected')}: {last_glvl} → {current_glvl}")
+                        if remember is not None:
+                            self.last_glvl_per_channel[channel_id] = remember
+                            self.mech_state_manager.set_last_glvl(channel_id, remember)
 
                         # Override force_recreate if significant Glvl change or power depletion detected
                         if (glvl_changed or power_depleted) and not recreate_this_channel:
