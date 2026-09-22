@@ -81,7 +81,19 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: dockerdiscordcontrol/dockerdiscordcontrol
+          # One build, four names. Until v2.4.1 the three platform names came
+          # from three copied repositories with their own builds, so the four
+          # `latest` tags carried four different digests and the copies had
+          # already drifted. The names stay because users pull them (-mac more
+          # than the main one); the image behind them is now the same.
+          # The old platform-only tags (:mac, :linux, :windows, :apple-silicon)
+          # are no longer written since v2.4. Pinned by
+          # tests/spec/test_one_build_feeds_all_four_image_names.py.
+          images: |
+            dockerdiscordcontrol/dockerdiscordcontrol
+            dockerdiscordcontrol/dockerdiscordcontrol-linux
+            dockerdiscordcontrol/dockerdiscordcontrol-mac
+            dockerdiscordcontrol/dockerdiscordcontrol-windows
           tags: |
             type=schedule
             type=ref,event=branch
