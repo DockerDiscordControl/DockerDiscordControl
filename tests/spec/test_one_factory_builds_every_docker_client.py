@@ -117,3 +117,32 @@ def test_the_factory_works_through_the_proxy(fake, monkeypatch):
     finally:
         proxy.shutdown()
         proxy.server_close()
+
+
+@pytest.mark.parametrize("error", [ImportError("circular import at startup"),
+                                   AttributeError("load_config returned a list"),
+                                   TypeError("config is not a mapping")])
+def test_a_courtesy_that_fails_does_not_take_docker_with_it(fake, monkeypatch, caplog, error):
+    """THE FINDING: the factory reports a retired docker_socket_path once, as a
+    courtesy, and that helper caught only OSError, ValueError and RuntimeError.
+    The config import it does is deliberately deferred, so a circular import at
+    startup - or a config file that is not a mapping - raised out of
+    build_docker_client, and every call site catches only DockerException,
+    OSError and RuntimeError. A log line would have killed all Docker access.
+
+    COUNTER-CHECK (2026-09-22): red before for all three - the exception came
+    out of build_docker_client instead of a warning."""
+    from services.docker_service import client_factory
+
+    def explode():
+        raise error
+
+    monkeypatch.setattr(client_factory, "_load_docker_config", explode)
+    caplog.set_level(logging.WARNING)
+
+    client = client_factory.build_docker_client(timeout=5)
+    try:
+        assert client.ping() is True
+    finally:
+        client.close()
+    assert "docker_socket_path" in caplog.text

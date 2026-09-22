@@ -36,7 +36,7 @@ def test_the_stack_order_in_node():
     result = subprocess.run([node, str(ROOT / "tests" / "js" / "stack_order.test.js")],
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok     ") == 4, result.stdout
+    assert result.stdout.count("ok     ") == 5, result.stdout
 
 
 @pytest.fixture

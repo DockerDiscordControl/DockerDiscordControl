@@ -139,7 +139,7 @@ services/discord/status_overview_service.py	363	pass1:s14:plan pass2:s14:1-356  
 services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	272	NONE
 services/docker_service/__init__.py	28	pass2:s14:1-28
-services/docker_service/client_factory.py	95	NONE
+services/docker_service/client_factory.py	99	NONE
 services/docker_service/docker_action_service.py	298	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
 services/docker_service/docker_utils.py	1220	pass1:s16:1-1404  [28 of 1432 lines never in a package]

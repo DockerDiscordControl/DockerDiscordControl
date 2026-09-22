@@ -439,8 +439,8 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/docker_service/docker_action_service.py:266 get_docker_action_service
 [ ] services/docker_service/docker_action_service.py:278 docker_action_service_first
 
-## Section 15  (920 lines, 16 public names)
-[ ] services/docker_service/client_factory.py:74 build_docker_client
+## Section 15  (924 lines, 16 public names)
+[ ] services/docker_service/client_factory.py:78 build_docker_client
 [ ] services/docker_service/docker_client_pool.py:36 DockerClientRequest
 [ ] services/docker_service/docker_client_pool.py:44 DockerClientResult
 [ ] services/docker_service/docker_client_pool.py:62 DockerPoolStatsRequest

@@ -60,7 +60,11 @@ def _report_retired_socket_path() -> None:
     _socket_path_checked = True
     try:
         configured = _load_docker_config().get("docker_socket_path")
-    except (OSError, ValueError, RuntimeError) as error:
+    except Exception as error:  # noqa: BLE001 - a courtesy must not stop Docker
+        # Anything at all: the config import here is deferred on purpose (a
+        # circular import at startup raises ImportError), and the call sites
+        # catch only DockerException, OSError and RuntimeError - so this log
+        # line used to be able to take all Docker access with it.
         logger.warning(f"Could not read docker_config to check docker_socket_path: {error}")
         return
     if configured and configured != DEFAULT_SOCKET_PATH:

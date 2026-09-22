@@ -104,7 +104,7 @@ services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-298
 
 ## Section 15  (933 lines, 3 pieces)
-services/docker_service/client_factory.py:1-95
+services/docker_service/client_factory.py:1-99
 services/docker_service/docker_client_pool.py:1-738
 services/docker_service/reachability.py:1-87
 
