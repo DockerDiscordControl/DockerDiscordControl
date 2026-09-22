@@ -163,13 +163,14 @@
 [ ] cogs/enhanced_info_modal_simple.py:549 PasswordValidationModal
 [ ] cogs/enhanced_info_modal_simple.py:574 PasswordValidationModal.callback
 
-## Section 08  (1398 lines, 6 public names)
-[ ] cogs/status_handlers.py:74 StatusHandlersMixin
-[ ] cogs/status_handlers.py:80 StatusHandlersMixin.bulk_fetch_container_status
-[ ] cogs/status_handlers.py:150 StatusHandlersMixin.bulk_fetch_container_status.fetch_fast_container
-[ ] cogs/status_handlers.py:496 StatusHandlersMixin.bulk_update_status_cache
-[ ] cogs/status_handlers.py:560 StatusHandlersMixin.get_status
-[ ] cogs/status_handlers.py:1123 StatusHandlersMixin.send_server_status
+## Section 08  (1385 lines, 7 public names)
+[ ] cogs/status_handlers.py:74 format_uptime
+[ ] cogs/status_handlers.py:93 StatusHandlersMixin
+[ ] cogs/status_handlers.py:99 StatusHandlersMixin.bulk_fetch_container_status
+[ ] cogs/status_handlers.py:169 StatusHandlersMixin.bulk_fetch_container_status.fetch_fast_container
+[ ] cogs/status_handlers.py:494 StatusHandlersMixin.bulk_update_status_cache
+[ ] cogs/status_handlers.py:558 StatusHandlersMixin.get_status
+[ ] cogs/status_handlers.py:1110 StatusHandlersMixin.send_server_status
 
 ## Section 09  (1234 lines, 24 public names)
 [ ] cogs/status_info_integration.py:58 container_logs_text
@@ -471,7 +472,7 @@
 [ ] services/docker_status/fetch_service.py:231 DockerStatusFetchService.clear_query_history
 [ ] services/docker_status/fetch_service.py:241 get_fetch_service
 
-## Section 17  (1775 lines, 61 public names)
+## Section 17  (1784 lines, 61 public names)
 [ ] services/docker_status/models.py:22 PerformanceProfile
 [ ] services/docker_status/models.py:39 PerformanceProfile.to_dict
 [ ] services/docker_status/models.py:55 PerformanceProfile.from_dict
@@ -484,19 +485,19 @@
 [ ] services/docker_status/models.py:142 CachedStatus.is_expired
 [ ] services/docker_status/models.py:149 CachedStatus.age_seconds
 [ ] services/docker_status/models.py:160 ContainerStatusResult
-[ ] services/docker_status/models.py:213 ContainerStatusResult.is_online
-[ ] services/docker_status/models.py:218 ContainerStatusResult.is_offline
-[ ] services/docker_status/models.py:222 ContainerStatusResult.as_tuple
-[ ] services/docker_status/models.py:239 ContainerStatusResult.success_result
-[ ] services/docker_status/models.py:262 ContainerStatusResult.error_result
-[ ] services/docker_status/models.py:275 ContainerStatusResult.offline_result
-[ ] services/docker_status/models.py:287 ContainerStatusResult.not_found_result
-[ ] services/docker_status/models.py:311 StatusEmbedRequest
-[ ] services/docker_status/models.py:329 StatusEmbedResult
-[ ] services/docker_status/models.py:346 BulkFetchRequest
-[ ] services/docker_status/models.py:355 BulkFetchResult
-[ ] services/docker_status/models.py:368 ContainerClassification
-[ ] services/docker_status/models.py:375 ContainerClassification.total_containers
+[ ] services/docker_status/models.py:218 ContainerStatusResult.is_online
+[ ] services/docker_status/models.py:223 ContainerStatusResult.is_offline
+[ ] services/docker_status/models.py:227 ContainerStatusResult.as_tuple
+[ ] services/docker_status/models.py:244 ContainerStatusResult.success_result
+[ ] services/docker_status/models.py:271 ContainerStatusResult.error_result
+[ ] services/docker_status/models.py:284 ContainerStatusResult.offline_result
+[ ] services/docker_status/models.py:296 ContainerStatusResult.not_found_result
+[ ] services/docker_status/models.py:320 StatusEmbedRequest
+[ ] services/docker_status/models.py:338 StatusEmbedResult
+[ ] services/docker_status/models.py:355 BulkFetchRequest
+[ ] services/docker_status/models.py:364 BulkFetchResult
+[ ] services/docker_status/models.py:377 ContainerClassification
+[ ] services/docker_status/models.py:384 ContainerClassification.total_containers
 [ ] services/docker_status/performance_service.py:27 PerformanceProfileService
 [ ] services/docker_status/performance_service.py:73 PerformanceProfileService.get_profile
 [ ] services/docker_status/performance_service.py:100 PerformanceProfileService.update_performance
@@ -624,26 +625,26 @@
 [ ] services/infrastructure/container_info_service.py:265 ContainerInfoService.delete_container_info
 [ ] services/infrastructure/container_info_service.py:317 get_container_info_service
 
-## Section 19  (1970 lines, 52 public names)
+## Section 19  (1985 lines, 52 public names)
 [ ] services/infrastructure/container_status_service.py:36 ContainerStatusRequest
 [ ] services/infrastructure/container_status_service.py:44 ContainerBulkStatusRequest
 [ ] services/infrastructure/container_status_service.py:53 ContainerStatusResult
-[ ] services/infrastructure/container_status_service.py:83 ContainerBulkStatusResult
-[ ] services/infrastructure/container_status_service.py:92 ContainerStatusService
-[ ] services/infrastructure/container_status_service.py:178 ContainerStatusService.get_container_status
-[ ] services/infrastructure/container_status_service.py:241 ContainerStatusService.get_bulk_container_status
-[ ] services/infrastructure/container_status_service.py:268 ContainerStatusService.get_bulk_container_status.fetch_with_semaphore
-[ ] services/infrastructure/container_status_service.py:573 ContainerStatusService.is_container_not_found
-[ ] services/infrastructure/container_status_service.py:611 ContainerStatusService.clear_cache
-[ ] services/infrastructure/container_status_service.py:621 ContainerStatusService.invalidate_container
-[ ] services/infrastructure/container_status_service.py:648 ContainerStatusService.get_cache_stats
-[ ] services/infrastructure/container_status_service.py:672 ContainerStatusService.get_formatted_status
-[ ] services/infrastructure/container_status_service.py:702 ContainerStatusService.set_formatted_status
-[ ] services/infrastructure/container_status_service.py:719 ContainerStatusService.get_all_formatted_statuses
-[ ] services/infrastructure/container_status_service.py:733 get_container_status_service
-[ ] services/infrastructure/container_status_service.py:743 get_docker_info_dict_service_first
-[ ] services/infrastructure/container_status_service.py:782 get_docker_info_service_first
-[ ] services/infrastructure/container_status_service.py:811 get_docker_stats_service_first
+[ ] services/infrastructure/container_status_service.py:88 ContainerBulkStatusResult
+[ ] services/infrastructure/container_status_service.py:97 ContainerStatusService
+[ ] services/infrastructure/container_status_service.py:183 ContainerStatusService.get_container_status
+[ ] services/infrastructure/container_status_service.py:246 ContainerStatusService.get_bulk_container_status
+[ ] services/infrastructure/container_status_service.py:273 ContainerStatusService.get_bulk_container_status.fetch_with_semaphore
+[ ] services/infrastructure/container_status_service.py:584 ContainerStatusService.is_container_not_found
+[ ] services/infrastructure/container_status_service.py:622 ContainerStatusService.clear_cache
+[ ] services/infrastructure/container_status_service.py:632 ContainerStatusService.invalidate_container
+[ ] services/infrastructure/container_status_service.py:659 ContainerStatusService.get_cache_stats
+[ ] services/infrastructure/container_status_service.py:683 ContainerStatusService.get_formatted_status
+[ ] services/infrastructure/container_status_service.py:713 ContainerStatusService.set_formatted_status
+[ ] services/infrastructure/container_status_service.py:730 ContainerStatusService.get_all_formatted_statuses
+[ ] services/infrastructure/container_status_service.py:744 get_container_status_service
+[ ] services/infrastructure/container_status_service.py:754 get_docker_info_dict_service_first
+[ ] services/infrastructure/container_status_service.py:797 get_docker_info_service_first
+[ ] services/infrastructure/container_status_service.py:826 get_docker_stats_service_first
 [ ] services/infrastructure/docker_connectivity_service.py:22 DockerConnectivityRequest
 [ ] services/infrastructure/docker_connectivity_service.py:27 DockerConnectivityResult
 [ ] services/infrastructure/docker_connectivity_service.py:35 DockerErrorEmbedRequest

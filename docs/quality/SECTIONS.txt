@@ -55,7 +55,7 @@ cogs/donation_ui.py:1-628
 cogs/enhanced_info_modal_simple.py:1-694
 
 ## Section 08  (1398 lines, 1 piece)
-cogs/status_handlers.py:1-1398
+cogs/status_handlers.py:1-1385
 
 ## Section 09  (1234 lines, 1 piece)
 cogs/status_info_integration.py:1-1234
@@ -110,7 +110,7 @@ services/docker_status/__init__.py:1-34
 services/docker_status/fetch_service.py:1-251
 
 ## Section 17  (1775 lines, 13 pieces)
-services/docker_status/models.py:1-376
+services/docker_status/models.py:1-385
 services/docker_status/performance_service.py:1-234
 services/donation/__init__.py:1-24
 services/donation/donation_config.py:1-50
@@ -135,7 +135,7 @@ services/infrastructure/action_logger.py:1-103
 services/infrastructure/container_info_service.py:1-326
 
 ## Section 19  (1970 lines, 5 pieces)
-services/infrastructure/container_status_service.py:1-837
+services/infrastructure/container_status_service.py:1-852
 services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-193
 services/infrastructure/event_manager.py:1-118

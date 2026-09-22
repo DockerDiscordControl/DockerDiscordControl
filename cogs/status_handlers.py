@@ -71,6 +71,25 @@ def _age_hint_threshold_seconds(handler) -> float:
     return interval * 1.5
 
 
+def format_uptime(days: int, seconds: int) -> str:
+    """"2d 3h 5m" from whole days and the seconds of the last day.
+
+    The one place for this text - the status handlers used to build it three
+    times (tests/spec/test_uptime_is_formatted_in_one_place.py).
+    """
+    hours, remainder = divmod(seconds, 3600)
+    # Don't unpack into `_` - that would shadow the translation function
+    minutes = remainder // 60
+    uptime_parts = []
+    if days > 0:
+        uptime_parts.append(f"{days}d")
+    if hours > 0:
+        uptime_parts.append(f"{hours}h")
+    if minutes > 0 or (days == 0 and hours == 0):
+        uptime_parts.append(f"{minutes}m")
+    return " ".join(uptime_parts) if uptime_parts else "< 1m"
+
+
 class StatusHandlersMixin:
     """
     Mixin class containing status handler functionality for DockerControlCog.
@@ -258,18 +277,7 @@ class StatusHandlersMixin:
                         now = datetime.now(timezone.utc)
                         delta = now - started_at
 
-                        days = delta.days
-                        hours, remainder = divmod(delta.seconds, 3600)
-                        # Don't unpack into `_` - that would shadow the translation function
-                        minutes = remainder // 60
-                        uptime_parts = []
-                        if days > 0:
-                            uptime_parts.append(f"{days}d")
-                        if hours > 0:
-                            uptime_parts.append(f"{hours}h")
-                        if minutes > 0 or (days == 0 and hours == 0):
-                            uptime_parts.append(f"{minutes}m")
-                        uptime = " ".join(uptime_parts) if uptime_parts else "< 1m"
+                        uptime = format_uptime(delta.days, delta.seconds)
                     except ValueError as e:
                         logger.error(f"[INTELLIGENT_BULK_FETCH] Could not parse StartedAt for {docker_name}: {e}")
                         uptime = "Error"
@@ -284,17 +292,7 @@ class StatusHandlersMixin:
                         # Use uptime from SERVICE FIRST if available
                         if computed['uptime_seconds'] > 0:
                             uptime_sec = computed['uptime_seconds']
-                            days = uptime_sec // 86400
-                            hours = (uptime_sec % 86400) // 3600
-                            minutes = (uptime_sec % 3600) // 60
-                            uptime_parts = []
-                            if days > 0:
-                                uptime_parts.append(f"{days}d")
-                            if hours > 0:
-                                uptime_parts.append(f"{hours}h")
-                            if minutes > 0 or (days == 0 and hours == 0):
-                                uptime_parts.append(f"{minutes}m")
-                            uptime = " ".join(uptime_parts) if uptime_parts else "< 1m"
+                            uptime = format_uptime(uptime_sec // 86400, uptime_sec % 86400)
                     # Fallback to old stats method if SERVICE FIRST data not available
                     elif isinstance(stats, dict) and stats:
                         # get_docker_stats_service_first() returns a dict, same as in get_status()
@@ -615,18 +613,7 @@ class StatusHandlersMixin:
                         now = datetime.now(timezone.utc)
                         delta = now - started_at
 
-                        days = delta.days
-                        hours, remainder = divmod(delta.seconds, 3600)
-                        # Don't unpack into `_` - that would shadow the translation function
-                        minutes = remainder // 60
-                        uptime_parts = []
-                        if days > 0:
-                            uptime_parts.append(f"{days}d")
-                        if hours > 0:
-                            uptime_parts.append(f"{hours}h")
-                        if minutes > 0 or (days == 0 and hours == 0):
-                            uptime_parts.append(f"{minutes}m")
-                        uptime = " ".join(uptime_parts) if uptime_parts else "< 1m"
+                        uptime = format_uptime(delta.days, delta.seconds)
 
                     except ValueError as e:
                         logger.error(f"Could not parse StartedAt timestamp '{started_at_str}' for {docker_name}: {e}")

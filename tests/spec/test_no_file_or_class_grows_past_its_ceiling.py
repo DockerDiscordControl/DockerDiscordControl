@@ -40,7 +40,7 @@ FILE_EXCEPTIONS = {
 }
 CLASS_EXCEPTIONS = {
     "services/mech/animation_cache_service.py::AnimationCacheService": 1762,
-    "cogs/status_handlers.py::StatusHandlersMixin": 1325,
+    "cogs/status_handlers.py::StatusHandlersMixin": 1293,
     "services/config/config_service.py::ConfigService": 1067,
 }
 
