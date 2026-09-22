@@ -44,6 +44,7 @@ async def _restart_running_servers(servers, action):
     they may not restart, one that is not running and one without a current
     status the same way.
     """
+    attempted = 0  # counts calls, not successes: the pause is for the daemon
     restarted_count = 0
     failed_count = 0
     skipped_count = 0
@@ -91,9 +92,12 @@ async def _restart_running_servers(servers, action):
         if is_running:
             # Restart container with timeout protection
             try:
-                # Add small delay between operations to avoid overloading
-                if restarted_count > 0:
+                # Half a second between operations so the daemon is not overloaded.
+                # Counted by attempts: tied to the successes it never paused at
+                # all on a daemon where every call fails - the very case it is for.
+                if attempted > 0:
                     await asyncio.sleep(0.5)
+                attempted += 1
 
                 # Set timeout for docker operation
                 success = await asyncio.wait_for(

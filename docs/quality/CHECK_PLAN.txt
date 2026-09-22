@@ -8,26 +8,26 @@ review/check_plan.py from SECTIONS.txt and the code -
 # docs/quality/reviews/, one report per section and pass; the coverage of a
 # report against this plan is computed by scripts/review/coverage.py.
 
-## Section 01  (1501 lines, 35 public names)
-[ ] cogs/admin_overview.py:140 AdminOverviewView
-[ ] cogs/admin_overview.py:156 AdminOverviewAdminButton
-[ ] cogs/admin_overview.py:171 AdminOverviewAdminButton.callback
-[ ] cogs/admin_overview.py:259 AdminOverviewRestartAllButton
-[ ] cogs/admin_overview.py:275 AdminOverviewRestartAllButton.callback
-[ ] cogs/admin_overview.py:341 AdminOverviewStopAllButton
-[ ] cogs/admin_overview.py:357 AdminOverviewStopAllButton.callback
-[ ] cogs/admin_overview.py:423 AdminOverviewRestartStackButton
-[ ] cogs/admin_overview.py:439 AdminOverviewRestartStackButton.callback
-[ ] cogs/admin_overview.py:448 AdminOverviewDonateButton
-[ ] cogs/admin_overview.py:463 AdminOverviewDonateButton.callback
-[ ] cogs/admin_overview.py:540 RestartAllConfirmationView
-[ ] cogs/admin_overview.py:552 StopAllConfirmationView
-[ ] cogs/admin_overview.py:564 ConfirmRestartAllButton
-[ ] cogs/admin_overview.py:577 ConfirmRestartAllButton.callback
-[ ] cogs/admin_overview.py:703 ConfirmStopAllButton
-[ ] cogs/admin_overview.py:716 ConfirmStopAllButton.callback
-[ ] cogs/admin_overview.py:924 CancelBulkActionButton
-[ ] cogs/admin_overview.py:934 CancelBulkActionButton.callback
+## Section 01  (1505 lines, 35 public names)
+[ ] cogs/admin_overview.py:144 AdminOverviewView
+[ ] cogs/admin_overview.py:160 AdminOverviewAdminButton
+[ ] cogs/admin_overview.py:175 AdminOverviewAdminButton.callback
+[ ] cogs/admin_overview.py:263 AdminOverviewRestartAllButton
+[ ] cogs/admin_overview.py:279 AdminOverviewRestartAllButton.callback
+[ ] cogs/admin_overview.py:345 AdminOverviewStopAllButton
+[ ] cogs/admin_overview.py:361 AdminOverviewStopAllButton.callback
+[ ] cogs/admin_overview.py:427 AdminOverviewRestartStackButton
+[ ] cogs/admin_overview.py:443 AdminOverviewRestartStackButton.callback
+[ ] cogs/admin_overview.py:452 AdminOverviewDonateButton
+[ ] cogs/admin_overview.py:467 AdminOverviewDonateButton.callback
+[ ] cogs/admin_overview.py:544 RestartAllConfirmationView
+[ ] cogs/admin_overview.py:556 StopAllConfirmationView
+[ ] cogs/admin_overview.py:568 ConfirmRestartAllButton
+[ ] cogs/admin_overview.py:581 ConfirmRestartAllButton.callback
+[ ] cogs/admin_overview.py:707 ConfirmStopAllButton
+[ ] cogs/admin_overview.py:720 ConfirmStopAllButton.callback
+[ ] cogs/admin_overview.py:928 CancelBulkActionButton
+[ ] cogs/admin_overview.py:938 CancelBulkActionButton.callback
 [ ] cogs/stack_restart.py:49 stacks_of
 [ ] cogs/stack_restart.py:62 current_stacks
 [ ] cogs/stack_restart.py:75 offer_stacks
