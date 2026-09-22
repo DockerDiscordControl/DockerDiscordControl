@@ -1703,5 +1703,16 @@
   "web.two_factor.verify": "Continue",
   "web.two_factor.wrong_code": "That code is not valid.",
   "web.two_factor.too_many": "Too many attempts. Wait a minute and try again.",
-  "web.two_factor.back": "Back to the panel"
+  "web.two_factor.back": "Back to the panel",
+  "web.aas.trigger_type": "Trigger",
+  "web.aas.trigger_type_message": "Discord message",
+  "web.aas.trigger_type_container_state": "Container state (watchdog)",
+  "web.aas.container_states": "React when a container",
+  "web.aas.state_stopped": "stops (it was running)",
+  "web.aas.state_unhealthy": "turns unhealthy (health check fails)",
+  "web.aas.state_restart_loop": "restarts repeatedly",
+  "web.aas.restart_threshold": "Restarts",
+  "web.aas.restart_window": "within minutes",
+  "web.aas.container_state_hint": "The containers ticked below are the ones watched (none ticked = all). The action applies to the container that changed. Notices go to the control channel unless you pick a feedback channel.",
+  "js.aas.select_state": "Please tick at least one container state."
 }

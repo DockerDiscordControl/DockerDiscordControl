@@ -1703,5 +1703,16 @@
   "web.two_factor.verify": "Weiter",
   "web.two_factor.wrong_code": "Dieser Code ist nicht gültig.",
   "web.two_factor.too_many": "Zu viele Versuche. Warte eine Minute und versuche es erneut.",
-  "web.two_factor.back": "Zurück zum Panel"
+  "web.two_factor.back": "Zurück zum Panel",
+  "web.aas.trigger_type": "Auslöser",
+  "web.aas.trigger_type_message": "Discord-Nachricht",
+  "web.aas.trigger_type_container_state": "Container-Zustand (Wächter)",
+  "web.aas.container_states": "Reagieren, wenn ein Container",
+  "web.aas.state_stopped": "stoppt (er lief vorher)",
+  "web.aas.state_unhealthy": "unhealthy wird (Healthcheck schlägt fehl)",
+  "web.aas.state_restart_loop": "wiederholt neu startet",
+  "web.aas.restart_threshold": "Neustarts",
+  "web.aas.restart_window": "innerhalb Minuten",
+  "web.aas.container_state_hint": "Die unten angehakten Container werden beobachtet (keiner angehakt = alle). Die Aktion gilt dem Container, der sich geändert hat. Meldungen gehen in den Kontrollkanal, wenn du keinen Feedback-Kanal wählst.",
+  "js.aas.select_state": "Bitte mindestens einen Container-Zustand anhaken."
 }

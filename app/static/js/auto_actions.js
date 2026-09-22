@@ -17,6 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load rules immediately for preview list
     loadAASRules();
+
+    // Message trigger or container-state trigger (v3.0 watchdog)
+    const triggerType = document.getElementById('aasRuleTriggerType');
+    if (triggerType) {
+        triggerType.addEventListener('change', updateTriggerTypeFields);
+    }
     
     // Load global settings on modal open
     const modal = document.getElementById('autoActionsModal');
@@ -28,6 +34,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function isContainerStateRule() {
+    const select = document.getElementById('aasRuleTriggerType');
+    return !!select && select.value === 'container_state';
+}
+
+function updateTriggerTypeFields() {
+    // Show the fields of the chosen trigger type. For a container-state rule the
+    // container checkboxes pick the WATCHED containers (none ticked = all), and
+    // the action acts on whichever container the event is about.
+    const containerState = isContainerStateRule();
+    const messageFields = document.getElementById('aasMessageTriggerFields');
+    const containerFields = document.getElementById('aasContainerTriggerFields');
+    if (messageFields) messageFields.style.display = containerState ? 'none' : '';
+    if (containerFields) containerFields.style.display = containerState ? '' : 'none';
+}
 
 function loadContainersForAAS() {
     // Get ACTIVE containers from the Docker container list table
@@ -157,7 +179,9 @@ function renderRuleItem(rule) {
                     <span class="badge bg-light text-dark border">Priority: ${safePriority}</span>
                 </div>
                 <small class="text-muted">
-                    <i class="bi bi-chat-left-text"></i> ${rule.trigger.keywords.length} Keywords
+                    ${rule.trigger.type === 'container_state'
+                        ? `<i class="bi bi-heart-pulse"></i> ${escapeHtml((rule.trigger.states || []).join(', '))}`
+                        : `<i class="bi bi-chat-left-text"></i> ${rule.trigger.keywords.length} Keywords`}
                     &bull;
                     <i class="bi bi-box-seam"></i> ${escapeHtml(rule.action.type)} -> ${safeContainers}
                 </small>
@@ -231,6 +255,7 @@ async function openRuleEditor(ruleId = null) {
 
     form.reset();
     document.getElementById('aasTestResult').innerHTML = '';
+    updateTriggerTypeFields();
 
     // Reload containers if list is empty (may have loaded before DOM was ready)
     if (allContainers.length === 0) {
@@ -360,10 +385,25 @@ function populateRuleForm(rule) {
         radio.checked = (radio.value === feedbackChannelId);
     });
 
-    // Check container checkboxes
+    // Trigger type. Until v3.0 every rule was a message rule, and saving a
+    // container-state rule from this form silently turned it into one.
+    const containerState = rule.trigger.type === 'container_state';
+    document.getElementById('aasRuleTriggerType').value = containerState ? 'container_state' : 'message';
+    if (containerState) {
+        document.querySelectorAll('.aas-state-checkbox').forEach(cb => {
+            cb.checked = (rule.trigger.states || []).includes(cb.value);
+        });
+        document.getElementById('aasRuleRestartThreshold').value = rule.trigger.restart_threshold || 3;
+        document.getElementById('aasRuleRestartWindow').value = rule.trigger.restart_window_minutes || 10;
+    }
+    updateTriggerTypeFields();
+
+    // Check container checkboxes: the watched containers of a container-state
+    // rule, the action targets of a message rule
+    const ticked = containerState ? (rule.trigger.containers || []) : rule.action.containers;
     const containerCheckboxes = document.querySelectorAll('.aas-container-checkbox');
     containerCheckboxes.forEach(cb => {
-        cb.checked = rule.action.containers.includes(cb.value);
+        cb.checked = ticked.includes(cb.value);
     });
     
     // Safety
@@ -387,6 +427,10 @@ async function saveAASRule() {
 
     // Gather selected containers from checkboxes
     const containers = Array.from(document.querySelectorAll('.aas-container-checkbox:checked')).map(cb => cb.value);
+
+    if (isContainerStateRule()) {
+        return saveContainerStateRule(ruleName, containers);
+    }
 
     if (containers.length === 0) {
         alert(t('aas.select_container'));
@@ -475,6 +519,73 @@ async function saveAASRule() {
             // Close modal and refresh list
             const modalEl = document.getElementById('aasRuleEditorModal');
             const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            loadAASRules();
+            showNotification(t('aas.rule_saved'), 'success');
+        } else {
+            alert(t('aas.error_saving_rule') + ': ' + result.error);
+        }
+    } catch (error) {
+        console.error('Save error:', error);
+        alert(t('aas.failed_save_rule'));
+    }
+}
+
+async function saveContainerStateRule(ruleName, watchedContainers) {
+    // A container-state rule (v3.0 watchdog): no channels or keywords; the ticked
+    // containers are the watched ones (none = all), the action acts on the
+    // container the event is about, and the notice goes to the control channel
+    // unless a feedback channel is picked.
+    const states = Array.from(document.querySelectorAll('.aas-state-checkbox:checked')).map(cb => cb.value);
+    if (states.length === 0) {
+        alert(t('aas.select_state'));
+        return;
+    }
+    const safeInt = (val, defaultVal) => {
+        const parsed = parseInt(val);
+        return isNaN(parsed) ? defaultVal : parsed;
+    };
+    const ruleId = document.getElementById('aasRuleId').value;
+    const isNew = !ruleId;
+    const ruleData = {
+        name: ruleName,
+        priority: safeInt(document.getElementById('aasRulePriority').value, 10),
+        enabled: currentRuleData ? currentRuleData.enabled : true,
+        trigger: {
+            type: 'container_state',
+            states: states,
+            containers: watchedContainers,
+            restart_threshold: safeInt(document.getElementById('aasRuleRestartThreshold').value, 3),
+            restart_window_minutes: safeInt(document.getElementById('aasRuleRestartWindow').value, 10),
+            channel_ids: [],
+            keywords: [],
+            required_keywords: [],
+            ignore_keywords: [],
+            match_mode: 'any',
+            regex_pattern: null,
+            source_filter: { allowed_user_ids: [], allowed_usernames: [], is_webhook: null }
+        },
+        action: {
+            type: document.getElementById('aasRuleActionType').value,
+            containers: [],
+            delay_seconds: safeInt(document.getElementById('aasRuleDelay').value, 0),
+            notification_channel_id: document.querySelector('input[name="aasFeedbackChannel"]:checked')?.value || null
+        },
+        safety: {
+            cooldown_minutes: safeInt(document.getElementById('aasRuleCooldown').value, 1440),
+            cooldown_scope: document.getElementById('aasRuleCooldownScope').value || 'container',
+            only_if_running: document.getElementById('aasRuleOnlyRunning').checked
+        }
+    };
+    try {
+        const response = await fetch(isNew ? '/api/automation/rules' : `/api/automation/rules/${ruleId}`, {
+            method: isNew ? 'POST' : 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(ruleData)
+        });
+        const result = await response.json();
+        if (result.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('aasRuleEditorModal'));
             modal.hide();
             loadAASRules();
             showNotification(t('aas.rule_saved'), 'success');

@@ -142,6 +142,45 @@
 
                     <!-- Section: Trigger -->
                     <h6 class="border-bottom pb-2 mb-3 text-primary">2. {{ _t('web.aas.section_trigger') }}</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold" for="aasRuleTriggerType">{{ _t('web.aas.trigger_type') }}</label>
+                            <select class="form-select" id="aasRuleTriggerType">
+                                <option value="message">{{ _t('web.aas.trigger_type_message') }}</option>
+                                <option value="container_state">{{ _t('web.aas.trigger_type_container_state') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Container-state trigger (v3.0 watchdog): hidden for message rules -->
+                    <div id="aasContainerTriggerFields" style="display: none;">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">{{ _t('web.aas.container_states') }}</label>
+                                <div class="form-check">
+                                    <input class="form-check-input aas-state-checkbox" type="checkbox" value="stopped" id="aasState_stopped">
+                                    <label class="form-check-label" for="aasState_stopped">{{ _t('web.aas.state_stopped') }}</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input aas-state-checkbox" type="checkbox" value="unhealthy" id="aasState_unhealthy">
+                                    <label class="form-check-label" for="aasState_unhealthy">{{ _t('web.aas.state_unhealthy') }}</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input aas-state-checkbox" type="checkbox" value="restart_loop" id="aasState_restart_loop">
+                                    <label class="form-check-label" for="aasState_restart_loop">{{ _t('web.aas.state_restart_loop') }}</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="aasRuleRestartThreshold">{{ _t('web.aas.restart_threshold') }}</label>
+                                <input type="number" class="form-control" id="aasRuleRestartThreshold" value="3" min="2" max="50">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="aasRuleRestartWindow">{{ _t('web.aas.restart_window') }}</label>
+                                <input type="number" class="form-control" id="aasRuleRestartWindow" value="10" min="1" max="1440">
+                            </div>
+                            <div class="col-12 form-text">{{ _t('web.aas.container_state_hint') }}</div>
+                        </div>
+                    </div>
+                    <div id="aasMessageTriggerFields">
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">
@@ -229,6 +268,7 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
                     </div>
 
                     <!-- Section: Action -->
