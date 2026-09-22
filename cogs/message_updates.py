@@ -32,6 +32,11 @@ from .translation_manager import _
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
+def in_batches(items, size):
+    """``items`` in chunks of ``size``, in order."""
+    return [list(items[index:index + size]) for index in range(0, len(items), size)]
+
+
 def mech_change(current_glvl, current_power, last_glvl):
     """(level changed, power depleted, level to remember) for one cycle.
 
@@ -216,59 +221,17 @@ class MessageUpdatesMixin:
             none_results_count = 0
 
             try:
-                # IMPROVED: Intelligent batch distribution based on historical performance
+                # Plain chunks, in order. Until 2026-09-22 this block sorted the
+                # tasks into "slow" and "fast" containers by reading a coroutine's
+                # frame through task._coro - an attribute of asyncio.Task, which
+                # these are not - so everything fell into "fast", the distribution
+                # did nothing, and every cycle logged "0 slow containers
+                # distributed" about work that never happened.
                 BATCH_SIZE = 3  # Process 3 messages at a time instead of all at once
+                balanced_batches = in_batches(tasks_to_run, BATCH_SIZE)
 
-                # Known slow containers that should be distributed across batches
-                KNOWN_SLOW_CONTAINERS = {'Satisfactory', 'V-Rising', 'Valheim', 'ProjectZomboid'}
-
-                # Separate tasks into fast and slow
-                slow_tasks = []
-                fast_tasks = []
-
-                for task in tasks_to_run:
-                    # Extract container name from task (assuming it's the second argument)
-                    if hasattr(task, '_coro') and hasattr(task._coro, 'cr_frame'):
-                        # Try to extract display_name from coroutine arguments
-                        try:
-                            frame_locals = task._coro.cr_frame.f_locals
-                            display_name = frame_locals.get('display_name', '')
-                            if display_name in KNOWN_SLOW_CONTAINERS:
-                                slow_tasks.append(task)
-                            else:
-                                fast_tasks.append(task)
-                        except (AttributeError, ValueError, KeyError) as frame_error:
-                            # Default to fast if we can't determine container type from frame inspection
-                            logger.debug(f"Failed to extract container name from task frame, defaulting to fast batch: {frame_error}")
-                            fast_tasks.append(task)
-                    else:
-                        fast_tasks.append(task)  # Default to fast if we can't determine
-
-                # Create balanced batches: distribute slow containers evenly
-                balanced_batches = []
-                batch_count = (total_tasks + BATCH_SIZE - 1) // BATCH_SIZE
-
-                # Distribute slow tasks first (one per batch if possible)
-                slow_distribution = [[] for _ in range(batch_count)]
-                for i, slow_task in enumerate(slow_tasks):
-                    batch_index = i % batch_count
-                    slow_distribution[batch_index].append(slow_task)
-
-                # Fill remaining slots with fast tasks
-                fast_task_index = 0
-                for batch_index in range(batch_count):
-                    current_batch = slow_distribution[batch_index][:]
-
-                    # Fill up to BATCH_SIZE with fast tasks
-                    while len(current_batch) < BATCH_SIZE and fast_task_index < len(fast_tasks):
-                        current_batch.append(fast_tasks[fast_task_index])
-                        fast_task_index += 1
-
-                    if current_batch:  # Only add non-empty batches
-                        balanced_batches.append(current_batch)
-
-                logger.info(f"Direct Cog Periodic Edit Loop: Running {total_tasks} message edits in INTELLIGENT BATCHED mode (batch size: {BATCH_SIZE}, slow containers distributed)")
-                logger.info(f"Performance optimization: {len(slow_tasks)} slow containers distributed across {len(balanced_batches)} batches")
+                logger.info(f"Direct Cog Periodic Edit Loop: Running {total_tasks} message edits "
+                            f"in {len(balanced_batches)} batches of up to {BATCH_SIZE}")
 
                 # Process balanced batches
                 for batch_num, batch_tasks in enumerate(balanced_batches, 1):
