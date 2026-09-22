@@ -118,7 +118,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
 [ ] cogs/loop_safety.py:79 _register_loop_error_handlers.make_handler.handler
 
-## Section 05  (1702 lines, 10 public names)
+## Section 05  (1715 lines, 10 public names)
 [ ] cogs/overview_embeds.py:35 OverviewEmbedsMixin
 [ ] cogs/slash_commands.py:41 SlashCommandsMixin
 [ ] cogs/slash_commands.py:87 SlashCommandsMixin.serverstatus

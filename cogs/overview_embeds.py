@@ -488,6 +488,8 @@ class OverviewEmbedsMixin:
 
         # Collect container lines separately (will add spacing between them later)
         container_lines = []
+        # The Compose stack of each line (None outside a stack or not known yet)
+        line_stacks = []
 
         # Process each container and add line to list
         for server_conf in ordered_servers:
@@ -605,6 +607,7 @@ class OverviewEmbedsMixin:
 
                 # Add to container lines list
                 container_lines.append(container_line)
+                line_stacks.append(getattr(status_result, 'compose_project', None))
             else:
                 # No status data available - show loading status (same as Server Overview).
                 # NOT counted as offline: the line says "loading", and counting it as
@@ -627,6 +630,16 @@ class OverviewEmbedsMixin:
 
                 # Add to container lines list
                 container_lines.append(container_line)
+                line_stacks.append(None)
+
+        # A bold stack heading before the first container of each stack, in the
+        # server order: a scattered stack shows its heading again where it
+        # reappears ("Sort by stack" in the panel brings it together).
+        previous_stack = None
+        for index, stack in enumerate(line_stacks):
+            if stack and stack != previous_stack:
+                container_lines[index] = f"**{discord.utils.escape_markdown(stack)}**\n" + container_lines[index]
+            previous_stack = stack
 
         # Format the counts in the header line
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
