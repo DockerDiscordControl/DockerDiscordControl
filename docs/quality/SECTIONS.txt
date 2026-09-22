@@ -155,7 +155,8 @@ services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-387
 
 ## Section 21  (1846 lines, 1 piece)
-services/mech/animation_cache_service.py:1-1846
+services/mech/animation_cache_service.py:1-1823
+services/mech/animation_disk_cache.py:1-76
 
 ## Section 22  (1670 lines, 4 pieces)
 services/mech/mech_data_store.py:1-939

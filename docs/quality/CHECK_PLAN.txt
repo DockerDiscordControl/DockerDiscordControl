@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1583 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1586 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -758,33 +758,36 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/mech/mech_display_cache_service.py:348 MechDisplayCacheService.clear_cache
 [ ] services/mech/mech_display_cache_service.py:380 get_mech_display_cache_service
 
-## Section 21  (1846 lines, 26 public names)
+## Section 21  (1899 lines, 29 public names)
 [ ] services/mech/animation_cache_service.py:35 MechAnimationRequest
 [ ] services/mech/animation_cache_service.py:50 MechAnimationResult
 [ ] services/mech/animation_cache_service.py:75 AnimationCacheService
 [ ] services/mech/animation_cache_service.py:203 AnimationCacheService.get_expected_canvas_size
 [ ] services/mech/animation_cache_service.py:268 AnimationCacheService.get_cached_animation_path
-[ ] services/mech/animation_cache_service.py:735 AnimationCacheService.pre_generate_animation
-[ ] services/mech/animation_cache_service.py:769 AnimationCacheService.pre_generate_all_animations
-[ ] services/mech/animation_cache_service.py:797 AnimationCacheService.pre_generate_rest_animation
-[ ] services/mech/animation_cache_service.py:806 AnimationCacheService.pre_generate_all_rest_animations
-[ ] services/mech/animation_cache_service.py:835 AnimationCacheService.pre_generate_big_animation
-[ ] services/mech/animation_cache_service.py:840 AnimationCacheService.pre_generate_all_big_animations
-[ ] services/mech/animation_cache_service.py:881 AnimationCacheService.pre_generate_all_unified_animations
-[ ] services/mech/animation_cache_service.py:1072 AnimationCacheService.get_animation_with_speed_and_power_big
-[ ] services/mech/animation_cache_service.py:1078 AnimationCacheService.get_animation_with_speed_and_power
-[ ] services/mech/animation_cache_service.py:1086 AnimationCacheService.clear_cache
-[ ] services/mech/animation_cache_service.py:1101 AnimationCacheService.cleanup_old_animations
-[ ] services/mech/animation_cache_service.py:1125 AnimationCacheService.enforce_disk_cache_limit
-[ ] services/mech/animation_cache_service.py:1171 AnimationCacheService.get_animation_with_speed
-[ ] services/mech/animation_cache_service.py:1191 AnimationCacheService.get_mech_animation
-[ ] services/mech/animation_cache_service.py:1391 AnimationCacheService.invalidate_memory_cache_only
-[ ] services/mech/animation_cache_service.py:1397 AnimationCacheService.invalidate_animation_cache
-[ ] services/mech/animation_cache_service.py:1424 AnimationCacheService.get_cache_status
-[ ] services/mech/animation_cache_service.py:1464 AnimationCacheService.perform_initial_cache_warmup
-[ ] services/mech/animation_cache_service.py:1623 AnimationCacheService.get_status_overview_animation
-[ ] services/mech/animation_cache_service.py:1766 AnimationCacheService.get_discord_optimized_animation
-[ ] services/mech/animation_cache_service.py:1841 get_animation_cache_service
+[ ] services/mech/animation_cache_service.py:744 AnimationCacheService.note_cache_hit
+[ ] services/mech/animation_cache_service.py:750 AnimationCacheService.pre_generate_animation
+[ ] services/mech/animation_cache_service.py:784 AnimationCacheService.pre_generate_all_animations
+[ ] services/mech/animation_cache_service.py:812 AnimationCacheService.pre_generate_rest_animation
+[ ] services/mech/animation_cache_service.py:821 AnimationCacheService.pre_generate_all_rest_animations
+[ ] services/mech/animation_cache_service.py:850 AnimationCacheService.pre_generate_big_animation
+[ ] services/mech/animation_cache_service.py:855 AnimationCacheService.pre_generate_all_big_animations
+[ ] services/mech/animation_cache_service.py:896 AnimationCacheService.pre_generate_all_unified_animations
+[ ] services/mech/animation_cache_service.py:1088 AnimationCacheService.get_animation_with_speed_and_power_big
+[ ] services/mech/animation_cache_service.py:1094 AnimationCacheService.get_animation_with_speed_and_power
+[ ] services/mech/animation_cache_service.py:1102 AnimationCacheService.clear_cache
+[ ] services/mech/animation_cache_service.py:1117 AnimationCacheService.cleanup_old_animations
+[ ] services/mech/animation_cache_service.py:1141 AnimationCacheService.enforce_disk_cache_limit
+[ ] services/mech/animation_cache_service.py:1148 AnimationCacheService.get_animation_with_speed
+[ ] services/mech/animation_cache_service.py:1168 AnimationCacheService.get_mech_animation
+[ ] services/mech/animation_cache_service.py:1368 AnimationCacheService.invalidate_memory_cache_only
+[ ] services/mech/animation_cache_service.py:1374 AnimationCacheService.invalidate_animation_cache
+[ ] services/mech/animation_cache_service.py:1401 AnimationCacheService.get_cache_status
+[ ] services/mech/animation_cache_service.py:1441 AnimationCacheService.perform_initial_cache_warmup
+[ ] services/mech/animation_cache_service.py:1600 AnimationCacheService.get_status_overview_animation
+[ ] services/mech/animation_cache_service.py:1743 AnimationCacheService.get_discord_optimized_animation
+[ ] services/mech/animation_cache_service.py:1818 get_animation_cache_service
+[ ] services/mech/animation_disk_cache.py:23 note_cache_hit
+[ ] services/mech/animation_disk_cache.py:36 enforce_disk_cache_limit
 
 ## Section 22  (1670 lines, 47 public names)
 [ ] services/mech/mech_data_store.py:41 BarsCompat

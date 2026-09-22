@@ -732,6 +732,21 @@ class AnimationCacheService:
                 pass
             raise
 
+        # The cap used to be enforced in __init__ only, while variants are written
+        # for the life of the process - 50 MB at boot and anything after it
+        limit = getattr(self, "_disk_cache_limit_mb", 0)
+        if limit:
+            try:
+                self.enforce_disk_cache_limit(limit)
+            except Exception as exc:  # cache hygiene must not fail a render
+                logger.debug("Disk-cache eviction after a write skipped: %s", exc)
+
+    def note_cache_hit(self, path) -> None:
+        """Mark a cached file as used (see services/mech/animation_disk_cache.py)."""
+        from services.mech.animation_disk_cache import note_cache_hit
+
+        note_cache_hit(path)
+
     def pre_generate_animation(self, evolution_level: int, animation_type: str = "walk", resolution: str = "small"):
         """Pre-generate and cache unified animation for given evolution level, type, and resolution"""
         cache_path = self.get_cached_animation_path(evolution_level, animation_type, resolution)
@@ -1019,6 +1034,7 @@ class AnimationCacheService:
             try:
                 with open(speed_cache_path, 'rb') as f:
                     data = f.read()
+                self.note_cache_hit(speed_cache_path)   # least-RECENTLY-used, not oldest
                 # Store in RAM Cache
                 self._store_in_ram_cache(cache_key, data)
                 # logger.debug(f"💿 DISK CACHE HIT: {speed_cache_path.name}")
@@ -1123,50 +1139,11 @@ class AnimationCacheService:
                     logger.warning(f"Could not remove cache file {cache_file}: {e}")
 
     def enforce_disk_cache_limit(self, max_mb: int = 200) -> int:
-        """LRU-evict speed-adjusted ``.webp`` files when their total size exceeds *max_mb*.
+        """Evict speed variants until the cache is inside *max_mb* (see
+        services/mech/animation_disk_cache.py)."""
+        from services.mech.animation_disk_cache import enforce_disk_cache_limit
 
-        Base ``.cache`` files (pre-generated 100%-speed animations) are
-        preserved — only the on-demand speed variants are evicted. Returns
-        the number of files removed.
-        """
-        max_bytes = max(0, int(max_mb)) * 1024 * 1024
-        if max_bytes <= 0:
-            return 0
-
-        try:
-            entries = []
-            total = 0
-            for path in self.cache_dir.glob("*.webp"):
-                try:
-                    stat = path.stat()
-                except (FileNotFoundError, PermissionError):
-                    continue
-                entries.append((stat.st_mtime, stat.st_size, path))
-                total += stat.st_size
-
-            if total <= max_bytes:
-                return 0
-
-            entries.sort(key=lambda e: e[0])  # oldest first
-            removed = 0
-            for _mtime, size, path in entries:
-                if total <= max_bytes:
-                    break
-                try:
-                    path.unlink()
-                    total -= size
-                    removed += 1
-                except (FileNotFoundError, PermissionError, OSError) as exc:
-                    logger.debug("Skipping eviction of %s: %s", path.name, exc)
-            if removed:
-                logger.info(
-                    "Animation disk cache trimmed: removed %d webp files (limit=%d MB)",
-                    removed, max_mb,
-                )
-            return removed
-        except OSError as exc:
-            logger.warning("Disk cache eviction failed: %s", exc)
-            return 0
+        return enforce_disk_cache_limit(self.cache_dir, max_mb)
 
     def get_animation_with_speed(self, evolution_level: int, speed_level: float) -> bytes:
         """
