@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1566 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1570 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -130,7 +130,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/slash_commands.py:475 SlashCommandsMixin.donate_command
 [ ] cogs/slash_commands.py:542 SlashCommandsMixin.info_command
 
-## Section 06  (1635 lines, 34 public names)
+## Section 06  (1643 lines, 34 public names)
 [ ] cogs/docker_control.py:890 DockerControlCog.control_command
 [ ] cogs/docker_control.py:947 DockerControlCog.cog_unload
 [ ] cogs/docker_control.py:980 DockerControlCog.update_global_status_cache
@@ -147,16 +147,16 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/background_loops.py:43 BackgroundLoopsMixin.heartbeat_send_loop
 [ ] cogs/background_loops.py:108 BackgroundLoopsMixin.before_heartbeat_loop
 [ ] cogs/background_loops.py:116 BackgroundLoopsMixin.status_update_loop
-[ ] cogs/background_loops.py:279 BackgroundLoopsMixin._check_image_updates.read_local
-[ ] cogs/background_loops.py:305 BackgroundLoopsMixin.before_status_update_loop
-[ ] cogs/background_loops.py:311 BackgroundLoopsMixin.start_mech_cache_loop
-[ ] cogs/background_loops.py:321 BackgroundLoopsMixin.before_start_mech_cache_loop
-[ ] cogs/background_loops.py:327 BackgroundLoopsMixin.initial_animation_cache_warmup
-[ ] cogs/background_loops.py:424 BackgroundLoopsMixin.before_initial_animation_cache_warmup
-[ ] cogs/background_loops.py:432 BackgroundLoopsMixin.inactivity_check_loop
-[ ] cogs/background_loops.py:593 BackgroundLoopsMixin.before_inactivity_check_loop
-[ ] cogs/background_loops.py:599 BackgroundLoopsMixin.performance_cache_clear_loop
-[ ] cogs/background_loops.py:625 BackgroundLoopsMixin.before_performance_cache_clear_loop
+[ ] cogs/background_loops.py:287 BackgroundLoopsMixin._check_image_updates.read_local
+[ ] cogs/background_loops.py:313 BackgroundLoopsMixin.before_status_update_loop
+[ ] cogs/background_loops.py:319 BackgroundLoopsMixin.start_mech_cache_loop
+[ ] cogs/background_loops.py:329 BackgroundLoopsMixin.before_start_mech_cache_loop
+[ ] cogs/background_loops.py:335 BackgroundLoopsMixin.initial_animation_cache_warmup
+[ ] cogs/background_loops.py:432 BackgroundLoopsMixin.before_initial_animation_cache_warmup
+[ ] cogs/background_loops.py:440 BackgroundLoopsMixin.inactivity_check_loop
+[ ] cogs/background_loops.py:601 BackgroundLoopsMixin.before_inactivity_check_loop
+[ ] cogs/background_loops.py:607 BackgroundLoopsMixin.performance_cache_clear_loop
+[ ] cogs/background_loops.py:633 BackgroundLoopsMixin.before_performance_cache_clear_loop
 [ ] cogs/donation_ui.py:31 DonationView
 [ ] cogs/donation_ui.py:70 DonationView.on_timeout
 [ ] cogs/donation_ui.py:89 DonationView.start_auto_delete_timer
@@ -300,7 +300,11 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/config_cache_service.py:156 ConfigCacheService.set_cached_token
 [ ] services/config/config_cache_service.py:172 ConfigCacheService.clear_token_cache
 
-## Section 12  (1478 lines, 34 public names)
+## Section 12  (1546 lines, 38 public names)
+[ ] services/automation/own_actions.py:41 note_own_action
+[ ] services/automation/own_actions.py:49 expected_stops
+[ ] services/automation/own_actions.py:58 forget
+[ ] services/automation/own_actions.py:65 reset
 [ ] services/config/config_form_parser_service.py:24 ConfigFormParserService
 [ ] services/config/config_form_parser_service.py:77 ConfigFormParserService.parse_servers_from_form
 [ ] services/config/config_form_parser_service.py:207 ConfigFormParserService.parse_channel_permissions_from_form
@@ -388,7 +392,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/server_config_service.py:209 ServerConfigService.get_base_directory
 [ ] services/config/server_config_service.py:224 get_server_config_service
 
-## Section 14  (1578 lines, 44 public names)
+## Section 14  (1581 lines, 44 public names)
 [ ] services/discord/channel_cleanup_service.py:33 ChannelCleanupRequest
 [ ] services/discord/channel_cleanup_service.py:59 ChannelCleanupResult
 [ ] services/discord/channel_cleanup_service.py:78 ChannelCleanupService
@@ -431,8 +435,8 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/docker_service/docker_action_service.py:54 get_stop_timeout_kwargs
 [ ] services/docker_service/docker_action_service.py:88 DockerActionService
 [ ] services/docker_service/docker_action_service.py:112 DockerActionService.execute_docker_action
-[ ] services/docker_service/docker_action_service.py:263 get_docker_action_service
-[ ] services/docker_service/docker_action_service.py:275 docker_action_service_first
+[ ] services/docker_service/docker_action_service.py:266 get_docker_action_service
+[ ] services/docker_service/docker_action_service.py:278 docker_action_service_first
 
 ## Section 15  (900 lines, 16 public names)
 [ ] services/docker_service/client_factory.py:74 build_docker_client
@@ -452,7 +456,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/docker_service/docker_client_pool.py:699 get_docker_client_async
 [ ] services/docker_service/reachability.py:52 docker_reachability
 
-## Section 16  (1714 lines, 34 public names)
+## Section 16  (1717 lines, 34 public names)
 [ ] services/docker_service/docker_utils.py:220 load_custom_timeout_config
 [ ] services/docker_service/docker_utils.py:246 get_container_timeouts
 [ ] services/docker_service/docker_utils.py:301 get_container_type_info
@@ -465,11 +469,11 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/docker_service/docker_utils.py:541 get_docker_stats
 [ ] services/docker_service/docker_utils.py:649 get_docker_info
 [ ] services/docker_service/docker_utils.py:694 docker_action
-[ ] services/docker_service/docker_utils.py:747 list_docker_containers
-[ ] services/docker_service/docker_utils.py:779 is_container_exists
-[ ] services/docker_service/docker_utils.py:800 get_containers_data
-[ ] services/docker_service/docker_utils.py:866 test_docker_performance
-[ ] services/docker_service/docker_utils.py:1057 compare_container_performance
+[ ] services/docker_service/docker_utils.py:750 list_docker_containers
+[ ] services/docker_service/docker_utils.py:782 is_container_exists
+[ ] services/docker_service/docker_utils.py:803 get_containers_data
+[ ] services/docker_service/docker_utils.py:869 test_docker_performance
+[ ] services/docker_service/docker_utils.py:1060 compare_container_performance
 [ ] services/docker_service/server_order.py:36 save_server_order
 [ ] services/docker_service/server_order.py:63 load_server_order
 [ ] services/docker_service/server_order.py:85 update_server_order_from_config

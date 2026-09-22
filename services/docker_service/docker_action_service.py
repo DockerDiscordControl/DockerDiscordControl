@@ -183,6 +183,9 @@ class DockerActionService:
                 await asyncio.to_thread(action_func, container)
 
                 execution_time_ms = (time.time() - start_time) * 1000
+                # So the watchdog does not report DDC's own stop as an alarm
+                from services.automation.own_actions import note_own_action
+                note_own_action(request.container_name, request.action)
 
                 self.logger.info(
                     f"Docker action '{request.action}' on container '{request.container_name}' "

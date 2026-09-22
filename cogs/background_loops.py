@@ -218,10 +218,18 @@ class BackgroundLoopsMixin:
                                          getattr(result, 'restart_count', None))
                     for name, result in results.items()
                     if result.success and not getattr(result, 'not_found', False)}
-        expected = set(getattr(self, 'pending_actions', {}) or {})
+        from services.automation.own_actions import expected_stops, forget as forget_own_action
+
+        # pending_actions holds only the single-container button's action, and
+        # only for a second or two; own_actions holds every stop or restart DDC
+        # carried out, long enough for the next poll to see the new state.
         now = time.time()
+        expected = set(getattr(self, 'pending_actions', {}) or {}) | expected_stops(now)
         base = watchers.setdefault('base', ContainerWatcher())
         events = [e for e in base.observe(snapshot, now, expected) if e.kind != RESTART_LOOP]
+        # The note has done its work once this poll has seen the container stopped
+        for name in (n for n, state in snapshot.items() if not state.running and n in expected):
+            forget_own_action(name)
         restart_keys = {(r.trigger.restart_threshold, r.trigger.restart_window_minutes)
                         for r in rules if RESTART_LOOP in r.trigger.states}
         for key in restart_keys:  # each setting observed once per cycle, however many rules share it

@@ -716,6 +716,9 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
             container = await asyncio.to_thread(client.containers.get, docker_container_name)
             action_func = valid_actions[action]
             await asyncio.to_thread(action_func, container)
+            # So the watchdog does not report DDC's own stop as an alarm
+            from services.automation.own_actions import note_own_action
+            note_own_action(docker_container_name, action)
             logger.info(f"Docker action '{action}' on container '{docker_container_name}' successful via SDK")
             return True
     except docker.errors.NotFound:

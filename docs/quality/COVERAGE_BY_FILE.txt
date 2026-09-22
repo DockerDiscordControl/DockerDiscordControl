@@ -92,7 +92,7 @@ app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/admin_overview.py	945	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
-cogs/background_loops.py	627	NONE
+cogs/background_loops.py	635	NONE
 cogs/channel_lifecycle.py	582	NONE
 cogs/control_helpers.py	284	pass1:s01:plan pass2:s01:1-205  [79 of 284 lines never in a package]
 cogs/control_ui.py	3780	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
@@ -119,6 +119,7 @@ services/automation/auto_action_state_service.py	364	passE:bothscans+E25
 services/automation/automation_service.py	665	passE:bothscans+E25
 services/automation/container_watch.py	151	NONE
 services/automation/image_updates.py	158	NONE
+services/automation/own_actions.py	68	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/channel_config_service.py	576	passE:E28+bothscans:126-300
 services/config/channel_roles.py	38	NONE
@@ -139,9 +140,9 @@ services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	227	NONE
 services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	95	NONE
-services/docker_service/docker_action_service.py	295	pass1:s14:plan pass2:s14:1-276
+services/docker_service/docker_action_service.py	298	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
-services/docker_service/docker_utils.py	1217	pass1:s16:1-1404  [28 of 1432 lines never in a package]
+services/docker_service/docker_utils.py	1220	pass1:s16:1-1404  [28 of 1432 lines never in a package]
 services/docker_service/reachability.py	67	NONE
 services/docker_service/server_order.py	111	pass1:s16:1-111
 services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101
