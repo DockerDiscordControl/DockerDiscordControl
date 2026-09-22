@@ -4,11 +4,15 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
-## v2.4.0 - 2026-09-16
+## v2.4.0 - 2026-09-22
 
 Audit release. Every subsystem was reviewed, then a second pass looked specifically at what
 changes for **existing installations** on upgrade. 141 findings were fixed, with 564 new
 regression tests across 32 test modules.
+
+A second wave (reviews E12-E52) added another 44 fixes and 32 more test modules before release.
+The suite is now **5,699 tests**, and every source file in the project carries written evidence
+that it was read - 183 of 183, up from the 22 the first wave had covered.
 
 ### ⚠️ Upgrade notes
 
@@ -154,6 +158,72 @@ regression tests across 32 test modules.
   88%, `autocomplete_handlers` 62%, `enhanced_info_modal_simple` 60%). Overall coverage is
   **71.3%** over 28880 statements with 4388 tests; `docker_control.py` and `control_ui.py` remain
   the weak spot at about 19%.
+
+### Second wave (reviews E12-E52)
+
+Two mechanical scans were written and run over all 183 source files, rather than over the 22 the
+first wave had reached. Both were worked to the end.
+
+**In Discord**
+
+- **A button or modal that fails now answers you.** py-cord's default handler for a view or modal
+  error prints to stderr and never replies, so a failed press left the interaction spinning
+  forever. All 25 views and 5 modals were rebased on a common class that logs and answers.
+- **A slash command that fails now answers you too.** The error handler was registered for
+  `on_command_error`, which is py-cord's **prefix**-command event - and DDC has no prefix
+  commands. Slash command errors go to `application_command_error`, where the default prints to
+  stderr. The cure had been installed on an event that never fires.
+- **One bad cycle no longer ends a background loop.** py-cord retries a task loop only for a
+  short list of network errors; anything else ends it permanently and the default handler is a
+  bare `print()`. A single unexpected error stopped status updates until the next restart.
+- **Start, stop and restart come back with a result** when Docker is unreachable, instead of
+  raising. Nine call sites read the answer as "did it work" - the buttons, the admin overview's
+  bulk actions, and the scheduled tasks at four in the morning.
+- **A broken mech no longer hides the whole container list.**
+- **A donor is never left looking at "Processing...".**
+- **Every message DDC shows reaches the locale catalogues** - about 1,900 entries across the 40
+  languages, for 89 user-facing texts that were English-only, including button labels and
+  dropdown placeholders. A ratchet test now fails on the next untranslated string.
+- **The container dropdowns page** past Discord's hard 25-option limit. An install with thirty
+  containers could not reach five of them from Discord at all.
+
+**In the web panel**
+
+- **The log tabs answer with text instead of Flask's HTML error page** when Docker is unreachable
+  and the log files are missing - which is the moment you open a log tab to find out why.
+- **A changed protected-info password takes effect at once.**
+- **A failed admin read can no longer erase the admins.**
+- **What one channel decides no longer decides it for the others.**
+- **A Discord message costs 0 config file reads instead of 2.** The translation monitor listens
+  to every message and re-read `channel_translations.json` twice to work out the message was none
+  of its business. Measured after deploying: 0.066 ms and 0 file opens per message, from 0.20 ms
+  and 2 reads.
+- **`_()` costs 0.2 us instead of 18.1 us.** It deep-copied the entire 361-key configuration to
+  find out which language to use - once per label, per container, per line.
+- **Importing one service no longer imports all of them.**
+
+**Under the floor**
+
+Findings with no symptom yet, each pinned so the first caller is not the one who finds out: the
+Docker client pool, the container status service and `get_docker_stats`/`get_docker_info` all
+raised where their own return types exist to carry a failure as a value. A stop timeout that went
+missing without a word could have dropped a game server to a ten-second shutdown mid-save. Four
+pieces of dead state that claimed to count loop health, and three dead log helpers of which one
+would have reinstated an already-fixed defect if anyone had reconnected it.
+
+**The tests themselves**
+
+All 4,956 test functions were classified by what their assertions can constrain. Exactly one could
+not fail - `assert True` under a test named after the clamping it was meant to check, guarding a
+range that had already been wrong once. Five more checked less than their names claimed, including
+a security test for path traversal whose only assertion was the return type; deleting the
+validation outright left it green.
+
+Then the guards were attacked from the other side: each fix was reverse-applied and the suite
+re-run. 26 of 30 could be reverted cleanly, and all 26 turned a guard red. None survived.
+
+Both tools are in the repository - `scripts/review/audit_assertion_strength.py` and
+`scripts/review/revert_each_fix.sh` - because a result that cannot be reproduced is not one.
 
 ### Behaviour changes to be aware of
 

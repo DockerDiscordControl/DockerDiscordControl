@@ -1,13 +1,17 @@
 # DDC v2.4.0 — Audit release
 
-> Text for the GitHub release page. The version bump is done (2026-09-16): `ENV DDC_VERSION` in
+> Text for the GitHub release page. The version bump is done: `ENV DDC_VERSION` in
 > the Dockerfile, the README title and badge, and `docs/CHANGELOG.md`. The entrypoint banner, the
 > Web UI footer and `/health` all read that one Dockerfile value — a rebuild is required for it
 > to take effect, since the value is baked into the image.
 
 This release comes out of a complete audit of DDC: every subsystem was reviewed, then a second
 review pass looked specifically at what changes for **existing installations** on upgrade.
-141 findings were fixed, with 564 new regression tests across 32 test modules.
+**185 findings were fixed** and the test suite now stands at **5,699 tests**.
+
+Every source file in the project carries written evidence that it was read — 183 of 183. That
+includes `cogs/docker_control.py`, the largest file in DDC at 5,400 lines, which no earlier
+review package had ever covered.
 
 ---
 
@@ -45,6 +49,27 @@ review pass looked specifically at what changes for **existing installations** o
 
 ## Highlights
 
+- **A button that fails now tells you so.** py-cord's default handler for a view or modal error
+  prints to the log and never replies, so a failed press left the "thinking..." state spinning
+  until Discord timed it out. Every one of the 25 views and 5 modals now logs the failure and
+  answers you. The same gap existed for slash commands, where the error handler had been
+  registered for an event that never fires.
+- **Start, stop and restart answer even when Docker is unreachable.** They raised instead of
+  returning a result, and nine places read that result as "did it work" — the buttons, the admin
+  overview's Stop All / Restart All, and the scheduled tasks that run overnight.
+- **One unexpected error no longer stops status updates until the next restart.** A background
+  task loop ended permanently on anything outside a short list of network errors.
+- **DDC now speaks your language everywhere.** 89 texts were English-only regardless of the
+  configured language — button labels, dropdown placeholders, whole embeds. About 1,900 new
+  catalogue entries across the 40 locale files, with a test that fails on the next one.
+- **The log tabs in the web panel stay readable when Docker is down.** They answered with the
+  framework's HTML error page — markup in the log window, at exactly the moment you opened it to
+  find out what was wrong.
+- **More than 25 containers are all reachable from Discord again.** Discord shows at most 25
+  options in one dropdown; the rest were silently dropped. The dropdowns now page.
+- **The server list is faster.** Every message on your server used to cost two config file reads
+  (0.20 ms); now none. Building a status label went from 18.1 µs to 0.2 µs — it had been
+  deep-copying the whole configuration to look up one setting.
 - **Admin users can be saved again.** `/api/admin-users` was not covered by the CSRF exemption
   and the UI never sent a token, so every save failed with a generic error.
 - **The bot no longer blocks itself.** All Docker SDK calls now run off the event loop. This was
@@ -166,8 +191,21 @@ review pass looked specifically at what changes for **existing installations** o
 
 ## Under the hood
 
-- 141 findings fixed across bot, scheduler, web panel, config, mech and deployment.
-- 564 new regression tests (32 modules) on top of the existing suite; all suites green in the
-  production image (Python 3.14), lint clean.
-- Every finding was documented with its evidence and its verification in an internal audit
-  protocol kept with the project.
+- **185 findings** fixed across bot, scheduler, web panel, config, mech and deployment.
+- **5,699 tests**, all green in the production image (Python 3.14), lint clean. Each finding has
+  a test that failed before its fix and a probe afterwards proving the test can still fail.
+- **183 of 183 source files** carry written evidence of having been read.
+- Two mechanical scans were written and run over the whole project rather than a sample. The
+  first looked for functions that raise where their signature promises a value: 86 candidates,
+  worked down to 7, and each of those 7 read back to its definition and explained in writing.
+  The second looked for failures answered with a silent empty value: 219 candidates, filtered to
+  the 24 that log nothing at all; 23 were correct, and the one that was not could have cost a
+  game server its world save.
+- **The test suite was audited against itself.** All 4,956 test functions were classified by what
+  their assertions can actually constrain. One could not fail at all; five checked less than
+  their names claimed, including a path-traversal security test whose only assertion was the
+  return type. Then each fix was reverse-applied to see whether its test noticed: 26 of 30 could
+  be reverted cleanly and all 26 turned a test red. The tools that did this are in the
+  repository, because a result nobody can reproduce is not one.
+- Every finding is documented with its evidence and its verification in the audit protocol kept
+  with the project.
