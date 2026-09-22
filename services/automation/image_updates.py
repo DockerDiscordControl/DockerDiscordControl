@@ -130,3 +130,29 @@ async def remote_digest(ref: ImageRef, scheme: str = "https", timeout: float = 1
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as error:
         logger.info(f"Image update check: {ref.registry}/{ref.repository}:{ref.tag} not reachable ({error})")
         return None
+
+
+IMAGE_UPDATE = "image_update"
+CHECK_INTERVAL_SECONDS = 6 * 3600
+
+
+class ImageUpdateChecker:
+    """Reports an update once per new remote digest; re-arms when the local image catches up."""
+
+    def __init__(self):
+        self._reported: Dict[str, str] = {}
+
+    def observe(self, container: str, image: str, remote: Optional[str], local: Set[str]):
+        from services.automation.container_watch import WatchEvent
+
+        verdict = update_available(remote, local)
+        if verdict is None:
+            return []
+        if not verdict:
+            self._reported.pop(container, None)
+            return []
+        if self._reported.get(container) == remote:
+            return []
+        self._reported[container] = remote
+        return [WatchEvent(container, IMAGE_UPDATE,
+                           f"A newer image for '{container}' ({image}) is in the registry.")]

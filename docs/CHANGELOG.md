@@ -50,6 +50,11 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
 - **Resource thresholds:** the same rules can react when a container's CPU or memory stays above a
   threshold for a number of minutes - once per episode, with a margin so a value hovering at the
   line does not report every poll.
+- **Image updates:** a rule can report when the registry has a newer image for the tag a container
+  runs (checked every 6 hours, only while such a rule exists). DDC then asks the image's registry
+  (Docker Hub, ghcr.io, lscr.io, ...) over the internet for the tag's digest - a HEAD request, no
+  pull, and it does not count against Docker Hub's pull limit. It only notifies: DDC cannot pull
+  the new image (the proxy refuses that on purpose), so "restart on update" is refused as a rule.
 - The status cache now keeps each container's health, restart count, and CPU and memory as numbers
   (from the answers DDC already fetched - no extra Docker call).
 - **Going back to v2.4.1 with container-state rules** keeps them: measured with both images,

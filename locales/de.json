@@ -1721,5 +1721,6 @@
   "web.aas.memory_threshold": "RAM-Schwelle (%)",
   "web.aas.resource_minutes": "mindestens (Minuten)",
   "🔄 Restarts: {count}": "🔄 Neustarts: {count}",
-  "🩺 Health check: {status}": "🩺 Healthcheck: {status}"
+  "🩺 Health check: {status}": "🩺 Healthcheck: {status}",
+  "web.aas.state_image_update": "ein neueres Image in der Registry hat (alle 6 Stunden geprüft; nur Meldung)"
 }

@@ -120,7 +120,7 @@
 [ ] cogs/slash_commands.py:475 SlashCommandsMixin.donate_command
 [ ] cogs/slash_commands.py:542 SlashCommandsMixin.info_command
 
-## Section 06  (1580 lines, 33 public names)
+## Section 06  (1635 lines, 34 public names)
 [ ] cogs/docker_control.py:890 DockerControlCog.control_command
 [ ] cogs/docker_control.py:947 DockerControlCog.cog_unload
 [ ] cogs/docker_control.py:980 DockerControlCog.update_global_status_cache
@@ -137,15 +137,16 @@
 [ ] cogs/background_loops.py:43 BackgroundLoopsMixin.heartbeat_send_loop
 [ ] cogs/background_loops.py:108 BackgroundLoopsMixin.before_heartbeat_loop
 [ ] cogs/background_loops.py:116 BackgroundLoopsMixin.status_update_loop
-[ ] cogs/background_loops.py:250 BackgroundLoopsMixin.before_status_update_loop
-[ ] cogs/background_loops.py:256 BackgroundLoopsMixin.start_mech_cache_loop
-[ ] cogs/background_loops.py:266 BackgroundLoopsMixin.before_start_mech_cache_loop
-[ ] cogs/background_loops.py:272 BackgroundLoopsMixin.initial_animation_cache_warmup
-[ ] cogs/background_loops.py:369 BackgroundLoopsMixin.before_initial_animation_cache_warmup
-[ ] cogs/background_loops.py:377 BackgroundLoopsMixin.inactivity_check_loop
-[ ] cogs/background_loops.py:538 BackgroundLoopsMixin.before_inactivity_check_loop
-[ ] cogs/background_loops.py:544 BackgroundLoopsMixin.performance_cache_clear_loop
-[ ] cogs/background_loops.py:570 BackgroundLoopsMixin.before_performance_cache_clear_loop
+[ ] cogs/background_loops.py:279 BackgroundLoopsMixin._check_image_updates.read_local
+[ ] cogs/background_loops.py:305 BackgroundLoopsMixin.before_status_update_loop
+[ ] cogs/background_loops.py:311 BackgroundLoopsMixin.start_mech_cache_loop
+[ ] cogs/background_loops.py:321 BackgroundLoopsMixin.before_start_mech_cache_loop
+[ ] cogs/background_loops.py:327 BackgroundLoopsMixin.initial_animation_cache_warmup
+[ ] cogs/background_loops.py:424 BackgroundLoopsMixin.before_initial_animation_cache_warmup
+[ ] cogs/background_loops.py:432 BackgroundLoopsMixin.inactivity_check_loop
+[ ] cogs/background_loops.py:593 BackgroundLoopsMixin.before_inactivity_check_loop
+[ ] cogs/background_loops.py:599 BackgroundLoopsMixin.performance_cache_clear_loop
+[ ] cogs/background_loops.py:625 BackgroundLoopsMixin.before_performance_cache_clear_loop
 [ ] cogs/donation_ui.py:31 DonationView
 [ ] cogs/donation_ui.py:70 DonationView.on_timeout
 [ ] cogs/donation_ui.py:89 DonationView.start_auto_delete_timer
@@ -198,7 +199,7 @@
 [ ] cogs/status_info_integration.py:1137 create_enhanced_status_embed
 [ ] cogs/status_info_integration.py:1229 should_show_info_in_status_channel
 
-## Section 10  (1502 lines, 45 public names)
+## Section 10  (1508 lines, 45 public names)
 [ ] cogs/translation_manager.py:23 TranslationManager
 [ ] cogs/translation_manager.py:58 TranslationManager.reload_translations
 [ ] cogs/translation_manager.py:68 TranslationManager.get_available_languages
@@ -224,26 +225,26 @@
 [ ] services/automation/auto_action_config_service.py:201 sanitize_string
 [ ] services/automation/auto_action_config_service.py:214 ConfigUnreadable
 [ ] services/automation/auto_action_config_service.py:222 validate_rule_data
-[ ] services/automation/auto_action_config_service.py:368 TriggerConfig
-[ ] services/automation/auto_action_config_service.py:393 TriggerConfig.from_dict
-[ ] services/automation/auto_action_config_service.py:415 TriggerConfig.to_dict
-[ ] services/automation/auto_action_config_service.py:445 ActionConfig
-[ ] services/automation/auto_action_config_service.py:454 ActionConfig.from_dict
-[ ] services/automation/auto_action_config_service.py:463 ActionConfig.to_dict
-[ ] services/automation/auto_action_config_service.py:473 AutoActionRule
-[ ] services/automation/auto_action_config_service.py:493 AutoActionRule.from_dict
-[ ] services/automation/auto_action_config_service.py:507 AutoActionRule.to_dict
-[ ] services/automation/auto_action_config_service.py:524 ConfigResult
-[ ] services/automation/auto_action_config_service.py:531 AutoActionConfigService
-[ ] services/automation/auto_action_config_service.py:624 AutoActionConfigService.get_rules
-[ ] services/automation/auto_action_config_service.py:635 AutoActionConfigService.get_rule
-[ ] services/automation/auto_action_config_service.py:643 AutoActionConfigService.get_global_settings
-[ ] services/automation/auto_action_config_service.py:652 AutoActionConfigService.add_rule
-[ ] services/automation/auto_action_config_service.py:695 AutoActionConfigService.update_rule
-[ ] services/automation/auto_action_config_service.py:742 AutoActionConfigService.delete_rule
-[ ] services/automation/auto_action_config_service.py:759 AutoActionConfigService.update_global_settings
-[ ] services/automation/auto_action_config_service.py:774 AutoActionConfigService.increment_trigger_count
-[ ] services/automation/auto_action_config_service.py:802 get_auto_action_config_service
+[ ] services/automation/auto_action_config_service.py:374 TriggerConfig
+[ ] services/automation/auto_action_config_service.py:399 TriggerConfig.from_dict
+[ ] services/automation/auto_action_config_service.py:421 TriggerConfig.to_dict
+[ ] services/automation/auto_action_config_service.py:451 ActionConfig
+[ ] services/automation/auto_action_config_service.py:460 ActionConfig.from_dict
+[ ] services/automation/auto_action_config_service.py:469 ActionConfig.to_dict
+[ ] services/automation/auto_action_config_service.py:479 AutoActionRule
+[ ] services/automation/auto_action_config_service.py:499 AutoActionRule.from_dict
+[ ] services/automation/auto_action_config_service.py:513 AutoActionRule.to_dict
+[ ] services/automation/auto_action_config_service.py:530 ConfigResult
+[ ] services/automation/auto_action_config_service.py:537 AutoActionConfigService
+[ ] services/automation/auto_action_config_service.py:630 AutoActionConfigService.get_rules
+[ ] services/automation/auto_action_config_service.py:641 AutoActionConfigService.get_rule
+[ ] services/automation/auto_action_config_service.py:649 AutoActionConfigService.get_global_settings
+[ ] services/automation/auto_action_config_service.py:658 AutoActionConfigService.add_rule
+[ ] services/automation/auto_action_config_service.py:701 AutoActionConfigService.update_rule
+[ ] services/automation/auto_action_config_service.py:748 AutoActionConfigService.delete_rule
+[ ] services/automation/auto_action_config_service.py:765 AutoActionConfigService.update_global_settings
+[ ] services/automation/auto_action_config_service.py:780 AutoActionConfigService.increment_trigger_count
+[ ] services/automation/auto_action_config_service.py:808 get_auto_action_config_service
 
 ## Section 11  (1987 lines, 42 public names)
 [ ] services/automation/auto_action_state_service.py:24 TriggerEvent
@@ -1636,9 +1637,11 @@
 [ ] cogs/task_ui.py:1128 ContainerTaskDeleteButton
 [ ] cogs/task_ui.py:1142 ContainerTaskDeleteButton.callback
 
-## Section 42  (132 lines, 5 public names)
+## Section 42  (158 lines, 7 public names)
 [ ] services/automation/image_updates.py:46 ImageRef
 [ ] services/automation/image_updates.py:52 parse_image_reference
 [ ] services/automation/image_updates.py:78 local_digests
 [ ] services/automation/image_updates.py:89 update_available
 [ ] services/automation/image_updates.py:100 remote_digest
+[ ] services/automation/image_updates.py:139 ImageUpdateChecker
+[ ] services/automation/image_updates.py:145 ImageUpdateChecker.observe

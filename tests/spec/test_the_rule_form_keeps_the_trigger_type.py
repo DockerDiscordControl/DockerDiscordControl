@@ -46,5 +46,5 @@ def test_the_template_offers_both_trigger_types():
                    'id="aasMessageTriggerFields"', 'class="form-check-input aas-state-checkbox"',
                    'id="aasRuleRestartThreshold"', 'id="aasRuleRestartWindow"',
                    'value="high_cpu"', 'value="high_memory"', 'id="aasRuleCpuThreshold"',
-                   'id="aasRuleMemoryThreshold"', 'id="aasRuleResourceMinutes"'):
+                   'id="aasRuleMemoryThreshold"', 'id="aasRuleResourceMinutes"', 'value="image_update"'):
         assert needle in template, needle

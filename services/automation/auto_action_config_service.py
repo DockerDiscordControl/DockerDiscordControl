@@ -44,7 +44,7 @@ VALID_ACTION_TYPES = {'RESTART', 'STOP', 'START', 'RECREATE', 'NOTIFY'}
 TRIGGER_MESSAGE = 'message'
 TRIGGER_CONTAINER_STATE = 'container_state'
 TRIGGER_TYPES = (TRIGGER_MESSAGE, TRIGGER_CONTAINER_STATE)
-CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory')
+CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory', 'image_update')
 MIN_RESTART_THRESHOLD, MAX_RESTART_THRESHOLD = 2, 50
 MIN_RESTART_WINDOW_MINUTES, MAX_RESTART_WINDOW_MINUTES = 1, 1440
 MIN_RESOURCE_PERCENT, MAX_RESOURCE_PERCENT = 10, 100
@@ -300,6 +300,12 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         errors.append(f"Invalid action type: {action_type}. Must be one of: {VALID_ACTION_TYPES}")
 
     containers = action.get('containers', [])
+    # DDC cannot pull (the proxy refuses POST /images/create on purpose), so a
+    # restart on an image update would restart the OLD image.
+    if (trigger_type == TRIGGER_CONTAINER_STATE and 'image_update' in trigger.get('states', [])
+            and action_type != 'NOTIFY'):
+        errors.append("An image-update rule can only notify: DDC cannot pull the new image, "
+                      "so a restart would run the old one")
     # A container-state rule acts on the container the event is about.
     if action_type != 'NOTIFY' and not containers and trigger_type == TRIGGER_MESSAGE:
         errors.append("At least one target container is required for this action type")

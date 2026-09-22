@@ -44,11 +44,11 @@ cogs/docker_control.py:864-883
 cogs/overview_embeds.py:1-894
 cogs/slash_commands.py:1-788
 
-## Section 06  (1580 lines, 3 pieces)
+## Section 06  (1635 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:884-1263
-cogs/background_loops.py:1-572
+cogs/background_loops.py:1-627
 cogs/donation_ui.py:1-628
 
 ## Section 07  (694 lines, 1 piece)
@@ -67,7 +67,7 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-379
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-807
+services/automation/auto_action_config_service.py:1-813
 
 ## Section 11  (1987 lines, 7 pieces)
 services/automation/auto_action_state_service.py:1-364
@@ -337,7 +337,7 @@ cogs/message_updates.py:1-944
 # (2,403 -> 1234 lines); too large to join a neighbour.
 cogs/task_ui.py:1-1228
 
-## Section 42  (132 lines, 1 piece)
+## Section 42  (158 lines, 1 piece)
 # Phase 4d (2026-09-22): the image-update check. Section 11, where the other
 # automation files live, is at 1,987 of its 2,000 lines.
-services/automation/image_updates.py:1-132
+services/automation/image_updates.py:1-158

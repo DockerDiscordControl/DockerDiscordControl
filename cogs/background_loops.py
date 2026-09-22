@@ -209,6 +209,10 @@ class BackgroundLoopsMixin:
                  if r.enabled and r.trigger.type == TRIGGER_CONTAINER_STATE]
         if not rules:
             return
+        control = control_channel_ids(config or {})
+        control_id = control[0] if control else None
+        if any('image_update' in r.trigger.states for r in rules):
+            self._maybe_check_image_updates(list(results), control_id)
         watchers = self.__dict__.setdefault('_container_watchers', {})
         snapshot = {name: ContainerState(result.is_running, getattr(result, 'health', None),
                                          getattr(result, 'restart_count', None))
@@ -239,12 +243,63 @@ class BackgroundLoopsMixin:
             events.extend(watcher.observe(values, now))
         if not events:
             return
-        control = control_channel_ids(config or {})
         try:
             await get_automation_service().process_container_events(
-                events, bot=self.bot, control_channel_id=control[0] if control else None)
+                events, bot=self.bot, control_channel_id=control_id)
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError, KeyError) as e:
             logger.error(f"[WATCHDOG] Could not act on {len(events)} container event(s): {e}", exc_info=True)
+
+    def _maybe_check_image_updates(self, container_names, control_channel_id):
+        """Start the image-update check (Phase 4d) at most once per interval, as a
+        tracked background task - asking registries must not delay the status loop."""
+        from services.automation.image_updates import CHECK_INTERVAL_SECONDS
+
+        now = time.time()
+        last = self.__dict__.get('_last_image_check')
+        if last is not None and now - last < CHECK_INTERVAL_SECONDS:
+            return
+        self.__dict__['_last_image_check'] = now
+        task = asyncio.create_task(self._check_image_updates(container_names, control_channel_id))
+        asyncio.create_task(self._track_task(task))
+
+    async def _check_image_updates(self, container_names, control_channel_id):
+        """Compare each container's image with the registry and hand updates to the rules.
+
+        Reads the container (GET /containers/{id}/json) and its image
+        (GET /images/{name}/json, the proxy's reserved read-only endpoint)
+        through the client factory; asks the registry by HEAD. Never pulls.
+        """
+        from services.automation.automation_service import get_automation_service
+        from services.automation.image_updates import (ImageUpdateChecker, local_digests,
+                                                       parse_image_reference, remote_digest)
+        from services.docker_service.client_factory import build_docker_client
+
+        checker = self.__dict__.setdefault('_image_update_checker', ImageUpdateChecker())
+
+        def read_local(name):
+            client = build_docker_client(timeout=20)
+            try:
+                image_name = client.containers.get(name).attrs.get('Config', {}).get('Image', '')
+                ref = parse_image_reference(image_name)
+                if ref is None:
+                    return image_name, None, set()
+                return image_name, ref, local_digests(client.images.get(image_name).attrs, ref)
+            finally:
+                client.close()
+
+        events = []
+        for name in container_names:
+            try:
+                image_name, ref, local = await asyncio.to_thread(read_local, name)
+            except Exception as e:  # noqa: BLE001 - one container must not stop the others
+                logger.info(f"[WATCHDOG] Image check skipped for {name}: {e}")
+                continue
+            if ref is None:
+                continue
+            events.extend(checker.observe(name, image_name, await remote_digest(ref), local))
+        if events:
+            await get_automation_service().process_container_events(
+                events, bot=self.bot, control_channel_id=control_channel_id)
 
     @status_update_loop.before_loop
     async def before_status_update_loop(self):

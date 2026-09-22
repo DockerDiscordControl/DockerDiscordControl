@@ -1721,5 +1721,6 @@
   "web.aas.memory_threshold": "Memory threshold (%)",
   "web.aas.resource_minutes": "for at least (minutes)",
   "🔄 Restarts: {count}": "🔄 Restarts: {count}",
-  "🩺 Health check: {status}": "🩺 Health check: {status}"
+  "🩺 Health check: {status}": "🩺 Health check: {status}",
+  "web.aas.state_image_update": "has a newer image in the registry (checked every 6 hours; notify only)"
 }
