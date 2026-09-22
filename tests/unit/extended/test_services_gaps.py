@@ -3673,8 +3673,14 @@ class TestProgressServiceGaps:
         s2 = progress_env_v2.get_progress_service("singleton-test")
         assert s1 is s2
 
-    def test_apply_donation_units_exact_hit_grants_bonus(self, progress_env_v2):
-        # Lines around exact_hit + 100 cents bonus
+    def test_apply_donation_units_exact_hit_grants_no_bonus(self, progress_env_v2):
+        """An exact hit climbs, and pays no bonus for it.
+
+        The $1 was dropped on 2026-09-23: it made up for the energy a level-up
+        used to wipe out, and energy survives the climb now. The energy here is
+        the 50 cents already in the account plus the 50 donated - untouched by
+        the climb, where it used to be reset to the surplus of zero.
+        """
         snap = progress_env_v2.Snapshot(
             mech_id="exact",
             level=1,
@@ -3683,10 +3689,11 @@ class TestProgressServiceGaps:
             goal_requirement=100,  # Need 50 more for exact level-up
         )
         snap, lvl_evts, bonus_evt = progress_env_v2.apply_donation_units(snap, 50)
-        # Exact hit grants $1 bonus
-        assert bonus_evt is not None
-        assert bonus_evt.type == "ExactHitBonusGranted"
-        assert bonus_evt.payload["power_units"] == 100
+
+        assert bonus_evt is None
+        assert lvl_evts and lvl_evts[0].type == "LevelUpCommitted"
+        assert snap.evo_acc == 0, "an exact hit leaves no surplus"
+        assert snap.power_acc == 100, "the energy stays across the climb"
 
     def test_add_system_donation_recovers_negative_power(self, progress_env_v2):
         # Lines 949-950: power_acc < 0 corrupted state recovery

@@ -350,7 +350,9 @@ def test_add_donation_triggers_level_up(progress_env):
     # Level-up events written
     types = {e.type for e in progress_env.read_events() if e.mech_id == "levelup"}
     assert "LevelUpCommitted" in types
-    assert "ExactHitBonusGranted" in types  # exact hit
+    # No bonus for an exact hit since 2026-09-23: the $1 made up for the energy
+    # a level-up used to wipe out, and energy survives the climb now.
+    assert "ExactHitBonusGranted" not in types
 
 
 def test_add_donation_huge_amount_caps_at_level_11(progress_env):
@@ -542,7 +544,13 @@ def test_rebuild_from_events_handles_initial_system_donation(progress_env):
 
     progress_env.snapshot_path("sysreplay").unlink(missing_ok=True)
     state = svc.rebuild_from_events()
-    assert state.power_current == pytest.approx(12.99, abs=0.011)
+    # The energy account is a battery since 2026-09-23: it holds the level's
+    # goal plus $1, and system donations pay into it alone, so they are what
+    # can reach the lid. The total counts every cent regardless - "donated" and
+    # "in the battery" are different numbers now.
+    snap = progress_env.load_snapshot("sysreplay")
+    capacity = progress_env.battery_capacity_cents(snap)
+    assert state.power_current == pytest.approx(min(1299, capacity) / 100.0, abs=0.011)
     assert state.total_donated == pytest.approx(12.99)
     assert state.evo_current == 0.0
 

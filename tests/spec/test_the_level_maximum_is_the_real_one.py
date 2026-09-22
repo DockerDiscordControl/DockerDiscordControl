@@ -9,6 +9,9 @@ Two numbers the operator reads as measurements:
   the service and its readers disagreed about what the ceiling is;
 * at level 11 the power bar's maximum is a hardcoded $1.00: goal_requirement
   is 0 there, so `goal_requirement + 100 if > 0 else 100` falls to 100 cents.
+  (The maximum of an ordinary level was that goal PLUS $1 until 2026-09-23 -
+  the dollar was the exact-hit bonus's place in the bar, and the bonus is
+  gone. It is the goal itself now, and it is what the battery holds.)
   The Discord log prints "Power=$250.00/$1.00" and the panel divides by it.
   At the final level there is no next goal, so there is no maximum to state -
   it is None, the way every other unknown in this service is.
@@ -51,4 +54,4 @@ def test_an_ordinary_level_still_has_its_maximum():
     """Counter-check: the number that IS computed must stay."""
     state = compute_ui_state(_snapshot(level=3, goal_requirement=1000, power=400))
 
-    assert state.power_max == 11.0        # goal + $1, in dollars
+    assert state.power_max == 10.0        # the level's goal, in dollars

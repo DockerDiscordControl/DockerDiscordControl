@@ -36,11 +36,16 @@ def module(tmp_path, monkeypatch):
     clear_progress_paths_cache()
     progress_service = importlib.reload(
         importlib.import_module("services.mech.progress_service"))
+    # gifts.py imports names FROM progress_service, so a reload leaves it
+    # pointing at the old module - and with it at the old decay config.
+    importlib.reload(importlib.import_module("services.mech.gifts"))
     progress_service.reset_progress_services()
     config = {
         "timezone": "UTC",
         "difficulty_bins": [0, 50],
-        "level_base_costs": {str(level): 100 for level in range(1, 12)},
+        # Big enough that three days of energy fit in the battery (goal + $1);
+        # the measured installation is at $35.40 a level with $1.50 a day.
+        "level_base_costs": {str(level): 1000 for level in range(1, 12)},
         "bin_to_dynamic_cost": {str(b): 0 for b in range(1, 22)},
         "mech_power_decay_per_day": {"default": 100},
     }
@@ -49,10 +54,26 @@ def module(tmp_path, monkeypatch):
     progress_service.CFG = progress_service.runtime.load_config(refresh=True)
     progress_service.TZ = progress_service.runtime.timezone(refresh=True)
     monkeypatch.setattr(progress_service, "get_decay_config_data", lambda: {"default": 100})
+    # The difficulty multiplier comes from the config service, and in a group
+    # run that is the real one - a level cost ten times what this test set up.
+    # Same stub as tests/unit/services/mech/test_progress_service.py.
+    from types import SimpleNamespace
+
+    config_module = importlib.import_module("services.config.config_service")
+    monkeypatch.setattr(
+        config_module, "get_config_service",
+        lambda: SimpleNamespace(
+            get_evolution_mode_service=lambda request: config_module.GetEvolutionModeResult(
+                success=True, use_dynamic=True, difficulty_multiplier=1.0)),
+        raising=False)
+    progress_service._decay_config_cache["data"] = None
+    progress_service._decay_config_cache["last_load"] = 0
+
     yield progress_service
     reset_progress_runtime()
     clear_progress_paths_cache()
     importlib.reload(importlib.import_module("services.mech.progress_service"))
+    importlib.reload(importlib.import_module("services.mech.gifts"))
 
 
 @pytest.fixture

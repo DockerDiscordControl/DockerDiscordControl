@@ -778,6 +778,16 @@ def _ensure_decay_anchor(snap: Snapshot) -> None:
         snap.goal_started_at = now_utc_iso()
 
 
+def battery_capacity_cents(snap: Snapshot) -> Optional[int]:
+    """What the energy account holds: the level's goal.
+
+    The bar's maximum used to be the goal PLUS $1 - that dollar was the place
+    the exact-hit bonus went, and the bonus is gone (2026-09-23), so it is the
+    goal now. None at the last level, which has no goal and therefore no limit.
+    """
+    return snap.goal_requirement if snap.goal_requirement > 0 else None
+
+
 def current_power_cents(snap: Snapshot, now: Optional[datetime] = None) -> int:
     """Current power in cents: power_acc minus the decay accrued since the anchor, clamped at 0.
 
@@ -819,7 +829,7 @@ def compute_ui_state(snap: Snapshot) -> ProgressState:
     # CONTINUOUS power decay since the decay anchor (clamped at 0)
     power_acc_with_decay = current_power_cents(snap)
 
-    power_max_cents = snap.goal_requirement + 100 if snap.goal_requirement > 0 else None  # last level: none
+    power_max_cents = battery_capacity_cents(snap)  # last level: none
     power_percent = 100 if power_max_cents is None else int((power_acc_with_decay * 100) // power_max_cents)
     # The old special case capped levels below 11 at 99 %, so a fully charged mech could never
     # show a full bar - and nothing read it: Discord and the panel compute their own percentage.
@@ -895,25 +905,19 @@ def apply_donation_units(snap: Snapshot, units_cents: int, *, events: Optional[L
         excess = new_evo - old_goal
         snap.evo_acc = excess
 
-        # Reset power to excess (same as evolution)
-        snap.power_acc = excess
+        # The energy account is NOT reset here. It used to be ("same as
+        # evolution"), so a mech stood almost empty the moment it climbed -
+        # and burned more per day from then on. Energy is the battery; it
+        # survives the climb and is capped at the new level's capacity by
+        # apply_power_event (operator's decision, 2026-09-23).
 
-        # Add bonus for exact hit (only for last exact hit)
-        if exact_hit:
-            snap.power_acc += 100  # Add $1 bonus for exact hit
-            # Store bonus event (will be returned for last exact hit only)
-            bonus_event = Event(
-                seq=0,
-                ts=now_utc_iso(),
-                type="ExactHitBonusGranted",
-                mech_id=snap.mech_id,
-                payload={
-                    "power_units": 100,  # cents
-                    "from_level": lvl_from,
-                    "to_level": snap.level,
-                    "reason": "exact_level_up"
-                },
-            )
+        # No bonus for an exact hit any more. The $1 existed because a level-up
+        # reset the energy account to the surplus, and an exact hit leaves a
+        # surplus of zero - so a perfect climb left the mech at zero energy.
+        # Energy survives the climb now, so there is nothing to make up for
+        # (operator's decision, 2026-09-23). Old ExactHitBonusGranted events
+        # still read in the donation history; the running installation has
+        # none (measured in the container).
 
         logger.info(f"Level up! Mech {snap.mech_id}: {lvl_from} -> {snap.level} (exact_hit={exact_hit})")
 
@@ -1052,6 +1056,15 @@ def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event
         snap.power_acc += int(payload.get("power_units", 0) or 0)
     # A level-up restarted the clock at "now"; the new power_acc is as of the event
     snap.goal_started_at = at.isoformat()
+    # The battery is full at the level's goal plus the $1 the bar has always
+    # shown as its maximum - measured AFTER the climb, so a donation that lifts
+    # the mech fills the bigger battery it ends up with. What does not fit is
+    # lost; the evolution account kept every cent of it.
+    capacity = battery_capacity_cents(snap)
+    if capacity is not None and snap.power_acc > capacity:
+        logger.info(f"Battery full: {snap.power_acc - capacity} cents did not fit "
+                    f"(capacity ${capacity/100:.2f})")
+        snap.power_acc = capacity
     return lvl_events, bonus_evt
 
 
