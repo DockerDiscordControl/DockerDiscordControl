@@ -8,7 +8,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 # docs/quality/reviews/, one report per section and pass; the coverage of a
 # report against this plan is computed by scripts/review/coverage.py.
 
-## Section 01  (1528 lines, 36 public names)
+## Section 01  (1533 lines, 36 public names)
 [ ] cogs/admin_overview.py:130 answer_or_post
 [ ] cogs/admin_overview.py:167 AdminOverviewView
 [ ] cogs/admin_overview.py:183 AdminOverviewAdminButton
@@ -31,13 +31,13 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/admin_overview.py:961 CancelBulkActionButton.callback
 [ ] cogs/stack_restart.py:49 stacks_of
 [ ] cogs/stack_restart.py:62 current_stacks
-[ ] cogs/stack_restart.py:75 offer_stacks
-[ ] cogs/stack_restart.py:99 StackPickView
-[ ] cogs/stack_restart.py:106 StackSelect
-[ ] cogs/stack_restart.py:122 StackSelect.callback
-[ ] cogs/stack_restart.py:137 RestartStackConfirmationView
-[ ] cogs/stack_restart.py:144 ConfirmRestartStackButton
-[ ] cogs/stack_restart.py:152 ConfirmRestartStackButton.callback
+[ ] cogs/stack_restart.py:82 offer_stacks
+[ ] cogs/stack_restart.py:105 StackPickView
+[ ] cogs/stack_restart.py:112 StackSelect
+[ ] cogs/stack_restart.py:128 StackSelect.callback
+[ ] cogs/stack_restart.py:143 RestartStackConfirmationView
+[ ] cogs/stack_restart.py:150 ConfirmRestartStackButton
+[ ] cogs/stack_restart.py:158 ConfirmRestartStackButton.callback
 [ ] cogs/auto_action_monitor.py:18 AutoActionMonitor
 [ ] cogs/auto_action_monitor.py:27 AutoActionMonitor.on_message
 [ ] cogs/auto_action_monitor.py:73 setup

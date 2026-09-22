@@ -64,18 +64,24 @@ def current_stacks() -> Dict[str, List[dict]]:
 
 
 async def _is_admin(interaction) -> bool:
-    """The admin list at the moment of this press; unreadable means no."""
+    """The admin list at the moment of this press. Closed if it cannot be read -
+    and then said in those words: "no permission" sends an admin looking for a
+    list they were never removed from (the bulk buttons say it that way too)."""
     try:
-        return await ao.get_admin_service().is_user_admin_async(str(interaction.user.id))
+        if await ao.get_admin_service().is_user_admin_async(str(interaction.user.id)):
+            return True
+        await interaction.followup.send(_("❌ You don't have permission for this action."), ephemeral=True)
+        return False
     except (AttributeError, ImportError, RuntimeError) as e:
         logger.error(f"Could not check admin status for the stack restart: {e}", exc_info=True)
+        await interaction.followup.send(
+            _("❌ Your permission could not be checked. Nothing was done."), ephemeral=True)
         return False
 
 
 async def offer_stacks(cog, channel_id: int, interaction) -> None:
     """The first press: the stacks to choose from, for an admin."""
     if not await _is_admin(interaction):
-        await interaction.followup.send(_("❌ You don't have permission for this action."), ephemeral=True)
         return
     stacks = current_stacks()
     if not stacks:
@@ -156,7 +162,6 @@ class ConfirmRestartStackButton(Button):
             logger.warning(f"Stack restart confirmation could not be answered: {e}")
             return
         if not await _is_admin(interaction):
-            await interaction.followup.send(_("❌ You don't have permission for this action."), ephemeral=True)
             return
         if getattr(self.cog, '_bulk_operation_in_progress', False):
             await interaction.followup.send(_("⏳ Another bulk operation is in progress. Please wait."),
