@@ -37,12 +37,14 @@ def test_the_rule_editor_in_node():
     result = subprocess.run([node, str(ROOT / "tests" / "js" / "auto_actions_rule_form.test.js")],
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok     ") == 4, result.stdout
+    assert result.stdout.count("ok     ") == 5, result.stdout
 
 
 def test_the_template_offers_both_trigger_types():
     template = (ROOT / "app" / "templates" / "_auto_actions_modal.html").read_text(encoding="utf-8")
     for needle in ('id="aasRuleTriggerType"', 'value="container_state"', 'id="aasContainerTriggerFields"',
                    'id="aasMessageTriggerFields"', 'class="form-check-input aas-state-checkbox"',
-                   'id="aasRuleRestartThreshold"', 'id="aasRuleRestartWindow"'):
+                   'id="aasRuleRestartThreshold"', 'id="aasRuleRestartWindow"',
+                   'value="high_cpu"', 'value="high_memory"', 'id="aasRuleCpuThreshold"',
+                   'id="aasRuleMemoryThreshold"', 'id="aasRuleResourceMinutes"'):
         assert needle in template, needle

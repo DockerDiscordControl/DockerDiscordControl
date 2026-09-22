@@ -13,7 +13,8 @@ function makeEnv() {
     'aasRuleRequiredKeywords', 'aasRuleKeywords', 'aasRuleMatchMode', 'aasRuleIgnore', 'aasRuleRegex',
     'aasRuleIsWebhook', 'aasRuleActionType', 'aasRuleDelay', 'aasRuleCooldown', 'aasRuleCooldownScope',
     'aasRuleOnlyRunning', 'aasRuleTriggerType', 'aasRuleRestartThreshold', 'aasRuleRestartWindow',
-    'aasMessageTriggerFields', 'aasContainerTriggerFields'];
+    'aasMessageTriggerFields', 'aasContainerTriggerFields', 'aasRuleCpuThreshold',
+    'aasRuleMemoryThreshold', 'aasRuleResourceMinutes'];
   for (const id of ids) {
     els[id] = { id, value: '', checked: false, focus() {}, style: {},
       classList: { add() {}, remove() {}, toggle() {} } };
@@ -23,7 +24,8 @@ function makeEnv() {
   els.aasRuleCooldownScope.value = 'container';
   els.aasRuleTriggerType.value = 'message';
   const containers = ['web', 'db'].map(value => ({ value, checked: false }));
-  const states = ['stopped', 'unhealthy', 'restart_loop'].map(value => ({ value, checked: false }));
+  const states = ['stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory']
+    .map(value => ({ value, checked: false }));
   const feedback = [{ value: '', checked: true }, { value: '555', checked: false }];
   const document = {
     getElementById: id => els[id] || null,
@@ -107,6 +109,32 @@ const tests = {
     assert.strictEqual(trigger.type, 'container_state');
     assert.deepStrictEqual(trigger.states, ['unhealthy']);
     assert.deepStrictEqual(trigger.containers, ['db']);
+  },
+
+  async 'resource thresholds are sent and kept on edit'() {
+    const env = makeEnv();
+    env.els.aasRuleName.value = 'Hot';
+    env.els.aasRuleTriggerType.value = 'container_state';
+    env.states[3].checked = true;  // high_cpu
+    env.els.aasRuleCpuThreshold.value = '85';
+    env.els.aasRuleMemoryThreshold.value = '95';
+    env.els.aasRuleResourceMinutes.value = '7';
+    await env.ctx.saveAASRule();
+    const trigger = env.sent[0].body.trigger;
+    assert.deepStrictEqual(trigger.states, ['high_cpu']);
+    assert.strictEqual(trigger.cpu_threshold_percent, 85);
+    assert.strictEqual(trigger.memory_threshold_percent, 95);
+    assert.strictEqual(trigger.resource_minutes, 7);
+
+    const edit = makeEnv();
+    edit.ctx.populateRuleForm({ id: 'r', name: 'Hot', priority: 10, enabled: true,
+      trigger: { ...trigger, restart_threshold: 3, restart_window_minutes: 10 },
+      action: { type: 'NOTIFY', containers: [], delay_seconds: 0, notification_channel_id: null },
+      safety: { cooldown_minutes: 30, cooldown_scope: 'container', only_if_running: true } });
+    await edit.ctx.saveAASRule();
+    const again = edit.sent[0].body.trigger;
+    assert.deepStrictEqual([again.cpu_threshold_percent, again.memory_threshold_percent, again.resource_minutes],
+      [85, 95, 7]);
   },
 
   async 'a message rule is sent as before'() {

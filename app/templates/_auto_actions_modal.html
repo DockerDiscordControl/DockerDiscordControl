@@ -168,6 +168,14 @@
                                     <input class="form-check-input aas-state-checkbox" type="checkbox" value="restart_loop" id="aasState_restart_loop">
                                     <label class="form-check-label" for="aasState_restart_loop">{{ _t('web.aas.state_restart_loop') }}</label>
                                 </div>
+                                <div class="form-check">
+                                    <input class="form-check-input aas-state-checkbox" type="checkbox" value="high_cpu" id="aasState_high_cpu">
+                                    <label class="form-check-label" for="aasState_high_cpu">{{ _t('web.aas.state_high_cpu') }}</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input aas-state-checkbox" type="checkbox" value="high_memory" id="aasState_high_memory">
+                                    <label class="form-check-label" for="aasState_high_memory">{{ _t('web.aas.state_high_memory') }}</label>
+                                </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="aasRuleRestartThreshold">{{ _t('web.aas.restart_threshold') }}</label>
@@ -176,6 +184,18 @@
                             <div class="col-md-3">
                                 <label class="form-label" for="aasRuleRestartWindow">{{ _t('web.aas.restart_window') }}</label>
                                 <input type="number" class="form-control" id="aasRuleRestartWindow" value="10" min="1" max="1440">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="aasRuleCpuThreshold">{{ _t('web.aas.cpu_threshold') }}</label>
+                                <input type="number" class="form-control" id="aasRuleCpuThreshold" value="90" min="10" max="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="aasRuleMemoryThreshold">{{ _t('web.aas.memory_threshold') }}</label>
+                                <input type="number" class="form-control" id="aasRuleMemoryThreshold" value="90" min="10" max="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="aasRuleResourceMinutes">{{ _t('web.aas.resource_minutes') }}</label>
+                                <input type="number" class="form-control" id="aasRuleResourceMinutes" value="5" min="1" max="1440">
                             </div>
                             <div class="col-12 form-text">{{ _t('web.aas.container_state_hint') }}</div>
                         </div>

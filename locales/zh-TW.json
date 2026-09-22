@@ -1714,5 +1714,10 @@
   "web.aas.restart_threshold": "Restarts",
   "web.aas.restart_window": "within minutes",
   "web.aas.container_state_hint": "The containers ticked below are the ones watched (none ticked = all). The action applies to the container that changed. Notices go to the control channel unless you pick a feedback channel.",
-  "js.aas.select_state": "Please tick at least one container state."
+  "js.aas.select_state": "Please tick at least one container state.",
+  "web.aas.state_high_cpu": "uses more CPU than the threshold",
+  "web.aas.state_high_memory": "uses more memory than the threshold",
+  "web.aas.cpu_threshold": "CPU threshold (%)",
+  "web.aas.memory_threshold": "Memory threshold (%)",
+  "web.aas.resource_minutes": "for at least (minutes)"
 }

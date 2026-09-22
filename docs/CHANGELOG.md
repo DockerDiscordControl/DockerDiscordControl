@@ -47,8 +47,11 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   restarts N times within M minutes. Actions: notify, or restart/start/stop the container that
   changed. Notices go to the control channel unless the rule picks another one. A stop DDC was
   asked to do is not an alarm. Set it up in the web panel under Auto-Actions -> Trigger.
-- The status cache now keeps each container's health and restart count (from the inspect answer
-  DDC already fetched - no extra Docker call).
+- **Resource thresholds:** the same rules can react when a container's CPU or memory stays above a
+  threshold for a number of minutes - once per episode, with a margin so a value hovering at the
+  line does not report every poll.
+- The status cache now keeps each container's health, restart count, and CPU and memory as numbers
+  (from the answers DDC already fetched - no extra Docker call).
 - **Going back to v2.4.1 with container-state rules** keeps them: measured with both images,
   v2.4.1 never fires them, adding another rule there leaves them untouched, and saving or toggling
   one there is refused by its validation - so after upgrading again they work as before.
