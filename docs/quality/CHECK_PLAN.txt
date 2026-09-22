@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1573 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1574 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -300,7 +300,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/config_cache_service.py:156 ConfigCacheService.set_cached_token
 [ ] services/config/config_cache_service.py:172 ConfigCacheService.clear_token_cache
 
-## Section 12  (1612 lines, 40 public names)
+## Section 12  (1631 lines, 41 public names)
 [ ] services/config/channel_roles.py:16 control_channel_ids
 [ ] services/automation/own_actions.py:41 note_own_action
 [ ] services/automation/own_actions.py:51 expected_stops
@@ -311,7 +311,8 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/config_form_parser_service.py:207 ConfigFormParserService.parse_channel_permissions_from_form
 [ ] services/config/config_form_parser_service.py:242 ConfigFormParserService.find_unusable_channel_ids
 [ ] services/config/config_form_parser_service.py:260 ConfigFormParserService.find_duplicate_channel_ids
-[ ] services/config/config_form_parser_service.py:403 ConfigFormParserService.process_config_form
+[ ] services/config/config_form_parser_service.py:320 ConfigFormParserService.refused_heartbeat_url
+[ ] services/config/config_form_parser_service.py:415 ConfigFormParserService.process_config_form
 [ ] services/config/config_loader_service.py:29 ConfigLoaderService
 [ ] services/config/config_loader_service.py:65 ConfigLoaderService.load_modular_config
 [ ] services/config/config_loader_service.py:73 ConfigLoaderService.legacy_settings_files

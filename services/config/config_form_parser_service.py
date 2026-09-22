@@ -317,6 +317,18 @@ class ConfigFormParserService:
                 or (isinstance(key, str) and key.startswith('info_')))
 
     @staticmethod
+    def refused_heartbeat_url(form_data: Dict[str, Any]) -> str:
+        """The ping URL a save will THROW AWAY, or "".
+
+        Only https is kept (a heartbeat URL is a secret path). Anything else was
+        replaced by an empty, disabled heartbeat while the answer said the
+        configuration had been saved, so the operator read it as lost input.
+        """
+        ping_url = form_data.get('heartbeat_ping_url', '')
+        ping_url = ping_url.strip() if isinstance(ping_url, str) else ''
+        return ping_url if ping_url and not ping_url.startswith('https://') else ''
+
+    @staticmethod
     def _parse_heartbeat(form_data: Dict[str, Any]) -> Dict[str, Any]:
         """Parse heartbeat (Status Watchdog) settings from form data."""
         ping_url = form_data.get('heartbeat_ping_url', '')
@@ -516,6 +528,13 @@ class ConfigFormParserService:
 
             if password_changed:
                 message += " Web UI password changed; log in again with the new password."
+
+            refused_url = ConfigFormParserService.refused_heartbeat_url(form_data)
+            if result.success and refused_url:
+                message += (
+                    f" Warning: the heartbeat URL '{refused_url}' was NOT saved - the Status "
+                    "Watchdog only accepts https:// addresses, because the URL is a secret path."
+                )
 
             unusable = ConfigFormParserService.find_unusable_channel_ids(form_data)
             if result.success and unusable:
