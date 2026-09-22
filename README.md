@@ -676,6 +676,20 @@ FLASK_SECRET_KEY=your-64-character-random-secret-key
 DDC_WEB_PORT=9374
 ```
 
+### Behind a reverse proxy
+
+```bash
+# Addresses or CIDR ranges of your reverse proxy (NginxProxyManager, SWAG, Traefik ...),
+# comma-separated. Only requests from these addresses may set X-Forwarded-For /
+# X-Forwarded-Proto. Unset (the default): no forwarded header is believed, so the
+# rate limits and the action log always see the real peer address.
+DDC_TRUSTED_PROXIES=172.18.0.0/16
+```
+
+Since v3.0 this is required for the action log to show the client address behind a
+proxy; without it the log shows the proxy's address. Before v3.0 DDC believed the
+headers from anyone, which let a direct client escape the login and setup rate limits.
+
 ### Performance Optimization Variables (New in 2025)
 
 DDC now includes advanced performance optimization settings that can be configured via environment variables:

@@ -80,7 +80,7 @@ app/web/compat.py	102	pass1:s34:1-102
 app/web/config.py	169	pass1:s35:1-169
 app/web/csrf.py	125	pass1:s35:1-125
 app/web/diagnostics.py	30	pass1:s35:1-30
-app/web/extensions.py	26	pass1:s35:1-26
+app/web/extensions.py	83	pass1:s35:1-26
 app/web/i18n.py	64	pass1:s35:1-54  [10 of 64 lines never in a package]
 app/web/logging.py	60	pass1:s35:1-60
 app/web/routes.py	197	pass1:s35:1-100  [81 of 181 lines never in a package]

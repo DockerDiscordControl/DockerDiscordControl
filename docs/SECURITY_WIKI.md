@@ -127,6 +127,12 @@ server {
 }
 ```
 
+**Tell DDC which proxy to believe.** DDC ignores `X-Forwarded-*` unless the request
+comes from an address in `DDC_TRUSTED_PROXIES` (addresses or CIDR ranges,
+comma-separated), for example `DDC_TRUSTED_PROXIES=172.18.0.0/16` for a proxy in the
+same Docker network. Without it, a client that reaches port 9374 directly could pick
+its own address and escape the login and setup rate limits.
+
 ## Docker & Container Security
 
 ### Socket Security
