@@ -284,8 +284,9 @@ async function showMigrationHelpModal() {
 }
 
 function showSecurityGuideModal() {
-    // Open security documentation
-    window.open('/static/SECURITY.md', '_blank');
+    // The guide lives in docs/ and is not served by the panel; the old
+    // '/static/SECURITY.md' target was a 404.
+    window.open('https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/docs/SECURITY.md', '_blank', 'noopener');
 }
 
 // Initialize modal when opened
