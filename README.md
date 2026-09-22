@@ -14,28 +14,28 @@ Control your Docker containers directly from Discord! This application provides 
 
 A complete audit of DDC, followed by a second review pass focused on what changes for **existing
 installations** on upgrade. **188 findings fixed** and a suite of **5,715 tests**. Every source
-file in the project carries written evidence that it was read — 184 of 184.
+file in the project carries written evidence that it was read: 184 of 184.
 
-⚠️ **Please read the [upgrade notes](docs/CHANGELOG.md#v240---2026-09-22) before updating** — you
+⚠️ **Please read the [upgrade notes](docs/CHANGELOG.md#v240---2026-09-22) before updating.** You
 will be logged out once, long-dead scheduled tasks are paused instead of being resurrected, and
 your bot token stays in plaintext until you encrypt it.
 
 **Fixed, among others**
-- **One container can no longer make all your servers disappear** — a container whose image had
+- **One container can no longer make all your servers disappear.** A container whose image had
   been removed from the host emptied the whole container list.
-- **Admin users can be saved again** — every save failed with "Failed to save admin users".
-- **Scheduled tasks run the way you set them up** — weekly tasks were dropped, cron tasks
+- **Admin users can be saved again.** Every save failed with "Failed to save admin users".
+- **Scheduled tasks run the way you set them up.** Weekly tasks were dropped, cron tasks
   silently switched off, and one missed run could stop a recurring task for good.
-- **The bot stays responsive** — Docker calls no longer block it, which caused repeated container
+- **The bot stays responsive.** Docker calls no longer block it, which caused repeated container
   timeouts and the flood of "SLOW batched processing" warnings.
-- **Every button answers** — a failure now gets a message instead of an endless "thinking…".
-- **Auto-actions with several containers work** — they locked themselves out and never ran.
-- **"Change password" changes the password** — it used to do nothing and stored the new password
+- **Every button answers.** A failure now gets a message instead of an endless "thinking…".
+- **Auto-actions with several containers work.** They locked themselves out and never ran.
+- **"Change password" changes the password.** It used to do nothing and stored the new password
   in plaintext.
 
 🔒 **Security**
 - The **Encrypt token** button really encrypts the token; before, it reported success and changed
-  nothing. If you pressed it on an earlier version, press it again — see the upgrade notes.
+  nothing. If you pressed it on an earlier version, press it again (see the upgrade notes).
 - CSRF protection on every route; rejected requests get a clear message.
 - Session cookie renamed to `ddc_session` with `SameSite=Lax`; new passwords require 12 characters.
 - Auto-action regex patterns are validated, and each search runs in a separate process with a

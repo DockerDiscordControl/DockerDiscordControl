@@ -18,7 +18,7 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
 
 - **You will be logged out once.** The Flask secret key is now stored permanently
   (`config/.flask_secret_key`) instead of being regenerated on every start, and the session
-  cookie was renamed to `ddc_session`. Log in again and reload open browser tabs — the first save
+  cookie was renamed to `ddc_session`. Log in again and reload open browser tabs: the first save
   from a stale tab fails with a "session expired" message.
 - **Long-dead scheduled tasks are paused, not resurrected.** A missed run used to stop a recurring
   task forever while the Web UI still showed it as active. That is fixed, but reviving months-old
@@ -40,7 +40,7 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
   If the token has sat on disk in plaintext, consider resetting it in the Discord developer portal.
 - **Downgrading to v2.3.1:** the mech keeps working (snapshot format unchanged, the interim decay
   field is migrated out on load). But on installations migrated from v1, the one-time fold makes
-  `config.json` authoritative while v2.3.1 reads only the old split files — changed credentials or
+  `config.json` authoritative while v2.3.1 reads only the old split files, so changed credentials or
   settings would silently fall back. The pre-fold state is in
   `config/backup_<timestamp>_settings_fold/`.
 
@@ -49,13 +49,13 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
 - The decrypted bot token is no longer written to `config.json`; a token that cannot be decrypted
   is repaired instead of dropped. Protected container-info passwords are no longer stored in
   plaintext either.
-- CSRF is enforced for **all** blueprints — no route is exempt. Pages extending the base template
+- CSRF is enforced for **all** blueprints; no route is exempt. Pages extending the base template
   attach the token automatically; rejected requests return a clear JSON reason. `/api/admin-users`
   was not covered before, so saving admin users always failed.
 - The config save no longer accepts arbitrary posted fields (password hash, token, junk keys).
 - Session cookie renamed to `ddc_session` with `SameSite=Lax`; the per-request global
   `SESSION_COOKIE_SECURE` switch was removed (it could lock out plain-HTTP LAN users).
-- A short `DDC_ADMIN_PASSWORD` is accepted again — otherwise a fresh install silently stayed in
+- A short `DDC_ADMIN_PASSWORD` is accepted again. Otherwise a fresh install silently stayed in
   first-time-setup mode where `admin/setup` had full access. New passwords require 12 characters;
   existing ones keep working.
 - Auto-action regex patterns are validated properly, and each search runs in a separate process
@@ -63,8 +63,8 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
 
 ### Discord bot
 
-- Status/Info/Help buttons acknowledge the interaction immediately — no more "This interaction
-  failed" (Unknown interaction / 10062).
+- Status/Info/Help buttons acknowledge the interaction immediately, so "This interaction
+  failed" (Unknown interaction / 10062) no longer appears.
 - All Docker SDK calls run off the event loop; this caused repeated container timeouts and the
   flood of "SLOW batched processing" warnings.
 - Auto-action rules with more than one container work again (they locked themselves out via the
@@ -81,8 +81,8 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
 
 - Weekly tasks: the weekday was never written to `tasks.json`, so weekly tasks were dropped on the
   next load; `/schedule_weekly` also stored the wrong day (off by one). Abbreviations are accepted,
-  numbers are 1–7 (Monday = 1).
-- Cron tasks run at all — `croniter` was missing from the image, so they were created and then
+  numbers are 1 to 7 (Monday = 1).
+- Cron tasks run at all. `croniter` was missing from the image, so they were created and then
   silently deactivated.
 - A slightly late task still runs once; anything older is rescheduled instead of being stuck.
 - Daily, weekly and yearly runs keep their local time across daylight-saving transitions.
@@ -97,7 +97,7 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
 - "Change password" actually changes the password (it previously did nothing and stored the new
   password in plaintext).
 - Enter in a text field no longer submits the config form to a 405 page and loses edits.
-- Heartbeat (Status Watchdog) settings are saved — every save used to switch them off.
+- Heartbeat (Status Watchdog) settings are saved. Every save used to switch them off.
 - The mech difficulty slider loads its current state; saving no longer reports "Failed".
 - Donations keep their cents; delete/restore uses a stable id instead of a list index; $0 returns
   a clear error instead of a 500.
@@ -132,7 +132,7 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
   ownership of everything.
 - An invalid `TZ` falls back to UTC with a warning instead of crashing.
 - `docker stop` takes ~2 s instead of hitting the 10 s kill timeout.
-- **Removed:** `scripts/start.sh` no longer offers the "Python (direct)" run mode — it referenced a
+- **Removed:** `scripts/start.sh` no longer offers the "Python (direct)" run mode. It referenced a
   gunicorn config that does not exist and started bot and web server as separate processes.
   Without Docker it now exits with a pointer to `scripts/rebuild.sh` / the Docker image.
 
@@ -154,7 +154,7 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
   in the Web UI leaked into the cache before (and regardless of whether) saving succeeded.
   Container task lists are returned as their own list for the same reason.
 - **No absolute developer paths left in the code.** Three services fell back to
-  `/Volumes/appdata/dockerdiscordcontrol/...` outside Docker — a path that existed on exactly one
+  `/Volumes/appdata/dockerdiscordcontrol/...` outside Docker, a path that existed on exactly one
   machine, and for log lookups it was even searched during normal operation. All three now derive
   the project root from their own location, so a checkout anywhere works.
 - **Test coverage for the Discord layer.** Five cog modules were untested or barely tested,
