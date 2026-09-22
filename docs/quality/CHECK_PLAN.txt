@@ -119,7 +119,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
 [ ] cogs/loop_safety.py:79 _register_loop_error_handlers.make_handler.handler
 
-## Section 05  (1770 lines, 12 public names)
+## Section 05  (1777 lines, 12 public names)
 [ ] cogs/overview_embeds.py:35 power_consumption_line
 [ ] cogs/overview_embeds.py:52 with_website_footer
 [ ] cogs/overview_embeds.py:65 OverviewEmbedsMixin

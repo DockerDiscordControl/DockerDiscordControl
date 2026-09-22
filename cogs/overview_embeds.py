@@ -625,8 +625,15 @@ class OverviewEmbedsMixin:
                         ram_formatted = "—GB"
 
                     # Build single-line: "🟢 Name · cpu% • ramGB ⓘ"
-                    # Use middot (·) as separator, ⓘ only if has info
-                    container_line = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
+                    # Use middot (·) as separator, ⓘ only if has info.
+                    # Details switched off for this container are NOT a failed
+                    # measurement: "Hidden" does not parse as a number, so the row
+                    # used to read "—% • —GB", which the operator reads as "DDC
+                    # could not measure it".
+                    if not getattr(status_result, 'details_allowed', True):
+                        container_line = f"{status_emoji} {truncated_name} · 🔒 {translate('Hidden')}"
+                    else:
+                        container_line = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
                     if has_info:
                         container_line += " ⓘ"
                 elif status_result.not_found:
