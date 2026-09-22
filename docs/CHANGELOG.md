@@ -40,6 +40,18 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
 - **Two-factor authentication** for the web panel: TOTP, recovery codes, host break-glass
   (`scripts/disable_2fa.py`). Offered, never forced.
 
+### ✨ Container watchdog
+
+- **DDC now says when a container dies.** A new auto-action trigger type, *Container state*:
+  react when a container stops (it was running), turns unhealthy (its health check fails) or
+  restarts N times within M minutes. Actions: notify, or restart/start/stop the container that
+  changed. Notices go to the control channel unless the rule picks another one. A stop DDC was
+  asked to do is not an alarm. Set it up in the web panel under Auto-Actions -> Trigger.
+- The status cache now keeps each container's health and restart count (from the inspect answer
+  DDC already fetched - no extra Docker call).
+- **Going back to v2.4.1 with container-state rules:** v2.4.1 ignores them (they never fire), but
+  it drops their settings when it saves any rule. After upgrading again, set them up anew.
+
 ### Other
 
 - One source repository: the same build is pushed as `dockerdiscordcontrol/dockerdiscordcontrol`,
