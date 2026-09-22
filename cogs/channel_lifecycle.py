@@ -92,7 +92,13 @@ class ChannelLifecycleMixin:
                 self._persist_tracked_message_ids()  # FIX C: drop removed channel from persisted map
 
             # Remaining (non-message) tracking - safe outside the lock; drop the lock entry last.
-            self._channel_locks.pop(channel_id, None)  # FIX B: drop the per-channel lock
+            # Only while nobody is on it: a coroutine already waiting keeps its
+            # reference, and the next caller would mint a NEW lock for the same
+            # channel - two of them inside the section the lock exists for (FIX B).
+            # A lock that is still busy is dropped the next time round.
+            lock = self._channel_locks.get(channel_id)
+            if lock is not None and not lock.locked() and not getattr(lock, '_waiters', None):
+                self._channel_locks.pop(channel_id, None)
             self.last_message_update_time.pop(channel_id, None)
             self.last_channel_activity.pop(channel_id, None)
             if hasattr(self, 'mech_expanded_states'):
