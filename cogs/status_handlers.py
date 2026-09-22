@@ -242,7 +242,15 @@ class StatusHandlersMixin:
             server_config = servers_by_docker_name.get(docker_name)
 
             if not server_config:
+                # An ANSWER, not a silent gap: the caller builds its list of names
+                # and this method re-reads the configuration, so a container the
+                # panel renamed or deactivated in between has none here. Dropped
+                # from the result, it was cached neither as a status nor as an
+                # error and sat on the loading icon as if nobody had asked.
                 logger.warning(f"[INTELLIGENT_BULK_FETCH] No server config found for {docker_name}")
+                status_results[docker_name] = ContainerStatusResult.error_result(
+                    docker_name=docker_name, error_type='no_config',
+                    error=RuntimeError("no server configuration for this container any more"))
                 failed_fetches += 1
                 continue
 
