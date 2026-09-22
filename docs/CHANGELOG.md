@@ -84,7 +84,8 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
 - **Big installations get their overviews back.** None of the three overview embeds limited its
   length, and Discord refuses a description over 4096 characters - measured with 200 containers,
   the Admin Overview built 6,662 and was refused, so no overview appeared at all. As many
-  containers as fit are shown and the last line says how many are missing.
+  containers as fit are shown and the last line says how many are missing - measured with names
+  of that length, the Admin Overview shows 120 of them whole and starts naming the rest at 125.
 - **A long info text no longer hides a container's info.** The panel's 250-character limit was a
   browser hint only; a longer text made the Info button answer with an error. It is cut at the
   save (and in the embed, for files written by hand).
