@@ -35,26 +35,39 @@ container** — once before sorting and once after — every time the panel was
 opened, under a header that calls itself "Debug". Fourteen lines for one click
 on a seven-container install. They are DEBUG now.
 
-## ⚠️ One question for the operator
+## Answered by the operator (2026-09-22): built
 
 **Should the container dropdowns page, like the day picker already does?**
+Yes. `E37b`.
 
-Discord's limit is 25 and it is not negotiable. This project has already met
-it once and answered it properly: `SimpleMonthdayDropdown`
-(`status_info_integration.py:1744`) pages through a month's 31 days, with the
-comment *"Discord shows at most 25 options in one select, and a month has 31
-days"*.
+Both dropdowns now page. `_page_of` / `_page_arrows` / `_turn_page` in
+`control_ui.py` follow `SimpleMonthdayDropdown` (`status_info_integration.py`,
+review B21): the arrows carry numbers only, so they need no entry in the forty
+catalogues, and turning a page swaps the select inside the same view rather
+than rebuilding the message.
 
-So the pattern exists and could be applied here. It is a **feature**, not a
-repair, which is why it was not built unasked:
+23 containers per page, not 24: every page has room for both arrows, so page
+boundaries are identical whichever direction the operator arrives from. Page 1
+could hold one more, and then "previous" from page 2 would land somewhere
+other than where page 1 started.
 
-|  | today | with paging |
+|  | before | now |
 |---|---|---|
-| ≤ 25 containers | unchanged | unchanged |
-| > 25 containers | the rest are unreachable from Discord, and the dropdown says so | all reachable, one extra click |
+| ≤ 25 containers | unchanged | unchanged - no arrows, no marker, nothing in the log |
+| > 25 containers | the rest unreachable from Discord, and the dropdown said so | all reachable, one extra click |
 
-The operator runs seven containers, so nothing here affects them today. It
-affects anyone who installs DDC and runs more than twenty-five.
+The guarantee is one sentence and the test is named after it: **every
+container in the list is reachable from some page.** `containers[:25]` can
+never satisfy it. Reverting the page slice to a plain cut turns 10 of the 16
+cases red.
+
+`test_a_container_beyond_the_limit_is_not_hidden.py` is retired with this: it
+pinned E37's warning about what was being dropped, and there is nothing left
+to drop. Its counter-check - a list that fits is left completely alone - moved
+into the new file.
+
+`control_helpers.container_select` is deliberately NOT paged: it is a Discord
+autocomplete, where narrowing by typing is how the interface works.
 
 ## Checked and found sound
 

@@ -246,32 +246,87 @@ def _make_action_done_callback(cog, docker_name: str, pending_entry: dict, label
 DISCORD_SELECT_LIMIT = 25
 
 
-def _fit_to_select(containers, name_key, placeholder):
-    """Cut a container list to Discord's limit, and SAY SO instead of just cutting.
+# The two option values that mean "turn the page" rather than "this container".
+# They cannot collide with a container name: Docker names cannot contain spaces
+# or the arrow characters.
+SELECT_PAGE_PREV = "__ddc_page_prev__"
+SELECT_PAGE_NEXT = "__ddc_page_next__"
 
-    Both container dropdowns used to do ``containers[:25]`` and stop there. An
-    operator running thirty containers saw twenty-five and could not control
-    the other five from Discord at all - with no message, no marker, nothing in
-    the log. It looked exactly like a configuration with twenty-five containers
-    in it (review E37).
+# Room for both arrows on every page, so the page boundaries are the same
+# whichever direction the operator arrives from. Page 1 could hold one more
+# (it has no way back), but then "previous" from page 2 would land somewhere
+# else than page 1 started, which is how off-by-one paging bugs are made.
+CONTAINERS_PER_PAGE = DISCORD_SELECT_LIMIT - 2
 
-    The real answer is paging, which this project has already built once for
-    the 31 days of a month (SimpleMonthdayDropdown). That is a feature and is
-    written up as a question for the operator rather than added here.
 
-    The marker is numbers, deliberately: "(25/30)" needs no translation and
-    means the same in every one of the forty languages.
+def _page_of(containers, page):
+    """The slice of `containers` shown on `page`, and whether there is more.
+
+    E37 repaired the silence around ``containers[:25]``: the placeholder said
+    "(25/30)" and a warning named the five that were dropped. The operator
+    could see the list was cut - they still could not reach what was cut off.
+
+    This is the answer the project had already built once, for the 31 days of
+    a month (``SimpleMonthdayDropdown``, review B21): the list pages, and
+    nothing is left out. A list that fits in one select is untouched and shows
+    no arrows at all, because paging that announces itself when it is not
+    needed is a regression for every install that has seven containers.
     """
     if len(containers) <= DISCORD_SELECT_LIMIT:
-        return containers, placeholder
+        return containers, False, False
 
-    shown = containers[:DISCORD_SELECT_LIMIT]
-    left_out = [str(c.get(name_key, "?")) for c in containers[DISCORD_SELECT_LIMIT:]]
-    logger.warning(
-        "Discord shows at most %d options, so %d of %d containers are NOT in "
-        "this dropdown and cannot be reached from it: %s",
-        DISCORD_SELECT_LIMIT, len(left_out), len(containers), ", ".join(left_out))
-    return shown, f"{placeholder} ({len(shown)}/{len(containers)})"
+    start = page * CONTAINERS_PER_PAGE
+    shown = containers[start:start + CONTAINERS_PER_PAGE]
+    return shown, page > 0, (start + CONTAINERS_PER_PAGE) < len(containers)
+
+
+def _page_arrows(containers, page, has_prev, has_next):
+    """The arrow options that lead out of this page.
+
+    The labels are numbers and an arrow, deliberately without ``_()``: they
+    carry no words, so they need no entry in the forty catalogues and read the
+    same in every language. ``SimpleMonthdayDropdown`` made the same choice for
+    the same reason.
+    """
+    before, after = [], []
+    if has_prev:
+        first = (page - 1) * CONTAINERS_PER_PAGE + 1
+        before.append(discord.SelectOption(
+            label=f"←  {first} - {first + CONTAINERS_PER_PAGE - 1}",
+            value=SELECT_PAGE_PREV))
+    if has_next:
+        first = (page + 1) * CONTAINERS_PER_PAGE + 1
+        after.append(discord.SelectOption(
+            label=f"{first} - {min(first + CONTAINERS_PER_PAGE - 1, len(containers))}  →",
+            value=SELECT_PAGE_NEXT))
+    return before, after
+
+
+def _paged_placeholder(placeholder, containers, page, paged):
+    """"Select a container... (24-30/30)" - numbers, so no catalogue entry."""
+    if not paged:
+        return placeholder
+    start = page * CONTAINERS_PER_PAGE + 1
+    end = min(start + CONTAINERS_PER_PAGE - 1, len(containers))
+    return f"{placeholder} ({start}-{end}/{len(containers)})"
+
+
+async def _turn_page(dropdown, interaction, containers, rebuild):
+    """Swap this dropdown for the neighbouring page, in the same row.
+
+    The same move ``SimpleMonthdayDropdown._turn_page`` makes: the view keeps
+    its identity, only the select is exchanged, so nothing else on the message
+    is disturbed.
+    """
+    step = 1 if dropdown.values[0] == SELECT_PAGE_NEXT else -1
+    row = getattr(dropdown, 'row', None)
+    view = dropdown.view
+    view.remove_item(dropdown)
+    other = rebuild(dropdown.page + step)
+    if row is not None:
+        other.row = row
+    view.add_item(other)
+    await interaction.response.edit_message(view=view)
 
 
 class ActionButton(Button):
@@ -1685,23 +1740,26 @@ class ContainerInfoSelectView(DDCView):
 class ContainerInfoDropdown(discord.ui.Select):
     """Dropdown for selecting a container."""
 
-    def __init__(self, cog_instance: 'DockerControlCog', containers: list):
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list, page: int = 0):
         self.cog = cog_instance
         self.containers = containers
+        self.page = page
 
-        # Create options from containers
+        # Create options from containers, one page at a time (review E37)
         placeholder = _("Select a container...")
-        fitting, placeholder = _fit_to_select(containers, 'name', placeholder)
-        options = []
-        for container in fitting:
-            option = discord.SelectOption(
+        shown, has_prev, has_next = _page_of(containers, page)
+        before, after = _page_arrows(containers, page, has_prev, has_next)
+        options = list(before)
+        for container in shown:
+            options.append(discord.SelectOption(
                 label=container['display'],
                 value=container['name']
-            )
-            options.append(option)
+            ))
+        options.extend(after)
 
         super().__init__(
-            placeholder=placeholder,
+            placeholder=_paged_placeholder(placeholder, containers, page,
+                                           has_prev or has_next),
             options=options,
             min_values=1,
             max_values=1,
@@ -1711,6 +1769,12 @@ class ContainerInfoDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle container selection."""
         try:
+            if self.values[0] in (SELECT_PAGE_PREV, SELECT_PAGE_NEXT):
+                await _turn_page(
+                    self, interaction, self.containers,
+                    lambda page: ContainerInfoDropdown(self.cog, self.containers, page=page))
+                return
+
             selected_container = self.values[0]
 
             # Get container info and full container data
@@ -2103,9 +2167,11 @@ class AdminContainerSelectView(DDCView):
 class AdminContainerDropdown(discord.ui.Select):
     """Dropdown for selecting a container for admin control."""
 
-    def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int):
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int,
+                 page: int = 0):
         self.cog = cog_instance
         self.channel_id = channel_id
+        self.page = page
 
         # CRITICAL: Re-sort containers here to ensure correct order
         # Sort by 'order' field from Web UI configuration
@@ -2138,11 +2204,12 @@ class AdminContainerDropdown(discord.ui.Select):
         for c in sorted_containers:
             logger.debug(f"  - {c['display']}: order={c.get('order', 999)}")
 
-        # Create options from sorted containers
+        # Create options from sorted containers, one page at a time (review E37)
         placeholder = _("Select a container to control...")
-        fitting, placeholder = _fit_to_select(sorted_containers, 'docker_name', placeholder)
-        options = []
-        for i, container in enumerate(fitting):
+        shown, has_prev, has_next = _page_of(sorted_containers, page)
+        before, after = _page_arrows(sorted_containers, page, has_prev, has_next)
+        options = list(before)
+        for container in shown:
             # Remove " Server" suffix for cleaner dropdown display
             display_label = container['display']
             if display_label.endswith(' Server'):
@@ -2156,9 +2223,11 @@ class AdminContainerDropdown(discord.ui.Select):
                 description=" "  # Single space - invisible but forces Discord to keep our order
             )
             options.append(option)
+        options.extend(after)
 
         super().__init__(
-            placeholder=placeholder,
+            placeholder=_paged_placeholder(placeholder, sorted_containers, page,
+                                           has_prev or has_next),
             options=options,
             min_values=1,
             max_values=1,
@@ -2168,6 +2237,15 @@ class AdminContainerDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle container selection and show control panel."""
         try:
+            # Before the defer: turning the page edits the message itself, and
+            # a deferred interaction can no longer answer with edit_message.
+            if self.values[0] in (SELECT_PAGE_PREV, SELECT_PAGE_NEXT):
+                await _turn_page(
+                    self, interaction, self.containers,
+                    lambda page: AdminContainerDropdown(
+                        self.cog, self.containers, self.channel_id, page=page))
+                return
+
             # IMPORTANT: Defer immediately to avoid interaction timeout (3 second limit)
             await interaction.response.defer()
 
