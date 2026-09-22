@@ -44,9 +44,11 @@ VALID_ACTION_TYPES = {'RESTART', 'STOP', 'START', 'RECREATE', 'NOTIFY'}
 TRIGGER_MESSAGE = 'message'
 TRIGGER_CONTAINER_STATE = 'container_state'
 TRIGGER_TYPES = (TRIGGER_MESSAGE, TRIGGER_CONTAINER_STATE)
-CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop')
+CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory')
 MIN_RESTART_THRESHOLD, MAX_RESTART_THRESHOLD = 2, 50
 MIN_RESTART_WINDOW_MINUTES, MAX_RESTART_WINDOW_MINUTES = 1, 1440
+MIN_RESOURCE_PERCENT, MAX_RESOURCE_PERCENT = 10, 100
+MIN_RESOURCE_MINUTES, MAX_RESOURCE_MINUTES = 1, 1440
 VALID_MATCH_MODES = {'any', 'all'}
 
 
@@ -352,6 +354,13 @@ def _validate_container_state_trigger(trigger: Dict[str, Any], errors: List[str]
     if not isinstance(window, int) or not MIN_RESTART_WINDOW_MINUTES <= window <= MAX_RESTART_WINDOW_MINUTES:
         errors.append(f"Restart window must be between {MIN_RESTART_WINDOW_MINUTES} and "
                       f"{MAX_RESTART_WINDOW_MINUTES} minutes")
+    for key, label in (('cpu_threshold_percent', 'CPU threshold'), ('memory_threshold_percent', 'Memory threshold')):
+        value = trigger.get(key, 90)
+        if not isinstance(value, int) or not MIN_RESOURCE_PERCENT <= value <= MAX_RESOURCE_PERCENT:
+            errors.append(f"{label} must be between {MIN_RESOURCE_PERCENT} and {MAX_RESOURCE_PERCENT} percent")
+    minutes = trigger.get('resource_minutes', 5)
+    if not isinstance(minutes, int) or not MIN_RESOURCE_MINUTES <= minutes <= MAX_RESOURCE_MINUTES:
+        errors.append(f"Resource duration must be between {MIN_RESOURCE_MINUTES} and {MAX_RESOURCE_MINUTES} minutes")
 
 # --- Data Models ---
 
@@ -375,6 +384,10 @@ class TriggerConfig:
     containers: List[str] = field(default_factory=list)   # empty = every container
     restart_threshold: int = 3
     restart_window_minutes: int = 10
+    # Resource thresholds (Phase 4b): high_cpu / high_memory above this for resource_minutes
+    cpu_threshold_percent: int = 90
+    memory_threshold_percent: int = 90
+    resource_minutes: int = 5
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TriggerConfig':
@@ -384,6 +397,9 @@ class TriggerConfig:
             containers=data.get('containers', []),
             restart_threshold=data.get('restart_threshold', 3),
             restart_window_minutes=data.get('restart_window_minutes', 10),
+            cpu_threshold_percent=data.get('cpu_threshold_percent', 90),
+            memory_threshold_percent=data.get('memory_threshold_percent', 90),
+            resource_minutes=data.get('resource_minutes', 5),
             channel_ids=data.get('channel_ids', []),
             keywords=data.get('keywords', []),
             required_keywords=data.get('required_keywords', []),
@@ -419,6 +435,9 @@ class TriggerConfig:
                 "containers": self.containers,
                 "restart_threshold": self.restart_threshold,
                 "restart_window_minutes": self.restart_window_minutes,
+                "cpu_threshold_percent": self.cpu_threshold_percent,
+                "memory_threshold_percent": self.memory_threshold_percent,
+                "resource_minutes": self.resource_minutes,
             })
         return data
 

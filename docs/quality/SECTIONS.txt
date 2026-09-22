@@ -44,11 +44,11 @@ cogs/docker_control.py:864-883
 cogs/overview_embeds.py:1-894
 cogs/slash_commands.py:1-788
 
-## Section 06  (1520 lines, 3 pieces)
+## Section 06  (1580 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:884-1263
-cogs/background_loops.py:1-561
+cogs/background_loops.py:1-572
 cogs/donation_ui.py:1-628
 
 ## Section 07  (694 lines, 1 piece)
@@ -60,18 +60,18 @@ cogs/status_handlers.py:1-1398
 ## Section 09  (1234 lines, 1 piece)
 cogs/status_info_integration.py:1-1234
 
-## Section 10  (1430 lines, 7 pieces)
+## Section 10  (1502 lines, 7 pieces)
 cogs/translation_manager.py:1-149
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-379
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-788
+services/automation/auto_action_config_service.py:1-807
 
-## Section 11  (1976 lines, 7 pieces)
+## Section 11  (1987 lines, 7 pieces)
 services/automation/auto_action_state_service.py:1-364
-services/automation/automation_service.py:1-654
+services/automation/automation_service.py:1-665
 services/automation/container_watch.py:1-151
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576

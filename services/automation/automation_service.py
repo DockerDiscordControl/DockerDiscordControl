@@ -498,12 +498,23 @@ class AutomationService:
                     continue
                 if rule.trigger.containers and event.container not in rule.trigger.containers:
                     continue
-                if event.kind == 'restart_loop' and (event.threshold, event.window_minutes) != (
-                        rule.trigger.restart_threshold, rule.trigger.restart_window_minutes):
+                if not self._measured_by_this_rule(event, rule):
                     continue  # measured with another rule's threshold/window
                 if await self._execute_container_rule(rule, event, settings, bot, control_channel_id):
                     executed.append(rule.name)
         return executed
+
+    @staticmethod
+    def _measured_by_this_rule(event, rule: AutoActionRule) -> bool:
+        """Restart loops and resource thresholds are measured per setting: an event
+        belongs only to the rules whose threshold and window produced it."""
+        trigger = rule.trigger
+        own = {
+            'restart_loop': (trigger.restart_threshold, trigger.restart_window_minutes),
+            'high_cpu': (trigger.cpu_threshold_percent, trigger.resource_minutes),
+            'high_memory': (trigger.memory_threshold_percent, trigger.resource_minutes),
+        }.get(event.kind)
+        return own is None or (event.threshold, event.window_minutes) == own
 
     async def _execute_container_rule(self, rule: AutoActionRule, event, settings: Dict,
                                       bot, control_channel_id) -> bool:

@@ -201,7 +201,8 @@ class BackgroundLoopsMixin:
         from services.automation.auto_action_config_service import (TRIGGER_CONTAINER_STATE,
                                                                     get_auto_action_config_service)
         from services.automation.automation_service import get_automation_service
-        from services.automation.container_watch import RESTART_LOOP, ContainerState, ContainerWatcher
+        from services.automation.container_watch import (RESTART_LOOP, RESOURCE_KINDS, ContainerState,
+                                                         ContainerWatcher, ResourceWatcher)
         from services.config.channel_roles import control_channel_ids
 
         rules = [r for r in get_auto_action_config_service().get_rules()
@@ -217,15 +218,25 @@ class BackgroundLoopsMixin:
         now = time.time()
         base = watchers.setdefault('base', ContainerWatcher())
         events = [e for e in base.observe(snapshot, now, expected) if e.kind != RESTART_LOOP]
-        for rule in rules:
-            if RESTART_LOOP not in rule.trigger.states:
-                continue
-            key = (rule.trigger.restart_threshold, rule.trigger.restart_window_minutes)
+        restart_keys = {(r.trigger.restart_threshold, r.trigger.restart_window_minutes)
+                        for r in rules if RESTART_LOOP in r.trigger.states}
+        for key in restart_keys:  # each setting observed once per cycle, however many rules share it
             if key not in watchers:
                 watchers[key] = ContainerWatcher(key[0], key[1] * 60)
                 watchers[key].observe(snapshot, now, expected)  # baseline, like the base watcher
                 continue
             events.extend(e for e in watchers[key].observe(snapshot, now, expected) if e.kind == RESTART_LOOP)
+        # Resource thresholds (Phase 4b): one watcher per metric, threshold and duration.
+        resource_keys = {(metric, r.trigger.cpu_threshold_percent if metric == 'cpu'
+                           else r.trigger.memory_threshold_percent, r.trigger.resource_minutes)
+                         for r in rules for metric, kind in RESOURCE_KINDS.items() if kind in r.trigger.states}
+        for key in resource_keys:
+            metric, threshold, minutes = key
+            watcher = watchers.setdefault(key, ResourceWatcher(metric, threshold, minutes))
+            values = {name: (getattr(result, f'{metric}_percent', None) if result.is_running else None)
+                      for name, result in results.items()
+                      if result.success and not getattr(result, 'not_found', False)}
+            events.extend(watcher.observe(values, now))
         if not events:
             return
         control = control_channel_ids(config or {})
