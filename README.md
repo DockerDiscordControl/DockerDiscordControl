@@ -419,23 +419,22 @@ environment:
 
 **🚀 Ready for Unraid Community Applications! Now with Auto-Action System for automatic updates and Status Watchdog for offline alerts!**
 
-## Platform Selection
+## One image for every platform
 
-**DockerDiscordControl is now available with platform-optimized versions!**
+DDC ships as **one image** for `linux/amd64` and `linux/arm64`. It runs on Unraid, NAS systems, Linux servers, and Docker Desktop on macOS (Intel and Apple Silicon) and Windows.
 
-| Platform | Repository | Description | Best For |
-|----------|------------|-------------|----------|
-| **Windows** | **[DockerDiscordControl-Windows](https://github.com/DockerDiscordControl/DockerDiscordControl-Windows)** | Windows Docker Desktop optimized | Windows 10/11 + Docker Desktop |
-| **Linux** | **[DockerDiscordControl-Linux](https://github.com/DockerDiscordControl/DockerDiscordControl-Linux)** | Native Linux optimization | Ubuntu, Debian, CentOS, RHEL |
-| **macOS** | **[DockerDiscordControl-Mac](https://github.com/DockerDiscordControl/DockerDiscordControl-Mac)** | Apple Silicon & Intel Mac optimized | macOS + Docker Desktop |
-| **Universal** | **[DockerDiscordControl](https://github.com/DockerDiscordControl/DockerDiscordControl)** *(this repo)* | Multi-platform, Unraid focus | Unraid, NAS, servers |
+The image is published under four Docker Hub names, and all four carry the same build:
 
-### Quick Platform Selection:
+| Docker Hub name | Note |
+|-----------------|------|
+| `dockerdiscordcontrol/dockerdiscordcontrol` | Main name, used by the Unraid template |
+| `dockerdiscordcontrol/dockerdiscordcontrol-linux` | Same image, kept so existing installs keep updating |
+| `dockerdiscordcontrol/dockerdiscordcontrol-mac` | Same image, kept so existing installs keep updating |
+| `dockerdiscordcontrol/dockerdiscordcontrol-windows` | Same image, kept so existing installs keep updating |
 
-- **Windows Users** → [**Windows Version**](https://github.com/DockerDiscordControl/DockerDiscordControl-Windows) *(PowerShell scripts, WSL2 optimized)*
-- **Linux Users** → [**Linux Version**](https://github.com/DockerDiscordControl/DockerDiscordControl-Linux) *(Native systemd, package managers)*  
-- **macOS Users** → [**Mac Version**](https://github.com/DockerDiscordControl/DockerDiscordControl-Mac) *(Apple Silicon + Intel, Homebrew)*
-- **Unraid/NAS Users** → **Use this repository** *(Universal, Community Apps support)*
+**Discontinued since v2.4:** the old platform-only tags (`:mac`, `:apple-silicon`, `:linux`, `:windows` and similar) are no longer updated. Use `:latest` or a version tag instead.
+
+The former platform repositories (DockerDiscordControl-Linux, -Mac and -Windows) were copies of this code and are replaced by this repository.
 
 ---
 
@@ -582,42 +581,9 @@ DDC includes HTTP Basic Auth and rate limiting, but these are designed for trust
 
 ## 🚀 Quick Start
 
-### **Platform-Specific Installation (Recommended)**
+### **Installation**
 
-**Choose your platform for optimized experience:**
-
-#### **Windows Users**
-Visit: **[DockerDiscordControl-Windows](https://github.com/DockerDiscordControl/DockerDiscordControl-Windows)**
-```powershell
-# Clone Windows-optimized version
-git clone https://github.com/DockerDiscordControl/DockerDiscordControl-Windows.git
-cd DockerDiscordControl-Windows
-# Follow Windows-specific setup guide
-```
-
-#### **Linux Users** 
-Visit: **[DockerDiscordControl-Linux](https://github.com/DockerDiscordControl/DockerDiscordControl-Linux)**
-```bash
-# Clone Linux-optimized version
-git clone https://github.com/DockerDiscordControl/DockerDiscordControl-Linux.git
-cd DockerDiscordControl-Linux
-# Follow Linux-specific setup guide
-```
-
-#### **macOS Users**
-Visit: **[DockerDiscordControl-Mac](https://github.com/DockerDiscordControl/DockerDiscordControl-Mac)**
-```bash
-# Clone Mac-optimized version  
-git clone https://github.com/DockerDiscordControl/DockerDiscordControl-Mac.git
-cd DockerDiscordControl-Mac
-# Follow macOS-specific setup guide
-```
-
----
-
-### **Universal Installation (Unraid & Servers)**
-
-**For Unraid, NAS systems, and server deployments:**
+**For Unraid, NAS systems, servers, and Docker Desktop on macOS or Windows:**
 
 #### Prerequisites
 
@@ -833,16 +799,12 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 ### **Platform Support**
 
-#### **🔧 This Universal Repository**
+#### **One image, amd64 and arm64**
 - **Unraid**: Native Community Applications support ⭐
 - **Linux Servers**: x86_64, ARM64 (Raspberry Pi)
+- **Docker Desktop**: macOS (Intel and Apple Silicon), Windows
 - **Docker**: Swarm, Compose, Standalone
 - **NAS**: Synology, QNAP, TrueNAS
-
-#### **🎯 Platform-Optimized Repositories**
-- **🪟 [Windows](https://github.com/DockerDiscordControl/DockerDiscordControl-Windows)**: Docker Desktop, WSL2, PowerShell integration
-- **🐧 [Linux](https://github.com/DockerDiscordControl/DockerDiscordControl-Linux)**: Native systemd, package managers, distributions
-- **🍎 [macOS](https://github.com/DockerDiscordControl/DockerDiscordControl-Mac)**: Apple Silicon, Intel, Homebrew, Docker Desktop
 
 ## Documentation
 
@@ -890,11 +852,6 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 We welcome contributions! See our [Development Guide](../../wiki/Development) for setup instructions and coding standards.
 
-**Contributing to Platform-Specific Versions:**
-- **Windows**: [Contribute to Windows version](https://github.com/DockerDiscordControl/DockerDiscordControl-Windows)
-- **Linux**: [Contribute to Linux version](https://github.com/DockerDiscordControl/DockerDiscordControl-Linux)
-- **macOS**: [Contribute to Mac version](https://github.com/DockerDiscordControl/DockerDiscordControl-Mac)
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -906,11 +863,6 @@ Live game-server player counts are powered by **[opengsq](https://github.com/ope
 ---
 
 **Like DDC? Star the repository!** | **Found a bug?** [Report it](../../issues) | **Feature idea?** [Suggest it](../../discussions)
-
-**Don't forget to star the platform-specific repos too!** 
-- **[Windows](https://github.com/DockerDiscordControl/DockerDiscordControl-Windows)**
-- **[Linux](https://github.com/DockerDiscordControl/DockerDiscordControl-Linux)**  
-- **[macOS](https://github.com/DockerDiscordControl/DockerDiscordControl-Mac)**
 
 ## Support DDC Development
 

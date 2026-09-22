@@ -22,6 +22,8 @@ What this pins down, as contracts rather than as the workflow's wording:
 * The README sync writes the description of all four names from the one
   README, and no other workflow writes a Docker Hub description, and no
   short description is longer than Docker Hub keeps.
+* No document in the repository links to the platform repositories, which
+  get archived.
 
 COUNTER-CHECK (carried out 2026-09-22): written before the workflows were
 changed. Red for the two reasons expected - three names missing from the
@@ -30,6 +32,8 @@ characters (the old main description had 115). Three tests were green from the
 start, so each was broken on purpose and went red: a hard-coded ``tags:`` in
 the build step, a ``docker/login-action`` step and a
 ``peter-evans/dockerhub-description`` step slipped into ``tests.yml``.
+The link test was red with 21 links, all in README.md, before the README was
+rewritten.
 
 WHAT THIS DOES NOT PROVE: it reads the workflow files, not a GitHub run. That
 the four names really carry one digest is only shown by the first release,
@@ -38,6 +42,7 @@ platform repositories, whose own workflows keep pushing until they are
 archived.
 """
 
+import re
 from pathlib import Path
 
 import yaml
@@ -182,3 +187,45 @@ def test_every_short_description_fits_docker_hub():
         if len(s.get("with", {}).get("short-description", "")) > HUB_SHORT_DESCRIPTION_LIMIT
     }
     assert syncs and not too_long, f"Docker Hub would cut these mid-word: {too_long}"
+
+
+# The three platform repositories on GitHub are archived after the first
+# release that fills all four Hub names from here. A link to one of them then
+# sends a reader to frozen code and to a `git clone` of a copy nobody updates.
+PLATFORM_REPO_LINK = re.compile(
+    r"github\.com/DockerDiscordControl/DockerDiscordControl-(Linux|Mac|Windows)",
+    re.IGNORECASE,
+)
+
+# An allow-list, not a deny-list: what a reader or a page can follow. git is
+# not in the test image, so this walks the tree instead of `git ls-files`.
+DOCUMENT_SUFFIXES = {".md", ".html", ".htm", ".xml", ".yml", ".yaml", ".txt", ".py", ".sh", ".json", ".js"}
+NOT_SHIPPED = {".git", "tests", "config", "logs", "node_modules", "__pycache__", ".pytest_cache"}
+
+
+def _documents():
+    for path in PROJECT.rglob("*"):
+        relative = path.relative_to(PROJECT)
+        if relative.parts[0] in NOT_SHIPPED or relative.parts[0].startswith("cached_"):
+            continue
+        if path.suffix.lower() in DOCUMENT_SUFFIXES and path.is_file():
+            yield str(relative), path.read_text(encoding="utf-8", errors="replace")
+
+
+def test_the_scan_sees_the_readme():
+    """Guard against a blunt tool: a scan that reads nothing finds no links."""
+    names = {name for name, _ in _documents()}
+    assert "README.md" in names and len(names) > 100, len(names)
+
+
+def test_nothing_links_to_the_platform_repositories():
+    findings = [
+        f"{name}:{lineno}"
+        for name, text in _documents()
+        for lineno, line in enumerate(text.splitlines(), 1)
+        if PLATFORM_REPO_LINK.search(line)
+    ]
+    assert not findings, (
+        f"{len(findings)} links point to platform repositories that get archived:\n"
+        + "\n".join(findings)
+    )
