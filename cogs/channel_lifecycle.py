@@ -561,6 +561,27 @@ class ChannelLifecycleMixin:
         posted on top of the stale one -> duplicate message. Removing the tracked
         message by its known ID first prevents that.
         """
+        # Messages an earlier round could not delete. Keeping their id in the
+        # tracking map was meant to retry them, but the caller's next step posts
+        # the replacement and overwrites it - so the old overview stayed in the
+        # channel, untracked, and after 30 days the age-limited cleanup skips it
+        # too. They are remembered here and tried again.
+        pending = self.__dict__.setdefault('_undeleted_messages', {})
+        still_there = set()
+        for message_id in pending.get(channel.id, set()):
+            try:
+                await channel.get_partial_message(message_id).delete()
+                logger.info(f"Removed stranded message {message_id} in channel {channel.id}")
+            except discord.NotFound:
+                pass
+            except (discord.Forbidden, discord.HTTPException) as e:
+                logger.warning(f"Stranded message {message_id} in channel {channel.id} stays: {e}")
+                still_there.add(message_id)
+        if still_there:
+            pending[channel.id] = still_there
+        else:
+            pending.pop(channel.id, None)
+
         tracked = self.channel_server_message_ids.get(channel.id)
         if not tracked:
             return
@@ -575,8 +596,10 @@ class ChannelLifecycleMixin:
             except discord.NotFound:
                 tracked.pop(key, None)  # Already gone - drop the stale id
             except (discord.Forbidden, discord.HTTPException) as e:
-                # Transient/permission error: KEEP the id so a later regenerate retries the
-                # by-id delete instead of permanently stranding a >30-day-old overview.
+                # Transient/permission error: remember the id OUTSIDE the tracking
+                # map, which the caller is about to overwrite with the new message.
                 logger.warning(f"Could not delete tracked '{key}' message {message_id} in channel {channel.id}: {e}")
+                pending.setdefault(channel.id, set()).add(message_id)
+                tracked.pop(key, None)
         # Keep the persisted map in sync so we don't try to delete the same id next restart.
         self._persist_tracked_message_ids()

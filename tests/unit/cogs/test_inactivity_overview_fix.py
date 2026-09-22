@@ -128,15 +128,19 @@ class TestDeleteTrackedOverviewMessages:
         await cog._delete_tracked_overview_messages(channel)
         partial.delete.assert_not_called()
 
-    async def test_transient_error_keeps_id_for_retry(self):
-        # On a transient HTTPException the id must be KEPT so a later regenerate retries
-        # the by-id delete (otherwise a >30-day-old overview is permanently stranded).
+    async def test_transient_error_remembers_the_message_for_retry(self):
+        # Until 2026-09-22 this asked for the id to stay in the TRACKING map, which
+        # could never work: the caller's next step posts the replacement and writes
+        # the new id over it, so the old overview was stranded in the channel
+        # (tests/spec/test_a_message_that_could_not_be_deleted_is_tried_again.py).
+        # It is remembered beside the map instead, and retried on the next round.
         cog = _make_cog({111: {"overview": 500}})
         channel, partial = self._make_channel()
         partial.delete = AsyncMock(side_effect=discord.HTTPException(MagicMock(status=500), "boom"))
         channel.get_partial_message = MagicMock(return_value=partial)
         await cog._delete_tracked_overview_messages(channel)  # must not raise
-        assert cog.channel_server_message_ids[111].get("overview") == 500
+        assert 500 in cog._undeleted_messages[111]
+        assert cog.channel_server_message_ids[111].get("overview") != 500
 
 
 # ---------------------------------------------------------------------------

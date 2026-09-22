@@ -104,7 +104,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/control_ui.py:3739 MechPrivateHistoryButton
 [ ] cogs/control_ui.py:3751 MechPrivateHistoryButton.callback
 
-## Section 04  (1535 lines, 13 public names)
+## Section 04  (1558 lines, 13 public names)
 [ ] cogs/channel_lifecycle.py:30 ChannelLifecycleMixin
 [ ] cogs/channel_lifecycle.py:387 ChannelLifecycleMixin.send_initial_status
 [ ] cogs/channel_lifecycle.py:510 ChannelLifecycleMixin.delete_bot_messages
