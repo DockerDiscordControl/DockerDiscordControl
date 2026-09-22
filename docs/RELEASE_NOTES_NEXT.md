@@ -1,4 +1,4 @@
-# DDC v2.4.0 — Audit release
+# DDC v2.4.0: Audit release
 
 This release comes out of a complete audit of DDC: every part of it was reviewed, and a second
 pass looked specifically at what changes for **existing installations** when they upgrade.
@@ -8,15 +8,15 @@ If you read only one section, read the upgrade notes.
 
 ---
 
-## ⚠️ Upgrade notes — please read
+## ⚠️ Upgrade notes (please read)
 
 - **You will be logged out once.** The session key is now stored permanently
   (`config/.flask_secret_key`) instead of being regenerated on every start, and the session
-  cookie was renamed to `ddc_session`. Log in again and **reload open browser tabs** — the first
+  cookie was renamed to `ddc_session`. Log in again and **reload open browser tabs**: the first
   save from a stale tab fails with a "session expired" message.
 - **Long-dead scheduled tasks are paused, not resurrected.** A bug made a recurring task stop
   for good once a single run was missed (host down, slow check cycle), while the Web UI still
-  showed it as active. That is fixed — but reviving months-old tasks on upgrade would fire
+  showed it as active. That is fixed. But reviving months-old tasks on upgrade would fire
   surprise restarts. So on first start, tasks that are long overdue are deactivated once and
   marked in the Web UI with a note saying when they last ran. The thresholds: daily more than
   2 days, weekly more than 14 days, monthly more than 62 days, yearly more than 400 days, cron
@@ -25,7 +25,7 @@ If you read only one section, read the upgrade notes.
 - **Your bot token on disk.** On most installations the token is stored in plaintext in
   `config/config.json`, and upgrading does not change that. The **Encrypt token** button in the
   Web UI's token security panel now really encrypts it. In earlier versions that button reported
-  "encrypted successfully" and changed nothing — so if you pressed it before, your token is
+  "encrypted successfully" and changed nothing. So if you pressed it before, your token is
   still in plaintext: press it again. Where the token was already stored encrypted, older
   versions also wrote a decrypted copy next to it; that copy is removed on the next save.
   Nothing is encrypted automatically. If your token has sat on disk in plaintext and that
@@ -35,7 +35,7 @@ If you read only one section, read the upgrade notes.
 - **Installations migrated from v1:** on first start, the settings actually in effect are folded
   into `config.json` once (a backup is written first, legacy files are renamed to
   `*.folded-<timestamp>`). Without this, a password or bot token could have been lost.
-- **Downgrading to v2.3.1:** the mech keeps working — the snapshot format is unchanged. **But**
+- **Downgrading to v2.3.1:** the mech keeps working, because the snapshot format is unchanged. **But**
   if your installation was migrated from v1 (it still has `bot_config.json` /
   `docker_config.json` / `web_config.json` in `config/`), the one-time fold makes `config.json`
   authoritative, while v2.3.1 reads only the old split files in that layout. After a downgrade,
@@ -47,8 +47,8 @@ If you read only one section, read the upgrade notes.
 ## Highlights
 
 - **One container can no longer make all your servers disappear.** If the image a container was
-  created from had been removed from the host — after an update, a `docker image prune`, or with
-  Docker's containerd image store — DDC failed with "No such image", the web panel showed no
+  created from had been removed from the host (after an update, a `docker image prune`, or with
+  Docker's containerd image store), DDC failed with "No such image", the web panel showed no
   containers at all, "Refresh" kept failing, and running servers looked missing in Discord.
 - **Admin users can be saved again.** Saving them always failed with "Failed to save admin users".
 - **Scheduled tasks run the way you set them up.** Weekly tasks were dropped on the next load
@@ -62,10 +62,10 @@ If you read only one section, read the upgrade notes.
   restart.
 - **Auto-actions with several containers work.** They locked themselves out and silently never
   ran.
-- **"Change password" changes the password.** It used to do nothing — and stored the new
+- **"Change password" changes the password.** It used to do nothing, and it stored the new
   password in plaintext.
 - **DDC speaks your language everywhere.** More than 200 texts stayed in English whatever
-  language you had chosen — button labels, dropdowns, whole messages. All 40 languages now have
+  language you had chosen: button labels, dropdowns, whole messages. All 40 languages now have
   them.
 
 ## Security
@@ -79,7 +79,7 @@ If you read only one section, read the upgrade notes.
 - The config save no longer accepts arbitrary posted fields (password hash, token, junk keys).
 - CSRF protection is enforced on every route; the pages attach the token automatically, and a
   rejected request gets a clear message.
-- A short `DDC_ADMIN_PASSWORD` is accepted again — otherwise a fresh install silently stayed in
+- A short `DDC_ADMIN_PASSWORD` is accepted again. Otherwise a fresh install silently stayed in
   first-time-setup mode, where `admin/setup` had full access.
 - The session cookie (`ddc_session`) uses `SameSite=Lax`, so other apps on the same host can no
   longer break DDC's session. The switch that could lock out plain-HTTP LAN users was removed.
@@ -89,9 +89,10 @@ If you read only one section, read the upgrade notes.
 
 ## Discord bot
 
-- Status, Info and Help buttons acknowledge immediately — no more "This interaction failed".
+- Status, Info and Help buttons acknowledge immediately, so "This interaction failed" no longer appears.
 - Start, stop and restart report a clear result when Docker is unreachable, instead of breaking
-  off with an internal error — on the buttons, in Stop All / Restart All and in scheduled tasks.
+  off with an internal error. That applies to the buttons, Stop All / Restart All and scheduled
+  tasks.
 - Stop All / Restart All respect each container's allowed actions and report what they skipped.
 - More than 25 containers: Discord shows at most 25 entries in one dropdown, and the rest were
   silently left out. The container dropdowns now page.
@@ -122,11 +123,11 @@ If you read only one section, read the upgrade notes.
 
 ## Web UI
 
-- Saving keeps the server order you arranged — every save used to reset the order of the admin
+- Saving keeps the server order you arranged. Every save used to reset the order of the admin
   overview and the container dropdowns.
 - The log tabs stay readable when Docker is down, instead of showing an HTML error page.
 - Enter in a text field no longer submits the config form to an error page and loses your edits.
-- Heartbeat (Status Watchdog) settings are saved — every save used to switch them off.
+- Heartbeat (Status Watchdog) settings are saved. Every save used to switch them off.
 - The mech difficulty slider loads its current state; saving no longer reports "Failed".
 - Donations: amounts keep their cents, deleting and restoring picks the right entry, and $0
   returns a clear error.
@@ -172,9 +173,9 @@ If you read only one section, read the upgrade notes.
 | Mech | decay debt cleared, startup gift may trigger, animation speed changes |
 | CPU% in status | current load, not an average since boot |
 | New passwords | minimum 12 characters |
-| "Encrypt token" button | really encrypts; still only when you press it — nothing is encrypted at startup |
+| "Encrypt token" button | really encrypts, but only when you press it; nothing is encrypted at startup |
 | Container order after saving | kept as you arranged it |
-| Image name shown for a container | the name the container was created with (e.g. `ich777/steamcmd:valheim`) — usually the same as before; a container created without a tag now shows none |
+| Image name shown for a container | the name the container was created with (e.g. `ich777/steamcmd:valheim`), usually the same as before; a container created without a tag now shows none |
 
 ## Under the hood
 
