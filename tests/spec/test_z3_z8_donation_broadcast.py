@@ -154,7 +154,7 @@ def _mech_service_stub():
 def env():
     """Patches exactly the dependencies that callback fetches from outside."""
     config, channels = _channels((100, True), (200, False))
-    with patch("cogs.docker_control.load_config", return_value=config), \
+    with patch("cogs.donation_ui.load_config", return_value=config), \
          patch("services.mech.mech_service.get_mech_service",
                return_value=_mech_service_stub()):
         yield channels

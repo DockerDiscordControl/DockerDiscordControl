@@ -44,7 +44,8 @@ def test_mech_state_keeps_the_aliases_the_donation_path_uses():
 
 def test_the_donation_path_still_reads_those_fields():
     """Guard against a stale test: if the code stops reading them, say so."""
-    source = (PROJECT / "cogs" / "docker_control.py").read_text(encoding="utf-8")
+    # The donation modal moved to donation_ui.py in the Phase 3 cog split.
+    source = (PROJECT / "cogs" / "donation_ui.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     read = {node.attr for node in ast.walk(tree)
             if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)

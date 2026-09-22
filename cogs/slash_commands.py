@@ -14,9 +14,8 @@ py-cord collects slash commands from the cog's whole class hierarchy, so a
 mixin carries them; tests/spec/test_buttons_on_old_messages_keep_working.py
 pins the eight command names across the move.
 
-AddAdminModal and DonationView still live in docker_control.py; they are
-imported where used, at call time, as cogs/admin_overview.py already does -
-a module-level import would be circular.
+AddAdminModal and DonationView come from donation_ui.py (moved there in step
+6 of the split, which removed the circular import that step 2 had to avoid).
 """
 
 import asyncio
@@ -32,6 +31,7 @@ from services.config.server_config_service import get_server_config_service
 from utils.logging_utils import setup_logger
 
 from .control_helpers import _channel_has_permission, container_select, get_guild_id
+from .donation_ui import AddAdminModal, DonationView
 from .translation_manager import _
 
 # Same logger name as the cog: log lines and log-based tests read as before the move.
@@ -389,7 +389,6 @@ class SlashCommandsMixin:
                 return
 
             # Show the modal to add admin
-            from .docker_control import AddAdminModal  # at call time: circular at import
             modal = AddAdminModal()
             await ctx.send_modal(modal)
 
@@ -528,7 +527,6 @@ class SlashCommandsMixin:
 
             # Send with or without view (use followup since we deferred)
             try:
-                from .docker_control import DonationView  # at call time: circular at import
                 view = DonationView(mech_service_available, bot=self.bot)
                 message = await ctx.followup.send(embed=embed, view=view)
                 # Update view with message reference and start auto-delete timer
@@ -767,7 +765,6 @@ class SlashCommandsMixin:
 
             # Create view with donation buttons
             try:
-                from .docker_control import DonationView  # at call time: circular at import
                 view = DonationView(mech_service_available, bot=self.bot)
                 # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.response.send_message(embed=embed, view=view, ephemeral=True)

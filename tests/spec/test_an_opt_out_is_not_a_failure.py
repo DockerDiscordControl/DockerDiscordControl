@@ -70,7 +70,7 @@ async def _broadcast(channels_config, known_channels):
     interaction = _interaction(known_channels)
     with patch("services.donation.unified_donation_service.process_discord_donation",
                AsyncMock(return_value=result)), \
-         patch("cogs.docker_control.load_config",
+         patch("cogs.donation_ui.load_config",  # the modal moved there (Phase 3 split)
                return_value={"channel_permissions": channels_config}):
         await _modal().callback(interaction)
     answers = [call.kwargs.get("content") or (call.args[0] if call.args else "")

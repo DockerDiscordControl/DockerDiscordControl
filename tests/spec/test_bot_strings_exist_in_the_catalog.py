@@ -33,8 +33,9 @@ KNOWN_MISSING = {
     # These two moved with the message code to message_updates.py (Phase 3 split).
     ("cogs/message_updates.py", "Mech power depleted - forcing animation update to show offline state"),
     ("cogs/message_updates.py", "Upgrading to force_recreate=True due to power depletion (offline mech)"),
-    ("cogs/docker_control.py", "⚠️ **Donation could not be recorded**"),
-    ("cogs/docker_control.py", "Nothing was sent to any channel. Please try again later."),
+    # These two moved with the donation modal to donation_ui.py (Phase 3 split).
+    ("cogs/donation_ui.py", "⚠️ **Donation could not be recorded**"),
+    ("cogs/donation_ui.py", "Nothing was sent to any channel. Please try again later."),
 }
 
 

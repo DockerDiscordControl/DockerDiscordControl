@@ -93,54 +93,46 @@
 [ ] cogs/control_ui.py:3742 MechPrivateHistoryButton
 [ ] cogs/control_ui.py:3754 MechPrivateHistoryButton.callback
 
-## Section 04  (1532 lines, 13 public names)
+## Section 04  (1535 lines, 13 public names)
 [ ] cogs/channel_lifecycle.py:30 ChannelLifecycleMixin
 [ ] cogs/channel_lifecycle.py:387 ChannelLifecycleMixin.send_initial_status
 [ ] cogs/channel_lifecycle.py:510 ChannelLifecycleMixin.delete_bot_messages
-[ ] cogs/docker_control.py:110 DockerControlCog
-[ ] cogs/docker_control.py:325 DockerControlCog.config
-[ ] cogs/docker_control.py:343 DockerControlCog.on_ready
-[ ] cogs/docker_control.py:528 DockerControlCog._setup_background_loops.send_initial_after_delay
-[ ] cogs/docker_control.py:579 DockerControlCog.trigger_status_refresh
-[ ] cogs/docker_control.py:677 DockerControlCog.on_message
+[ ] cogs/docker_control.py:113 DockerControlCog
+[ ] cogs/docker_control.py:328 DockerControlCog.config
+[ ] cogs/docker_control.py:346 DockerControlCog.on_ready
+[ ] cogs/docker_control.py:531 DockerControlCog._setup_background_loops.send_initial_after_delay
+[ ] cogs/docker_control.py:582 DockerControlCog.trigger_status_refresh
+[ ] cogs/docker_control.py:680 DockerControlCog.on_message
 [ ] cogs/loop_safety.py:46 survives_one_bad_cycle
 [ ] cogs/loop_safety.py:58 survives_one_bad_cycle.wrapper
 [ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
 [ ] cogs/loop_safety.py:79 _register_loop_error_handlers.make_handler.handler
 
-## Section 05  (1705 lines, 10 public names)
+## Section 05  (1702 lines, 10 public names)
 [ ] cogs/overview_embeds.py:35 OverviewEmbedsMixin
 [ ] cogs/slash_commands.py:41 SlashCommandsMixin
 [ ] cogs/slash_commands.py:87 SlashCommandsMixin.serverstatus
 [ ] cogs/slash_commands.py:262 SlashCommandsMixin.ss
 [ ] cogs/slash_commands.py:268 SlashCommandsMixin.control
 [ ] cogs/slash_commands.py:346 SlashCommandsMixin.addadmin
-[ ] cogs/slash_commands.py:409 SlashCommandsMixin.help_command
-[ ] cogs/slash_commands.py:466 SlashCommandsMixin.ping_command
-[ ] cogs/slash_commands.py:476 SlashCommandsMixin.donate_command
-[ ] cogs/slash_commands.py:544 SlashCommandsMixin.info_command
+[ ] cogs/slash_commands.py:408 SlashCommandsMixin.help_command
+[ ] cogs/slash_commands.py:465 SlashCommandsMixin.ping_command
+[ ] cogs/slash_commands.py:475 SlashCommandsMixin.donate_command
+[ ] cogs/slash_commands.py:542 SlashCommandsMixin.info_command
 
-## Section 06  (1490 lines, 33 public names)
-[ ] cogs/docker_control.py:887 DockerControlCog.control_command
-[ ] cogs/docker_control.py:944 DockerControlCog.cog_unload
-[ ] cogs/docker_control.py:977 DockerControlCog.update_global_status_cache
-[ ] cogs/docker_control.py:991 DockerControlCog.get_status_cache
-[ ] cogs/docker_control.py:1011 DockerControlCog._register_persistent_mech_views.PersistentMechExpandView
-[ ] cogs/docker_control.py:1016 DockerControlCog._register_persistent_mech_views.PersistentMechCollapseView
-[ ] cogs/docker_control.py:1021 DockerControlCog._register_persistent_mech_views.PersistentMechDonateView
-[ ] cogs/docker_control.py:1026 DockerControlCog._register_persistent_mech_views.PersistentMechHistoryView
-[ ] cogs/docker_control.py:1032 DockerControlCog._register_persistent_mech_views.PersistentMechSelectionView
-[ ] cogs/docker_control.py:1044 DockerControlCog._register_persistent_mech_views.PersistentMechStoryView
-[ ] cogs/docker_control.py:1084 DonationView
-[ ] cogs/docker_control.py:1123 DonationView.on_timeout
-[ ] cogs/docker_control.py:1142 DonationView.start_auto_delete_timer
-[ ] cogs/docker_control.py:1161 DonationView.broadcast_clicked
-[ ] cogs/docker_control.py:1170 DonationBroadcastModal
-[ ] cogs/docker_control.py:1246 DonationBroadcastModal.callback
-[ ] cogs/docker_control.py:1588 AddAdminModal
-[ ] cogs/docker_control.py:1606 AddAdminModal.callback
-[ ] cogs/docker_control.py:1715 setup
-[ ] cogs/docker_control.py:1732 setup.check_donation_notifications
+## Section 06  (1520 lines, 33 public names)
+[ ] cogs/docker_control.py:890 DockerControlCog.control_command
+[ ] cogs/docker_control.py:947 DockerControlCog.cog_unload
+[ ] cogs/docker_control.py:980 DockerControlCog.update_global_status_cache
+[ ] cogs/docker_control.py:994 DockerControlCog.get_status_cache
+[ ] cogs/docker_control.py:1014 DockerControlCog._register_persistent_mech_views.PersistentMechExpandView
+[ ] cogs/docker_control.py:1019 DockerControlCog._register_persistent_mech_views.PersistentMechCollapseView
+[ ] cogs/docker_control.py:1024 DockerControlCog._register_persistent_mech_views.PersistentMechDonateView
+[ ] cogs/docker_control.py:1029 DockerControlCog._register_persistent_mech_views.PersistentMechHistoryView
+[ ] cogs/docker_control.py:1035 DockerControlCog._register_persistent_mech_views.PersistentMechSelectionView
+[ ] cogs/docker_control.py:1047 DockerControlCog._register_persistent_mech_views.PersistentMechStoryView
+[ ] cogs/docker_control.py:1120 setup
+[ ] cogs/docker_control.py:1137 setup.check_donation_notifications
 [ ] cogs/background_loops.py:37 BackgroundLoopsMixin
 [ ] cogs/background_loops.py:43 BackgroundLoopsMixin.heartbeat_send_loop
 [ ] cogs/background_loops.py:108 BackgroundLoopsMixin.before_heartbeat_loop
@@ -154,6 +146,14 @@
 [ ] cogs/background_loops.py:478 BackgroundLoopsMixin.before_inactivity_check_loop
 [ ] cogs/background_loops.py:484 BackgroundLoopsMixin.performance_cache_clear_loop
 [ ] cogs/background_loops.py:510 BackgroundLoopsMixin.before_performance_cache_clear_loop
+[ ] cogs/donation_ui.py:31 DonationView
+[ ] cogs/donation_ui.py:70 DonationView.on_timeout
+[ ] cogs/donation_ui.py:89 DonationView.start_auto_delete_timer
+[ ] cogs/donation_ui.py:108 DonationView.broadcast_clicked
+[ ] cogs/donation_ui.py:118 DonationBroadcastModal
+[ ] cogs/donation_ui.py:194 DonationBroadcastModal.callback
+[ ] cogs/donation_ui.py:536 AddAdminModal
+[ ] cogs/donation_ui.py:554 AddAdminModal.callback
 
 ## Section 07  (694 lines, 6 public names)
 [ ] cogs/enhanced_info_modal_simple.py:44 SimplifiedContainerInfoModal
