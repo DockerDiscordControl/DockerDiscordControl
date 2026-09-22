@@ -1392,7 +1392,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/web/background.py:51 register_background_services
 [ ] app/web/blueprints.py:24 register_blueprints
 
-## Section 35  (1939 lines, 80 public names)
+## Section 35  (1940 lines, 80 public names)
 [ ] app/web/config.py:125 resolve_secret_key
 [ ] app/web/config.py:143 build_config
 [ ] app/web/csrf.py:56 csrf_error_reason
@@ -1401,7 +1401,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/web/extensions.py:23 parse_trusted_proxies
 [ ] app/web/extensions.py:41 TrustedProxyFix
 [ ] app/web/extensions.py:70 configure_proxy
-[ ] app/web/extensions.py:80 init_rate_limiting
+[ ] app/web/extensions.py:81 init_rate_limiting
 [ ] app/web/i18n.py:44 register_i18n
 [ ] app/web/i18n.py:48 register_i18n.inject_i18n
 [ ] app/web/i18n.py:55 register_i18n.inject_i18n.web_translate
@@ -1582,7 +1582,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/ddc_ui.py:87 DDCModal
 [ ] cogs/ddc_ui.py:90 DDCModal.on_error
 
-## Section 39  (844 lines, 31 public names)
+## Section 39  (854 lines, 31 public names)
 [ ] app/blueprints/two_factor_routes.py:98 install_two_factor
 [ ] app/blueprints/two_factor_routes.py:108 status
 [ ] app/blueprints/two_factor_routes.py:116 setup
@@ -1590,11 +1590,11 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/blueprints/two_factor_routes.py:147 verify
 [ ] app/blueprints/two_factor_routes.py:165 disable
 [ ] app/blueprints/two_factor_routes.py:179 dismiss
-[ ] app/web/tls.py:56 tls_mode
-[ ] app/web/tls.py:67 apply_tls_mode
-[ ] app/web/tls.py:97 Certificate
-[ ] app/web/tls.py:131 ensure_self_signed_certificate
-[ ] app/web/tls.py:193 make_tls_server
+[ ] app/web/tls.py:57 tls_mode
+[ ] app/web/tls.py:68 apply_tls_mode
+[ ] app/web/tls.py:107 Certificate
+[ ] app/web/tls.py:141 ensure_self_signed_certificate
+[ ] app/web/tls.py:203 make_tls_server
 [ ] services/docker_proxy/allowlist_proxy.py:65 is_allowed
 [ ] services/docker_proxy/allowlist_proxy.py:132 _Handler.handle
 [ ] services/docker_proxy/allowlist_proxy.py:204 serve

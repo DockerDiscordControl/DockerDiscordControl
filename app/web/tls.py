@@ -45,6 +45,7 @@ from flask import Flask, Response, request
 logger = logging.getLogger("ddc.web.tls")
 
 TLS_MODE_ENV = "DDC_TLS_MODE"
+TRUSTED_PROXIES_ENV = "DDC_TRUSTED_PROXIES"  # the same name app/web/extensions.py reads
 TLS_HOSTNAMES_ENV = "DDC_TLS_HOSTNAMES"
 MODES = ("off", "proxy", "self-signed")
 VALIDITY = datetime.timedelta(days=825)
@@ -78,6 +79,15 @@ def apply_tls_mode(app: Flask, mode: Optional[str] = None) -> None:
     app.config["PREFERRED_URL_SCHEME"] = "https"
     if mode != "proxy":
         return
+    # Without a trust list request.scheme never becomes https, so the check below
+    # would refuse EVERY request while /health kept answering 200 - a panel that
+    # cannot be opened behind a healthy-looking container. Say it at the start.
+    if not app.config.get("DDC_TRUSTED_NETWORKS"):
+        raise ValueError(
+            f"{TLS_MODE_ENV}=proxy needs {TRUSTED_PROXIES_ENV} - the address or range of "
+            f"your reverse proxy. Without it DDC cannot tell an HTTPS request from your "
+            f"proxy apart from a plain one, and would refuse every request."
+        )
 
     @app.before_request
     def _https_through_the_proxy_only():

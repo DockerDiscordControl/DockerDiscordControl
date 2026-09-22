@@ -71,6 +71,7 @@ def configure_proxy(app: Flask) -> None:
     """Believe forwarded headers only from the proxies in ``DDC_TRUSTED_PROXIES``."""
     networks = parse_trusted_proxies(os.environ.get(TRUSTED_PROXIES_ENV), app.logger)
     app.wsgi_app = TrustedProxyFix(app.wsgi_app, networks)  # type: ignore[assignment]
+    app.config["DDC_TRUSTED_NETWORKS"] = networks  # read by apply_tls_mode
     if networks:
         app.logger.info(f"Forwarded headers trusted from: {', '.join(str(n) for n in networks)}")
     else:

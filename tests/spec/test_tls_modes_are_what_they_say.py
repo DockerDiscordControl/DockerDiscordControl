@@ -223,3 +223,43 @@ def test_the_healthcheck_follows_the_tls_mode():
     dockerfile = (Path(__file__).resolve().parents[2] / "Dockerfile").read_text(encoding="utf-8")
     check = dockerfile[dockerfile.index("HEALTHCHECK"):dockerfile.index("ENTRYPOINT")]
     assert "DDC_TLS_MODE" in check and "'https'" in check, check
+
+
+# --------------------------------------------------------------------------- #
+# proxy mode without a trust list: the start stops, instead of a panel that
+# refuses every request while the healthcheck reports it healthy
+# --------------------------------------------------------------------------- #
+
+
+def test_proxy_mode_without_a_trust_list_stops_the_start(monkeypatch):
+    """THE FINDING: request.scheme can only become https when TrustedProxyFix
+    believes a peer, and it believes nobody without DDC_TRUSTED_PROXIES. So
+    DDC_TLS_MODE=proxy alone answered 403 to every path but /health - and
+    /health kept answering 200, so Docker reported the container healthy while
+    the panel was unusable. The operator, who IS coming through their proxy,
+    reads "open it through your reverse proxy over HTTPS".
+
+    COUNTER-CHECK (2026-09-22): red before - the app started and the panel
+    answered 403; the test below pins that a trust list still starts.
+    """
+    from app.web.extensions import configure_proxy
+    from app.web.tls import apply_tls_mode
+
+    monkeypatch.delenv("DDC_TRUSTED_PROXIES", raising=False)
+    app = Flask("t")
+    configure_proxy(app)
+
+    with pytest.raises(ValueError, match="DDC_TRUSTED_PROXIES"):
+        apply_tls_mode(app, "proxy")
+
+
+def test_proxy_mode_with_a_trust_list_starts(monkeypatch):
+    """Counter-check: the working setup must not be refused."""
+    app = _app("proxy", monkeypatch, trusted="10.0.0.2")
+    assert app.config["SESSION_COOKIE_SECURE"] is True
+
+
+def test_self_signed_needs_no_trust_list(monkeypatch):
+    """Counter-check, the other mode: DDC terminates TLS itself there."""
+    app = _app("self-signed", monkeypatch)
+    assert app.config["SESSION_COOKIE_SECURE"] is True

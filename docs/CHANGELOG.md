@@ -36,7 +36,8 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
 - **Forwarded headers only from trusted proxies.** Before, a client reaching port 9374 directly
   rotated `X-Forwarded-For` and was never braked by the login and setup rate limits.
 - **TLS modes:** `DDC_TLS_MODE=off` (default), `proxy`, or `self-signed` (DDC serves HTTPS with a
-  certificate in `config/tls/`, fingerprint in the log).
+  certificate in `config/tls/`, fingerprint in the log). `proxy` needs `DDC_TRUSTED_PROXIES` and
+  says so at the start instead of refusing every request behind a container that looks healthy.
 - **Two-factor authentication** for the web panel: TOTP, recovery codes, host break-glass
   (`scripts/disable_2fa.py`). Offered, never forced.
 

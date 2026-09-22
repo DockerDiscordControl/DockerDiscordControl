@@ -707,7 +707,9 @@ headers from anyone, which let a direct client escape the login and setup rate l
 # off (default): plain HTTP, as before v3.0.
 # proxy:        TLS ends at your reverse proxy (recommended). The session cookie is
 #               Secure, and requests that do not arrive over HTTPS through a proxy in
-#               DDC_TRUSTED_PROXIES are refused (except /health).
+#               DDC_TRUSTED_PROXIES are refused (except /health). This mode NEEDS
+#               DDC_TRUSTED_PROXIES - without it DDC cannot tell your proxy's HTTPS
+#               request apart from a plain one, and refuses to start.
 # self-signed:  DDC serves HTTPS itself with a certificate it creates in
 #               config/tls/ (renewed at start when it has < 60 days left).
 DDC_TLS_MODE=off

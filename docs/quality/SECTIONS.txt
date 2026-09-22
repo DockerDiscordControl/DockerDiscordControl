@@ -272,7 +272,7 @@ app/web/blueprints.py:1-33
 app/web/config.py:1-169
 app/web/csrf.py:1-125
 app/web/diagnostics.py:1-30
-app/web/extensions.py:1-83
+app/web/extensions.py:1-84
 app/web/i18n.py:1-64
 app/web/logging.py:1-60
 app/web/routes.py:1-204
@@ -325,7 +325,7 @@ services/translation/__init__.py:1-12
 # are the security boundary of v3.0 and must be reviewed as one piece, not as
 # a tail of a busier section.
 app/blueprints/two_factor_routes.py:1-181
-app/web/tls.py:1-206
+app/web/tls.py:1-216
 app/web/two_factor.py:1-8
 services/docker_proxy/__init__.py:1-2
 services/docker_proxy/allowlist_proxy.py:1-227
