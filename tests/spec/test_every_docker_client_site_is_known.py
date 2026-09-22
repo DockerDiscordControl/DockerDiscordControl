@@ -67,8 +67,6 @@ KNOWN_SITES = {
         ({"DockerClient"}, True),
     ("app/utils/web_helpers.py", "update_docker_cache"):
         ({"from_env"}, False),
-    ("app/utils/web_helpers.py", "start_background_refresh"):
-        ({"DockerClient"}, True),
     ("cogs/status_info_integration.py", "container_logs_text.get_logs_sync"):
         ({"from_env"}, False),
 }

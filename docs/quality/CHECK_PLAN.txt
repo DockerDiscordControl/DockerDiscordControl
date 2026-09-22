@@ -1363,7 +1363,7 @@
 [ ] app/utils/container_info_web_handler.py:63 load_container_info_for_web
 [ ] app/utils/container_info_web_handler.py:103 save_container_configs_from_web
 
-## Section 34  (1990 lines, 35 public names)
+## Section 34  (1992 lines, 35 public names)
 [ ] app/bot/startup_steps/sequence.py:18 run_startup_sequence
 [ ] app/utils/port_diagnostics.py:19 PortDiagnostics
 [ ] app/utils/port_diagnostics.py:233 PortDiagnostics.check_port_binding
@@ -1385,11 +1385,11 @@
 [ ] app/utils/web_helpers.py:451 background_refresh_worker
 [ ] app/utils/web_helpers.py:512 check_docker_connectivity
 [ ] app/utils/web_helpers.py:549 start_background_refresh
-[ ] app/utils/web_helpers.py:636 stop_background_refresh
-[ ] app/utils/web_helpers.py:689 mech_decay_worker
-[ ] app/utils/web_helpers.py:759 start_mech_decay_background
-[ ] app/utils/web_helpers.py:790 stop_mech_decay_background
-[ ] app/utils/web_helpers.py:837 set_initial_password_from_env
+[ ] app/utils/web_helpers.py:638 stop_background_refresh
+[ ] app/utils/web_helpers.py:691 mech_decay_worker
+[ ] app/utils/web_helpers.py:761 start_mech_decay_background
+[ ] app/utils/web_helpers.py:792 stop_mech_decay_background
+[ ] app/utils/web_helpers.py:839 set_initial_password_from_env
 [ ] app/web/action_logger.py:17 ensure_action_logger
 [ ] app/web/app_factory.py:33 create_app
 [ ] app/web/background.py:51 register_background_services

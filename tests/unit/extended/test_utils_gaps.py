@@ -136,7 +136,8 @@ class TestStartBackgroundRefreshSuccess:
                 pass
 
         monkeypatch.setattr(
-            wh.docker, "DockerClient", lambda *a, **k: _FakeClient()
+            "services.docker_service.client_factory.build_docker_client",
+            lambda **k: _FakeClient(),
         )
 
         # Stub the actual thread creation/start

@@ -553,10 +553,12 @@ def start_background_refresh(logger):
     # Synchronous Docker connectivity check (avoids asyncio conflicts with
     # py-cord's event loop and gevent's monkey-patching)
     try:
-        import docker as _docker
-        _client = _docker.DockerClient(
-            base_url='unix:///var/run/docker.sock', timeout=5
-        )
+        # Through the one client factory, so the probe follows DOCKER_HOST (the
+        # v3.0 proxy) like every other client. It used to hard-code
+        # unix:///var/run/docker.sock and would have tested a path DDC no
+        # longer takes. 5 s: a startup probe must fail fast.
+        from services.docker_service.client_factory import build_docker_client
+        _client = build_docker_client(timeout=5)
         _client.ping()
         _client.close()
         connectivity_ok = True

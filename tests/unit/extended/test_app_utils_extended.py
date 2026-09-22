@@ -420,7 +420,10 @@ class TestBackgroundRefreshLifecycle:
             def __init__(self, *a, **k):
                 raise RuntimeError("docker offline")
 
-        monkeypatch.setattr("app.utils.web_helpers.docker.DockerClient", _FailClient)
+        monkeypatch.setattr(
+            "services.docker_service.client_factory.build_docker_client",
+            lambda **k: _FailClient(),
+        )
 
         # Stub thread creation so no real worker starts.
         fake_thread = MagicMock()
