@@ -209,6 +209,11 @@ class ContainerStatusResult:
     # "not found" instead of the loading placeholder. See not_found_result().
     not_found: bool = False
 
+    # For the container watchdog (Phase 4a): State.Health.Status (None without a
+    # healthcheck) and RestartCount from the inspect answer.
+    health: Optional[str] = None
+    restart_count: Optional[int] = None
+
     @property
     def is_online(self) -> bool:
         """Convenience property: container successfully queried AND running"""
@@ -239,7 +244,9 @@ class ContainerStatusResult:
     def success_result(cls, docker_name: str, display_name: str, is_running: bool,
                       cpu: str, ram: str, uptime: str, details_allowed: bool,
                       players_online: Optional[int] = None,
-                      max_players: Optional[int] = None) -> 'ContainerStatusResult':
+                      max_players: Optional[int] = None,
+                      health: Optional[str] = None,
+                      restart_count: Optional[int] = None) -> 'ContainerStatusResult':
         """Factory method for successful status fetch.
 
         players_online/max_players are optional game-server query results; existing
@@ -255,7 +262,9 @@ class ContainerStatusResult:
             uptime=uptime,
             details_allowed=details_allowed,
             players_online=players_online,
-            max_players=max_players
+            max_players=max_players,
+            health=health,
+            restart_count=restart_count,
         )
 
     @classmethod

@@ -163,14 +163,14 @@
 [ ] cogs/enhanced_info_modal_simple.py:549 PasswordValidationModal
 [ ] cogs/enhanced_info_modal_simple.py:574 PasswordValidationModal.callback
 
-## Section 08  (1385 lines, 7 public names)
+## Section 08  (1393 lines, 7 public names)
 [ ] cogs/status_handlers.py:74 format_uptime
-[ ] cogs/status_handlers.py:93 StatusHandlersMixin
-[ ] cogs/status_handlers.py:99 StatusHandlersMixin.bulk_fetch_container_status
-[ ] cogs/status_handlers.py:169 StatusHandlersMixin.bulk_fetch_container_status.fetch_fast_container
-[ ] cogs/status_handlers.py:494 StatusHandlersMixin.bulk_update_status_cache
-[ ] cogs/status_handlers.py:558 StatusHandlersMixin.get_status
-[ ] cogs/status_handlers.py:1110 StatusHandlersMixin.send_server_status
+[ ] cogs/status_handlers.py:101 StatusHandlersMixin
+[ ] cogs/status_handlers.py:107 StatusHandlersMixin.bulk_fetch_container_status
+[ ] cogs/status_handlers.py:177 StatusHandlersMixin.bulk_fetch_container_status.fetch_fast_container
+[ ] cogs/status_handlers.py:502 StatusHandlersMixin.bulk_update_status_cache
+[ ] cogs/status_handlers.py:566 StatusHandlersMixin.get_status
+[ ] cogs/status_handlers.py:1118 StatusHandlersMixin.send_server_status
 
 ## Section 09  (1234 lines, 24 public names)
 [ ] cogs/status_info_integration.py:58 container_logs_text

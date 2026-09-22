@@ -104,7 +104,7 @@ cogs/loop_safety.py	90	NONE
 cogs/message_updates.py	944	NONE
 cogs/overview_embeds.py	894	NONE
 cogs/slash_commands.py	788	NONE
-cogs/status_handlers.py	1385	passE:E15,E16:80-200,560-700
+cogs/status_handlers.py	1393	passE:E15,E16:80-200,560-700
 cogs/status_info_integration.py	1234	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203
 cogs/task_ui.py	1228	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full

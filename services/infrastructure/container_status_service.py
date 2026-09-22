@@ -79,6 +79,11 @@ class ContainerStatusResult:
     error_message: Optional[str] = None
     error_type: Optional[str] = None  # 'timeout', 'not_found', 'docker_error', etc.
 
+    # For the container watchdog (Phase 4a): State.Health.Status (None without a
+    # healthcheck) and RestartCount, both read from the inspect answer already fetched.
+    health: Optional[str] = None
+    restart_count: Optional[int] = None
+
 @dataclass(frozen=True)
 class ContainerBulkStatusResult:
     """Result of bulk container status query."""
@@ -443,6 +448,10 @@ class ContainerStatusService:
             # Get ports info
             ports = container.attrs.get('NetworkSettings', {}).get('Ports', {}) if request.include_details else {}
 
+            # For the container watchdog: no extra API call, same inspect answer.
+            health = (container.attrs.get('State', {}).get('Health') or {}).get('Status')
+            restart_count = container.attrs.get('RestartCount')
+
         except (AttributeError, KeyError, IndexError) as e:
             # Container not found or data access error
             duration_ms = (time.time() - start_time) * 1000
@@ -506,7 +515,9 @@ class ContainerStatusService:
             ports=ports,
             query_duration_ms=duration_ms,
             cached=False,
-            cache_age_seconds=0.0
+            cache_age_seconds=0.0,
+            health=health,
+            restart_count=restart_count,
         )
 
     async def _fetch_container_status(self, request: ContainerStatusRequest) -> ContainerStatusResult:
@@ -760,11 +771,15 @@ async def get_docker_info_dict_service_first(docker_container_name: str, timeout
         return None
 
     # Return Dictionary format expected by status_handlers.py
+    state = {
+        'Running': result.is_running,
+        'StartedAt': None  # Will calculate uptime differently
+    }
+    if result.health:
+        state['Health'] = {'Status': result.health}
     return {
-        'State': {
-            'Running': result.is_running,
-            'StartedAt': None  # Will calculate uptime differently
-        },
+        'State': state,
+        'RestartCount': result.restart_count,
         'Config': {
             'Image': result.image
         },

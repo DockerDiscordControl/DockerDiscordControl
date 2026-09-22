@@ -90,6 +90,14 @@ def format_uptime(days: int, seconds: int) -> str:
     return " ".join(uptime_parts) if uptime_parts else "< 1m"
 
 
+def _watch_fields(info: Dict[str, Any]) -> Dict[str, Any]:
+    """State.Health.Status and RestartCount for the container watchdog (Phase 4a)."""
+    return {
+        "health": (info.get('State', {}).get('Health') or {}).get('Status'),
+        "restart_count": info.get('RestartCount'),
+    }
+
+
 class StatusHandlersMixin:
     """
     Mixin class containing status handler functionality for DockerControlCog.
@@ -315,7 +323,7 @@ class StatusHandlersMixin:
                 cpu=cpu,
                 ram=ram,
                 uptime=uptime,
-                details_allowed=details_allowed
+                details_allowed=details_allowed, **_watch_fields(info)
             )
             successful_fetches += 1
 
@@ -646,7 +654,7 @@ class StatusHandlersMixin:
                 cpu=cpu,
                 ram=ram,
                 uptime=uptime,
-                details_allowed=details_allowed
+                details_allowed=details_allowed, **_watch_fields(info)
             )
 
         except Exception as e:  # noqa: BLE001
