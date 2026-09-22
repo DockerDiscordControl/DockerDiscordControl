@@ -12,7 +12,8 @@ and the whole loop with
     except (RuntimeError, ValueError, AttributeError, OSError) as e:
 
 `_create_new_client_async` raises `DockerConnectionError` when Docker is
-unreachable through both the configured socket and `docker.from_env()`. That
+unreachable through the client factory (until v3.0: through both the
+configured socket and `docker.from_env()`). That
 class derives from `DDCBaseException`, which derives from `Exception` - not
 from RuntimeError - so it passes both clauses and leaves the coroutine. The
 background task is then finished, and the late-initialisation guard asks

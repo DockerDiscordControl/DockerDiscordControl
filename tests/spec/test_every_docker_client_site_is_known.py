@@ -55,8 +55,6 @@ FACTORY = ("services/docker_service/client_factory.py", "build_docker_client")
 # the table only shrinks.
 KNOWN_SITES = {
     FACTORY: ({"from_env"}, False),
-    ("services/docker_service/docker_client_pool.py", "DockerClientService._create_new_client_async"):
-        ({"DockerClient", "from_env"}, False),
     ("services/docker_service/docker_client_pool.py", "get_docker_client_async"):
         ({"DockerClient", "from_env"}, False),
 }

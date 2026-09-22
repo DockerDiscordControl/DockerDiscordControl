@@ -442,7 +442,7 @@
 [ ] services/docker_service/docker_action_service.py:263 get_docker_action_service
 [ ] services/docker_service/docker_action_service.py:275 docker_action_service_first
 
-## Section 15  (866 lines, 15 public names)
+## Section 15  (850 lines, 15 public names)
 [ ] services/docker_service/client_factory.py:74 build_docker_client
 [ ] services/docker_service/docker_client_pool.py:36 DockerClientRequest
 [ ] services/docker_service/docker_client_pool.py:44 DockerClientResult
@@ -454,10 +454,10 @@
 [ ] services/docker_service/docker_client_pool.py:290 DockerClientService.release_docker_client_service
 [ ] services/docker_service/docker_client_pool.py:307 DockerClientService.get_pool_stats_service
 [ ] services/docker_service/docker_client_pool.py:455 DockerClientService.get_client_async
-[ ] services/docker_service/docker_client_pool.py:645 DockerClientService.get_queue_stats
-[ ] services/docker_service/docker_client_pool.py:655 DockerClientService.close_all
-[ ] services/docker_service/docker_client_pool.py:685 get_docker_client_service
-[ ] services/docker_service/docker_client_pool.py:715 get_docker_client_async
+[ ] services/docker_service/docker_client_pool.py:629 DockerClientService.get_queue_stats
+[ ] services/docker_service/docker_client_pool.py:639 DockerClientService.close_all
+[ ] services/docker_service/docker_client_pool.py:669 get_docker_client_service
+[ ] services/docker_service/docker_client_pool.py:699 get_docker_client_async
 
 ## Section 16  (1714 lines, 34 public names)
 [ ] services/docker_service/docker_utils.py:220 load_custom_timeout_config

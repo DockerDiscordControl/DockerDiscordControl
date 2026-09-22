@@ -85,7 +85,7 @@ services/docker_service/docker_action_service.py:1-295
 
 ## Section 15  (866 lines, 2 pieces)
 services/docker_service/client_factory.py:1-95
-services/docker_service/docker_client_pool.py:1-771
+services/docker_service/docker_client_pool.py:1-755
 
 ## Section 16  (1951 lines, 5 pieces)
 services/docker_service/docker_utils.py:1-1217

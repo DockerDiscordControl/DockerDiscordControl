@@ -563,44 +563,28 @@ class DockerClientService:
             return None
 
     async def _create_new_client_async(self) -> docker.DockerClient:
-        """Create a new Docker client async with proper Docker configuration."""
+        """Create a new pooled Docker client through the one client factory.
+
+        It used to try the configured docker_socket_path first and
+        docker.from_env second. Behind the v3.0 proxy the first way walks past
+        it; docker_socket_path is retired (the factory reports a non-default
+        value). 30 s, as before.
+        """
+        from .client_factory import build_docker_client
+
         try:
-            # Load Docker configuration from config files (like the old working version)
-            from services.config.config_service import load_config
-            config = load_config()
-            docker_config = config.get('docker_config', {})
-            socket_path = docker_config.get('docker_socket_path', '/var/run/docker.sock')
-
-            # Create client with configured socket path (like old working implementation)
-            client = await asyncio.to_thread(
-                docker.DockerClient,
-                base_url=f'unix://{socket_path}',
-                timeout=30
-            )
-
-            # Test the connection immediately
+            client = await asyncio.to_thread(build_docker_client, timeout=30)
             await asyncio.to_thread(client.ping)
-
             self._in_use.append(client)
-            logger.debug(f"Created Docker client with socket: {socket_path}")
+            logger.debug("Created pooled Docker client through the client factory")
             return client
-
         except (docker.errors.DockerException, OSError, RuntimeError) as e:
-            logger.warning(f"Failed to create Docker client with config socket: {e}")
-            # Fallback to docker.from_env (original behavior)
-            try:
-                client = await asyncio.to_thread(docker.from_env)
-                await asyncio.to_thread(client.ping)  # Test connection
-                self._in_use.append(client)
-                logger.debug("Created Docker client with docker.from_env fallback")
-                return client
-            except (docker.errors.DockerException, OSError, RuntimeError) as e2:
-                logger.error(f"All Docker client creation methods failed: config={e}, from_env={e2}")
-                raise DockerConnectionError(
-                    "Failed to create Docker client",
-                    error_code="DOCKER_CLIENT_CREATION_FAILED",
-                    details={'config_error': str(e), 'from_env_error': str(e2)}
-                )
+            logger.error(f"Docker client creation failed: {e}")
+            raise DockerConnectionError(
+                "Failed to create Docker client",
+                error_code="DOCKER_CLIENT_CREATION_FAILED",
+                details={'error': str(e)}
+            )
 
     async def _release_client_async(self, client: docker.DockerClient):
         """Release a client back to the pool async."""

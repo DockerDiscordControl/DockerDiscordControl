@@ -149,88 +149,40 @@ class TestDockerClientServiceConstruction:
 class TestClientCreation:
     """_create_new_client_async + _try_immediate_acquire fast-path."""
 
+    # Rewritten 2026-09-22 with the move onto the client factory. These
+    # tests pinned "configured docker_socket_path first, from_env second" - the
+    # first way walks past the v3.0 proxy.
+    FACTORY = "services.docker_service.client_factory.build_docker_client"
+
     @pytest.mark.asyncio
-    async def test_create_new_client_uses_configured_socket(self, monkeypatch):
+    async def test_create_new_client_goes_through_the_factory(self, monkeypatch):
         pool = DockerClientService(max_connections=2)
         try:
             mock_client = _make_mock_client(ping_ok=True)
-
-            fake_load_config = MagicMock(
-                return_value={"docker_config": {"docker_socket_path": "/tmp/sock"}}
-            )
-            # The function imports load_config lazily inside the method.
-            with patch(
-                "services.config.config_service.load_config",
-                fake_load_config,
-            ):
-                with patch.object(
-                    dcp_mod.docker, "DockerClient", return_value=mock_client
-                ) as m_dc:
-                    client = await pool._create_new_client_async()
+            with patch(self.FACTORY, return_value=mock_client) as factory:
+                client = await pool._create_new_client_async()
 
             assert client is mock_client
-            # Was called with unix socket path.
-            args, kwargs = m_dc.call_args
-            assert kwargs["base_url"] == "unix:///tmp/sock"
-            assert kwargs["timeout"] == 30
+            factory.assert_called_once_with(timeout=30)
             mock_client.ping.assert_called_once()
             assert mock_client in pool._in_use
         finally:
             await pool.close_all()
 
     @pytest.mark.asyncio
-    async def test_create_new_client_falls_back_to_from_env(self, monkeypatch):
+    async def test_create_new_client_takes_no_second_way(self, monkeypatch):
         pool = DockerClientService(max_connections=2)
         try:
-            fallback_client = _make_mock_client(ping_ok=True)
-
-            fake_load_config = MagicMock(
-                return_value={"docker_config": {"docker_socket_path": "/tmp/sock"}}
-            )
             with patch(
-                "services.config.config_service.load_config",
-                fake_load_config,
-            ):
-                with patch.object(
-                    dcp_mod.docker,
-                    "DockerClient",
-                    side_effect=dcp_mod.docker.errors.DockerException("primary failed"),
-                ):
-                    with patch.object(
-                        dcp_mod.docker, "from_env", return_value=fallback_client
-                    ) as m_from_env:
-                        client = await pool._create_new_client_async()
+                self.FACTORY,
+                side_effect=dcp_mod.docker.errors.DockerException("proxy down"),
+            ), patch.object(dcp_mod.docker, "DockerClient") as direct, \
+                    patch.object(dcp_mod.docker, "from_env") as from_env:
+                with pytest.raises(DockerConnectionError) as exc_info:
+                    await pool._create_new_client_async()
 
-            assert client is fallback_client
-            m_from_env.assert_called_once()
-            assert fallback_client in pool._in_use
-        finally:
-            await pool.close_all()
-
-    @pytest.mark.asyncio
-    async def test_create_new_client_all_methods_fail_raises(self, monkeypatch):
-        pool = DockerClientService(max_connections=2)
-        try:
-            fake_load_config = MagicMock(
-                return_value={"docker_config": {"docker_socket_path": "/tmp/sock"}}
-            )
-            with patch(
-                "services.config.config_service.load_config",
-                fake_load_config,
-            ):
-                with patch.object(
-                    dcp_mod.docker,
-                    "DockerClient",
-                    side_effect=dcp_mod.docker.errors.DockerException("primary"),
-                ):
-                    with patch.object(
-                        dcp_mod.docker,
-                        "from_env",
-                        side_effect=dcp_mod.docker.errors.DockerException("env"),
-                    ):
-                        with pytest.raises(DockerConnectionError) as exc_info:
-                            await pool._create_new_client_async()
-
+            direct.assert_not_called()
+            from_env.assert_not_called()
             assert "Failed to create Docker client" in str(exc_info.value)
             assert exc_info.value.error_code == "DOCKER_CLIENT_CREATION_FAILED"
         finally:
