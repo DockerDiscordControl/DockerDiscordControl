@@ -172,7 +172,7 @@
 [ ] cogs/status_handlers.py:571 StatusHandlersMixin.get_status
 [ ] cogs/status_handlers.py:1123 StatusHandlersMixin.send_server_status
 
-## Section 09  (1234 lines, 24 public names)
+## Section 09  (1249 lines, 24 public names)
 [ ] cogs/status_info_integration.py:58 container_logs_text
 [ ] cogs/status_info_integration.py:77 container_logs_text.get_logs_sync
 [ ] cogs/status_info_integration.py:106 ContainerInfoAdminView
@@ -193,10 +193,10 @@
 [ ] cogs/status_info_integration.py:858 ProtectedInfoOnlyView
 [ ] cogs/status_info_integration.py:873 StatusInfoButton
 [ ] cogs/status_info_integration.py:894 StatusInfoButton.callback
-[ ] cogs/status_info_integration.py:1054 ProtectedInfoButton
-[ ] cogs/status_info_integration.py:1071 ProtectedInfoButton.callback
-[ ] cogs/status_info_integration.py:1122 create_enhanced_status_embed
-[ ] cogs/status_info_integration.py:1214 should_show_info_in_status_channel
+[ ] cogs/status_info_integration.py:1069 ProtectedInfoButton
+[ ] cogs/status_info_integration.py:1086 ProtectedInfoButton.callback
+[ ] cogs/status_info_integration.py:1137 create_enhanced_status_embed
+[ ] cogs/status_info_integration.py:1229 should_show_info_in_status_channel
 
 ## Section 10  (1502 lines, 45 public names)
 [ ] cogs/translation_manager.py:23 TranslationManager

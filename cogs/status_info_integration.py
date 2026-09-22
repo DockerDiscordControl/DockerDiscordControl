@@ -1046,10 +1046,25 @@ class StatusInfoButton(discord.ui.Button):
 
 
     def _get_status_info(self) -> Optional[str]:
-        """Get current container status information."""
-        # Status information (State/Uptime) is already displayed in the main status embed above,
-        # so we don't need to duplicate it in the info section
-        return None
+        """Restart count and health check from the status cache (roadmap Phase 4e).
+
+        State and uptime are already in the main status embed right above, so
+        they are not repeated. Nothing known means nothing shown - no invented
+        zero. The values come from the cache the watchdog fills; no Docker call.
+        """
+        cache = getattr(getattr(self, 'cog', None), 'status_cache_service', None)
+        entry = cache.get(self.container_name) if cache else None
+        data = (entry or {}).get('data')
+        if not data or not getattr(data, 'success', False):
+            return None
+        lines = []
+        restarts = getattr(data, 'restart_count', None)
+        if restarts is not None:
+            lines.append(_("🔄 Restarts: {count}").format(count=restarts))
+        health = getattr(data, 'health', None)
+        if health:
+            lines.append(_("🩺 Health check: {status}").format(status=health))
+        return "\n".join(lines) if lines else None
 
 class ProtectedInfoButton(discord.ui.Button):
     """

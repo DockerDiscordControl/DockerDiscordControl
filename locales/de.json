@@ -1719,5 +1719,7 @@
   "web.aas.state_high_memory": "mehr RAM als die Schwelle nutzt",
   "web.aas.cpu_threshold": "CPU-Schwelle (%)",
   "web.aas.memory_threshold": "RAM-Schwelle (%)",
-  "web.aas.resource_minutes": "mindestens (Minuten)"
+  "web.aas.resource_minutes": "mindestens (Minuten)",
+  "🔄 Restarts: {count}": "🔄 Neustarts: {count}",
+  "🩺 Health check: {status}": "🩺 Healthcheck: {status}"
 }

@@ -1719,5 +1719,7 @@
   "web.aas.state_high_memory": "uses more memory than the threshold",
   "web.aas.cpu_threshold": "CPU threshold (%)",
   "web.aas.memory_threshold": "Memory threshold (%)",
-  "web.aas.resource_minutes": "for at least (minutes)"
+  "web.aas.resource_minutes": "for at least (minutes)",
+  "🔄 Restarts: {count}": "🔄 Restarts: {count}",
+  "🩺 Health check: {status}": "🩺 Health check: {status}"
 }
