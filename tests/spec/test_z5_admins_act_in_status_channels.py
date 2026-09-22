@@ -75,6 +75,7 @@ def status_channel(monkeypatch):
         "300": {"commands": {"info": True, "control": False, "schedule": False}}}}
     monkeypatch.setattr(cui, "load_config", lambda: config)
     monkeypatch.setattr("cogs.status_info_integration.load_config", lambda: config)
+    monkeypatch.setattr("cogs.task_ui.load_config", lambda: config)  # moved there (Phase 3)
     monkeypatch.setattr("cogs.control_helpers.load_config", lambda: config)
     admin = MagicMock()
     # The service grew get_admin_containers/may_control with the per-admin

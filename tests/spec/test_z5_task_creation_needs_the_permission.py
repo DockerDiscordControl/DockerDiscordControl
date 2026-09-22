@@ -37,6 +37,7 @@ def _config(schedule):
 
 def _press(monkeypatch, *, schedule, admin=False):
     monkeypatch.setattr(sii, "load_config", lambda: _config(schedule))
+    monkeypatch.setattr("cogs.task_ui.load_config", lambda: _config(schedule))  # moved there (Phase 3)
     monkeypatch.setattr("services.config.config_service.load_config", lambda: _config(schedule))
     monkeypatch.setattr("cogs.control_helpers.load_config", lambda: _config(schedule))
     admin_service = MagicMock()
@@ -49,6 +50,7 @@ def _press(monkeypatch, *, schedule, admin=False):
     admin_service.may_control.side_effect = lambda user_id, docker_name, **kw: bool(admin)
     monkeypatch.setattr("services.admin.admin_service.get_admin_service", lambda: admin_service)
     monkeypatch.setattr(sii, "_get_allowed_task_actions", lambda _name: ["start", "stop", "restart"])
+    monkeypatch.setattr("cogs.task_ui._get_allowed_task_actions", lambda _name: ["start", "stop", "restart"])  # moved there (Phase 3)
 
     def _tripwire(*_a, **_k):
         raise _Created()

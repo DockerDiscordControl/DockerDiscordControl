@@ -33,7 +33,6 @@ CLASS_LIMIT = 1000
 # Measured 2026-09-22. May only go down; remove an entry once it is at the limit.
 FILE_EXCEPTIONS = {
     "cogs/control_ui.py": 3780,
-    "cogs/status_info_integration.py": 2403,
     "services/scheduling/scheduler.py": 2260,
     "services/mech/animation_cache_service.py": 1846,
     "services/mech/progress_service.py": 1740,

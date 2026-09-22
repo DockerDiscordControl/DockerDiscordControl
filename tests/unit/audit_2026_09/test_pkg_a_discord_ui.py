@@ -42,7 +42,9 @@ def _config(**extra):
 
 def _ready_view(monkeypatch, allowed, action="restart"):
     monkeypatch.setattr(sii, "_get_allowed_task_actions", lambda name: list(allowed))
+    monkeypatch.setattr("cogs.task_ui._get_allowed_task_actions", lambda name: list(allowed))  # moved there (Phase 3)
     monkeypatch.setattr(sii, "load_config", lambda: _config())
+    monkeypatch.setattr("cogs.task_ui.load_config", lambda: _config())  # moved there (Phase 3)
     monkeypatch.setattr("cogs.control_helpers.load_config", lambda: _config())
     view = sii.TaskCreationView(MagicMock(), "c1")
     view.selected_cycle = "daily"
@@ -64,12 +66,14 @@ class TestA10AllowedActionsInUi:
 
     async def test_action_dropdown_offers_only_allowed_actions(self, monkeypatch):
         monkeypatch.setattr(sii, "_get_allowed_task_actions", lambda name: ["start", "restart"])
+        monkeypatch.setattr("cogs.task_ui._get_allowed_task_actions", lambda name: ["start", "restart"])  # moved there (Phase 3)
         view = sii.TaskCreationView(MagicMock(), "c1")
         dropdown = sii.ActionDropdown(view.allowed_actions)
         assert [option.value for option in dropdown.options] == ["start", "restart"]
 
     async def test_add_task_button_refuses_without_allowed_actions(self, monkeypatch):
         monkeypatch.setattr(sii, "_get_allowed_task_actions", lambda name: [])
+        monkeypatch.setattr("cogs.task_ui._get_allowed_task_actions", lambda name: [])  # moved there (Phase 3)
         interaction = _interaction()
         await sii.AddTaskButton(MagicMock(), "c1").callback(interaction)
         # Deferred first (R4-8), so the refusal is a followup
@@ -93,6 +97,7 @@ class TestA8ValidationErrorReported:
     async def test_schedule_validation_error_is_sent_to_user(self, monkeypatch):
         view = _ready_view(monkeypatch, allowed=["restart"])
         monkeypatch.setattr(sii, "load_config", lambda: _config(timezone="UTC"))
+        monkeypatch.setattr("cogs.task_ui.load_config", lambda: _config(timezone="UTC"))  # moved there (Phase 3)
 
         def _raise(task):
             raise ScheduleValidationError("Cannot schedule task: it conflicts with another task")
@@ -110,6 +115,7 @@ class TestA9ConfiguredTimezone:
     async def test_created_task_uses_configured_timezone(self, monkeypatch):
         view = _ready_view(monkeypatch, allowed=["restart"])
         monkeypatch.setattr(sii, "load_config", lambda: _config(timezone="America/New_York"))
+        monkeypatch.setattr("cogs.task_ui.load_config", lambda: _config(timezone="America/New_York"))  # moved there (Phase 3)
         monkeypatch.setattr("services.scheduling.schedule_helpers.validate_task_before_creation", lambda task: None)
         monkeypatch.setattr("services.infrastructure.action_logger.log_user_action", lambda **kw: None)
         captured = {}
@@ -130,6 +136,7 @@ class TestA9ConfiguredTimezone:
 
     async def test_delete_view_uses_configured_timezone(self, monkeypatch):
         monkeypatch.setattr(sii, "load_config", lambda: _config(timezone="America/New_York"))
+        monkeypatch.setattr("cogs.task_ui.load_config", lambda: _config(timezone="America/New_York"))  # moved there (Phase 3)
         task = ScheduledTask(container_name="c1", action="restart", cycle="daily",
                              hour=4, minute=0, timezone_str="America/New_York")
         view = sii.ContainerTaskDeleteView(MagicMock(), [task], "c1")

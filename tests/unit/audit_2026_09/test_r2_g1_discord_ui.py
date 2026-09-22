@@ -38,6 +38,7 @@ class TestR4_8AddTaskDefersFirst:
             return ["restart"]
 
         monkeypatch.setattr(sii, "_get_allowed_task_actions", _lookup)
+        monkeypatch.setattr("cogs.task_ui._get_allowed_task_actions", _lookup)  # moved there (Phase 3)
 
         await sii.AddTaskButton(MagicMock(), "c1").callback(interaction)
 
@@ -53,6 +54,7 @@ class TestR4_5DeletePanelTaskTimezone:
     async def test_each_task_shows_its_own_timezone(self, monkeypatch):
         # Configured zone differs from the (older) Berlin task's zone
         monkeypatch.setattr(sii, "load_config", lambda: {"timezone": "America/New_York"})
+        monkeypatch.setattr("cogs.task_ui.load_config", lambda: {"timezone": "America/New_York"})  # moved there (Phase 3)
         berlin = ScheduledTask(container_name="c1", action="restart", cycle="daily",
                                hour=4, minute=0, timezone_str="Europe/Berlin")
         new_york = ScheduledTask(container_name="c1", action="stop", cycle="daily",

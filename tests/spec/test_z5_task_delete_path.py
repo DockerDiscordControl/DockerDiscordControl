@@ -239,8 +239,9 @@ def test_the_delete_path_checks_the_schedule_permission():
     from pathlib import Path
     import re
 
+    # ContainerTaskDeleteButton moved to task_ui.py in the Phase 3 split.
     source = (Path(__file__).resolve().parents[2]
-              / "cogs" / "status_info_integration.py").read_text(encoding="utf-8")
+              / "cogs" / "task_ui.py").read_text(encoding="utf-8")
 
     # The body of ContainerTaskDeleteButton.callback up to the next class.
     start = source.index("class ContainerTaskDeleteButton")

@@ -57,11 +57,10 @@ cogs/enhanced_info_modal_simple.py:1-694
 ## Section 08  (1398 lines, 1 piece)
 cogs/status_handlers.py:1-1398
 
-## Section 09  (1966 lines, 1 piece)
-cogs/status_info_integration.py:1-1969
+## Section 09  (1234 lines, 1 piece)
+cogs/status_info_integration.py:1-1234
 
-## Section 10  (1864 lines, 8 pieces)
-cogs/status_info_integration.py:1970-2403
+## Section 10  (1430 lines, 7 pieces)
 cogs/translation_manager.py:1-149
 cogs/translation_monitor.py:1-97
 services/__init__.py:1-51
@@ -330,3 +329,8 @@ services/web/two_factor_service.py:1-220
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
 cogs/message_updates.py:1-944
+
+## Section 41  (1228 lines, 1 piece)
+# Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
+# (2,403 -> 1234 lines); too large to join a neighbour.
+cogs/task_ui.py:1-1228
