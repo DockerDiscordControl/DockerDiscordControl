@@ -49,8 +49,9 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   asked to do is not an alarm. Set it up in the web panel under Auto-Actions -> Trigger.
 - The status cache now keeps each container's health and restart count (from the inspect answer
   DDC already fetched - no extra Docker call).
-- **Going back to v2.4.1 with container-state rules:** v2.4.1 ignores them (they never fire), but
-  it drops their settings when it saves any rule. After upgrading again, set them up anew.
+- **Going back to v2.4.1 with container-state rules** keeps them: measured with both images,
+  v2.4.1 never fires them, adding another rule there leaves them untouched, and saving or toggling
+  one there is refused by its validation - so after upgrading again they work as before.
 
 ### Other
 
