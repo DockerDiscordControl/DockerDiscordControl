@@ -689,8 +689,7 @@ class StatusHandlersMixin:
     async def _generate_status_embed_and_view(self, channel_id: int, display_name: str,
                                        server_conf: Dict[str, Any], current_config: Dict[str, Any],
                                        allow_toggle: bool = True,
-                                       force_collapse: bool = False,
-                                       show_cache_age: bool = False) -> Tuple[discord.Embed, Optional[discord.ui.View], bool]:
+                                       force_collapse: bool = False) -> Tuple[discord.Embed, Optional[discord.ui.View], bool]:
         """
         Generates the status embed and view based on cache and settings.
         Returns: (embed, view, running_status)
@@ -702,7 +701,6 @@ class StatusHandlersMixin:
         - current_config: The full bot configuration
         - allow_toggle: Whether to allow the toggle button in the view
         - force_collapse: Whether to force the status to be collapsed
-        - show_cache_age: Whether to show cache age indicator (for debug/serverstatus)
         """
         lang = current_config.get('language', 'de')
         # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
@@ -915,8 +913,11 @@ class StatusHandlersMixin:
                     f"\n│ {current_emoji} {status_text}"
                 ]
 
-                # Add cache age indicator if data is older (only if show_cache_age is True)
-                if show_cache_age and 'embed_cache_indicator' in locals() and embed_cache_indicator:
+                # The age of data older than one and a half refresh intervals
+                # (_age_hint_threshold_seconds). It used to be hidden behind a
+                # show_cache_age flag that every caller in the tree passed as
+                # False, so a five-minute-old status looked like a fresh one.
+                if 'embed_cache_indicator' in locals() and embed_cache_indicator:
                     description_parts.append(embed_cache_indicator)
 
                 description_parts.append("\n")
@@ -1010,8 +1011,8 @@ class StatusHandlersMixin:
                 f"\n│ {current_emoji} {status_text}"
             ]
 
-            # Add cache age indicator if data is older (only if show_cache_age is True)
-            if show_cache_age and 'embed_cache_indicator' in locals() and embed_cache_indicator:
+            # The age, as above: the threshold decides, not a caller's flag
+            if 'embed_cache_indicator' in locals() and embed_cache_indicator:
                 description_parts.append(embed_cache_indicator)
 
             # Add different lines depending on status and state
@@ -1210,7 +1211,7 @@ class StatusHandlersMixin:
 
         msg = None
         try:
-            embed, view, _ = await self._generate_status_embed_and_view(channel.id, display_name, server_conf, current_config, allow_toggle, force_collapse, show_cache_age=False)
+            embed, view, _ = await self._generate_status_embed_and_view(channel.id, display_name, server_conf, current_config, allow_toggle, force_collapse)
 
             if embed:
                 existing_msg_id = None
@@ -1312,7 +1313,7 @@ class StatusHandlersMixin:
             force_collapse = not channel_has_control_permission # Force collapse in non-control channels
 
             # Pass flags to the generation function
-            embed, view, _ = await self._generate_status_embed_and_view(channel_id, display_name, server_conf, current_config, allow_toggle=allow_toggle, force_collapse=force_collapse, show_cache_age=False)
+            embed, view, _ = await self._generate_status_embed_and_view(channel_id, display_name, server_conf, current_config, allow_toggle=allow_toggle, force_collapse=force_collapse)
 
             if not embed:
                 logger.warning(f"_edit_single_message: No embed generated for '{display_name}', cannot edit.")

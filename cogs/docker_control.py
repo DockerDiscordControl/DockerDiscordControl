@@ -631,7 +631,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                                         if message:
                                             embed, view, _ = await self._generate_status_embed_and_view(
                                                 channel_id, display_name, server_config, config,
-                                                allow_toggle=True, force_collapse=False, show_cache_age=False
+                                                allow_toggle=True, force_collapse=False
                                             )
                                             if embed:
                                                 await message.edit(embed=embed, view=view)

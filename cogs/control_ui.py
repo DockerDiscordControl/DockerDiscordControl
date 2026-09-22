@@ -671,8 +671,7 @@ class ActionButton(Button):
                                         self.server_config,
                                         config,
                                         allow_toggle=False,
-                                        force_collapse=False,
-                                        show_cache_age=False
+                                        force_collapse=False
                                     )
 
                                     # Get fresh status for color
@@ -718,8 +717,7 @@ class ActionButton(Button):
                                         self.server_config,
                                         config,
                                         allow_toggle=True,
-                                        force_collapse=False,
-                                        show_cache_age=False
+                                        force_collapse=False
                                     )
                                     if normal_embed:
                                         await interaction.edit_original_response(embed=normal_embed, view=normal_view)
@@ -743,8 +741,7 @@ class ActionButton(Button):
                                                             server_config_for_update,
                                                             config,
                                                             allow_toggle=True,
-                                                            force_collapse=False,
-                                                            show_cache_age=False
+                                                            force_collapse=False
                                                         )
                                                         if embed:
                                                             await message.edit(embed=embed, view=view)
