@@ -1,10 +1,12 @@
 # DDC v3.0 — Security-by-Design architecture plan
 
 **Status: not started. Nothing in this document is implemented.**
-v2.4 is finalised first; v2.5 is skipped. Written 2026-09-22.
+v2.4 is finalised first; v2.5 is skipped. Written 2026-09-22, revised the same
+day after an independent review that measured the v2.4.1 tree, the running
+container and docker-py 7.1.0 itself. Corrections are marked **(revised)**.
 
-Every number in here was measured against the v2.4.0 tree, not estimated. Where
-something could not be measured from inside this repository it says so.
+Every number in here was measured, not estimated. Where something could not be
+measured from inside this repository it says so.
 
 ---
 
@@ -68,28 +70,62 @@ and no boundary of any kind between its code and the daemon.**
 
 ## 3. What DDC actually needs from Docker — measured
 
-This is the whole API surface, taken from every docker-py call in
-`services/`, `cogs/` and `app/`:
+This is the whole API surface, taken from every docker-py call in every file
+that imports `docker` under `services/`, `cogs/`, `app/`, `utils/`, `bot.py`,
+`run.py` and `scripts/`:
 
 ```
 GET  /_ping                      client.ping()
-GET  /containers/json            client.containers.list()
+GET  /containers/json            client.containers.list(), client.api.containers()  (docker_utils.py:832)
 GET  /containers/{id}/json       client.containers.get(), container.attrs
-GET  /containers/{id}/logs       container.logs()
-GET  /containers/{id}/stats      container.stats()
+GET  /containers/{id}/logs       container.logs(tail=..)          never stream=True
+GET  /containers/{id}/stats      container.stats(stream=False)    never a stream
 POST /containers/{id}/start      container.start()
-POST /containers/{id}/stop       container.stop()
-POST /containers/{id}/restart    container.restart()
+POST /containers/{id}/stop       container.stop(timeout=..)
+POST /containers/{id}/restart    container.restart(timeout=..)
 ```
 
-Eight endpoints. Verified absent: `containers.create`, `containers.run`,
-`container.remove`, `exec_run`, and every `images.*`, `networks.*` and
-`volumes.*` call. DDC never creates, deletes or modifies a Docker object other
-than changing the run state of a container that already exists.
+Eight endpoints in DDC's own code. Verified absent: `containers.create`,
+`containers.run`, `container.remove`, `exec_run`, `events`, every streaming
+call, and every `images.*`, `networks.*` and `volumes.*` call. DDC never
+creates, deletes or modifies a Docker object other than changing the run state
+of a container that already exists.
 
-**This is the single most useful fact in this document.** A surface of eight
+**(revised) Two things the first count missed:**
+
+1. **docker-py itself calls `GET /version` on every client construction.**
+   docker-py 7.1.0 (`requirements.prod.txt:33`) treats `version=None` as
+   "negotiate": `APIClient.__init__` calls `_retrieve_server_version()`, which
+   is `GET /version` **without** the `/v1.xx` prefix. None of the seven client
+   sites (§6) passes `version=`. A proxy that does not allow `/version` makes
+   every `DockerClient(...)` and `from_env()` raise
+   `DockerException("Error while fetching server API version")`. Tecnativa
+   grants `VERSION` by default for exactly this reason.
+2. `client.info()` in `docker_utils.py` (`analyze_docker_stats_performance`)
+   would be `GET /info`. The function has no caller anywhere; it is dead code
+   and gets deleted in step 1 of §7 rather than allowlisted.
+
+So the surface is **eight endpoints plus one implicit `GET /version`**, and
+every one of them carries query strings (`all=1`, `stream=false`, `tail=`,
+`t=`) that the allowlist must ignore by matching the path only.
+
+**This is the single most useful fact in this document.** A surface of nine
 endpoints is small enough to allowlist exactly, and an exact allowlist is what
 turns the security claim from a hope into a property.
+
+### What the allowed surface still exposes
+
+The allowlist limits what can be *done*; it does not limit what can be *read*
+through the nine endpoints. Two of them deserve a sentence in `SECURITY.md`:
+
+- `GET /containers/{id}/json` returns `Config.Env` of the container, i.e. the
+  passwords and tokens that many images take as environment variables.
+- `GET /containers/{id}/logs` returns whatever the container logs, and secrets
+  in logs are common.
+
+Anyone who gets through door B or door C can read both for every configured
+container, today and after v3.0. The proxy does not change that; saying so is
+part of the honest claim.
 
 ---
 
@@ -116,31 +152,54 @@ attacker who can send API calls. It would restrict DDC's *own* code paths and
 nothing else.
 
 `POST /containers/{id}/exec` also lives under `/containers/` rather than under
-Tecnativa's `EXEC` section. **Needs verifying against the proxy's actual ACLs**
-before any decision — if it is permitted by `CONTAINERS=1`, that is a second
-full escape.
+Tecnativa's `EXEC` section. **(revised) Verified against the proxy's
+`haproxy.cfg` (master):** line 48 is `http-request deny unless METH_GET ||
+{ env(POST) -m bool }`, line 60 is `http-request allow if { path ... -m reg -i
+^(/v[\d\.]+)?/containers } { env(CONTAINERS) -m bool }`. The `CONTAINERS`
+rule is a prefix match with no method condition, so with `POST=1` it admits
+`/containers/create` and `/containers/{id}/exec` alike. The `ALLOW_START`,
+`ALLOW_STOP` and `ALLOW_RESTARTS` switches (lines 51-53) do not help: DDC needs
+`CONTAINERS=1` for its GET calls, and that switch is what opens the POSTs. The
+section filter genuinely cannot express DDC's surface. This question is closed.
 
 ### 4.2 Decision: an explicit allowlist, not a section filter
 
-Because the needed surface is eight endpoints (§3), the proxy should be a
-method-plus-path allowlist and nothing else:
+Because the needed surface is nine endpoints (§3), the proxy should be a
+method-plus-path allowlist and nothing else. **(revised)** The rules match the
+URL path with the query string stripped, and `/version` is in:
 
 ```
 GET   ^/(v[0-9.]+/)?_ping$
-GET   ^/(v[0-9.]+/)?containers/json
+GET   ^/(v[0-9.]+/)?version$
+GET   ^/(v[0-9.]+/)?containers/json$
 GET   ^/(v[0-9.]+/)?containers/[a-zA-Z0-9_.-]+/(json|logs|stats)$
 POST  ^/(v[0-9.]+/)?containers/[a-zA-Z0-9_.-]+/(start|stop|restart)$
+GET   ^/(v[0-9.]+/)?images/[a-zA-Z0-9_./:@-]+/json$     (reserved, §8 item 4)
 ```
 
 Everything else: 403, logged. Default deny, no env-var switches that can widen
-it at runtime.
+it at runtime. The image-inspect line is read-only and exists for the
+image-update notice decided for the phase after v3.0; DDC's v3.0 code does
+not call it, and the inventory guard says so.
+
+The client factory of §7 step 6 additionally pins `version=` to one API
+version, so DDC no longer negotiates. `/version` stays in the list anyway: the
+web diagnostics show the daemon version, and a factory that forgets the pin
+must not take DDC down.
 
 Properties this buys that a section filter does not:
 - `POST /containers/create` is impossible to reach, by construction.
 - The rule set fits on one screen and can be reviewed by a sceptical user in a
   minute. That matters: the objection being answered is a *trust* objection.
-- It can be tested. A test per denied endpoint, plus a test that the eight
-  allowed ones pass — the same shape as the 5,691 guards v2.4 already has.
+- It can be tested. A test per denied endpoint, plus a test that the nine
+  allowed ones pass — the same shape as the guards v2.4 already has.
+- **(revised) And it must be tested from DDC's side, not only the proxy's.**
+  The endpoint tests above would all stay green with `/version` missing, while
+  DDC could not build a single client. So the first test written for the proxy
+  is an end-to-end one: construct a real `docker.DockerClient` against the
+  proxy the way the factory does, then `ping()`, `containers.list()`,
+  `containers.get()`, `logs()`, `stats(stream=False)` and one `start`/`stop`.
+  Only that test goes red when docker-py makes a call nobody listed.
 
 Cost: roughly 150 lines plus tests, versus adding a dependency. Given that the
 dependency cannot express the rule we need, writing it is the cheaper option.
@@ -173,10 +232,49 @@ cannot open the socket at all and must go through TCP to the proxy. That keeps
 the one-container promise and gives a genuine boundary.
 
 It is a thinner boundary than two containers: it falls to any privilege
-escalation inside the container, and it depends on supervisord giving DDC no
-route to run anything as the proxy's user. Both are checkable, and both must be
-checked before this path is chosen — including how DDC reaches uid 1000 with
-socket access today, which is not yet established.
+escalation inside the container. **(revised) Both open questions were measured
+on the running v2.4.1 container, and the answer changes what "one container"
+would have to look like:**
+
+*How DDC reaches the socket today.* `Dockerfile:157-160` creates group
+`docker` with gid 281 and adds `ddc` to it at build time;
+`scripts/entrypoint.sh:337-400` reads the socket's gid at start, creates a
+group with that gid if none exists and adds `ddc`; `:596-624` then drops to
+`ddc` with `su-exec`. Measured inside the container: `uid=1000(ddc)
+groups=281(docker)`, socket `srw-rw---- root:281`. So the separation itself is
+plain group membership, and a second user outside gid 281 cannot open the
+socket. Nothing else grants access: no setuid/setgid binaries in the image,
+`CapEff=0`, `/opt/runtime/site-packages` root-owned and read-only for `ddc`.
+
+*There is no supervisord.* PID 1 is `python3 run.py` running as `ddc`
+(`README.md:367`). The proxy would need a real init or a second process
+started by the entrypoint before it drops privileges.
+
+*The route that defeats the boundary today.* The container starts as root
+(`Config.User` is empty); the entrypoint runs as root, chowns `/app` to the
+target uid (`entrypoint.sh:465-506`, `Dockerfile:179-181` already does
+`chown -R ddc:ddc /app`) and only then drops privileges. Measured: `ddc` can
+write `/app/entrypoint.sh`, `/app/services/` and `/app` itself. Anyone with
+code execution in the DDC process overwrites the entrypoint; on the next
+container start (a restart is enough, the change lives in the container's
+writable layer) root executes it, and root in the container has the socket
+regardless of any group. The same route exists for the proxy's own code if it
+lives under `/app`.
+
+**Conditions for the one-container option, all of them:**
+
+1. `/app` code and `entrypoint.sh` owned by root, mode 755, and the entrypoint
+   no longer chowns `/app` itself — only `config/`, `logs/`, `cached_*` belong
+   to `ddc`. That changes the "fix permissions" behaviour NAS users rely on and
+   is its own step, not a measurement.
+2. The proxy binary and its rules outside every `ddc`-writable path.
+3. A test that runs as `ddc` inside the built image, tries to write
+   `entrypoint.sh` and the proxy rules, and fails if it can.
+4. The proxy started by the entrypoint as a user in the socket's group before
+   the drop to `ddc`, with `ddc` removed from that group.
+
+Two containers have none of these conditions, because DDC's container has no
+socket to reach. That is the honest comparison for the decision in §8.
 
 ---
 
@@ -195,9 +293,40 @@ against a leaked password and against nothing else.**
 If the point of v3.0 is "credential X cannot lead to root", the network path
 has to be closed first. Cheapest honest answer: terminate TLS in front of DDC
 (the reference Unraid setup can use the NginxProxyManager many users already
-run), document it, and flip `SESSION_COOKIE_SECURE` when a proxy header says
-the connection is secure. Second option: ship a self-signed certificate with a
-documented trust step.
+run), document it, and treat the connection as secure when a **trusted** proxy
+says so. Second option: ship a self-signed certificate with a documented trust
+step.
+
+**(revised) What "a proxy header says so" already looks like today, and why it
+is not decision-free:**
+
+- `app/web/extensions.py:20` already wraps the app in
+  `ProxyFix(x_for=1, x_proto=1, x_host=1, x_port=1)` (called from
+  `app_factory.py:50`), and `run.py:67-74` starts waitress without
+  `trusted_proxy`. `ProxyFix` does not check who sends the headers; it believes
+  the first hop. Anyone who reaches port 9374 directly sets `X-Forwarded-For`
+  and `X-Forwarded-Proto` themselves.
+- That is a bug today, independent of TLS: the login and setup rate limiter
+  keys on `request.remote_addr` (`app/auth.py:152`; 5/min on `/setup`, 100/min
+  with an `Authorization` header). A direct client rotates `X-Forwarded-For`
+  and is never limited. The action log (`action_log_routes.py:33`) and the
+  donation tracker (`donation_tracking_service.py:120-122`) record the forged
+  address. Fixing this is step 2 of §7 and needs no decision.
+- A forged `X-Forwarded-Proto: https` mostly hurts the forger (they get a
+  `Secure` cookie). The real gap is the other way round: as long as DDC keeps
+  accepting plain HTTP on `0.0.0.0:9374`, the reverse proxy is optional, and
+  "2FA only over TLS" holds only for the users who actually put one in front.
+- `SESSION_COOKIE_SECURE` is a static Flask setting, not a per-request one.
+  "Flip it when the header says so" means either an explicit
+  `DDC_BEHIND_TLS_PROXY=1` mode (cookie `Secure`, plain requests from
+  non-proxy addresses refused or redirected) or custom cookie code. The mode is
+  the simpler and more honest of the two.
+
+So the TLS work is: (a) trusted-proxy list, with a test that sends a forged
+`X-Forwarded-For` from an untrusted address and expects the real address to be
+counted; (b) a documented behind-proxy mode that sets the cookie flag and
+refuses plain direct access; (c) the reverse-proxy documentation. Only (a) is
+decision-free.
 
 **TLS ships before or with the 2FA wizard. Not after.**
 
@@ -236,33 +365,58 @@ never inside the model.
   worth stating: the lock exists for the moment a permission becomes
   configurable, and shipping it early means it is not bolted on later.
 
+### 5.5 Downgrade to v2.4.1 **(revised, new)**
+
+The mech snapshot is safe: `services/mech/progress_service.py:139-156` is not
+touched by any step here, and `tests/unit/audit_2026_09/test_r2_g5_mech.py`
+pins it to v2.3.1.
+
+The configuration is not: v2.4.1's `extract_docker_config` and its siblings
+(`config_validation_service.py:107-115`) copy only the keys they know, so a
+v2.4.1 that loads a v3.0 config drops the 2FA secret and the proxy settings on
+its first save. After a re-upgrade 2FA would be silently off. That is read from
+the extractor, not yet exercised. Rule for step 9: 2FA secrets and recovery
+codes live in their own file that v2.4.1 never writes, the same way the mech
+snapshot survived the v2.3 → v2.4 round trip, and step 11 proves it with a
+downgrade test.
+
 ---
 
 ## 6. What v2.4 owes v3.0
 
 ### The seven places that build a Docker client
 
-Measured in the v2.4.0 tree:
+Measured in the v2.4.1 tree **(revised: the fallback row was wrong)**:
 
 | Site | Socket resolution | Timeout |
 |---|---|---|
-| `docker_client_pool.py` `_create_new_client_async` | config path **first**, then `from_env()` | 30 |
-| `docker_client_pool.py:728` ("TEMPORARY FALLBACK") | `from_env()` | default (60) |
-| `docker_utils.py:496/511` | `from_env()` **first**, then hardcoded | `DEFAULT_CONTAINER_LIST_TIMEOUT` (Advanced Setting) |
+| `docker_client_pool.py:565-600` `_create_new_client_async` | config path **first**, then `from_env()` | 30 |
+| `docker_client_pool.py:735-752` `get_docker_client_async` ("TEMPORARY FALLBACK") | config path **first**, then `from_env(timeout=..)` | the caller's `timeout` argument, default 30 |
+| `docker_utils.py:496-512` | `from_env()` **first**, then hardcoded | `DEFAULT_CONTAINER_LIST_TIMEOUT` (Advanced Setting) |
 | `container_log_service.py:214` | hardcoded `unix:///var/run/docker.sock` | 30 |
-| `web_helpers.py:280` | `from_env()` | `BACKGROUND_REFRESH_TIMEOUT` (Advanced Setting) |
-| `web_helpers.py:553` | hardcoded `unix:///var/run/docker.sock` | **5** (fast diagnostic probe) |
+| `web_helpers.py:281` | `from_env()` | `BACKGROUND_REFRESH_TIMEOUT` (Advanced Setting) |
+| `web_helpers.py:557` | hardcoded `unix:///var/run/docker.sock` | **5** (fast diagnostic probe) |
 | `status_info_integration.py:53` | `from_env()` | default (60) |
 
-Exactly one honours `docker_config.docker_socket_path`. Three hardcode the
-default socket path.
+Two honour `docker_config.docker_socket_path` (both pool entry points, same
+order). Three hardcode the default socket path. Only `docker_utils.py` resolves
+in the opposite order. None of the seven passes `version=` (§3).
 
 **Why this matters for v3.0:** `docker.from_env()` reads `DOCKER_HOST`. Point
-`DOCKER_HOST` at the proxy and the three `from_env()` sites migrate for free —
-while the three hardcoded sites keep talking to the socket directly, past the
+`DOCKER_HOST` at the proxy and the `from_env()` sites migrate for free —
+while the three hardcoded sites, and the two config-path sites whenever
+`docker_socket_path` is set, keep talking to the socket directly, past the
 proxy. Both paths work, so **no test would catch it.** A proxy that sees part
 of the traffic is worse than no proxy, because it produces a security claim
 that is false.
+
+**(revised) Where `DOCKER_HOST` is set today:** in `docker-compose.yml:33` and
+nowhere else. The running Unraid container has no `DOCKER_HOST` in its
+environment (measured with `docker inspect`); `from_env()` there falls back to
+the default socket. So "point `DOCKER_HOST` at the proxy" must happen in the
+image or the entrypoint, not only in compose, or Unraid users keep the raw
+socket. The `docker_socket_path` Advanced Setting becomes meaningless with the
+proxy and is retired in the same step, with a migration note.
 
 ### Why the consolidation is NOT being done in v2.4
 
@@ -273,7 +427,7 @@ timeouts and two opposing resolution orders. Collapsing them changes behaviour:
   fail fast. Give it 30 and a web page hangs for 30 seconds.
 - Two of the timeouts are Advanced Settings the operator can tune. A single
   shared timeout discards that configuration silently.
-- The pool resolves the config path first; `docker_utils` resolves
+- Both pool sites resolve the config path first; `docker_utils` resolves
   `from_env()` first. Choosing one order can flip which installation works.
 
 The last point is the irreducible one: an installation with `DOCKER_HOST`
@@ -290,8 +444,12 @@ Real, but confined.
 ### What v2.4 should do instead: the inventory as a test
 
 No production code changes. A guard that pins these seven sites and fails when
-an eighth appears — the same shape as `test_the_log_service_has_no_unreachable_helper`
-and every other ratchet added in this audit.
+an eighth appears — the same shape as the ratchets in `tests/spec/` (for
+example `test_z10_ci_test_gate.py`, which reads the workflow YAML and fails
+when the gate is loosened). **(revised)** The guard pins the table above as it
+*is*, including the fallback row, and it also pins "no site passes `version=`"
+so that the day the factory starts pinning the version, the guard is updated
+on purpose rather than silently.
 
 - Risk to existing installations: none. It touches no runtime path.
 - Value: v3.0 inherits a maintained checklist instead of a `grep`, and nobody
@@ -305,21 +463,26 @@ it can be stated in the release notes.
 
 ## 7. Order of work, and what must be true before each step
 
+**(revised)** The two research steps of the first version are done (§4.1,
+§4.3); their place is taken by two fixes that are due today.
+
 | # | Step | Cannot start before |
 |---|---|---|
-| 0 | v2.4 finalised and released | — |
-| 1 | Inventory guard for the seven client sites | 0 |
-| 2 | Verify §4.1's open question: does `CONTAINERS=1` reach `POST /containers/{id}/exec`? | — (research, can run in parallel) |
-| 3 | Establish how DDC reaches the socket as uid 1000 today, and whether UID separation is achievable in one container | — (research, can run in parallel) |
-| 4 | **Operator decision: one container with UID separation, or two containers** | 2, 3 |
-| 5 | TLS: reverse-proxy documentation, `SESSION_COOKIE_SECURE` driven by a forwarded-proto header | — |
-| 6 | The allowlist proxy plus its test per denied endpoint | 4 |
-| 7 | Single client factory, `timeout` a required argument per caller, `DOCKER_HOST` pointed at the proxy | 1, 6 |
-| 8 | 2FA wizard, recovery codes, documented break-glass | 5 |
-| 9 | Rewrite `SECURITY.md`: drop the `:ro` claim, state the three doors of §1 and the boundary of §5.2 | 6, 8 |
+| 0 | v2.4.1 released | done |
+| 1 | Inventory guard for the seven client sites (§6), and delete the dead `analyze_docker_stats_performance` so `GET /info` is not part of the surface | 0 |
+| 2 | Trusted-proxy list for the forwarded headers (§5.1 a), with the forged-`X-Forwarded-For` test; fixes today's rate-limiter bypass | 0 |
+| 3 | **Operator decision: one container (with all four conditions of §4.3) or two containers** | — (both measurements exist) |
+| 4 | End-to-end test: a real docker-py client through the proxy (§4.2) — written first, red until step 5 | 3 |
+| 5 | The allowlist proxy, nine endpoints, path-only matching, one test per denied endpoint | 4 |
+| 6 | Single client factory: `timeout` required per caller, `version=` pinned, `DOCKER_HOST` set by the image/entrypoint, `docker_socket_path` retired | 1, 5 |
+| 7 | Root-owned `/app`, entrypoint without `chown /app`, proxy outside `ddc` paths, the write-attempt test (§4.3) — decided: one container | 3 |
+| 8 | Behind-proxy mode (§5.1 b), reverse-proxy documentation (§5.1 c), and the self-signed fallback certificate with renewal and trust step — decided: both | 2 |
+| 9 | 2FA wizard (offered, not forced — decided), recovery codes, documented break-glass; secrets in a file v2.4.1 never rewrites (§5.5) | 8 |
+| 10 | Rewrite `SECURITY.md`: drop the `:ro` claim, state the three doors of §1, the boundary of §5.2 and the read exposure of §3 | 5, 9 |
+| 11 | Upgrade test from v2.4.1 and downgrade test to v2.4.1 (§5.5); `/health` distinguishes "proxy unreachable" from "Docker unreachable" | 6, 9 |
 
-Steps 2, 3 and 5 need no decision and no risk. Step 4 is the one that needs the
-operator.
+Steps 1 and 2 need no decision and carry no risk. Step 3 is the one that needs
+the operator.
 
 ---
 
@@ -327,21 +490,43 @@ operator.
 
 **Decided in this plan:**
 - An explicit method-plus-path allowlist, not Tecnativa's section filter (§4.2).
+- The allowlist has nine entries: the eight DDC calls plus docker-py's implicit
+  `GET /version`; it is proven by an end-to-end test from DDC's side (§3, §4.2).
 - TLS before or with 2FA, never after (§5.1).
+- Forwarded headers are trusted only from a configured proxy address; the
+  bypass of today's rate limiter is fixed before anything else (§5.1).
 - The security boundary excludes the host root owner, explicitly (§5.2).
 - Recovery codes plus a host-filesystem break-glass (§5.3).
+- 2FA state lives in a file v2.4.1 never rewrites; a downgrade test proves it (§5.5).
 - The client-site consolidation happens in v3.0, not v2.4 (§6).
-- `SECURITY.md`'s read-only-socket claim is removed (§2).
+- `SECURITY.md`'s read-only-socket claim is removed, and the read exposure of
+  `inspect` and `logs` is stated (§2, §3).
 
-**Open, for the operator:**
-1. One container with UID separation, or two containers. §4.3.
-2. Is 2FA forced at first boot, or offered and strongly recommended? Forcing it
-   maximises the security claim and the lockout support load at the same time.
-3. Does v3.0 ship its own TLS (self-signed plus trust step), or document a
-   reverse proxy as the supported way?
+**Decided by the operator on 2026-09-22:**
+1. **One container**, with all four conditions of §4.3: root-owned `/app` and
+   entrypoint, no `chown /app` in the entrypoint (the NAS permission fix is
+   limited to `config/`, `logs/` and `cached_*`), proxy outside every
+   `ddc`-writable path, and the write-attempt test. The release-note claim is
+   "DDC's code cannot reach anything but the allowed endpoints", not "DDC has
+   no socket". Two containers stay described in §4.3 as the comparison, and
+   are not built.
+2. **2FA is offered and strongly recommended, not forced.** Setup dialog at
+   first boot with a "later" button, and a persistent panel notice while it is
+   off. Nobody gets locked out.
+3. **TLS: both.** A reverse proxy is the recommended way, with the
+   behind-proxy mode of §5.1; a self-signed certificate in the image is the
+   fallback for installations without a proxy, with a documented trust step
+   and renewal.
+4. **A tenth, read-only endpoint is reserved:** `GET /images/{name}/json`
+   (`RepoDigests`) for the image-update notice planned after v3.0. It goes
+   into the allowlist, the inventory guard and the end-to-end test now, and
+   `SECURITY.md` names it as read-only, so the later feature does not widen
+   the proxy after the fact.
 
-**Open, needing measurement rather than a decision:**
-4. Tecnativa's ACL for `POST /containers/{id}/exec` (§4.1) — only matters if
-   the section-filter option is revived.
-5. How DDC's uid 1000 reaches the socket today, and whether a second uid inside
-   the container can be denied it (§4.3).
+**Measured, no longer open:**
+4. Tecnativa's `CONTAINERS=1` plus `POST=1` admits `/containers/create` and
+   `/containers/{id}/exec` (§4.1, `haproxy.cfg` lines 48 and 60).
+5. DDC's uid 1000 reaches the socket through gid 281 membership set up by the
+   Dockerfile and the entrypoint; a second uid can be kept out of the group,
+   but `/app` being `ddc`-owned and executed by root at start is a route around
+   it (§4.3).
