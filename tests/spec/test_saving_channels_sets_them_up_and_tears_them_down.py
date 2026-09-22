@@ -59,8 +59,17 @@ def _cog(permissions):
     cog.delete_bot_messages = AsyncMock()
     cog._delete_tracked_overview_messages = AsyncMock()
     cog._background_cache_population = AsyncMock()
-    cog._send_control_panel_and_statuses = AsyncMock()
-    cog._send_all_server_statuses = AsyncMock()
+
+    # The real senders track the message they posted, and since 2026-09-22 a setup
+    # that tracked nothing is reported and left untracked
+    # (tests/spec/test_a_channel_whose_first_message_failed_is_not_forgotten.py).
+    def _tracking_sender(key):
+        async def _send(channel, **kwargs):
+            cog.channel_server_message_ids.setdefault(channel.id, {})[key] = 999
+        return AsyncMock(side_effect=_send)
+
+    cog._send_control_panel_and_statuses = _tracking_sender("admin_overview")
+    cog._send_all_server_statuses = _tracking_sender("overview")
     cog._config = {"channel_permissions": permissions}
     return cog
 

@@ -183,6 +183,18 @@ class ChannelLifecycleMixin:
                 else:
                     await self._send_all_server_statuses(channel, allow_toggle=False, force_collapse=True)
 
+            # Did anything actually get posted? Both senders swallow their own
+            # failures, and an EMPTY entry makes the periodic loop skip this
+            # channel for ever - the operator sees a blank channel and DDC never
+            # tries again. Leave it out of the map instead, so the next
+            # hot-reload treats it as a channel to add.
+            tracked = self.channel_server_message_ids.get(channel_id) or {}
+            if not tracked:
+                self.channel_server_message_ids.pop(channel_id, None)
+                logger.error(f"Channel {channel.name} ({channel_id}): nothing could be posted, "
+                             f"so it is not tracked - the next channel save will try again")
+                return
+
             # Start tracking
             self.last_channel_activity[channel_id] = datetime.now(timezone.utc)
             logger.info(f"Channel {channel.name} ({channel_id}) set up successfully in {mode} mode")
