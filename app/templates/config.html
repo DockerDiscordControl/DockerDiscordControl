@@ -1100,8 +1100,11 @@
             
             // Update POWER Bar using server's bar calculations
             if (powerLevel && data.bars) {
-                const percentage = (data.bars.Power_current / data.bars.Power_max_for_level) * 100;
-                powerLevel.style.width = `${Math.min(100, percentage)}%`;
+                // barWidth() answers null when the server could not measure the
+                // maximum; dividing here made that a FULL bar (5 / null is Infinity).
+                const percentage = barWidth(data.bars.Power_current, data.bars.Power_max_for_level);
+                powerLevel.style.width = percentage === null ? '0%' : `${percentage}%`;
+                powerLevel.title = percentage === null ? 'Power could not be read' : '';
                 
                 // Color based on actual Power amount
                 const Power = data.current_Power_raw || data.current_Power || 0;
@@ -1121,9 +1124,10 @@
             // Update Evolution Bar (the "NEXT" bar for evolution progress)
             if (evolutionProgress && data) {
                 // Use server data for evolution progress
-                if (data.bars && data.bars.mech_progress_current !== undefined && data.bars.mech_progress_max !== undefined) {
-                    const percentage = (data.bars.mech_progress_current / data.bars.mech_progress_max) * 100;
-                    evolutionProgress.style.width = `${Math.min(100, percentage)}%`;
+                if (data.bars) {
+                    const percentage = barWidth(data.bars.mech_progress_current, data.bars.mech_progress_max);
+                    evolutionProgress.style.width = percentage === null ? '0%' : `${percentage}%`;
+                    evolutionProgress.title = percentage === null ? 'Progress could not be read' : '';
                 }
                 
                 // Update evolution text
