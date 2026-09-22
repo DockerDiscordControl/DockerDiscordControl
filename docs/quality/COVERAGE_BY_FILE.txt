@@ -120,6 +120,8 @@ services/discord/channel_cleanup_service.py	499	pass1:s14:plan pass2:s14:1-453  
 services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s14:1-169  [15 of 184 lines never in a package]
 services/discord/embed_helper_service.py	173	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
 services/discord/status_overview_service.py	363	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
+services/docker_proxy/__init__.py	2	NONE
+services/docker_proxy/allowlist_proxy.py	227	NONE
 services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/docker_action_service.py	295	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	771	pass1:s15:1-708  [37 of 745 lines never in a package]

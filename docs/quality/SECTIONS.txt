@@ -295,3 +295,10 @@ app/blueprints/security_routes.py:1-205
 cogs/ddc_ui.py:1-94
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
+
+## Section 39  (229 lines, 2 pieces)
+# New on 2026-09-22 for v3.0: the allowlist proxy in front of the Docker
+# socket. Its own section because it is the security boundary of v3.0 and
+# must be reviewed as one piece, not as a tail of a busier section.
+services/docker_proxy/__init__.py:1-2
+services/docker_proxy/allowlist_proxy.py:1-227
