@@ -104,7 +104,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/control_ui.py:3739 MechPrivateHistoryButton
 [ ] cogs/control_ui.py:3751 MechPrivateHistoryButton.callback
 
-## Section 04  (1599 lines, 13 public names)
+## Section 04  (1607 lines, 13 public names)
 [ ] cogs/channel_lifecycle.py:30 ChannelLifecycleMixin
 [ ] cogs/channel_lifecycle.py:428 ChannelLifecycleMixin.send_initial_status
 [ ] cogs/channel_lifecycle.py:551 ChannelLifecycleMixin.delete_bot_messages
@@ -115,9 +115,9 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/docker_control.py:583 DockerControlCog.trigger_status_refresh
 [ ] cogs/docker_control.py:681 DockerControlCog.on_message
 [ ] cogs/loop_safety.py:46 survives_one_bad_cycle
-[ ] cogs/loop_safety.py:58 survives_one_bad_cycle.wrapper
-[ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
-[ ] cogs/loop_safety.py:79 _register_loop_error_handlers.make_handler.handler
+[ ] cogs/loop_safety.py:66 survives_one_bad_cycle.wrapper
+[ ] cogs/loop_safety.py:86 _register_loop_error_handlers.make_handler
+[ ] cogs/loop_safety.py:87 _register_loop_error_handlers.make_handler.handler
 
 ## Section 05  (1797 lines, 12 public names)
 [ ] cogs/overview_embeds.py:35 power_consumption_line
