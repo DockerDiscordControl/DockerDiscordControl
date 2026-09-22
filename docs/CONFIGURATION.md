@@ -165,6 +165,18 @@ environment:
   # Animation disk cache cap (MB). Default 200. Set to 0 to disable LRU eviction.
   DDC_ANIM_DISK_LIMIT_MB: "200"
 
+  # v3.0: the address or range of your reverse proxy. Without it DDC ignores
+  # X-Forwarded-* from everybody, so the action log shows the proxy's address.
+  # DDC_TRUSTED_PROXIES: "172.18.0.0/16"
+
+  # v3.0: off (default), proxy (TLS ends at your reverse proxy - needs
+  # DDC_TRUSTED_PROXIES, or DDC refuses to start), or self-signed (DDC serves
+  # HTTPS with a certificate it creates in config/tls/ and renews itself).
+  # DDC_TLS_MODE: "off"
+
+  # Extra names/IPs for the self-signed certificate, comma-separated.
+  # DDC_TLS_HOSTNAMES: "ddc.lan,192.168.1.50"
+
   # Override config/data directories (rarely needed; for custom layouts and tests).
   # DDC_CONFIG_DIR: "/app/config"
   # DDC_PROGRESS_DATA_DIR: "/app/config/progress"

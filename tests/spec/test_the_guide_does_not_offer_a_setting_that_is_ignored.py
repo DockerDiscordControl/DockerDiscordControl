@@ -36,3 +36,13 @@ def test_the_guide_says_what_replaced_it():
 def test_the_watchdog_is_explained():
     assert "Container state" in GUIDE
     assert "unhealthy" in GUIDE.lower()
+
+
+@pytest.mark.parametrize("variable", ["DDC_TRUSTED_PROXIES", "DDC_TLS_MODE", "DDC_TLS_HOSTNAMES"])
+def test_the_new_variables_are_documented(variable):
+    """The three v3.0 variables an operator may have to set. The README has them;
+    the configuration guide, which is where people look for variables, did not.
+
+    COUNTER-CHECK (2026-09-22): red before - none of the three was in the file.
+    """
+    assert variable in GUIDE
