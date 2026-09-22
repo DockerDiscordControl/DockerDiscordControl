@@ -117,10 +117,11 @@ class DonationTrackingService:
     def _get_ip_identifier(self, request_obj) -> str:
         """Get IP-based user identifier."""
         try:
-            ip_address = request_obj.remote_addr
-            if request_obj.headers.get('X-Forwarded-For'):
-                ip_address = request_obj.headers.get('X-Forwarded-For').split(',')[0].strip()
-            return f"IP: {ip_address}"
+            # remote_addr only. This used to prefer a raw X-Forwarded-For, so the
+            # recorded address was whatever the client claimed. Whether a forwarded
+            # address is believed is decided in ONE place, app/web/extensions.py
+            # (DDC_TRUSTED_PROXIES), which already puts it into remote_addr.
+            return f"IP: {request_obj.remote_addr}"
         except Exception:
             return "IP: Unknown"
 

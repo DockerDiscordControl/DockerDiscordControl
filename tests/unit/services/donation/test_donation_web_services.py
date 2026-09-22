@@ -425,12 +425,16 @@ class TestDonationTrackingService:
         assert "IP:" in ident
         assert "1.2.3.4" in ident
 
-    def test_get_user_identifier_uses_x_forwarded_for(self):
+    def test_get_user_identifier_ignores_a_raw_x_forwarded_for(self):
+        # Changed 2026-09-22: this test used to expect the header to win, which
+        # pinned the defect - the client chose its own recorded address. Whether
+        # a forwarded address counts is decided by DDC_TRUSTED_PROXIES in
+        # app/web/extensions.py, which puts it into remote_addr.
         with patch.dict("sys.modules", {"app.auth": None}):
             ident = self.service._get_user_identifier(
                 self._flask_request(forwarded="8.8.8.8, 9.9.9.9")
             )
-        assert "8.8.8.8" in ident
+        assert ident == "IP: 1.2.3.4"
 
     def test_get_ip_identifier_handles_broken_request(self):
         # Bare object lacking the expected attributes.
