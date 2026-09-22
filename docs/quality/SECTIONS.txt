@@ -169,7 +169,7 @@ services/mech/mech_reset_service.py:1-378
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-299
 services/mech/mech_state_manager.py:1-221
-services/mech/mech_status_cache_service.py:1-464
+services/mech/mech_status_cache_service.py:1-466
 services/mech/mech_story_service.py:1-204
 services/mech/progress/__init__.py:1-17
 services/mech/progress_paths.py:1-189

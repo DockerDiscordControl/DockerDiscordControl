@@ -45,7 +45,9 @@ class MechStatusCacheResult:
 
     # Extended data for expanded views
     glvl: int = 0
-    glvl_max: int = 100
+    # The evolution table ends at 11; 100 was a round number nobody measured,
+    # and it was printed as "glvl=3/100" in the log, the embed and the API.
+    glvl_max: int = 11
     bars: Optional[Any] = None
 
     # Speed status info
@@ -222,7 +224,7 @@ class MechStatusCacheService:
                 # correct text and colour (review C19).
                 speed=speed_level,
                 glvl=data_result.current_level,
-                glvl_max=100,
+                glvl_max=MechStatusCacheResult.glvl_max,
                 bars=getattr(data_result, 'bars', None),
                 speed_description=speed_description,
                 speed_color=speed_color,

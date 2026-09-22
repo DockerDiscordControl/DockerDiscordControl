@@ -838,7 +838,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/mech/mech_high_res_service.py:208 MechHighResService.get_canvas_size_for_resolution
 [ ] services/mech/mech_high_res_service.py:243 get_mech_high_res_service
 
-## Section 23  (1804 lines, 61 public names)
+## Section 23  (1806 lines, 61 public names)
 [ ] services/mech/mech_reset_service.py:30 ResetResult
 [ ] services/mech/mech_reset_service.py:36 MechResetService
 [ ] services/mech/mech_reset_service.py:76 MechResetService.full_reset
@@ -881,13 +881,13 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/mech/mech_state_manager.py:216 get_mech_state_manager
 [ ] services/mech/mech_status_cache_service.py:27 MechStatusCacheRequest
 [ ] services/mech/mech_status_cache_service.py:34 MechStatusCacheResult
-[ ] services/mech/mech_status_cache_service.py:62 MechStatusCacheService
-[ ] services/mech/mech_status_cache_service.py:92 MechStatusCacheService.get_cached_status
-[ ] services/mech/mech_status_cache_service.py:247 MechStatusCacheService.start_background_loop
-[ ] services/mech/mech_status_cache_service.py:335 MechStatusCacheService.stop_background_loop
-[ ] services/mech/mech_status_cache_service.py:425 MechStatusCacheService.clear_cache
-[ ] services/mech/mech_status_cache_service.py:432 MechStatusCacheService.get_cache_stats
-[ ] services/mech/mech_status_cache_service.py:459 get_mech_status_cache_service
+[ ] services/mech/mech_status_cache_service.py:64 MechStatusCacheService
+[ ] services/mech/mech_status_cache_service.py:94 MechStatusCacheService.get_cached_status
+[ ] services/mech/mech_status_cache_service.py:249 MechStatusCacheService.start_background_loop
+[ ] services/mech/mech_status_cache_service.py:337 MechStatusCacheService.stop_background_loop
+[ ] services/mech/mech_status_cache_service.py:427 MechStatusCacheService.clear_cache
+[ ] services/mech/mech_status_cache_service.py:434 MechStatusCacheService.get_cache_stats
+[ ] services/mech/mech_status_cache_service.py:461 get_mech_status_cache_service
 [ ] services/mech/mech_story_service.py:23 MechStoryService
 [ ] services/mech/mech_story_service.py:47 MechStoryService.get_story_chapter
 [ ] services/mech/mech_story_service.py:70 MechStoryService.get_all_chapters

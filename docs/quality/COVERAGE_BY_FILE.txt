@@ -201,7 +201,7 @@ services/mech/mech_reset_service.py	378	pass1:s23:1-376  [2 of 378 lines never i
 services/mech/mech_service.py	32	pass1:s23:1-32
 services/mech/mech_service_adapter.py	299	pass1:s23:1-300
 services/mech/mech_state_manager.py	221	pass1:s23:1-152  [9 of 161 lines never in a package]
-services/mech/mech_status_cache_service.py	464	pass1:s23:1-439  [25 of 464 lines never in a package]
+services/mech/mech_status_cache_service.py	466	pass1:s23:1-439  [25 of 464 lines never in a package]
 services/mech/mech_story_service.py	204	pass1:s23:1-194  [10 of 204 lines never in a package]
 services/mech/progress/__init__.py	17	pass1:s23:1-17
 services/mech/progress/runtime.py	201	pass1:s23:1-153  [5 of 158 lines never in a package]
