@@ -150,7 +150,7 @@ services/infrastructure/game_query_service.py:1-553
 ## Section 20  (1546 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-341
 services/infrastructure/spam_protection_service.py:1-553
-services/infrastructure/update_notifier.py:1-217
+services/infrastructure/update_notifier.py:1-247
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-387
 

@@ -11,6 +11,7 @@ Update Notification System - Shows new features after updates
 
 import asyncio
 import json
+import os
 from services.config.config_service import load_config
 import logging
 import discord
@@ -41,7 +42,11 @@ class UpdateNotifier:
             
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.status_file = self.config_dir / "update_status.json"
-        self.current_version = "2025.01.07"  # Update this with each release
+        # The running version, from the one source the image sets (Dockerfile ENV
+        # DDC_VERSION, also read by /health and the panel footer). A literal here
+        # meant the marker on disk equalled it after the first install, so the
+        # notice never fired again - while its text advertised that old release.
+        self.current_version = (os.environ.get("DDC_VERSION") or "").strip().lstrip("vV")
 
     def get_update_status(self) -> Dict[str, Any]:
         """Get current update notification status."""
@@ -101,19 +106,42 @@ class UpdateNotifier:
 
     def should_show_update_notification(self) -> bool:
         """Check if update notification should be shown."""
+        if not self.current_version:
+            # Without a version there is nothing to announce - and nothing to
+            # compare against either
+            return False
         status = self.get_update_status()
-        last_version = status.get("last_notified_version")
+        return status.get("last_notified_version") != self.current_version
 
-        # Show notification if this is a new version
-        return last_version != self.current_version
+    def channels_still_to_tell(self, channel_ids) -> list:
+        """The channels that have not had THIS version's notice yet.
 
-    def mark_notification_shown(self):
-        """Mark update notification as shown."""
+        One successful channel used to mark the whole version done, so a channel
+        that was unreachable at that moment never got it - and a crash before the
+        mark sent it to everybody a second time.
+        """
+        told = set(self.get_update_status().get("channels_notified", {}).get(self.current_version, []))
+        return [channel_id for channel_id in channel_ids if channel_id not in told]
+
+    def mark_notification_shown(self, channel_ids=None) -> bool:
+        """Write down that this version's notice went out; True when that WORKED.
+
+        A status file that cannot be written (the classic root-owned file) used
+        to be ignored, so the notice counted as shown and was posted again on
+        every start, into every channel, for ever.
+        """
         status = self.get_update_status()
         status["last_notified_version"] = self.current_version
         if self.current_version not in status["notifications_shown"]:
             status["notifications_shown"].append(self.current_version)
-        self.save_update_status(status)
+        if channel_ids:
+            told = status.setdefault("channels_notified", {}).setdefault(self.current_version, [])
+            told.extend(channel_id for channel_id in channel_ids if channel_id not in told)
+        if self.save_update_status(status):
+            return True
+        logger.error("Update notice could not be written down (%s) - it is NOT counted as shown",
+                     self.status_file)
+        return False
 
     def create_update_embed(self) -> discord.Embed:
         """Create the update notification embed."""
@@ -179,14 +207,16 @@ class UpdateNotifier:
 
             embed = self.create_update_embed()
             sent_count = 0
+            told = []
 
-            # Send to all control channels
-            for channel_id in control_channels:
+            # Send to the control channels that have not had it yet
+            for channel_id in self.channels_still_to_tell(control_channels):
                 try:
                     channel = bot.get_channel(channel_id)
                     if channel:
                         await channel.send(embed=embed)
                         sent_count += 1
+                        told.append(channel_id)
                         logger.info(f"Update notification sent to channel {channel_id}")
                     else:
                         logger.warning(f"Could not find channel {channel_id}")
@@ -194,8 +224,8 @@ class UpdateNotifier:
                     logger.error(f"Error sending update notification to channel {channel_id}: {e}", exc_info=True)
 
             if sent_count > 0:
-                # Mark as shown only if at least one message was sent
-                self.mark_notification_shown()
+                # Per channel, so one that was unreachable gets it next time
+                self.mark_notification_shown(channel_ids=told)
                 logger.info(f"Update notification sent to {sent_count} control channels")
                 return True
             else:

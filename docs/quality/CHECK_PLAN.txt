@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1579 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1580 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -704,7 +704,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/infrastructure/game_query_service.py:542 get_game_query_service
 [ ] services/infrastructure/game_query_service.py:550 reset_game_query_service
 
-## Section 20  (1528 lines, 51 public names)
+## Section 20  (1558 lines, 52 public names)
 [ ] services/infrastructure/game_query_support_service.py:80 read_support_verdicts
 [ ] services/infrastructure/game_query_support_service.py:140 set_testing
 [ ] services/infrastructure/game_query_support_service.py:157 record_manual_success
@@ -739,14 +739,15 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/infrastructure/spam_protection_service.py:374 SpamProtectionService.get_remaining_cooldown
 [ ] services/infrastructure/spam_protection_service.py:403 SpamProtectionService.add_user_cooldown
 [ ] services/infrastructure/spam_protection_service.py:544 get_spam_protection_service
-[ ] services/infrastructure/update_notifier.py:25 UpdateNotifier
-[ ] services/infrastructure/update_notifier.py:46 UpdateNotifier.get_update_status
-[ ] services/infrastructure/update_notifier.py:85 UpdateNotifier.save_update_status
-[ ] services/infrastructure/update_notifier.py:102 UpdateNotifier.should_show_update_notification
-[ ] services/infrastructure/update_notifier.py:110 UpdateNotifier.mark_notification_shown
-[ ] services/infrastructure/update_notifier.py:118 UpdateNotifier.create_update_embed
-[ ] services/infrastructure/update_notifier.py:163 UpdateNotifier.send_update_notification
-[ ] services/infrastructure/update_notifier.py:212 get_update_notifier
+[ ] services/infrastructure/update_notifier.py:26 UpdateNotifier
+[ ] services/infrastructure/update_notifier.py:51 UpdateNotifier.get_update_status
+[ ] services/infrastructure/update_notifier.py:90 UpdateNotifier.save_update_status
+[ ] services/infrastructure/update_notifier.py:107 UpdateNotifier.should_show_update_notification
+[ ] services/infrastructure/update_notifier.py:116 UpdateNotifier.channels_still_to_tell
+[ ] services/infrastructure/update_notifier.py:126 UpdateNotifier.mark_notification_shown
+[ ] services/infrastructure/update_notifier.py:146 UpdateNotifier.create_update_embed
+[ ] services/infrastructure/update_notifier.py:191 UpdateNotifier.send_update_notification
+[ ] services/infrastructure/update_notifier.py:242 get_update_notifier
 [ ] services/mech/mech_display_cache_service.py:27 MechDisplayCacheRequest
 [ ] services/mech/mech_display_cache_service.py:34 MechDisplayCacheResult
 [ ] services/mech/mech_display_cache_service.py:42 MechDisplayImageRequest

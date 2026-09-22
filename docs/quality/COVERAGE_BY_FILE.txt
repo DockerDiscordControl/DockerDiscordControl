@@ -188,7 +188,7 @@ services/infrastructure/event_manager.py	118	pass1:s19:1-118
 services/infrastructure/game_query_service.py	553	pass1:s19:1-525  [28 of 553 lines never in a package]
 services/infrastructure/game_query_support_service.py	341	pass1:s20:1-282  [59 of 341 lines never in a package]
 services/infrastructure/spam_protection_service.py	553	pass1:s20:1-504  [49 of 553 lines never in a package]
-services/infrastructure/update_notifier.py	217	pass1:s20:1-213  [22 of 235 lines never in a package]
+services/infrastructure/update_notifier.py	247	pass1:s20:1-213  [22 of 235 lines never in a package]
 services/mech/__init__.py	30	pass1:s20:1-30
 services/mech/animation_cache_service.py	1846	pass1:s21:1-1813  [33 of 1846 lines never in a package]
 services/mech/mech_data_store.py	939	pass1:s22:1-886  [53 of 939 lines never in a package]
