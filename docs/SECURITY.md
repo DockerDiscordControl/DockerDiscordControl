@@ -81,7 +81,10 @@ the API behind it at all - it is no protection and is not relied on.
 (mode 666), or `PGID` equals the socket's group, `ddc` can open the socket
 directly and the proxy does not bind DDC. The entrypoint says so loudly at
 start. A container started with `--user` has no root phase, so no proxy runs;
-the entrypoint then warns that DDC uses the raw socket.
+the entrypoint then warns that DDC uses the raw socket. That is the ONLY case
+in which it does: once the root phase has started a proxy, a proxy that is
+missing later leaves DDC without container control rather than on the raw
+socket.
 
 ## Door B: the web panel
 

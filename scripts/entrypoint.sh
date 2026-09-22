@@ -431,6 +431,9 @@ start_docker_proxy() {
         log_warn "Docker socket not mounted - the allowlist proxy is not started"
         return 0
     fi
+    # From here on the root phase is committed to the proxy: the child must not
+    # fall back to the raw socket, whatever goes wrong below.
+    export DDC_PROXY_STARTED=1
     if [ ! -f "$PROXY_SCRIPT" ]; then
         log_error "Allowlist proxy missing at $PROXY_SCRIPT - Docker control will not work"
         return 0
@@ -686,6 +689,47 @@ User creation must have failed. Please check the logs above."
 # NON-ROOT STARTUP
 # ============================================================================ #
 
+# Which way to Docker this process takes. The image points DOCKER_HOST at the
+# allowlist proxy and the root phase starts it (DDC_PROXY_STARTED). A container
+# started with --user has no root phase and so no proxy - then the raw socket is
+# the only way left, and only then.
+choose_docker_path() {
+    if [ -S "$PROXY_SOCKET" ]; then
+        if [ -w "$PROXY_SOCKET" ]; then
+            log_info "Docker access: through the allowlist proxy"
+        else
+            log_error "Docker allowlist proxy socket not usable - container control will not work"
+        fi
+        # The proxy only limits DDC if DDC cannot open the socket itself - e.g. a
+        # socket with mode 666 on the host, or a PGID equal to its group.
+        if [ -S "$DOCKER_SOCKET" ] && [ -w "$DOCKER_SOCKET" ]; then
+            log_warn "SECURITY: $(id -un) can open $DOCKER_SOCKET directly - the allowlist proxy"
+            log_warn "does not bind DDC. Check the socket's mode on the host (should be 660)."
+        fi
+        return 0
+    fi
+    if [ -n "${DDC_PROXY_STARTED:-}" ]; then
+        # The root phase started a proxy and it is not there. Its loop restarts it
+        # every two seconds, so DOCKER_HOST stays where the image points it - a
+        # fall back to the raw socket here would drop the whole v3.0 boundary on a
+        # host whose socket is world-writable, and blame --user for it in the log.
+        log_error "Docker allowlist proxy is not listening on $PROXY_SOCKET - container control"
+        log_error "does not work until it is back. DDC does NOT fall back to the raw socket."
+        return 0
+    fi
+    if [ -S "$DOCKER_SOCKET" ] && [ -r "$DOCKER_SOCKET" ] && [ -w "$DOCKER_SOCKET" ]; then
+        log_warn "Docker access: RAW socket, no allowlist proxy (container started with --user?)"
+        log_warn "Start without --user and use PUID/PGID so the proxy can run."
+        export DOCKER_HOST="unix://$DOCKER_SOCKET"
+        return 0
+    fi
+    if [ -S "$DOCKER_SOCKET" ]; then
+        log_error "Docker socket: NO ACCESS - container control will not work"
+    else
+        log_error "Docker socket not mounted - container control will not work"
+    fi
+}
+
 start_as_user() {
     local current_uid=$(id -u)
     local current_gid=$(id -g)
@@ -699,30 +743,7 @@ start_as_user() {
         log_warn "PUID/PGID are ignored when using --user flag"
     fi
 
-    # Verify the way to Docker. The image points DOCKER_HOST at the allowlist
-    # proxy; the root phase started it. A container started with --user has no
-    # root phase and so no proxy - then the raw socket is the only way left.
-    if [ -S "$PROXY_SOCKET" ]; then
-        if [ -w "$PROXY_SOCKET" ]; then
-            log_info "Docker access: through the allowlist proxy"
-        else
-            log_error "Docker allowlist proxy socket not usable - container control will not work"
-        fi
-        # The proxy only limits DDC if DDC cannot open the socket itself - e.g. a
-        # socket with mode 666 on the host, or a PGID equal to its group.
-        if [ -S "$DOCKER_SOCKET" ] && [ -w "$DOCKER_SOCKET" ]; then
-            log_warn "SECURITY: $(id -un) can open $DOCKER_SOCKET directly - the allowlist proxy"
-            log_warn "does not bind DDC. Check the socket's mode on the host (should be 660)."
-        fi
-    elif [ -S "$DOCKER_SOCKET" ] && [ -r "$DOCKER_SOCKET" ] && [ -w "$DOCKER_SOCKET" ]; then
-        log_warn "Docker access: RAW socket, no allowlist proxy (container started with --user?)"
-        log_warn "Start without --user and use PUID/PGID so the proxy can run."
-        export DOCKER_HOST="unix://$DOCKER_SOCKET"
-    elif [ -S "$DOCKER_SOCKET" ]; then
-        log_error "Docker socket: NO ACCESS - container control will not work"
-    else
-        log_error "Docker socket not mounted - container control will not work"
-    fi
+    choose_docker_path
 
     # Final write test for config directory
     if ! is_writable "/app/config"; then
