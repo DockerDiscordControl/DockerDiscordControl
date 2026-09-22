@@ -1,6 +1,123 @@
-# DockerDiscordControl - Security Guide
+# DockerDiscordControl - Security Model
 
-## Recent Security Fixes
+This document says what DDC protects, against whom, and what it does not. It is
+written to be checked: every claim here has a test or a script behind it
+(named in brackets). Where something is not protected, it says so.
+
+## Three doors
+
+| Door | Who comes through it | What closes it |
+|---|---|---|
+| **A. The Docker API** | anything that can reach the Docker socket: DDC's own code, a dependency, an attacker with code execution in the container | the allowlist proxy - DDC's code reaches only the endpoints listed below |
+| **B. The web panel** | whoever has the panel password - reused, leaked or guessed | two-factor authentication, set up over HTTPS |
+| **C. The Discord bot** | whoever has the bot token, or can write in a control channel | the channel permission model: the bot starts, stops and restarts configured containers, nothing else |
+
+**2FA does not protect the Discord bot, and the proxy does not protect the web
+panel.** Each door has its own lock.
+
+## The boundary
+
+> A remote attacker holding the web panel password cannot widen DDC's Docker
+> permissions without the second factor, and DDC's code cannot reach anything
+> but the allowed Docker endpoints.
+
+Whoever has root on the host stands outside this boundary, deliberately: they
+can read and change every file DDC uses. The 2FA break-glass
+(`scripts/disable_2fa.py`) relies on exactly that.
+
+## Door A: the Docker allowlist proxy
+
+DDC runs in one container with two users. `ddcproxy` is the only user in the
+Docker socket's group and runs a small allowlist proxy
+(`services/docker_proxy/allowlist_proxy.py`, stdlib only). DDC itself runs as
+`ddc`, is not in the socket's group, and reaches Docker only through the proxy
+(`DOCKER_HOST=unix:///run/ddc-proxy/docker.sock`).
+
+The proxy passes these requests, matched on method and path with the query
+string stripped, and answers everything else with 403:
+
+```
+GET   /_ping                     (and HEAD)
+GET   /version                   docker-py negotiates the API version with it
+GET   /containers/json
+GET   /containers/{id}/json
+GET   /containers/{id}/logs
+GET   /containers/{id}/stats
+POST  /containers/{id}/start
+POST  /containers/{id}/stop
+POST  /containers/{id}/restart
+GET   /images/{name}/json        reserved, read-only (image-update notice)
+```
+
+`POST /containers/create`, `exec`, `kill`, `archive`, `/info`, `/events` and
+every image, volume or network change are unreachable by construction
+[tests/spec/test_the_docker_proxy_lets_through_only_what_ddc_needs.py]. Every
+Docker client DDC builds goes through one factory that follows `DOCKER_HOST`
+[tests/spec/test_every_docker_client_site_is_known.py].
+
+**What the allowed endpoints still expose.** The allowlist limits what can be
+*done*, not what can be *read*:
+
+- `GET /containers/{id}/json` returns the container's configuration,
+  including its **environment variables** - often passwords and tokens.
+- `GET /containers/{id}/logs` returns whatever the container logs, and
+  secrets in logs are common.
+
+Anyone who gets through door B or door C can read both for every configured
+container. The proxy does not change that.
+
+**What keeps DDC out of its own start.** The code under `/app`, the entrypoint
+and the proxy copy in `/opt/ddc-proxy` belong to root and are read-only for
+`ddc`; only `config/`, `logs/`, `cached_displays/` and `cached_animations/`
+belong to `ddc`. Otherwise code running as `ddc` could rewrite the entrypoint
+that root runs at the next start. `scripts/check_image_boundary.sh` attempts
+all of this as `ddc` in a running container and fails if any attempt succeeds.
+
+**Not a boundary: the read-only socket mount.** `:ro` on
+`/var/run/docker.sock` makes the socket file unmodifiable and does not restrict
+the API behind it at all - it is no protection and is not relied on.
+
+**Limits of the one-container design.** If the host's socket is world-writable
+(mode 666), or `PGID` equals the socket's group, `ddc` can open the socket
+directly and the proxy does not bind DDC. The entrypoint says so loudly at
+start. A container started with `--user` has no root phase, so no proxy runs;
+the entrypoint then warns that DDC uses the raw socket.
+
+## Door B: the web panel
+
+- **Password:** PBKDF2-SHA256 with 600,000 iterations. Login and setup attempts
+  are rate-limited per client address.
+- **Client address:** `X-Forwarded-For` / `-Proto` are believed only from the
+  proxies in `DDC_TRUSTED_PROXIES`; a direct client cannot pick its own
+  address to escape the rate limits
+  [tests/spec/test_a_forged_forwarded_header_is_not_believed.py].
+- **TLS (`DDC_TLS_MODE`):** `off` (default) is plain HTTP and the session
+  cookie is not `Secure`. `proxy` (recommended: TLS at your reverse proxy)
+  makes the cookie `Secure` and refuses plain requests that did not come
+  through a trusted proxy over HTTPS. `self-signed` has DDC serve HTTPS itself
+  with a certificate in `config/tls/`; compare the SHA-256 fingerprint in the
+  log once [tests/spec/test_tls_modes_are_what_they_say.py].
+- **Two-factor authentication:** offered and strongly recommended, never
+  forced; it can only be set up over HTTPS. With it on, the password alone does
+  not open the panel. Codes are TOTP (RFC 6238), each usable once, attempts
+  rate-limited; ten recovery codes are shown once and stored as hashes. The
+  state lives in `config/two_factor.json` (mode 0600), a file older DDC
+  versions never rewrite. Lost phone and codes: on the host, run
+  `docker exec -it -u ddc <container> python3 scripts/disable_2fa.py`.
+
+## Door C: the Discord bot
+
+Authorization is by Discord channel, by design: a control channel may control
+the containers configured for it, a status channel may only show them. The
+bot never changes proxy permissions. Treat write access to a control channel
+like the panel password.
+
+## Bot token
+
+The token can come from the `DISCORD_BOT_TOKEN` environment variable or the
+web panel; stored in the configuration it is encrypted.
+
+## History: fixes before v3.0
 
 ### 2025-11-18: Multiple CodeQL Security Alerts Resolved
 
@@ -243,152 +360,6 @@ return jsonify({'success': True, 'status': safe_status})
 This comprehensive approach satisfies CodeQL's taint tracking by breaking all possible data flow paths from potentially unsafe service responses.
 
 ---
-
-## Security Best Practices
-
-### Discord Bot Token Security
-
-The Discord bot token can be provided via environment variable for enhanced security.
-
-#### Environment Variable Method:
-```bash
-# Set in docker-compose.yml
-environment:
-  DISCORD_BOT_TOKEN: "your_token_here"
-```
-
-#### Configuration File Method:
-Alternatively, configure via Web UI at http://your-server:9374
-
-Security Benefits:
-- Token not stored in plaintext when using environment variables
-- Token not in version control
-- Environment-based configuration
-- Automatic fallback to Web UI configuration
-
-### Docker Socket Security
-
-**Important:** This application requires access to the Docker socket. Only deploy in trusted environments.
-
-#### Security Features:
-- Read-only Docker socket mounting (configured in docker-compose.yml)
-- Non-root user execution (uid 1000, gid 1000)
-- Resource limits (CPU, memory)
-- Alpine Linux base with minimal attack surface
-
-#### Deployment:
-```bash
-docker-compose up -d
-```
-
-#### Verification:
-```bash
-# Check container runs as non-root
-docker exec ddc id
-
-# Check resource limits
-docker stats ddc
-
-# Verify Docker socket permissions
-docker exec ddc ls -la /var/run/docker.sock
-```
-
-### Session Security
-
-#### Current Implementation:
-- Strong password hashing (PBKDF2-SHA256, 600,000 iterations)
-- Secure session cookies
-- Rate limiting on authentication
-
-#### Required Configuration:
-1. **Set strong Flask secret key** via environment variable:
-   ```bash
-   FLASK_SECRET_KEY="$(openssl rand -hex 32)"
-   ```
-
-2. **Set admin password:**
-   - **Recommended:** Set `DDC_ADMIN_PASSWORD` environment variable before first start
-   - **Alternative:** If not set, temporary password is `setup` - change immediately via Web UI
-
-3. **Enable HTTPS** in production environments (recommended)
-
-## Quick Security Setup
-
-### 1. Environment Variables:
-```bash
-# In docker-compose.yml or .env file
-FLASK_SECRET_KEY="your-64-character-random-secret-key"
-DISCORD_BOT_TOKEN="your-discord-token-here"
-DDC_ADMIN_PASSWORD="your-secure-admin-password"
-```
-
-### 2. Generate Secure Keys:
-```bash
-# Generate Flask secret key
-openssl rand -hex 32
-
-# Use this in your docker-compose.yml or .env file
-```
-
-### 3. First-Time Setup:
-1. Set `DDC_ADMIN_PASSWORD` in your docker-compose.yml or .env file
-2. Start container: `docker-compose up -d`
-3. Access Web UI: `http://your-server:9374`
-4. Login with: `admin` / your `DDC_ADMIN_PASSWORD`
-5. Configure Discord bot token
-6. Save configuration
-
-## Security Checklist
-
-### Completed Security Features:
-- [x] CodeQL security alerts resolved (XSS, Exception Exposure, URL Sanitization)
-- [x] Discord token via environment variable support
-- [x] Enhanced Docker socket security
-- [x] Non-root container execution
-- [x] Resource limits and restrictions
-- [x] Strong password hashing (PBKDF2-SHA256)
-- [x] Alpine Linux base (minimal vulnerabilities)
-- [x] Flask 3.1.1 and Werkzeug 3.1.3 (CVEs resolved)
-
-### Recommended Additional Steps:
-- [ ] Enable HTTPS with valid certificates
-- [ ] Implement comprehensive rate limiting
-- [ ] Add security headers (HSTS, CSP)
-- [ ] Regular dependency updates
-- [ ] Security monitoring and logging
-
-### Known Limitations:
-- Docker socket access provides significant container control
-- Default credentials available for initial setup (must be changed)
-- Some operations require elevated Docker permissions
-
-## Additional Security Measures
-
-### Network Security:
-```yaml
-# Recommended docker-compose.yml network configuration
-networks:
-  ddc_network:
-    driver: bridge
-```
-
-### Monitoring:
-```bash
-# Monitor container logs
-docker logs ddc
-
-# Check for security events
-docker logs ddc | grep -i "security\|error\|warning"
-```
-
-### Backup Security:
-```bash
-# Backup configuration securely
-tar czf config_backup.tar.gz config/
-
-# Store backups securely with restricted permissions
-chmod 600 config_backup.tar.gz
-```
 
 ## Security Incident Response
 
