@@ -40,10 +40,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BarsCompat:
     """Legacy compatibility object for bars data."""
+    # Optional: None means "not measured", never a stand-in number (review C24).
     Power_current: float = 0.0  # Support decimal power values (e.g. 0.99)
-    Power_max_for_level: int = 100
-    mech_progress_current: float = 0.0  # Changed to float for decimal values
-    mech_progress_max: float = 20.0  # Changed to float for decimal values
+    Power_max_for_level: Optional[int] = 100
+    mech_progress_current: Optional[float] = 0.0  # Changed to float for decimal values
+    mech_progress_max: Optional[float] = 20.0  # Changed to float for decimal values
 
 
 # ============================================================================ #
@@ -126,9 +127,10 @@ class MechDataResult:
     is_immortal: bool = False
 
     # Progression data
-    progress_current: int = 0
-    progress_max: int = 20
-    progress_percentage: float = 0.0
+    # Optional: None means "not measured" (review C24).
+    progress_current: Optional[int] = 0
+    progress_max: Optional[int] = 20
+    progress_percentage: Optional[float] = 0.0
 
     # Technical data
     evolution_mode: str = "dynamic"  # "dynamic" or "static"
@@ -160,9 +162,10 @@ class PowerDataResult:
     success: bool
     current_power: float = 0.0
     total_donated: float = 0.0
-    progress_current: int = 0
-    progress_max: int = 20
-    progress_percentage: float = 0.0
+    # Optional: None means "not measured" (review C24).
+    progress_current: Optional[int] = 0
+    progress_max: Optional[int] = 20
+    progress_percentage: Optional[float] = 0.0
     error: Optional[str] = None
 
 @dataclass(frozen=True)
@@ -248,7 +251,14 @@ class MechDataStore:
             MechDataResult with all mech data or error information
         """
         try:
-            cache_key = f"comprehensive_{request.include_decimals}_{request.language}"
+            # Every field of the request that changes the answer belongs in the
+            # key. include_projections and projection_hours used to be missing,
+            # so a plain get_level_info() (projections=None) answered the next
+            # get_projections() within the cache's ten seconds - which then
+            # reported "nothing to project" with success=True - and a 48-hour
+            # question answered a 1-hour one (review C11).
+            cache_key = (f"comprehensive_{request.include_decimals}_{request.language}"
+                         f"_{request.include_projections}_{request.projection_hours}")
 
             # Check cache first (unless force refresh)
             if not request.force_refresh:
@@ -269,7 +279,8 @@ class MechDataStore:
             evolution_data = self._calculate_evolution_data(core_data)
 
             # Step 3: Calculate speed information
-            speed_data = self._calculate_speed_data(core_data, request.language)
+            speed_data = self._calculate_speed_data(core_data, request.language,
+                                                    power_max=evolution_data.get('power_max'))
 
             # Step 4: Calculate decay information
             decay_data = self._calculate_decay_data(core_data)
@@ -570,7 +581,13 @@ class MechDataStore:
                 'next_level': next_level,
                 'next_level_name': next_level_name,
                 'next_threshold': prog_state.evo_max,  # Dynamic threshold from progress service
-                'amount_needed': max(0, prog_state.evo_max - prog_state.evo_current)
+                # The progress INTO this level, from the same source as the
+                # threshold and as amount_needed below. _calculate_progress_data
+                # used to derive the bar from the lifetime total instead - see
+                # the reason there (review C68).
+                'current_progress': prog_state.evo_current,
+                'amount_needed': max(0, prog_state.evo_max - prog_state.evo_current),
+                'power_max': getattr(prog_state, 'power_max', None)  # Power bar maximum (speed scale)
             }
 
         except (ImportError, AttributeError) as e:
@@ -580,8 +597,13 @@ class MechDataStore:
                 'level_name': f"Level {core_data['level']}",
                 'next_level': core_data['level'] + 1,
                 'next_level_name': 'Next Level',
-                'next_threshold': 0,
-                'amount_needed': 0
+                # None, not 0. Zero is a LEGITIMATE state here - "there is no
+                # next level" - and _calculate_progress_data reads it as exactly
+                # that, so a lookup that failed used to be displayed as a fully
+                # evolved mech at 100 % (review C24).
+                'next_threshold': None,
+                'current_progress': None,
+                'amount_needed': None
             }
         except (ValueError, TypeError, KeyError) as e:
             # Data access/calculation errors
@@ -590,22 +612,31 @@ class MechDataStore:
                 'level_name': f"Level {core_data['level']}",
                 'next_level': core_data['level'] + 1,
                 'next_level_name': 'Next Level',
-                'next_threshold': 0,
-                'amount_needed': 0
+                # None, not 0. Zero is a LEGITIMATE state here - "there is no
+                # next level" - and _calculate_progress_data reads it as exactly
+                # that, so a lookup that failed used to be displayed as a fully
+                # evolved mech at 100 % (review C24).
+                'next_threshold': None,
+                'current_progress': None,
+                'amount_needed': None
             }
 
-    def _calculate_speed_data(self, core_data: Dict[str, Any], language: str) -> Dict[str, Any]:
+    def _calculate_speed_data(self, core_data: Dict[str, Any], language: str,
+                              power_max: Optional[float] = None) -> Dict[str, Any]:
         """Calculate speed-related data using get_combined_mech_status (Single Point of Truth)."""
         try:
             from services.mech.speed_levels import get_combined_mech_status
 
             # Use get_combined_mech_status with proper parameters:
             # - Power_amount: current power (after decay)
-            # - total_donations_received: total donations (for correct evolution level)
+            # - evolution_level / power_max: the real level and its power bar maximum
+            #   (the level guessed from total donations is wrong with dynamic costs)
             combined_status = get_combined_mech_status(
                 Power_amount=core_data['power'],
                 total_donations_received=core_data.get('total_donated', core_data['power']),
-                language=language
+                language=language,
+                evolution_level=core_data.get('level'),
+                power_max=power_max
             )
 
             return {
@@ -671,13 +702,33 @@ class MechDataStore:
     def _calculate_progress_data(self, core_data: Dict[str, Any], evolution_data: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate progression-related data."""
         try:
-            current_threshold = 0
             next_threshold = evolution_data['next_threshold']
+            # How far into THIS level the mech is. The bar used to be computed
+            # from core_data['total_donated'] against this threshold, with a
+            # hard-coded floor of 0 - but total_donated is the lifetime figure
+            # (cumulative_donations_cents) while the threshold is the goal of
+            # the current level, and the accumulator behind it is reset to the
+            # excess at every level-up. For any mech past level 1 the lifetime
+            # total swamped the per-level goal, so the bar sat at 100 % while
+            # amount_needed and the 'bars' field of the same result - both read
+            # from evo_current/evo_max - showed the true, much smaller progress
+            # (review C68).
+            current_progress = evolution_data.get('current_progress')
+
+            if next_threshold is None:
+                # The evolution lookup failed. Not measured is None - the same
+                # answer the container stats give since review C1 - so nothing
+                # downstream can mistake it for a number (review C24).
+                return {
+                    'progress_current': None,
+                    'progress_max': None,
+                    'progress_percentage': None
+                }
 
             # Calculate how much progress towards next level
             if next_threshold > 0:
-                progress_max = int(next_threshold - current_threshold)
-                progress_current = min(int(core_data['total_donated'] - current_threshold), progress_max)
+                progress_max = int(next_threshold)
+                progress_current = min(int(current_progress or 0), progress_max)
                 progress_percentage = (progress_current / progress_max * 100.0) if progress_max > 0 else 0.0
             else:
                 # Max level reached
@@ -848,21 +899,29 @@ class MechDataStore:
             # Service dependency errors (progress service unavailable)
             self.logger.error(f"Service dependency error in _calculate_power_bars: {e}", exc_info=True)
             # Return safe fallback values
+            # Not "safe fallback" - invented. 50 and 0/100 are numbers nobody
+            # measured, and the 0/100 read as 0 % right next to a progress_
+            # percentage that claimed 100 % from the very same failure
+            # (review C24).
             return BarsCompat(
                 Power_current=core_data.get('power', 0.0),
-                Power_max_for_level=50,  # Safe fallback
-                mech_progress_current=0,
-                mech_progress_max=100
+                Power_max_for_level=None,
+                mech_progress_current=None,
+                mech_progress_max=None
             )
         except (ValueError, TypeError, KeyError) as e:
             # Data access errors
             self.logger.error(f"Data error in _calculate_power_bars: {e}", exc_info=True)
             # Return safe fallback values
+            # Not "safe fallback" - invented. 50 and 0/100 are numbers nobody
+            # measured, and the 0/100 read as 0 % right next to a progress_
+            # percentage that claimed 100 % from the very same failure
+            # (review C24).
             return BarsCompat(
                 Power_current=core_data.get('power', 0.0),
-                Power_max_for_level=50,  # Safe fallback
-                mech_progress_current=0,
-                mech_progress_max=100
+                Power_max_for_level=None,
+                mech_progress_current=None,
+                mech_progress_max=None
             )
 
 

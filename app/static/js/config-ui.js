@@ -628,20 +628,48 @@ function markConfigurationChanged() {
 let adminUsers = [];
 let adminNotes = {};
 let pendingAdminChanges = [];
+// Per-admin container assignment. A user id that is ABSENT means every
+// container - that is the default and it must stay one, so the UI never writes
+// an entry the operator did not make. An empty array means "none".
+let adminContainers = {};
+let availableContainers = [];
+// Whether the state above came from a SUCCESSFUL read. An empty admin list is
+// a legitimate thing to have; an empty admin list because the read failed is
+// not, and the two are indistinguishable once assigned (review E22). Only a
+// completed load sets this, and only this lets a save go out.
+let adminDataLoaded = false;
 
 function openAdminModal() {
     // Load admin users from server
     fetch('/api/admin-users')
-        .then(response => response.json())
+        .then(response => {
+            // fetch() rejects on a network failure and on nothing else - not on
+            // a 500, and not on a 200 carrying {"success": false}. Both used to
+            // fall through to the success path below, where an error body reads
+            // exactly like "there are no admins": the modal opened saying so,
+            // and the next Save wrote that empty list over the real one
+            // (review E22).
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data || data.success === false) {
+                throw new Error(data && data.error ? data.error : 'unreadable admin data');
+            }
             adminUsers = data.discord_admin_users || [];
             adminNotes = data.admin_notes || {};
+            adminContainers = data.admin_containers || {};
+            availableContainers = data.available_containers || [];
             pendingAdminChanges = [];
+            adminDataLoaded = true;
             renderAdminUsers();
             const modal = new bootstrap.Modal(document.getElementById('adminModal'));
             modal.show();
         })
         .catch(error => {
+            adminDataLoaded = false;
             console.error('Error loading admin users:', error);
             alert(t('admin.failed_load_users'));
         });
@@ -658,17 +686,82 @@ function renderAdminUsers() {
 
     adminUsers.forEach((userId, index) => {
         const note = adminNotes[userId] || '';
+        const assigned = adminContainers[userId];        // undefined = every container
         const item = document.createElement('div');
-        item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-dark text-white';
+        item.className = 'list-group-item bg-dark text-white';
         item.innerHTML = `
-            <div>
-                <strong>${escapeHtmlConfigUI(userId)}</strong>
-                ${note ? `<span class="text-muted ms-2">(${escapeHtmlConfigUI(note)})</span>` : ''}
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${escapeHtmlConfigUI(userId)}</strong>
+                    ${note ? `<span class="text-muted ms-2">(${escapeHtmlConfigUI(note)})</span>` : ''}
+                </div>
+                <button class="btn btn-sm btn-danger" onclick="removeAdminUser(${index})">${t('admin.remove_btn')}</button>
             </div>
-            <button class="btn btn-sm btn-danger" onclick="removeAdminUser(${index})">${t('admin.remove_btn')}</button>
+            <div class="mt-2 small">${renderAdminContainers(userId, assigned)}</div>
         `;
         listContainer.appendChild(item);
     });
+}
+
+// The container assignment of one admin. Three states, and they are NOT the
+// same thing: no entry at all (every container, the default), a list, and an
+// empty list (none). The UI has to be able to say all three, because the rule
+// distinguishes them - see SPEC.md B2.
+function renderAdminContainers(userId, assigned) {
+    if (!availableContainers.length) {
+        return `<span class="text-muted">${t('admin.no_containers_to_assign')}</span>`;
+    }
+    const scoped = Array.isArray(assigned);
+    const safeId = escapeHtmlConfigUI(userId);
+    const boxes = availableContainers.map(name => {
+        const checked = (!scoped || assigned.indexOf(name) !== -1) ? 'checked' : '';
+        const disabled = scoped ? '' : 'disabled';
+        return `<label class="me-3 text-nowrap">
+            <input type="checkbox" ${checked} ${disabled}
+                   onchange="toggleAdminContainer('${safeId}', '${escapeHtmlConfigUI(name)}', this.checked)">
+            ${escapeHtmlConfigUI(name)}
+        </label>`;
+    }).join('');
+    const summary = scoped
+        ? (assigned.length
+            ? `${assigned.length} ${t('admin.of')} ${availableContainers.length}`
+            : `<span class="text-warning">${t('admin.controls_nothing')}</span>`)
+        : `<span class="text-success">${t('admin.all_containers')}</span>`;
+    return `
+        <div class="d-flex align-items-center flex-wrap">
+            <label class="me-3 text-nowrap">
+                <input type="checkbox" ${scoped ? '' : 'checked'}
+                       onchange="setAdminUnscoped('${safeId}', this.checked)">
+                <strong>${t('admin.all_containers')}</strong>
+            </label>
+            <span class="text-muted me-3">${summary}</span>
+        </div>
+        <div class="mt-1">${boxes}</div>`;
+}
+
+// "Every container" is the ABSENCE of an entry, not a full list: a list would
+// freeze today's containers and silently exclude the next one somebody adds.
+function setAdminUnscoped(userId, unscoped) {
+    if (unscoped) {
+        delete adminContainers[userId];
+    } else {
+        adminContainers[userId] = availableContainers.slice();
+    }
+    renderAdminUsers();
+}
+
+function toggleAdminContainer(userId, name, checked) {
+    if (!Array.isArray(adminContainers[userId])) {
+        return;    // unscoped: the boxes are disabled, nothing to change
+    }
+    const current = adminContainers[userId];
+    const at = current.indexOf(name);
+    if (checked && at === -1) {
+        current.push(name);
+    } else if (!checked && at !== -1) {
+        current.splice(at, 1);
+    }
+    renderAdminUsers();
 }
 
 function addAdminUser() {
@@ -716,26 +809,65 @@ function removeAdminUser(index) {
 }
 
 function saveAdminUsers() {
+    // Never write a list that was never read (review E22). This POST replaces
+    // the whole document - admins, notes and the per-admin container
+    // assignment - so saving from state that a failed load left empty deletes
+    // all three. openAdminModal() is the only thing that sets this flag, and
+    // only on a payload it checked.
+    if (!adminDataLoaded) {
+        console.error('Refusing to save admin users: the list was never loaded');
+        alert(t('admin.failed_load_users'));
+        return;
+    }
+
+    // Assignments for people who are no longer admins would be refused by the
+    // route, and rightly - this mapping narrows a right and cannot be written
+    // for somebody who has none.
+    const containers = {};
+    Object.keys(adminContainers).forEach(userId => {
+        if (adminUsers.indexOf(userId) !== -1) {
+            containers[userId] = adminContainers[userId];
+        }
+    });
+
     const data = {
         discord_admin_users: adminUsers,
-        admin_notes: adminNotes
+        admin_notes: adminNotes,
+        admin_containers: containers
     };
+
+    // /api/admin-users is registered on the app itself, not on a blueprint, so it is not
+    // CSRF-exempt and needs the token from the meta tag in _base.html.
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
 
     fetch('/api/admin-users', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfMeta ? csrfMeta.content : ''
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        // Error pages (e.g. a rejected CSRF token) are HTML, not JSON - surface the status instead
+        // of failing in response.json() with a generic message.
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            return { success: false, error: `HTTP ${response.status} ${response.statusText}` };
+        }
+        return response.json();
+    })
     .then(result => {
         if (result.success) {
             const modal = bootstrap.Modal.getInstance(document.getElementById('adminModal'));
             modal.hide();
             alert(t('admin.saved_successfully'));
         } else {
-            alert(t('admin.failed_save') + ': ' + (result.error || t('common.unknown_error')));
+            // ddcServerErrorMessage (_base.html) translates a rejected CSRF check
+            const detail = (typeof window.ddcServerErrorMessage === 'function')
+                ? window.ddcServerErrorMessage(result, t('common.unknown_error'))
+                : (result.error || t('common.unknown_error'));
+            alert(t('admin.failed_save') + ': ' + detail);
         }
     })
     .catch(error => {

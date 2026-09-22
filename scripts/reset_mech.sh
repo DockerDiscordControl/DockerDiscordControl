@@ -19,7 +19,7 @@ exit 1
 echo "=================================================="
 
 # Execute reset inside Docker container
-docker exec dockerdiscordcontrol python3 -c "
+docker exec -u ddc dockerdiscordcontrol python3 -c "
 import json
 from datetime import datetime
 

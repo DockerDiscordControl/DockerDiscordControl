@@ -16,10 +16,13 @@ without having to manually edit JSON files.
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 from dataclasses import dataclass
+
+from utils.atomic_io import atomic_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -33,16 +36,31 @@ class ResetResult:
 class MechResetService:
     """Service for resetting Mech system for testing/development."""
 
-    def __init__(self, config_dir: str = "config"):
+    def __init__(self, config_dir: Optional[str] = None):
         """Initialize the Mech Reset Service.
 
         Args:
-            config_dir: Directory containing config files
+            config_dir: Directory containing config files. When omitted,
+                ``DDC_CONFIG_DIR`` wins, else ``<project>/config``.
         """
-        if not config_dir.startswith('/'):
-            # Relative path - make it absolute
-            base_dir = Path(__file__).parent.parent.parent
-            self.config_dir = base_dir / config_dir
+        # The default used to be the literal "config", always resolved against the
+        # project root, and DDC_CONFIG_DIR was never consulted. Every production
+        # caller constructs without an argument (get_mech_reset_service), so the
+        # service pointed at the real config/ even during a test run: a test calling
+        # quick_mech_reset() overwrote mech_state.json and deleted
+        # achieved_levels.json of the live installation. Only the empty mount over
+        # /app/config in scripts/ddc_test.sh prevented the damage - any other runner
+        # (run_tests_unraid.sh, run_tests.sh) had no such protection. This now
+        # follows the same rule as config_service.py:181 and progress_service.py:561,
+        # so the redirection in tests/conftest.py takes effect. See SPEC.md Z2.
+        if config_dir is None:
+            # The rule itself now lives in utils/config_paths.py.
+            from utils.config_paths import get_config_dir
+            self.config_dir = get_config_dir()
+        elif not config_dir.startswith('/'):
+            # An explicitly passed relative path keeps resolving against the project
+            # root - unchanged behaviour, pinned by test_mech_data_services.py:791.
+            self.config_dir = Path(__file__).parent.parent.parent / config_dir
         else:
             self.config_dir = Path(config_dir)
 
@@ -173,8 +191,13 @@ class MechResetService:
                 for channel_id in current_state["mech_expanded_states"]:
                     current_state["mech_expanded_states"][channel_id] = False
 
-            with open(self.mech_state_file, 'w', encoding='utf-8') as f:
-                json.dump(current_state, f, indent=2, ensure_ascii=False)
+            # Previously a plain open(..., 'w'), which truncates the file the moment
+            # it is opened: a crash before the write left it EMPTY. What is lost is
+            # not a counter but the mapping kept above (:181-192) -
+            # last_glvl_per_channel and mech_expanded_states, i.e. which Discord
+            # channel held which mech state. After such a crash nobody knows which
+            # channel belongs where. See SPEC.md Z7.
+            atomic_write_json(self.mech_state_file, current_state)
 
             logger.info("Reset Mech state to Level 1")
             return ResetResult(success=True, message="Mech state reset to Level 1")
@@ -202,6 +225,10 @@ class MechResetService:
             ResetResult with success status
         """
         try:
+            # Note: a missing file already means "dynamic, multiplier 1.0" to the reader, so
+            # there is nothing to reset. And with multiplier 1.0 the static branch computes the
+            # identical requirement (progress_service multiplies the same subtotal by 1.0), so
+            # the use_dynamic value written here has no effect on pricing.
             if not self.evolution_mode_file.exists():
                 return ResetResult(success=True, message="Evolution mode file not found (OK)")
 
@@ -211,8 +238,10 @@ class MechResetService:
                 "last_updated": datetime.now().isoformat()
             }
 
-            with open(self.evolution_mode_file, 'w', encoding='utf-8') as f:
-                json.dump(evolution_data, f, indent=2, ensure_ascii=False)
+            # A plain open(..., 'w') truncates the target the moment it opens;
+            # the sibling write in this same file already went through the
+            # atomic helper and this one did not (review C25).
+            atomic_write_json(self.evolution_mode_file, evolution_data)
 
             logger.info("Reset evolution mode to defaults")
             return ResetResult(success=True, message="Evolution mode reset to defaults")

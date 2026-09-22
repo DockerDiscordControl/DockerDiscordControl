@@ -24,11 +24,16 @@ class MechStoryService:
     """Service for managing mech evolution story content across multiple languages."""
 
     def __init__(self, story_dir: str = None):
+        # Only the default directory falls back to the shipped stories
+        # (services/mech/defaults/stories); an explicitly passed one is used as is.
+        self._fallback_to_shipped = not story_dir
         if story_dir:
             self.story_dir = Path(story_dir)
         else:
-            # Robust absolute path relative to project root
-            self.story_dir = Path(__file__).parents[2] / "config" / "mech" / "stories"
+            # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from
+            # __file__ before, blind to the variable.
+            from utils.config_paths import get_config_dir
+            self.story_dir = get_config_dir() / "mech" / "stories"
             
         self.language_files = {
             'en': 'en.txt',
@@ -50,10 +55,15 @@ class MechStoryService:
         Returns:
             Story text or None if not found
         """
+        # No guard between these two lines. There used to be one -
+        # "if not chapter_key: return None" - which could never run while the
+        # mapping fell back to the level-1 prologue. With the mapping answering
+        # None it can run, and it still changes nothing: the lookup below
+        # answers None for a key of None just the same. One rule instead of two
+        # that say the same thing - the mapping decides whether the level has a
+        # chapter, the content lookup whether that chapter has text
+        # (review C72).
         chapter_key = self._get_chapter_key_for_level(level)
-        if not chapter_key:
-            return None
-
         story_content = self._get_story_content(language)
         return story_content.get(chapter_key)
 
@@ -61,7 +71,7 @@ class MechStoryService:
         """Return all story chapters for the given language as a dict keyed by chapter key."""
         return self._get_story_content(language)
 
-    def get_chapter_key_for_level(self, level: int) -> str:
+    def get_chapter_key_for_level(self, level: int) -> Optional[str]:
         """Get the story chapter key for a specific mech level (alias)."""
         return self._get_chapter_key_for_level(level)
 
@@ -79,7 +89,14 @@ class MechStoryService:
         if language in self._story_cache:
             return self._story_cache[language]
 
-        story_file = self.story_dir / self.language_files.get(language, 'en.txt')
+        file_name = self.language_files.get(language, 'en.txt')
+        story_file = self.story_dir / file_name
+        if self._fallback_to_shipped and not story_file.exists():
+            # The stories used to exist only on the maintainer's server - a fresh
+            # installation had none. The shipped copy is the fallback; an
+            # operator's own file above still wins.
+            from services.mech.mech_defaults import DEFAULTS_DIR
+            story_file = DEFAULTS_DIR / "stories" / file_name
         content = {}
 
         try:
@@ -151,8 +168,8 @@ class MechStoryService:
 
         return chapters
 
-    def _get_chapter_key_for_level(self, level: int) -> str:
-        """Map mech level to story chapter key."""
+    def _get_chapter_key_for_level(self, level: int) -> Optional[str]:
+        """Map mech level to story chapter key, None for a level that has none."""
         level_mapping = {
             1: "prologue1",     # The Rustborn Husk
             2: "prologue2",     # The Battle-Scarred Survivor
@@ -167,7 +184,12 @@ class MechStoryService:
             11: "chapter9"      # OMEGA MECH (The Prayer)
         }
 
-        return level_mapping.get(level, "prologue1")
+        # None, not the level-1 prologue. The fallback made the guard in
+        # get_story_chapter ("if not chapter_key: return None") unreachable and
+        # handed a level outside 1-11 somebody else's chapter, which reads
+        # exactly like its own. Its docstring promised "None if not found"
+        # (review C72).
+        return level_mapping.get(level)
 
 
 # Singleton instance

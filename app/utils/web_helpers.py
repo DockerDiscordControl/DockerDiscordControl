@@ -9,9 +9,12 @@ import os
 import logging
 import time
 import docker
+from utils.container_image import image_name_of
 from threading import Thread
 import threading
 from werkzeug.security import check_password_hash, generate_password_hash
+
+from services.exceptions import ConfigServiceError
 
 # Threading abstraction. We previously preferred gevent greenlets here, but
 # gevent monkey-patching is now opt-in (see app/web/compat.py) — the
@@ -63,37 +66,24 @@ except Exception:
     _APP_DIR_HELPER = Path("app/utils")
     _PROJECT_ROOT_HELPER = Path(".")
 
-# Constants - keep paths in sync with utils/action_logger.py
+# Constants. ACTION_LOG_FILE comes from the action log service - "keep paths in
+# sync" by hand is how action_logger drifted to a file nothing writes (review A3).
 LOG_DIR = _PROJECT_ROOT_HELPER / 'logs'
-ACTION_LOG_FILE = LOG_DIR / 'user_actions.log'
+from services.infrastructure.action_log_service import DEFAULT_TEXT_LOG_FILE as ACTION_LOG_FILE  # noqa: E402
 DISCORD_LOG_FILE = LOG_DIR / 'discord.log'
 
 # Helper function to get advanced settings from config
 def _get_advanced_setting(key: str, default_value, value_type=int):
-    """Get advanced setting value with fallback to environment variable."""
-    try:
-        from services.config.config_service import get_config_service
-        config = get_config_service().get_config()
-        advanced_settings = config.get('advanced_settings', {})
-        value = advanced_settings.get(key, os.environ.get(key, default_value))
-        if value_type == bool:
-            # Special handling for boolean values
-            if isinstance(value, bool):
-                return value
-            return str(value).lower() in ('true', '1', 'yes', 'on')
-        return value_type(value)
-    except (ImportError, AttributeError, RuntimeError):
-        # Service dependency errors (config service unavailable)
-        fallback = os.environ.get(key, default_value)
-        if value_type == bool:
-            return str(fallback).lower() in ('true', '1', 'yes', 'on')
-        return value_type(fallback)
-    except (ValueError, TypeError, KeyError):
-        # Data errors (invalid config values, type conversion failures)
-        fallback = os.environ.get(key, default_value)
-        if value_type == bool:
-            return str(fallback).lower() in ('true', '1', 'yes', 'on')
-        return value_type(fallback)
+    """Get advanced setting value with fallback to environment variable.
+
+    A thin wrapper now: this used to be the only place that read Advanced
+    Settings the right way (config first, environment second), while nine other
+    places read the same keys straight from os.environ and therefore never saw
+    what the user had set in the panel. The shared implementation lives in
+    utils/settings.py so both sides read them the same way.
+    """
+    from utils.settings import get_setting
+    return get_setting(key, default_value, value_type)
 
 # Improved cache configuration
 # CRITICAL: Cache duration MUST be shorter than minimum update interval (1 minute)
@@ -186,6 +176,23 @@ def hash_container_data(container_data):
         # In case of errors, return a random hash, which leads to reevaluation
         return time.time()
 
+def _refresh_worker_is_running() -> bool:
+    """Whether the background refresh worker is actually alive.
+
+    The one place that answers this question - start_background_refresh() asked
+    it correctly and its caller did not, which is how a dead worker stayed dead
+    (review C41).
+    """
+    if docker_cache.get('bg_refresh_running'):
+        return True
+    thread = background_refresh_thread
+    if thread is None:
+        return False
+    if HAS_GEVENT:
+        return not getattr(thread, 'dead', True)
+    return bool(getattr(thread, 'is_alive', lambda: False)())
+
+
 def get_docker_containers_live(logger, force_refresh=False, container_name=None):
     """
     Enhanced function to retrieve Docker container information with advanced caching features.
@@ -198,8 +205,12 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
     Returns:
         Tuple (container_list, error_message)
     """
-    # Start background thread if not running and enabled
-    if ENABLE_BACKGROUND_REFRESH and not docker_cache['bg_refresh_running'] and not background_refresh_thread:
+    # Start background thread if not running and enabled.
+    # `not background_refresh_thread` was the old test, and a thread that has
+    # DIED is not None - it is simply finished. The restart therefore never
+    # happened, and the panel fell back to a blocking Docker query inside
+    # whichever request hit a stale cache (review C41).
+    if ENABLE_BACKGROUND_REFRESH and not _refresh_worker_is_running():
         start_background_refresh(logger)
 
     current_time = time.time()
@@ -289,9 +300,19 @@ def update_docker_cache(logger):
             if docker_cache['access_count'] % 50 == 0:
                 _cleanup_docker_cache(logger, time.time())
 
-            # Empty the list for a complete refresh
+            # Build the new list beside the old one and swap it in only once the
+            # loop has finished. Emptying it first meant that an exception in the
+            # middle - container.image.tags reads from the daemon and raises
+            # NotFound for an image removed under a running container, which
+            # Unraid does when it recreates one - left HALF a list behind, while
+            # global_timestamp (written after the loop) still named the last
+            # successful refresh. get_docker_containers_live then read a young
+            # cache age off that timestamp and served the truncated list as fresh
+            # for the rest of the cache duration (review C7).
             old_container_count = len(docker_cache['containers'])
-            docker_cache['containers'] = []
+            new_containers = []
+            new_timestamps = {}
+            new_hashes = {}
 
             # Apply both background refresh limit and max cache limit
             # Use the smaller of the two limits
@@ -307,7 +328,10 @@ def update_docker_cache(logger):
                     'id': container.id[:12],
                     'name': container.name,
                     'status': container.status,
-                    'image': container.image.tags[0] if container.image.tags else container.image.id[:12]
+                    # From attrs, not container.image: that is a second request,
+                    # and a 404 for ONE removed image used to fail the whole
+                    # refresh and empty the list (review E53).
+                    'image': image_name_of(container)
                 }
 
                 # Calculate a hash for change detection
@@ -316,13 +340,17 @@ def update_docker_cache(logger):
 
                 # Update timestamp and hash only if something has changed
                 if old_hash != container_hash:
-                    docker_cache['container_timestamps'][container.name] = current_time
-                    docker_cache['container_hashes'][container.name] = container_hash
+                    new_timestamps[container.name] = current_time
+                    new_hashes[container.name] = container_hash
 
-                docker_cache['containers'].append(container_data)
+                new_containers.append(container_data)
 
-            # Sort containers by name
-            docker_cache['containers'] = sorted(docker_cache['containers'], key=lambda x: x.get('name', '').lower())
+            # The swap: list, per-container bookkeeping and timestamp together.
+            # The hashes are the change detector for the NEXT refresh, so they
+            # must never describe data that was thrown away (review C7).
+            docker_cache['containers'] = sorted(new_containers, key=lambda x: x.get('name', '').lower())
+            docker_cache['container_timestamps'].update(new_timestamps)
+            docker_cache['container_hashes'].update(new_hashes)
 
             # Update global timestamp only for complete refresh
             docker_cache['global_timestamp'] = current_time
@@ -567,18 +595,56 @@ def start_background_refresh(logger):
 
     logger.info("Started background Docker cache refresh thread")
 
+# Call the named method (logger.warning(...)) rather than logger.log(level, ...): for a real
+# logger both are identical, but callers pass a Mock in tests and a Mock records the two as
+# different calls, so logger.log() would make a warning invisible to logger.warning assertions.
+_SHUTDOWN_LOG_METHODS = {
+    logging.DEBUG: "debug",
+    logging.INFO: "info",
+    logging.WARNING: "warning",
+    logging.ERROR: "error",
+    logging.CRITICAL: "critical",
+}
+
+
+def _log_at_shutdown(logger, message, level=logging.DEBUG):
+    """Log from the stop_* helpers, which also run from the atexit hook.
+
+    Two independent concerns, which is why the level is a parameter:
+      * Normal stops are routine, so they default to debug level.
+      * Whatever the level, once a handler's stream is already closed (interpreter or pytest
+        teardown) nothing is logged, instead of "Logging error ... I/O operation on closed
+        file" plus a traceback on stderr.
+
+    A thread that refuses to terminate is passed with logging.WARNING: it must stay visible
+    (V2 review), but it must not blow up when it happens during shutdown.
+    """
+    # Only walk real loggers: a mock logger (as used in tests) returns a new truthy
+    # object for every attribute, which would make this loop run forever.
+    current = logger
+    while isinstance(current, logging.Logger):
+        for handler in current.handlers:
+            stream = getattr(handler, 'stream', None)
+            if stream is not None and getattr(stream, 'closed', False) is True:
+                return
+        if not current.propagate:
+            break
+        current = current.parent  # root.parent is None -> ends
+    getattr(logger, _SHUTDOWN_LOG_METHODS.get(level, "debug"))(message)
+
+
 def stop_background_refresh(logger):
     """Stops the background thread for cache updates"""
     global background_refresh_thread
 
-    logger.info("Stopping background Docker cache refresh thread")
+    _log_at_shutdown(logger, "Stopping background Docker cache refresh thread")
 
     # Set signal to stop
     stop_background_thread.set()
 
     # If no thread is active, exit immediately
     if background_refresh_thread is None:
-        logger.debug("No background thread to stop")
+        _log_at_shutdown(logger, "No background thread to stop")
         return
 
     try:
@@ -608,7 +674,10 @@ def stop_background_refresh(logger):
 
                 # Warning if thread does not end
                 if thread_to_join.is_alive():
-                    logger.warning("Background thread did not terminate within timeout")
+                    # Stays a warning: a worker that refuses to stop is a real problem and must
+                    # not be hidden (V2 review) - but routed through the shutdown-safe helper,
+                    # because this also runs from atexit, where the log stream is already closed.
+                    _log_at_shutdown(logger, "Background thread did not terminate within timeout", logging.WARNING)
             except (RuntimeError, AttributeError) as e:
                 # Runtime errors (thread join failures, invalid thread state)
                 logger.error(f"Runtime error while joining background thread: {e}", exc_info=True)
@@ -628,6 +697,7 @@ def mech_decay_worker(logger):
     Both Discord Bot and Web UI can call get_state() - it's idempotent!
     """
     logger.info("Starting mech decay background worker")
+    died = False
 
     thread_name = threading.current_thread().name if hasattr(threading.current_thread(), 'name') else "Greenlet"
     logger.debug(f"Mech decay worker running in thread '{thread_name}'")
@@ -661,8 +731,11 @@ def mech_decay_worker(logger):
                         time.sleep(wait_time)
                     remaining_time -= wait_time
 
-            except (ImportError, AttributeError, RuntimeError) as e:
-                # Service dependency errors (mech service unavailable, tick_decay failures)
+            except Exception as e:  # noqa: BLE001
+                # Broad, like its twin above. The narrow clause let a KeyError
+                # from the progress state - or any DDC exception - fall through
+                # to the `finally`, which logs the same calm "stopped" line a
+                # deliberate shutdown produces (review C41).
                 logger.error(f"Service error in mech decay worker: {str(e)}", exc_info=True)
                 # In case of errors, wait briefly and try again
                 for _ in range(5):  # 5x1 second instead of once 5 seconds
@@ -672,11 +745,15 @@ def mech_decay_worker(logger):
                         gevent.sleep(1)
                     else:
                         time.sleep(1)
-    except (AttributeError, RuntimeError) as e:
-        # Runtime errors (thread/event errors, gevent issues)
+    except Exception as e:  # noqa: BLE001 - see the clause above
         logger.error(f"Runtime error in mech decay worker thread: {e}", exc_info=True)
+        died = True
     finally:
-        logger.info("Mech decay background worker stopped")
+        if died:
+            logger.error("Mech decay background worker DIED - power decay is no "
+                         "longer pre-computed until the process restarts")
+        else:
+            logger.info("Mech decay background worker stopped")
 
 
 def start_mech_decay_background(logger):
@@ -714,14 +791,14 @@ def stop_mech_decay_background(logger):
     """Stops the background thread for mech power decay calculation"""
     global mech_decay_thread
 
-    logger.info("Stopping mech decay background thread")
+    _log_at_shutdown(logger, "Stopping mech decay background thread")
 
     # Set signal to stop
     stop_mech_decay_thread.set()
 
     # If no thread is active, exit immediately
     if mech_decay_thread is None:
-        logger.debug("No mech decay thread to stop")
+        _log_at_shutdown(logger, "No mech decay thread to stop")
         return
 
     try:
@@ -746,7 +823,9 @@ def stop_mech_decay_background(logger):
 
                 # Warning if thread does not end
                 if thread_to_join.is_alive():
-                    logger.warning("Mech decay thread did not terminate within timeout")
+                    # Stays a warning (see stop_background_refresh): a hung worker must stay
+                    # visible, but must not raise on a closed stream during shutdown.
+                    _log_at_shutdown(logger, "Mech decay thread did not terminate within timeout", logging.WARNING)
             except (RuntimeError, AttributeError) as e:
                 # Runtime errors (thread join failures, invalid thread state)
                 logger.error(f"Runtime error while joining mech decay thread: {e}", exc_info=True)
@@ -773,9 +852,12 @@ def set_initial_password_from_env():
         return
     try:
         # Attempt to import config_loader dynamically, as it might also be refactored
-        from services.config.config_service import load_config, save_config
+        from services.config.config_service import (
+            load_config, change_web_ui_password, MIN_WEB_UI_PASSWORD_LENGTH,
+        )
 
-        config_path_check = _PROJECT_ROOT_HELPER / "config" / "config.json"
+        from utils.config_paths import get_config_dir
+        config_path_check = get_config_dir() / "config.json"
         init_pass_logger.info(f"Attempting to load config from: {config_path_check} for initial password set.")
 
         config = load_config() # Assumes load_config knows its path or is configured
@@ -798,8 +880,17 @@ def set_initial_password_from_env():
 
         if is_default_or_unset:
             init_pass_logger.info("Setting initial Web UI password from DDC_ADMIN_PASSWORD env var...")
-            config['web_ui_password_hash'] = generate_password_hash(env_password, method="pbkdf2:sha256:600000")
-            save_config(config) # Assumes save_config knows its path or is configured
+            # Hashes the password, re-encrypts an encrypted bot token with the new key and
+            # persists. A plain save_config(load_config()) would leave the token encrypted with
+            # the old key and write derived values (the decrypted token) back to config.json.
+            # A short env password is still accepted (as in earlier versions): rejecting it would
+            # leave no password hash, i.e. first-time setup mode where admin/setup opens every page.
+            if len(env_password) < MIN_WEB_UI_PASSWORD_LENGTH:
+                init_pass_logger.warning(
+                    f"DDC_ADMIN_PASSWORD is shorter than {MIN_WEB_UI_PASSWORD_LENGTH} characters. "
+                    f"It is used anyway, but please change it to a password of at least "
+                    f"{MIN_WEB_UI_PASSWORD_LENGTH} characters.")
+            change_web_ui_password(env_password, enforce_min_length=False)
             init_pass_logger.info("Web UI password hash has been updated from environment variable.")
         else:
             init_pass_logger.debug("Web UI password already set to a non-default value. Skipping update from env var.")
@@ -810,6 +901,9 @@ def set_initial_password_from_env():
     except FileNotFoundError as e_fnf:
         # File I/O errors (config file not found)
         init_pass_logger.error(f"Config file not found during initial password set: {e_fnf}", exc_info=True)
+    except ConfigServiceError as e_cfg:
+        # Persistence errors (config.json not writable, disk full)
+        init_pass_logger.error(f"Could not save initial password: {e_cfg}", exc_info=True)
     except (ValueError, TypeError, KeyError, AttributeError, RuntimeError) as e:
         # Data/service errors (invalid config data, hash generation failures, save failures)
         init_pass_logger.error(f"Error setting initial password: {e}", exc_info=True)

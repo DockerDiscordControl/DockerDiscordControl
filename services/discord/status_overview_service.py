@@ -57,7 +57,7 @@ class StatusOverviewService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self._config_cache = {}  # Channel ID -> UpdateConfig
-        self._cache_timestamp = 0
+        self._cache_timestamps = {}  # Channel ID -> time the entry was cached
         self._cache_ttl = 60  # Cache configs for 60 seconds
 
     def make_update_decision(self, channel_id: int, global_config: Dict[str, Any],
@@ -142,7 +142,14 @@ class StatusOverviewService:
                 next_check_time=self._calculate_next_check_time(datetime.now(timezone.utc), config)
             )
 
-        except (RuntimeError) as e:
+        except Exception as e:
+            # "Always ... on error" is the promise, so the clause says Exception.
+            # It used to name RuntimeError alone, while this method calls
+            # _get_channel_update_config (reads the channel configuration) and
+            # _should_recreate_message (reaches into the mech state): a KeyError,
+            # a TypeError or an unreadable file from either walked straight past
+            # it and out of the status loop (review D16). Same shape as reviews
+            # C45, C46, C47 and C55.
             self.logger.error(f"Error in make_update_decision: {e}", exc_info=True)
             # SAFE FALLBACK: Always allow updates on error to prevent stale data
             return UpdateDecision(
@@ -194,7 +201,7 @@ class StatusOverviewService:
 
             return False
 
-        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except Exception as e:      # the promise below is unconditional (review D16)
             self.logger.error(f"Error checking recreate requirements: {e}", exc_info=True)
             # Safe fallback: don't recreate on error
             return False
@@ -219,10 +226,10 @@ class StatusOverviewService:
         Uses caching to avoid repeated config parsing.
         """
         try:
-            # Check cache
+            # Check cache (each channel entry expires on its own)
             current_time = time.time()
             if (channel_id in self._config_cache and
-                current_time - self._cache_timestamp < self._cache_ttl):
+                current_time - self._cache_timestamps.get(channel_id, 0) < self._cache_ttl):
                 return self._config_cache[channel_id]
 
             # Parse channel permissions from config
@@ -245,7 +252,7 @@ class StatusOverviewService:
 
             # Update cache
             self._config_cache[channel_id] = config
-            self._cache_timestamp = current_time
+            self._cache_timestamps[channel_id] = current_time
 
             return config
 
@@ -315,7 +322,7 @@ def should_update_channel_overview(channel_id: int, global_config: Dict[str, Any
             force_recreate=False
         )
         return decision.should_update, decision.reason
-    except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+    except Exception as e:          # the promise below is unconditional (review D16)
         logger.error(f"Error in should_update_channel_overview: {e}", exc_info=True)
         # Safe fallback: allow updates
         return True, f"error_fallback_{e}"

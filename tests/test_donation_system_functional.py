@@ -50,7 +50,7 @@ def donation_env(tmp_path, monkeypatch):
     clear_progress_paths_cache()
 
     progress_service = importlib.reload(importlib.import_module("services.mech.progress_service"))
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
 
     runtime = progress_service.runtime
 
@@ -112,7 +112,7 @@ def donation_env(tmp_path, monkeypatch):
 
     donation_service_module._unified_donation_service = None
     mech_adapter_module._mech_service_adapter = None
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
     reset_progress_runtime()
     clear_progress_paths_cache()
     monkeypatch.delenv("DDC_PROGRESS_DATA_DIR", raising=False)
@@ -150,6 +150,7 @@ def test_power_decay_reduces_power_over_time(donation_env):
     assert initial.new_power == pytest.approx(0.5)
 
     snapshot = donation_env.progress_service.load_snapshot("main")
+    # Decay runs from goal_started_at (settled on every power change)
     snapshot.goal_started_at = (
         datetime.now(ZoneInfo("UTC")) - timedelta(days=2)
     ).isoformat()

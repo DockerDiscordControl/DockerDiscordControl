@@ -53,7 +53,7 @@ def progress_env(tmp_path, monkeypatch):
     progress_service = importlib.reload(
         importlib.import_module("services.mech.progress_service")
     )
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
 
     runtime = progress_service.runtime
     config = _make_config()
@@ -84,7 +84,7 @@ def progress_env(tmp_path, monkeypatch):
 
     yield progress_service
 
-    progress_service._progress_service = None
+    progress_service.reset_progress_services()
     reset_progress_runtime()
     clear_progress_paths_cache()
 
@@ -94,9 +94,13 @@ def progress_env(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_get_decay_config_data_returns_default_when_file_missing(progress_env, tmp_path):
-    """No decay.json under DDC_CONFIG_DIR -> returns {"default": 100}."""
+    """No decay.json under DDC_CONFIG_DIR -> the SHIPPED default
+    (services/mech/defaults/decay.json). This used to assert {"default": 100} -
+    the fallback under which every level decayed at 100 cents, the immortal
+    level 11 included."""
+    from services.mech.mech_defaults import DEFAULTS_DIR
     data = progress_env.get_decay_config_data()
-    assert data == {"default": 100}
+    assert data == json.loads((DEFAULTS_DIR / "decay.json").read_text(encoding="utf-8"))
 
 
 def test_get_decay_config_data_loads_from_ddc_config_dir(progress_env, monkeypatch, tmp_path):
@@ -165,8 +169,17 @@ def test_decay_per_day_uses_level_specific_value(progress_env, tmp_path):
     assert progress_env.decay_per_day(2) == 100
 
 
-def test_decay_per_day_returns_default_when_no_levels(progress_env):
-    """No level mapping -> default value used for any level."""
+def test_decay_per_day_returns_default_when_no_levels(progress_env, tmp_path):
+    """No level mapping -> default value used for any level.
+
+    With an explicit decay.json that has no "levels". This used to rely on the
+    file being ABSENT, which no longer means "no mapping": the shipped default has one.
+    """
+    mech_dir = tmp_path / "ddc_config" / "mech"
+    mech_dir.mkdir(parents=True, exist_ok=True)
+    (mech_dir / "decay.json").write_text(json.dumps({"default": 100}), encoding="utf-8")
+    progress_env._decay_config_cache["data"] = None
+    progress_env._decay_config_cache["last_load"] = 0
     for level in (1, 5, 11):
         assert progress_env.decay_per_day(level) == 100
 
@@ -341,9 +354,15 @@ def test_add_donation_triggers_level_up(progress_env):
 
 
 def test_add_donation_huge_amount_caps_at_level_11(progress_env):
-    """A massive donation cannot push level beyond 11."""
+    """The largest donation allowed cannot push level beyond 11.
+
+    This used to donate $100,000 in one go. Since review D2 a single donation
+    is capped at $10,000.00 (SPEC.md B14) and more is refused, so the amount
+    changed; the promise under test - level 11 is the ceiling, however much
+    arrives at once - did not.
+    """
     svc = progress_env.ProgressService("huge")
-    state = svc.add_donation(100000.0, donor="whale")
+    state = svc.add_donation(progress_env.MAX_DONATION / 100, donor="whale")
     assert state.level == 11
 
 
@@ -500,7 +519,7 @@ def test_rebuild_from_events_handles_member_count_event(progress_env):
 
 
 def test_rebuild_from_events_handles_initial_system_donation(progress_env):
-    """is_initial=True system donations are replayed (others ignored)."""
+    """All system donations are replayed like the live path (power + total, no evolution)."""
     svc = progress_env.ProgressService("sysreplay")
     # Manually craft an initial system donation event
     evt = progress_env.Event(
@@ -511,7 +530,7 @@ def test_rebuild_from_events_handles_initial_system_donation(progress_env):
         payload={"is_initial": True, "power_units": 300, "event_name": "init"},
     )
     progress_env.append_event(evt)
-    # And a non-initial one (should be ignored on replay)
+    # And a non-initial one (replayed as well: the live path applied it)
     evt2 = progress_env.Event(
         seq=progress_env.next_seq(),
         ts=progress_env.now_utc_iso(),
@@ -523,8 +542,9 @@ def test_rebuild_from_events_handles_initial_system_donation(progress_env):
 
     progress_env.snapshot_path("sysreplay").unlink(missing_ok=True)
     state = svc.rebuild_from_events()
-    # Only the initial $3 was applied to power
-    assert state.power_current == pytest.approx(3.0, abs=0.5)
+    assert state.power_current == pytest.approx(12.99, abs=0.011)
+    assert state.total_donated == pytest.approx(12.99)
+    assert state.evo_current == 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -553,6 +573,148 @@ def test_tick_decay_returns_state(progress_env):
     svc = progress_env.ProgressService("tick")
     state = svc.tick_decay()
     assert state.level == 1
+
+
+def test_get_state_does_not_rewrite_snapshot_on_read(progress_env):
+    """Reading must not write.
+
+    The 30 s decay worker in web_helpers and every web/Discord access go through
+    get_state(). Persisting there rewrote an unchanged file again and again - measured on
+    the live installation: 3 writes of the same 385 bytes within 70 seconds, each one a
+    temp file, fsync and rename on the array.
+    """
+    svc = progress_env.ProgressService("read-only")
+    svc.get_state()  # first call creates and initialises the snapshot file
+
+    writes = []
+    original = progress_env.persist_snapshot
+
+    def recording_persist(snap):
+        writes.append(snap.mech_id)
+        original(snap)
+
+    progress_env.persist_snapshot = recording_persist
+    try:
+        svc.get_state()
+        svc.get_state()
+    finally:
+        progress_env.persist_snapshot = original
+
+    assert writes == []
+
+
+def test_get_state_backfills_missing_decay_day_exactly_once(progress_env):
+    """The one case where a read still has to write: last_decay_day was never set."""
+    svc = progress_env.ProgressService("backfill")
+    svc.get_state()
+    snap = progress_env.load_snapshot("backfill")
+    snap.last_decay_day = ""
+    progress_env.persist_snapshot(snap)
+
+    original = progress_env.persist_snapshot
+    first_writes = []
+
+    def recording_persist(s):
+        first_writes.append(s.last_decay_day)
+        original(s)
+
+    progress_env.persist_snapshot = recording_persist
+    try:
+        svc.get_state()
+    finally:
+        progress_env.persist_snapshot = original
+
+    assert first_writes == [progress_env.today_local_str()]
+
+    # Now that the field is filled, further reads must stay silent again.
+    second_writes = []
+
+    def recording_persist_again(s):
+        second_writes.append(s.mech_id)
+        original(s)
+
+    progress_env.persist_snapshot = recording_persist_again
+    try:
+        svc.get_state()
+    finally:
+        progress_env.persist_snapshot = original
+
+    assert second_writes == []
+
+
+def test_add_donation_still_persists_after_read_optimisation(progress_env):
+    """Guard for the test above: skipping writes on READ must not stop real changes
+    from being saved."""
+    svc = progress_env.ProgressService("donate-writes")
+    svc.get_state()
+
+    writes = []
+    original = progress_env.persist_snapshot
+
+    def recording_persist(snap):
+        writes.append(snap.mech_id)
+        original(snap)
+
+    progress_env.persist_snapshot = recording_persist
+    try:
+        svc.add_donation(1.0, idempotency_key="write-check")
+    finally:
+        progress_env.persist_snapshot = original
+
+    assert writes, "add_donation must still write the snapshot"
+    reloaded = progress_env.load_snapshot("donate-writes")
+    assert reloaded.power_acc > 0
+
+
+def test_naive_decay_anchor_is_repaired_on_disk(progress_env):
+    """A naive anchor must be migrated permanently, not just in memory.
+
+    The v2.3.1 admin reset wrote timestamps without a timezone. _ensure_decay_anchor() repairs
+    them, but only in the loaded object - the repair reached disk because get_state() persisted
+    after every read. When that write became conditional (see the test above), the repair stopped
+    being permanent and the old timestamp stayed in the file forever. This is pinned HERE, in the
+    group that gets run for progress changes; tests/unit/audit_2026_09 pins it as well, and that
+    is where the regression was eventually caught - too late.
+    """
+    from datetime import datetime
+
+    svc = progress_env.ProgressService("naive-anchor")
+    svc.get_state()  # create the snapshot
+
+    snap = progress_env.load_snapshot("naive-anchor")
+    snap.goal_started_at = "2026-09-01T12:00:00.123456"  # no timezone
+    progress_env.persist_snapshot(snap)
+
+    svc.get_state()
+
+    on_disk = json.loads(progress_env.snapshot_path("naive-anchor").read_text(encoding="utf-8"))
+    assert datetime.fromisoformat(on_disk["goal_started_at"]).tzinfo is not None
+
+
+def test_valid_decay_anchor_is_left_alone(progress_env):
+    """The counterpart: a repair must not turn into a write on every read again."""
+    svc = progress_env.ProgressService("aware-anchor")
+    svc.get_state()
+
+    before = json.loads(progress_env.snapshot_path("aware-anchor").read_text(encoding="utf-8"))
+
+    writes = []
+    original = progress_env.persist_snapshot
+
+    def recording_persist(snap):
+        writes.append(snap.mech_id)
+        original(snap)
+
+    progress_env.persist_snapshot = recording_persist
+    try:
+        svc.get_state()
+        svc.get_state()
+    finally:
+        progress_env.persist_snapshot = original
+
+    after = json.loads(progress_env.snapshot_path("aware-anchor").read_text(encoding="utf-8"))
+    assert writes == []
+    assert after["goal_started_at"] == before["goal_started_at"]
 
 
 def test_power_gift_skipped_when_power_already_positive(progress_env):
@@ -590,10 +752,15 @@ def test_deterministic_gift_1_3_in_range(progress_env):
 # ---------------------------------------------------------------------------
 
 def test_get_progress_service_singleton(progress_env):
+    # This used to assert `a is b` with the comment "Singleton: second call
+    # returns the FIRST instance, ignoring new mech_id" - the defect of review
+    # D12 written down as the contract. One instance PER MECH: the same id
+    # gives the same service, a different id gives its own.
     a = progress_env.get_progress_service("foo")
     b = progress_env.get_progress_service("bar")
-    # Singleton: second call returns the FIRST instance, ignoring new mech_id
-    assert a is b
+    assert a is not b
+    assert a.mech_id == "foo" and b.mech_id == "bar"
+    assert progress_env.get_progress_service("foo") is a
 
 
 # ---------------------------------------------------------------------------

@@ -541,11 +541,37 @@ class TestMechWebServiceDifficulty:
         assert result.status_code == 400
         assert "between 0.5 and 2.4" in result.error
 
+    @staticmethod
+    def _recording_config_service(success=True, error=None):
+        """A config service double that records the SetEvolutionModeRequest it receives.
+
+        The previous version of these tests asserted
+        ``mech_service.set_evolution_mode.assert_called_once_with(...)`` against a MagicMock.
+        A MagicMock accepts *any* attribute, so the assertion passed happily while the real
+        adapter had no such method at all and production raised AttributeError on every save
+        (finding M2). Asserting on the request that actually reaches the persistence layer
+        catches that class of mistake, because the name has to exist for real.
+        """
+        recorded = []
+
+        def _set(request):
+            recorded.append(request)
+            return SimpleNamespace(
+                success=success,
+                use_dynamic=request.use_dynamic,
+                difficulty_multiplier=request.difficulty_multiplier,
+                error=error,
+            )
+
+        stub = MagicMock()
+        stub.set_evolution_mode_service.side_effect = _set
+        return stub, recorded
+
     def test_set_difficulty_happy_path(self):
-        mech_service = MagicMock()
+        config_service, recorded = self._recording_config_service()
         with patch(
-            "services.mech.mech_service.get_mech_service",
-            return_value=mech_service,
+            "services.config.config_service.get_config_service",
+            return_value=config_service,
         ), patch(
             "services.mech.mech_evolutions.get_evolution_level",
             return_value=3,
@@ -565,15 +591,16 @@ class TestMechWebServiceDifficulty:
         assert result.data["simple_evolution"]["current_level"] == 3
         # base_cost (20) * multiplier (1.5) -> 30
         assert result.data["simple_evolution"]["next_level_cost"] == 30
-        mech_service.set_evolution_mode.assert_called_once_with(
-            use_dynamic=False, difficulty_multiplier=1.5
-        )
+        # The mode really was handed to the persistence layer, as static with that multiplier.
+        assert len(recorded) == 1
+        assert recorded[0].use_dynamic is False
+        assert recorded[0].difficulty_multiplier == 1.5
 
     def test_reset_difficulty_happy_path(self):
-        mech_service = MagicMock()
+        config_service, recorded = self._recording_config_service()
         with patch(
-            "services.mech.mech_service.get_mech_service",
-            return_value=mech_service,
+            "services.config.config_service.get_config_service",
+            return_value=config_service,
         ), patch.object(self.svc, "_log_user_action"):
             result = self.svc.manage_difficulty(MechDifficultyRequest(operation="reset"))
 
@@ -581,16 +608,42 @@ class TestMechWebServiceDifficulty:
         assert result.data["multiplier"] == 1.0
         assert result.data["is_auto"] is True
         assert result.data["status"] == "auto"
-        mech_service.set_evolution_mode.assert_called_once_with(
-            use_dynamic=True, difficulty_multiplier=1.0
-        )
+        assert len(recorded) == 1
+        assert recorded[0].use_dynamic is True
+        assert recorded[0].difficulty_multiplier == 1.0
 
-    def test_reset_difficulty_handles_service_error(self):
+    def test_reset_difficulty_reports_a_failed_save(self):
+        """A rejected or unwritable save must surface as an error, not a silent success."""
+        config_service, _ = self._recording_config_service(
+            success=False, error="Could not write evolution_mode.json: permission denied")
         with patch(
-            "services.mech.mech_service.get_mech_service",
-            side_effect=ImportError("nope"),
-        ):
+            "services.config.config_service.get_config_service",
+            return_value=config_service,
+        ), patch.object(self.svc, "_log_user_action"):
             result = self.svc.manage_difficulty(MechDifficultyRequest(operation="reset"))
+
+        assert result.success is False
+        assert result.status_code == 500
+        assert "permission denied" in result.error
+
+    def test_set_difficulty_reports_a_failed_save(self):
+        config_service, _ = self._recording_config_service(
+            success=False, error="Difficulty multiplier must be between 0.1 and 10.0, got 99.0")
+        with patch(
+            "services.config.config_service.get_config_service",
+            return_value=config_service,
+        ), patch(
+            "services.mech.mech_evolutions.get_evolution_level",
+            return_value=3,
+        ), patch(
+            "services.mech.mech_evolutions.get_evolution_level_info",
+            return_value=_evolution_info_stub(level=4, base_cost=20),
+        ), patch.object(self.svc, "_get_total_donations", return_value=15.0), \
+             patch.object(self.svc, "_log_user_action"):
+            result = self.svc.manage_difficulty(
+                MechDifficultyRequest(operation="set", multiplier=1.5)
+            )
+
         assert result.success is False
         assert result.status_code == 500
 

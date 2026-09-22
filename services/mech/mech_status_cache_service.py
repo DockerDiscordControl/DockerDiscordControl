@@ -196,10 +196,14 @@ class MechStatusCacheService:
             # Get speed status info using get_combined_mech_status (Single Point of Truth)
             from services.mech.speed_levels import get_combined_mech_status
 
+            # Speed from the real level and power bar (not a level guessed from totals)
             combined_status = get_combined_mech_status(
                 Power_amount=data_result.current_power,
-                total_donations_received=data_result.total_donated
+                total_donations_received=data_result.total_donated,
+                evolution_level=data_result.current_level,
+                power_max=getattr(getattr(data_result, 'bars', None), 'Power_max_for_level', None)
             )
+            speed_level = combined_status['speed']['level']
             speed_description = combined_status['speed']['description']
             speed_color = combined_status['speed']['color']
 
@@ -211,7 +215,12 @@ class MechStatusCacheService:
                 total_donated=data_result.total_donated,
                 name=data_result.level_name,
                 threshold=data_result.next_level_threshold or 0,
-                speed=50.0,  # Default speed
+                # The number now comes from the same answer as the words beside
+                # it. It used to be the constant 50.0 while speed_description and
+                # speed_color were derived from combined_status - so a mech at
+                # zero power and one at full both reported 50, next to the
+                # correct text and colour (review C19).
+                speed=speed_level,
                 glvl=data_result.current_level,
                 glvl_max=100,
                 bars=getattr(data_result, 'bars', None),
@@ -242,11 +251,25 @@ class MechStatusCacheService:
             return
 
         self._loop_running = True
+        # The loop body runs inside whatever task the caller created for it, and
+        # this is the only place that knows which one that is. The field used to
+        # be initialised to None and never written, so the cancel in
+        # stop_background_loop() never ran: stopping meant flipping a flag the
+        # loop reads only after its sleep returns - up to a full refresh
+        # interval, 30 s by default (review C70).
+        self._loop_task = asyncio.current_task()
         self.logger.info(f"Starting mech status cache loop (interval: {self._refresh_interval}s, TTL: {self._cache_ttl}s)")
 
         try:
             while self._loop_running:
-                await self._background_refresh()
+                try:
+                    await self._background_refresh()
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:
+                    # Never let one failed refresh (e.g. PermissionError while persisting
+                    # the snapshot) end the loop - retry on the next interval
+                    self.logger.error(f"Background refresh iteration failed: {e}", exc_info=True)
                 await asyncio.sleep(self._refresh_interval)
 
         except asyncio.CancelledError:
@@ -256,6 +279,7 @@ class MechStatusCacheService:
             self.logger.error(f"Background loop error: {e}", exc_info=True)
         finally:
             self._loop_running = False
+            self._loop_task = None
             self.logger.info("Background loop stopped")
 
     async def _background_refresh(self):
@@ -284,9 +308,10 @@ class MechStatusCacheService:
                     self.logger.info(f"[CACHE_REFRESH] Mech is OFFLINE (Power: $0.00) - offline animation active")
                 else:
                     self.logger.debug(f"[CACHE_REFRESH] Power decay calculated: ${mech_state.power_current:.2f}")
-            except (ImportError, AttributeError, RuntimeError) as decay_error:
-                # Service errors (progress service unavailable, asyncio errors)
-                self.logger.warning(f"[CACHE_REFRESH] Failed to calculate mech decay: {decay_error}")
+            except Exception as decay_error:
+                # Any failure here (service unavailable, PermissionError persisting the
+                # snapshot, ...) must not skip the cache refresh below
+                self.logger.warning(f"[CACHE_REFRESH] Failed to calculate mech decay: {decay_error}", exc_info=True)
 
             # Refresh both decimal variants of cache
             for include_decimals in [False, True]:
@@ -301,8 +326,10 @@ class MechStatusCacheService:
 
             self.logger.debug("Background cache refresh completed")
 
-        except (ImportError, AttributeError, RuntimeError, asyncio.CancelledError) as e:
-            # Service errors, asyncio errors
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            # Any other refresh failure: log it, the loop retries on the next interval
             self.logger.error(f"Background refresh error: {e}", exc_info=True)
 
     def stop_background_loop(self):
@@ -321,6 +348,10 @@ class MechStatusCacheService:
 
             # Register listener for donation completion events
             event_manager.register_listener('donation_completed', self._handle_donation_event)
+            # A reset moves power and level too, so this cache has to go for it
+            # as well - it just is not a donation, and does not travel as one
+            # any more (review D35).
+            event_manager.register_listener('donation_reset', self._handle_donation_event)
 
             # Register listener for mech state changes
             event_manager.register_listener('mech_state_changed', self._handle_state_change_event)
@@ -336,7 +367,14 @@ class MechStatusCacheService:
         try:
             # Extract relevant data from event
             event_info = event_data.data
-            reason = f"Donation completed: ${event_info.get('amount', 'unknown')}"
+            # A reset arrives here too (it invalidates the same caches), and
+            # this line used to call it "Donation completed: $unknown" - in the
+            # log of a product whose whole subject is money, about an admin
+            # wiping the ledger (review D35).
+            if event_info.get('action') == 'reset':
+                reason = f"Donation ledger reset by {event_info.get('source', 'unknown')}"
+            else:
+                reason = f"Donation completed: ${event_info.get('amount', 'unknown')}"
 
             # CRITICAL: Clear cache immediately for donation events
             self.clear_cache()

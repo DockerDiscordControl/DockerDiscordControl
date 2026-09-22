@@ -623,72 +623,6 @@ class TestSubmitDonation:
         assert body["donation_info"]["amount"] == 5
 
 
-# ---- /api/donation/reset-power + add-power + consume-power ------------------
-
-
-class TestPowerEndpoints:
-    def test_reset_power_unauthenticated(self, main_app):
-        resp = main_app.test_client().post("/api/donation/reset-power")
-        assert resp.status_code == 401
-
-    def test_reset_power_success(self, main_app, monkeypatch):
-        # Patch unified service used inside route.
-        monkeypatch.setattr(
-            "services.donation.unified_donation_service.reset_all_donations",
-            lambda source: SimpleNamespace(success=True, error_message=None),
-        )
-        # Patch _get_cached_mech_state helper to return a synthetic state.
-        state = SimpleNamespace(
-            level=1, level_name="Mech-1", Power=0, total_donated=0
-        )
-        monkeypatch.setattr(
-            "app.blueprints.main_routes._get_cached_mech_state",
-            lambda include_decimals=False: state,
-        )
-        resp = main_app.test_client().post(
-            "/api/donation/reset-power", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        assert body["level"] == 1
-
-    def test_consume_power_returns_current_state(self, main_app, monkeypatch):
-        state = SimpleNamespace(
-            level=2, level_name="Mech-2", Power=42, total_donated=100
-        )
-        monkeypatch.setattr(
-            "app.blueprints.main_routes._get_cached_mech_state",
-            lambda include_decimals=False: state,
-        )
-        resp = main_app.test_client().post(
-            "/api/donation/consume-power", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        assert body["new_Power"] == 42
-        assert body["level"] == 2
-
-    def test_add_test_power_zero_amount_returns_400(self, main_app):
-        resp = main_app.test_client().post(
-            "/api/donation/add-power",
-            json={"amount": 0, "type": "test", "user": "x"},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 400
-        body = resp.get_json()
-        assert body["success"] is False
-
-    def test_add_test_power_invalid_amount_returns_400(self, main_app):
-        resp = main_app.test_client().post(
-            "/api/donation/add-power",
-            json={"amount": "not-a-number"},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 400
-
-
 # ---- /api/mech/difficulty ----------------------------------------------------
 
 
@@ -892,64 +826,6 @@ class TestDeleteDonation:
         assert resp.status_code == 400
 
 
-# ---- /api/donation/add-power success path -----------------------------------
-
-
-class TestAddTestPowerSuccess:
-    def test_positive_amount_uses_unified_service(self, main_app, monkeypatch):
-        new_state = SimpleNamespace(
-            level=2, level_name="Mech-2", Power=10, total_donated=10
-        )
-        monkeypatch.setattr(
-            "services.donation.unified_donation_service.process_test_donation",
-            lambda user, amount: SimpleNamespace(
-                success=True, new_state=new_state, error_message=None
-            ),
-        )
-        resp = main_app.test_client().post(
-            "/api/donation/add-power",
-            json={"amount": 10, "user": "Tester", "type": "test"},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        assert body["Power"] == 10
-        assert body["level"] == 2
-
-    def test_negative_amount_workaround_returns_current_state(
-        self, main_app, monkeypatch
-    ):
-        state = SimpleNamespace(
-            level=3, level_name="Mech-3", Power=15, total_donated=50
-        )
-        monkeypatch.setattr(
-            "app.blueprints.main_routes._get_cached_mech_state",
-            lambda include_decimals=False: state,
-        )
-        resp = main_app.test_client().post(
-            "/api/donation/add-power",
-            json={"amount": -5},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        assert body["Power"] == 15  # unchanged - reduction not supported
-
-    def test_negative_amount_no_state_returns_500(self, main_app, monkeypatch):
-        monkeypatch.setattr(
-            "app.blueprints.main_routes._get_cached_mech_state",
-            lambda include_decimals=False: None,
-        )
-        resp = main_app.test_client().post(
-            "/api/donation/add-power",
-            json={"amount": -10},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 500
-
-
 # ---- /api/mech/speed-config + test-mech-animation + mech_animation ---------
 
 
@@ -1022,61 +898,10 @@ class TestMechSpeedAndAnimation:
         assert resp.data == b"FAKE"
 
 
-# ---- /api/mech/reset + /api/mech/status -------------------------------------
+# ---- /api/mech/status ---------------------------------------------------
 
 
-class TestMechResetAndStatus:
-    def test_reset_unauthenticated(self, main_app):
-        resp = main_app.test_client().post("/api/mech/reset")
-        assert resp.status_code == 401
-
-    def test_reset_success(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.get_current_status.return_value = {
-            "current_level": 5,
-            "donations_count": 10,
-            "total_donated": 100,
-        }
-        svc.full_reset.return_value = SimpleNamespace(
-            success=True,
-            message="ok",
-            details={"timestamp": "2025-01-01", "operations": []},
-        )
-        monkeypatch.setattr(
-            "services.mech.mech_reset_service.get_mech_reset_service", lambda: svc
-        )
-        # Action logger may be called inside route
-        monkeypatch.setattr(
-            "services.infrastructure.action_logger.log_user_action",
-            lambda **kw: None,
-        )
-        resp = main_app.test_client().post(
-            "/api/mech/reset", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        assert body["previous_status"]["current_level"] == 5
-
-    def test_reset_failure_returns_500(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.get_current_status.return_value = {"current_level": 1}
-        svc.full_reset.return_value = SimpleNamespace(
-            success=False, message="fail", details={}
-        )
-        monkeypatch.setattr(
-            "services.mech.mech_reset_service.get_mech_reset_service", lambda: svc
-        )
-        monkeypatch.setattr(
-            "services.infrastructure.action_logger.log_user_action",
-            lambda **kw: None,
-        )
-        resp = main_app.test_client().post(
-            "/api/mech/reset", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 500
-        assert resp.get_json()["success"] is False
-
+class TestMechStatus:
     def test_status_unauthenticated(self, main_app):
         resp = main_app.test_client().get("/api/mech/status")
         assert resp.status_code == 401
@@ -1156,20 +981,6 @@ class TestPortDiagnostics:
             "/port_diagnostics", headers=_AUTH_HEADER
         )
         assert resp.status_code == 503
-
-
-# ---- /api/simulate-donation-broadcast ---------------------------------------
-
-
-class TestSimulateBroadcast:
-    def test_simulate_returns_stub_message(self, main_app):
-        resp = main_app.test_client().post(
-            "/api/simulate-donation-broadcast", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        assert "not yet implemented" in body["message"].lower()
 
 
 # ===========================================================================

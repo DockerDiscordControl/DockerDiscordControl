@@ -39,22 +39,23 @@ class ServerConfigService:
         containers = []
 
         try:
-            # Get base directory
-            config = load_config()
-            if not config:
-                logger.warning("Config unavailable, cannot load container configs")
-                return []
-
-            # Use robust absolute path relative to project root
-            base_dir = Path(__file__).parents[2]
-            containers_dir = base_dir / 'config' / 'containers'
+            # No load_config() here on purpose: the container configs live in their own JSON
+            # files and the directory is derived from this file's location, so the main config
+            # was never actually used - it only cost a full config load on every single call
+            # (and this runs dozens of times per status render).
+            # DDC_CONFIG_DIR via utils/config_paths.py - see there (split config, SPEC.md Z2).
+            from utils.config_paths import get_config_dir
+            containers_dir = get_config_dir() / 'containers'
 
             if not containers_dir.exists():
                 logger.warning(f"Containers directory not found: {containers_dir}")
                 return []
 
             # Read each JSON file in containers directory
+            total_containers = 0
+            unreadable = []
             for json_file in containers_dir.glob('*.json'):
+                total_containers += 1
                 try:
                     with open(json_file, 'r') as f:
                         container_data = json.load(f)
@@ -96,16 +97,32 @@ class ServerConfigService:
                             logger.debug(f"Skipped INACTIVE container config: {json_file.name}")
 
                 except json.JSONDecodeError as e:
+                    unreadable.append(json_file.name)
                     logger.error(f"Invalid JSON in {json_file}: {e}")
-                except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
+                except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+                    unreadable.append(json_file.name)
                     logger.error(f"Error reading {json_file}: {e}", exc_info=True)
 
-            # Count total containers including inactive
-            total_containers = 0
-            for json_file in containers_dir.glob('*.json'):
-                total_containers += 1
+            if unreadable:
+                # Said once, with what it MEANS (review E33 - the same sentence
+                # as E28, one directory across). The per-file errors above name
+                # the cause; this names the effect. A container whose file could
+                # not be read is simply absent from this list, and this list is
+                # what the whole status display is drawn from - so the container
+                # does not appear as offline or as "not found", it is GONE. That
+                # is indistinguishable from one the operator switched off, which
+                # is the only reason a container is normally missing.
+                logger.error(
+                    "%d of %d container configuration files could not be read (%s). "
+                    "Those containers are MISSING from the status display, the "
+                    "overview and the control panel entirely - not shown as "
+                    "offline, not shown at all. Fix the files and restart - "
+                    "nothing was deleted.",
+                    len(unreadable), total_containers, ", ".join(sorted(unreadable)))
 
-            logger.info(f"Loaded {len(containers)} ACTIVE container configurations from {total_containers} total JSON files")
+            # The total is counted in the loop above; scanning the directory a second time just
+            # to fill this log line doubled the I/O of an already hot function.
+            logger.debug(f"Loaded {len(containers)} ACTIVE container configurations from {total_containers} total JSON files")
 
         except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
             logger.error(f"Error loading container configs: {e}", exc_info=True)

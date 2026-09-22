@@ -205,10 +205,16 @@ class TestMechDataStoreCalculations:
     """Internal _calculate_* helpers (no full pipeline)."""
 
     def test_calculate_progress_data_uses_evolution_threshold(self):
+        # Both figures come from the progress service and are per level. These
+        # two tests used to pass `total_donated` - the LIFETIME total - against
+        # a per-level threshold, which is the defect of review C68: past level 1
+        # the lifetime figure swamps the goal and the bar sits at 100 %. The
+        # promises are unchanged (the threshold is the maximum, and the bar is
+        # clamped to it); the source of the current value is.
         store = MechDataStore()
         out = store._calculate_progress_data(
-            core_data={"total_donated": 5},
-            evolution_data={"next_threshold": 20},
+            core_data={"total_donated": 500},
+            evolution_data={"next_threshold": 20, "current_progress": 5},
         )
         assert out["progress_max"] == 20
         assert out["progress_current"] == 5
@@ -217,8 +223,8 @@ class TestMechDataStoreCalculations:
     def test_calculate_progress_data_clamps_overflow(self):
         store = MechDataStore()
         out = store._calculate_progress_data(
-            core_data={"total_donated": 999},
-            evolution_data={"next_threshold": 20},
+            core_data={"total_donated": 500},
+            evolution_data={"next_threshold": 20, "current_progress": 999},
         )
         assert out["progress_current"] == 20
         assert out["progress_max"] == 20
@@ -657,6 +663,13 @@ class TestMechStatusCacheService:
         assert service._loop_running is False
 
     def test_stop_background_loop_cancels_task(self, service):
+        # This test plants the task in the field itself, which is why it stayed
+        # green all the while nothing ever put one there - the cancel branch was
+        # unreachable in the running application (review C70). It is kept as the
+        # unit-level check that stopping does cancel what it holds; that the
+        # field is filled at all is asked in
+        # tests/spec/test_stopping_the_loop_stops_the_loop.py, against a loop
+        # that is really running.
         fake_task = MagicMock()
         service._loop_task = fake_task
         service._loop_running = True
@@ -671,13 +684,14 @@ class TestMechStatusCacheService:
                    return_value=fake_event_manager):
             svc = MechStatusCacheService()
 
-        assert fake_event_manager.register_listener.call_count == 2
+        # The set, not the count - the count went red on its own when the
+        # reset event was given its own name, and nothing was wrong (D35).
         registered_events = {
             call.args[0]
             for call in fake_event_manager.register_listener.call_args_list
         }
         assert registered_events == {
-            "donation_completed", "mech_state_changed",
+            "donation_completed", "donation_reset", "mech_state_changed",
         }
         # Service is fully constructed.
         assert svc._cache == {}

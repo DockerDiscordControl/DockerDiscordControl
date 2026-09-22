@@ -108,6 +108,80 @@ def _channel_has_permission(channel_id: int, permission_key: str, config: dict =
         default_permissions = config.get('default_channel_permissions', {})
         return default_permissions.get('commands', {}).get(permission_key, False)
 
+def _is_registered_admin(user_id) -> bool:
+    """True if ``user_id`` is in the CURRENT admin list (``admins.json``, /addadmin).
+
+    SPEC.md B2: the admin list exists so that admins may act where the channel
+    alone permits nothing - the status channels. The Z5 fix of 2026-09-16/17
+    removed the "Admin Control" message title as a permission and put nothing
+    in its place, so admins were refused in status channels (operator's report
+    of 2026-09-19). The list is read at the moment of the press, never taken
+    from a message. A failing lookup counts as "not an admin".
+    """
+    try:
+        from services.admin.admin_service import get_admin_service
+        return bool(get_admin_service().is_user_admin(user_id))
+    except (ImportError, OSError, ValueError, RuntimeError) as e:
+        logger.error(f"Admin list could not be read for user {user_id}: {e}", exc_info=True)
+        return False
+
+def _admin_may_control(user_id, docker_name: str) -> bool:
+    """B2, narrowed to the containers this admin was assigned (review F2).
+
+    The same rule as ``_is_registered_admin`` for an admin with no assignment -
+    they keep every container, which is the upgrade default and must stay that
+    way. An assigned admin passes only for their own containers.
+
+    This is the B2 branch ALONE. The channel branch (B1) is asked before it and
+    is not narrowed by anything: whoever may write in a control channel still
+    does everything there. Assignments only bite where the channel permits
+    nothing, which is the status channels they were asked for.
+
+    A lookup that fails counts as "not allowed", like its neighbour above.
+    """
+    try:
+        from services.admin.admin_service import get_admin_service
+        return bool(get_admin_service().may_control(user_id, docker_name))
+    except (ImportError, OSError, ValueError, RuntimeError) as e:
+        logger.error(f"Admin assignment could not be read for user {user_id}: {e}",
+                     exc_info=True)
+        return False
+
+
+def _admin_may_control_task(user_id, task_id: str) -> bool:
+    """The same rule for a scheduled task, via the container it acts on.
+
+    A task button knows its task, not its container, so the container has to be
+    looked up - but only for an admin who HAS an assignment. For everybody else
+    the answer cannot depend on it, and doing the lookup anyway would let a
+    missing task refuse an unscoped admin who is allowed today.
+
+    A task that cannot be found while the admin IS assigned counts as "not
+    allowed": there is no way to tell whether it is one of theirs.
+    """
+    try:
+        from services.admin.admin_service import get_admin_service
+        service = get_admin_service()
+        containers = service.get_admin_containers(user_id)
+        if containers is None:
+            return bool(service.is_user_admin(user_id))
+        if not containers:
+            return False
+
+        from services.scheduling.scheduler import find_task_by_id
+        task = find_task_by_id(task_id)
+        container_name = getattr(task, 'container_name', None)
+        if not container_name:
+            logger.warning(f"Task {task_id} has no container - refusing the assigned "
+                           f"admin {user_id}, there is no way to tell whose it is")
+            return False
+        return str(container_name) in containers
+    except (ImportError, OSError, ValueError, RuntimeError, AttributeError) as e:
+        logger.error(f"Admin assignment could not be read for user {user_id}: {e}",
+                     exc_info=True)
+        return False
+
+
 def _get_pending_embed(display_name: str) -> discord.Embed:
     """Generates a standardized embed for the pending status in the box design."""
     # --- Start: Adjusted box formatting for Pending --- #
@@ -150,3 +224,61 @@ def _get_pending_embed(display_name: str) -> discord.Embed:
     embed.set_footer(text=f"https://ddc.bot")
     # --- End: Adjusted box formatting for Pending --- #
     return embed
+
+
+def validate_custom_address(address: str) -> bool:
+    """Validate custom IP/hostname format for security.
+
+    Stood twice, character for character, in control_ui.py and
+    status_info_integration.py. A security check that exists twice gets
+    corrected once - and the same shape caused a real Z5 break today: the task
+    delete button existed twice and only one copy checked the channel
+    permission. See docs/quality/STAGE0_INVENTORY.md section 7.
+    """
+    import re
+
+    # Limit length to prevent abuse
+    if not isinstance(address, str) or len(address) > 255:
+        return False
+
+    # Split the port off FIRST, so the host is judged by the same rule whether
+    # or not one is attached. It used to be the other way round: the IP pattern
+    # below had no port group, so an address WITH a port never matched it and
+    # fell through to the hostname pattern - which does not look at numbers at
+    # all. 999.999.999.999 was refused and 999.999.999.999:80 was accepted
+    # (review D28).
+    host = address
+    if ':' in address:
+        host, _, port = address.rpartition(':')
+        if not validate_custom_port(port):
+            return False
+
+    # Allow IPs
+    ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+    if re.match(ip_pattern, host):
+        # Validate IP octets
+        return all(int(octet) <= 255 for octet in host.split('.'))
+
+    # Allow hostnames
+    hostname_pattern = r'^[a-zA-Z0-9.-]+$'
+    if re.match(hostname_pattern, host):
+        # Additional validation: no double dots, no leading/trailing dots
+        if '..' in host or host.startswith('.') or host.endswith('.'):
+            return False
+        return True
+
+    return False
+
+
+def validate_custom_port(port: str) -> bool:
+    """Whether a port is a port - the value, not the number of digits.
+
+    The pattern this replaces read ``[0-9]{1,5}``, which counts digits, so
+    99999 and 0 came through. Both callers of validate_custom_address append
+    the separate ``custom_port`` field to the address they show with nothing
+    but ``str.isdigit()`` in front of it, which is the same hole one line
+    further down - so the rule lives here, once, and both use it (review D28).
+    """
+    if not isinstance(port, str) or not port.isdigit():
+        return False
+    return 1 <= int(port) <= 65535

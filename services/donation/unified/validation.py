@@ -11,6 +11,9 @@ from __future__ import annotations
 
 from services.donation.unified.models import DonationRequest
 
+# Kept in step with progress_service.MAX_DONATION (the ledger's own gate).
+MAX_DONATION_DOLLARS = 10_000.00
+
 
 class DonationValidationError(ValueError):
     """Raised when a donation request fails validation checks."""
@@ -32,6 +35,10 @@ def validate_request(request: DonationRequest) -> None:
         raise DonationValidationError("Amount must be a positive number")
     if amount <= 0:
         raise DonationValidationError("Amount must be a positive number")
-    if amount > 1_000_000:
-        raise DonationValidationError("Amount exceeds maximum allowed value (1,000,000)")
+    # The operator's limit, so the panel refuses it instead of an exception
+    # arriving from the depths of the ledger. The ledger keeps its own gate -
+    # this one is for the donor to read (review D2).
+    if amount > MAX_DONATION_DOLLARS:
+        raise DonationValidationError(
+            f"Amount exceeds the maximum allowed value ({MAX_DONATION_DOLLARS:,.2f})")
 

@@ -274,6 +274,12 @@ _ensure_pkg("app.bot")
 sys.modules["app.bot.runtime"] = _runtime_stub
 setattr(sys.modules["app.bot"], "runtime", _runtime_stub)
 
+# app.bot.token imports utils.config_paths at call time. The bare ``utils``
+# placeholder package above has no such module, so load the real source (it
+# only needs os and pathlib) the same way as the other modules here.
+_load_source("utils.config_paths", "utils/config_paths.py")
+
+
 # Load app.bot.token under its canonical name.
 def _load_token_module():
     src = PROJECT_ROOT / "app/bot/token.py"
@@ -512,7 +518,11 @@ class TestContainerInfoWebHandler:
         result = container_info_web_handler.save_container_configs_from_web([
             {"docker_name": "beta", "allowed_actions": []},
         ])
-        assert result["beta"] is True
+        # Truthy, but no longer a bare True: the submission was CHANGED on the
+        # way in, and the answer says so instead of reading like an unchanged
+        # save (review C43).
+        assert result["beta"]
+        assert "status" in str(result["beta"])
         cfg = _CONTAINER_CONFIG_SAVE_SERVICE_MOCK.save_container_config.call_args.args[1]
         assert cfg["allowed_actions"] == ["status"]
         assert cfg["active"] is True
@@ -1072,37 +1082,15 @@ class TestBotDependencies:
 # =============================================================================
 
 def _patch_token_config_dir(tmp_path: Path):
-    """Helper: patch ``bot_token.Path`` so config_dir resolves to tmp_path/config.
+    """Helper: point app/bot/token.py at tmp_path/config via DDC_CONFIG_DIR.
 
-    Returns a context manager.  The patched module behaviour:
-        Path(__file__).resolve().parents[2] / "config"  -> tmp_path / "config"
-    All other ``Path(...)`` calls in the module return real ``pathlib.Path``
-    instances so that ``.exists()``, ``.read_text()`` etc. work normally.
+    Returns a context manager. This used to replace ``bot_token.Path`` so that
+    ``Path(__file__).resolve().parents[2] / "config"`` landed in tmp_path; the
+    module now reads utils.config_paths.get_config_dir().
     """
-    real_path_cls = bot_token.Path
     config_dir = tmp_path / "config"
     config_dir.mkdir(exist_ok=True)
-
-    class _FakeFile:
-        """Sentinel returned by Path(__file__) so we can override .resolve()."""
-
-        def resolve(self):
-            return _FakeResolved()
-
-    class _FakeResolved:
-        @property
-        def parents(self):
-            # Return a list whose [2] element is tmp_path; / "config" then
-            # yields a real Path.
-            return [real_path_cls("/x"), real_path_cls("/x/y"), real_path_cls(str(tmp_path))]
-
-    def path_factory(*args, **kwargs):
-        # __file__ goes through here exactly once at function entry.
-        if args and isinstance(args[0], str) and args[0].endswith("token.py"):
-            return _FakeFile()
-        return real_path_cls(*args, **kwargs)
-
-    return patch.object(bot_token, "Path", side_effect=path_factory)
+    return patch.dict(os.environ, {"DDC_CONFIG_DIR": str(config_dir)})
 
 
 class TestBotToken:
@@ -1114,14 +1102,24 @@ class TestBotToken:
         assert token == "env-token-xyz"
 
     def test_falls_back_to_plaintext_bot_config(self, monkeypatch, fake_runtime, tmp_path):
-        """Plaintext token in bot_config.json takes precedence over runtime config."""
+        """Plaintext token in the legacy bot_config.json is only a fallback.
+
+        Audit R5-5: the token saved in the Web UI (config.json, decrypted into the
+        runtime config) wins; the legacy file must not shadow it.
+        """
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
         config_dir = tmp_path / "config"
         config_dir.mkdir()
         (config_dir / "bot_config.json").write_text(
             json.dumps({"bot_token": "plain-tok"})
         )
-        fake_runtime.config = {"bot_token_decrypted_for_usage": "should-not-win"}
+        fake_runtime.config = {"bot_token_decrypted_for_usage": "web-ui-tok"}
+        with _patch_token_config_dir(tmp_path):
+            token = bot_token.get_decrypted_bot_token(fake_runtime)
+        assert token == "web-ui-tok"
+
+        fake_runtime.config = {}
+        fake_runtime.dependencies = types.SimpleNamespace(config_service_factory=None)
         with _patch_token_config_dir(tmp_path):
             token = bot_token.get_decrypted_bot_token(fake_runtime)
         assert token == "plain-tok"
@@ -1239,7 +1237,7 @@ class TestBotEvents:
         bot_events.register_event_handlers(bot, fake_runtime)
         # Trigger on_ready synchronously through asyncio.
         import asyncio
-        asyncio.get_event_loop().run_until_complete(bot._events["on_ready"]())
+        asyncio.run(bot._events["on_ready"]())
         # The (stubbed) StartupManager records that handle_ready was awaited.
         # We can't reach it directly, but absence of exception is the signal.
 
@@ -1251,10 +1249,26 @@ class TestBotEvents:
             try:
                 raise RuntimeError("boom")
             except RuntimeError:
-                asyncio.get_event_loop().run_until_complete(
+                asyncio.run(
                     bot._events["on_error"]("on_message", "extra")
                 )
-        # No assertion needed beyond no-raise: handler must swallow.
+
+        # `caplog` was set up here and never read, under the comment "No
+        # assertion needed beyond no-raise: handler must swallow" - in a test
+        # named `logs_traceback`. A handler that swallowed the error and logged
+        # NOTHING passed, which is the shape review E14 found elsewhere in this
+        # very file: a handler installed on an event that never fires, with a
+        # test that called the function directly and never asked whether
+        # anything reached the log (review E52).
+        logged = " ".join(r.getMessage() for r in caplog.records
+                          if r.levelno >= logging.ERROR)
+        assert logged, "on_error swallowed the failure without a word"
+        assert "on_message" in logged, (
+            f"the log line does not name the event that failed: {logged!r}"
+        )
+        assert "RuntimeError" in logged and "boom" in logged, (
+            f"the traceback is missing from the log line: {logged!r}"
+        )
 
     def test_on_command_error_skips_donate_commands(self, fake_runtime):
         bot = _FakeBot()
@@ -1271,7 +1285,7 @@ class TestBotEvents:
         ctx.respond.side_effect = _respond
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
         ctx.respond.assert_not_called()
@@ -1292,7 +1306,7 @@ class TestBotEvents:
         )
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
         # respond should have been called once with a string mentioning seconds.
@@ -1314,7 +1328,7 @@ class TestBotEvents:
         err = discord.ApplicationCommandError("kaboom")
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
         ctx.respond.assert_called_once()
@@ -1322,18 +1336,39 @@ class TestBotEvents:
         assert "kaboom" in called_args.args[0]
         assert called_args.kwargs.get("ephemeral") is True
 
-    def test_on_command_error_unexpected_error_no_respond(self, fake_runtime):
+    def test_on_command_error_unexpected_error_answers_without_the_repr(self, fake_runtime):
+        """Changed by review E14, deliberately.
+
+        This used to assert ctx.respond was NOT called, on the strength of the
+        implementation and nothing else - the comment read "Unexpected errors
+        are logged but do not call ctx.respond", which is a description, not a
+        reason. Not responding left the interaction hanging: the user saw the
+        command thinking, and then nothing, forever. That is the one failure
+        mode a user always notices.
+
+        What the old test was right about, without saying so: an arbitrary
+        exception must not be pasted into Discord. An ApplicationCommandError
+        carries a message written to be read; a ValueError carries whatever it
+        happens to carry. So the answer is generic, and that is pinned here.
+        """
         bot = _FakeBot()
         bot_events.register_event_handlers(bot, fake_runtime)
         ctx = MagicMock()
         ctx.command = "stop"
-        ctx.respond = MagicMock()
 
-        err = ValueError("unexpected")
+        async def _respond(*a, **kw):
+            return None
+        ctx.respond.side_effect = _respond
+
+        err = ValueError("a secret from inside the process")
 
         import asyncio
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
-        # Unexpected errors are logged but do not call ctx.respond.
-        ctx.respond.assert_not_called()
+        ctx.respond.assert_called_once()
+        message = ctx.respond.call_args.args[0]
+        assert "secret from inside" not in message, (
+            f"the exception text was pasted into Discord: {message!r}"
+        )
+        assert ctx.respond.call_args.kwargs.get("ephemeral") is True

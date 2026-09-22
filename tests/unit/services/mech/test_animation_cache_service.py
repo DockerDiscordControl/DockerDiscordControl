@@ -283,14 +283,20 @@ class TestCleanupAndClear:
         assert not old.exists()
         assert new.exists()
 
-    def test_clear_cache_calls_cleanup_with_zero(self, svc, tmp_path):
+    def test_clear_cache_removes_every_cached_animation(self, svc, tmp_path):
+        # This used to pin the ROUTE - that clear_cache calls
+        # cleanup_old_animations(keep_hours=0) - which was exactly the defect:
+        # that route clears only the base files and leaves the RAM cache and the
+        # speed files behind. It now pins the promise (review C22).
         (tmp_path / "mech_1_100speed.cache").write_bytes(b"x")
-        with patch.object(
-            svc, "cleanup_old_animations", wraps=svc.cleanup_old_animations
-        ) as wrapped:
-            svc.clear_cache()
-        wrapped.assert_called_once_with(keep_hours=0)
+        (tmp_path / "mech_L1_S7.webp").write_bytes(b"y")
+        svc._focused_cache["L1_S7_walk_small"] = b"z"
+
+        svc.clear_cache()
+
         assert list(tmp_path.glob("*.cache")) == []
+        assert list(tmp_path.glob("mech_L*_S*.webp")) == []
+        assert len(svc._focused_cache) == 0
 
 
 # ===========================================================================
@@ -1135,7 +1141,7 @@ class TestPreGenerateAnimationFlow:
 # 23. Event listener wiring (success + failure)
 # ===========================================================================
 class TestEventListenerSetup:
-    def test_setup_event_listeners_registers_two_handlers(self, tmp_path):
+    def test_setup_event_listeners_registers_every_event_it_needs(self, tmp_path):
         # Don't stub _setup_event_listeners here — exercise it directly.
         fake_em = MagicMock()
         with patch(
@@ -1147,8 +1153,13 @@ class TestEventListenerSetup:
             lambda self, *a, **kw: 0,
         ), patch.dict(os.environ, {"DDC_ANIM_DISK_LIMIT_MB": "0"}):
             svc = AnimationCacheService()
-        # Two register_listener calls expected.
-        assert fake_em.register_listener.call_count == 2
+        # Named, not counted. This used to assert "== 2" and the test was
+        # called ..._registers_two_handlers, so adding the reset event made it
+        # red without anything being wrong (review D35). What matters is WHICH
+        # events reach this cache: a donation and a reset both move power and
+        # level, and a state change does too.
+        registered = {call.args[0] for call in fake_em.register_listener.call_args_list}
+        assert registered == {"donation_completed", "donation_reset", "mech_state_changed"}
 
     def test_setup_event_listeners_swallows_import_error(self, tmp_path):
         with patch(

@@ -21,13 +21,13 @@
 # CONFIGURATION
 # ============================================================================ #
 
-VERSION="2.2.1"
+VERSION="${DDC_VERSION:-unknown}"  # set by the Dockerfile (ENV DDC_VERSION)
 APP_USER="ddc"
 DEFAULT_UID=1000
 DEFAULT_GID=1000
 MIN_UID=1
 MAX_UID=65534
-DATA_DIRS="/app/config /app/logs /app/cached_displays"
+DATA_DIRS="/app/config /app/logs /app/cached_displays /app/cached_animations /app/assets"
 CONFIG_SUBDIRS="info tasks channels"
 
 # ============================================================================ #
@@ -438,42 +438,65 @@ setup_directories() {
     return $failed
 }
 
+# Run find on $1 for the entries the app user (UID $2, GID $3) cannot use, with
+# the find actions given in $4... Files need read+write and directories
+# read+write+execute through the owner, group or other permission class.
+# Entries that are already usable (e.g. 1001:100 mode 766 files written via SMB)
+# never match.
+find_unusable_entries() {
+    local dir="$1"
+    local uid="$2"
+    local gid="$3"
+    shift 3
+    find "$dir" \( \
+        \( ! -type d ! \( -user "$uid" -perm -600 \) ! \( -group "$gid" -perm -060 \) ! -perm -006 \) -o \
+        \( -type d ! \( -user "$uid" -perm -700 \) ! \( -group "$gid" -perm -070 \) ! -perm -007 \) \
+    \) "$@" 2>/dev/null
+}
+
 fix_permissions() {
     local target_uid="$1"
     local target_gid="$2"
 
-    log_info "Checking/fixing ownership of data directories..."
+    log_info "Checking ownership/permissions of data directories..."
 
-    # Check if ALL directories have correct permissions (optimization for restarts)
-    local all_correct=1
-    local dir_uid dir_gid
+    # Only entries the app user cannot actually use need a fix. Checking just the
+    # top-level directory ownership missed root-owned files created inside (e.g. by
+    # "docker exec" without "-u ddc"), while a blanket chown -R needlessly rewrote
+    # the ownership of files that are already usable (e.g. on an SMB share).
+    local needs_fix=0
+    local offender
 
     for dir in $DATA_DIRS; do
         if [ -d "$dir" ]; then
-            dir_uid=$(get_file_uid "$dir")
-            dir_gid=$(get_file_gid "$dir")
-            if [ "$dir_uid" != "$target_uid" ] || [ "$dir_gid" != "$target_gid" ]; then
-                log_info "$dir: UID=$dir_uid, GID=$dir_gid (needs fix)"
-                all_correct=0
+            offender=$(find_unusable_entries "$dir" "$target_uid" "$target_gid" -print -quit)
+            if [ -n "$offender" ]; then
+                log_info "$dir: entries not usable by UID=$target_uid, GID=$target_gid (e.g. $offender) (needs fix)"
+                needs_fix=1
             fi
         fi
     done
 
-    if [ "$all_correct" = "1" ]; then
-        log_info "All directories already have correct ownership (UID=$target_uid, GID=$target_gid)"
+    if [ "$needs_fix" = "0" ]; then
+        log_info "All data directories are already usable by UID=$target_uid, GID=$target_gid"
         return 0
     fi
 
-    # Try to fix permissions
-    log_info "Fixing ownership to UID=$target_uid, GID=$target_gid..."
+    # Hand only the offending entries to the app user and make sure the owner bits
+    # allow access. chown keeps restrictive modes such as 600 private, unlike
+    # opening the entries up with chmod o+rw.
+    log_info "Fixing unusable entries (chown to UID=$target_uid, GID=$target_gid)..."
     local chown_failed=0
 
     for dir in $DATA_DIRS; do
-        if [ -d "$dir" ]; then
-            if chown -R "$target_uid:$target_gid" "$dir" 2>/dev/null; then
-                log_info "Fixed ownership of $dir"
+        if [ -d "$dir" ] && [ -n "$(find_unusable_entries "$dir" "$target_uid" "$target_gid" -print -quit)" ]; then
+            find_unusable_entries "$dir" "$target_uid" "$target_gid" \
+                -exec chown "$target_uid:$target_gid" {} \; -exec chmod u+rwX {} \;
+            offender=$(find_unusable_entries "$dir" "$target_uid" "$target_gid" -print -quit)
+            if [ -z "$offender" ]; then
+                log_info "Fixed unusable entries in $dir"
             else
-                log_warn "chown failed for $dir (NFS/SMB restrictions?)"
+                log_warn "Could not fix entries in $dir (e.g. $offender) - NFS/SMB restrictions?"
                 chown_failed=1
             fi
         fi

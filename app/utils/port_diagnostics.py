@@ -11,6 +11,7 @@ import subprocess
 import logging
 import os
 import re
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -255,7 +256,9 @@ class PortDiagnostics:
             # Check for proper mapping
             web_port_mapped = False
             for internal_port, external_ports in mappings.items():
-                if str(internal_port).startswith(str(self.EXPECTED_WEB_PORT)):
+                # Equality, not a prefix. startswith() accepted 93745 as "the
+                # web UI's own mapping" because it begins with 9374 (review C16).
+                if str(internal_port) == str(self.EXPECTED_WEB_PORT):
                     web_port_mapped = True
                     result['external_ports'] = external_ports
                     break
@@ -360,7 +363,9 @@ class PortDiagnostics:
     def get_diagnostic_report(self) -> Dict:
         """Generate complete diagnostic report"""
         report = {
-            'timestamp': logger.name,
+            # A field called timestamp held logger.name - the fixed string
+            # "app.utils.port_diagnostics" (review C16).
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'container_name': self.container_name,
             'host_info': self.host_info,
             'port_check': self.check_port_binding(),

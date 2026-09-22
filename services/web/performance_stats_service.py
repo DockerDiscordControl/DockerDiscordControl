@@ -23,6 +23,15 @@ try:
 except ImportError:
     docker = None  # Handle missing docker library gracefully
 
+# Built once, at import. Naming the library's exception classes directly inside
+# an except clause meant Python had to read those attributes at the moment it
+# matched an exception - and when the library is missing the name is None, so
+# reading them raised AttributeError instead of catching anything. The handler
+# failed exactly when it was needed (review C17). An empty tuple matches
+# nothing, which is the right behaviour when the library is not there at all.
+_DOCKER_ERRORS = ((docker.errors.APIError, docker.errors.DockerException)
+                  if docker is not None else ())
+
 logger = logging.getLogger(__name__)
 
 
@@ -66,7 +75,7 @@ class PerformanceStatsService:
                 performance_data=performance_data
             )
 
-        except (RuntimeError) as e:
+        except (ImportError, OSError, RuntimeError) as e:
             self.logger.error(f"Error collecting performance statistics: {e}", exc_info=True)
             return PerformanceStatsResult(
                 success=False,
@@ -78,7 +87,7 @@ class PerformanceStatsService:
         try:
             from utils.config_cache import get_cache_memory_stats
             return get_cache_memory_stats()
-        except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (AttributeError, ImportError, KeyError, ModuleNotFoundError, RuntimeError, TypeError, *_DOCKER_ERRORS) as e:
             self.logger.warning(f"Could not get config cache stats: {e}")
             return {'error': str(e)}
 
@@ -112,7 +121,7 @@ class PerformanceStatsService:
                     ).strftime('%Y-%m-%d %H:%M:%S')
 
             return cache_stats
-        except (AttributeError, KeyError, RuntimeError, TypeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (AttributeError, KeyError, RuntimeError, TypeError, *_DOCKER_ERRORS) as e:
             self.logger.warning(f"Could not get Docker cache stats: {e}")
             return {'error': str(e)}
 
@@ -136,7 +145,8 @@ class PerformanceStatsService:
                 'percent_used': memory.percent,
                 'free_mb': round(memory.free / (1024 * 1024), 2)
             }
-        except (RuntimeError) as e:
+        except (ImportError, OSError, RuntimeError) as e:
+            # ImportError: psutil not installed -> degrade this section only
             self.logger.warning(f"Could not get system memory stats: {e}")
             return {'error': str(e)}
 
@@ -153,7 +163,8 @@ class PerformanceStatsService:
                 'percent': round(process.memory_percent(), 2),
                 'num_threads': process.num_threads()
             }
-        except (IOError, OSError, PermissionError, RuntimeError) as e:
+        except (ImportError, IOError, OSError, PermissionError, RuntimeError) as e:
+            # ImportError: psutil not installed -> degrade this section only
             self.logger.warning(f"Could not get process memory stats: {e}")
             return {'error': str(e)}
 

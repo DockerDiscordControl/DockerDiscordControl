@@ -13,6 +13,7 @@ management, encryption, security auditing, and migration assistance.
 """
 
 import os
+from services.exceptions import ConfigServiceError
 import logging
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
@@ -80,7 +81,7 @@ class SecurityService:
                 data=status
             )
 
-        except (RuntimeError) as e:
+        except (ImportError, AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
             self.logger.error(f"Error getting token security status: {e}", exc_info=True)
             return SecurityResult(
                 success=False,
@@ -131,8 +132,12 @@ class SecurityService:
                     status_code=400
                 )
 
-        except (RuntimeError) as e:
-            self.logger.error(f"Error encrypting token: {e}", exc_info=True)
+        except (ImportError, AttributeError, KeyError, TypeError, ValueError,
+                RuntimeError, ConfigServiceError) as e:
+            # ConfigServiceError covers TokenEncryptionError, which is what the
+            # encryption below actually raises and what none of the types beside
+            # it could catch (review E11).
+            self.logger.error(f"Error encrypting token: {type(e).__name__}: {e}", exc_info=True)
             return SecurityResult(
                 success=False,
                 error=str(e),
@@ -179,7 +184,7 @@ class SecurityService:
                 data=response_data
             )
 
-        except (RuntimeError) as e:
+        except (ImportError, AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
             self.logger.error(f"Error getting migration help: {e}", exc_info=True)
             return SecurityResult(
                 success=False,
@@ -218,7 +223,7 @@ class SecurityService:
                 data=audit_results
             )
 
-        except (RuntimeError) as e:
+        except (ImportError, AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
             self.logger.error(f"Error performing security audit: {e}", exc_info=True)
             return SecurityResult(
                 success=False,
@@ -323,7 +328,13 @@ class SecurityService:
                 source="Web UI - Security",
                 details=details
             )
-        except (RuntimeError) as e:
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose. Writing the audit entry is not what the
+            # operation is for, so a failure here must never undo it - and this
+            # helper imports action_logger and flask.session itself, so an
+            # ImportError or AttributeError used to leave the service entirely
+            # and turn a token that HAD been encrypted into a traceback for the
+            # operator (review C45).
             self.logger.warning(f"Could not log security action: {e}")
 
 

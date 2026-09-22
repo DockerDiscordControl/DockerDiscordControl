@@ -16,7 +16,6 @@ rewritten to exercise the actual public surface:
 * :meth:`ContainerInfoService.get_container_info`
 * :meth:`ContainerInfoService.save_container_info`
 * :meth:`ContainerInfoService.delete_container_info`
-* :meth:`ContainerInfoService.list_all_containers`
 """
 
 import json
@@ -213,29 +212,6 @@ class TestContainerInfoService:
         # Real service treats missing file as success (idempotent reset).
         assert result.success is True
 
-    def test_list_all_containers(self, tmp_path):
-        """list_all_containers reads names via the server config service."""
-        service = _make_service(tmp_path)
-        # config_file must exist for the real method to proceed.
-        service.config_file.write_text("{}", encoding="utf-8")
-
-        fake_server_config = MagicMock()
-        fake_server_config.get_all_servers.return_value = [
-            {"docker_name": "container1", "name": "container1"},
-            {"name": "container2"},
-            {"docker_name": "container3"},
-        ]
-
-        with patch(
-            "services.infrastructure.container_info_service.get_server_config_service",
-            return_value=fake_server_config,
-        ):
-            result = service.list_all_containers()
-
-        assert result.success is True
-        assert isinstance(result.data, list)
-        assert set(result.data) == {"container1", "container2", "container3"}
-
     def test_validate_protected_password_success(self, tmp_path):
         """The real service exposes a protected_password field — validate via get_container_info."""
         service = _make_service(tmp_path)
@@ -326,18 +302,56 @@ class TestContainerInfoService:
         assert result.error is not None
         assert "disk read error" in result.error or "Error loading info" in result.error
 
-    def test_input_sanitization(self, tmp_path):
-        """Path-traversal / unsafe names should be rejected safely by _validate_path_safety."""
-        service = _make_service(tmp_path)
+    @pytest.mark.parametrize("malicious_name", [
+        "<script>alert('xss')</script>",
+        "../../../etc/passwd",
+        "../docker_config",
+        "name with spaces",
+        "semi;colon",
+        "back\\slash",
+    ])
+    def test_input_sanitization(self, tmp_path, malicious_name):
+        """Path-traversal / unsafe names are rejected by _validate_path_safety.
 
-        malicious_name = "<script>alert('xss')</script>"
+        This used to assert `isinstance(result, ServiceResult)` and nothing
+        else, under a docstring that forbade "any unsafe filesystem write or
+        script-shaped path being accepted as-is". Remove
+        `_validate_path_safety` entirely and that assertion still held: the
+        method returns a ServiceResult either way. A security test whose only
+        check is the return type is not a security test (review E52).
+
+        Three things are checked now, and each can fail on its own:
+        the call is refused, the refusal names the input, and nothing appeared
+        on disk.
+        """
+        service = _make_service(tmp_path)
+        before = set(p.name for p in service.containers_dir.iterdir())
 
         result = service.get_container_info(malicious_name)
 
-        # Safe outcomes: either ServiceResult(success=False) or a returned
-        # default ContainerInfo. Forbidden: any unsafe filesystem write or
-        # script-shaped path being accepted as-is.
-        assert isinstance(result, ServiceResult)
+        assert result.success is False, (
+            f"{malicious_name!r} was accepted as a container name"
+        )
+        assert result.error, "the refusal carries no reason"
+
+        after = set(p.name for p in service.containers_dir.iterdir())
+        assert after == before, (
+            f"{malicious_name!r} created something on disk: {after - before}"
+        )
+        assert not (tmp_path / "etc").exists(), "the path escaped the containers dir"
+
+    def test_an_ordinary_name_is_still_accepted(self, tmp_path):
+        """COUNTER-CHECK: the validation must not refuse real container names.
+
+        Without this, the finding above could be 'fixed' by refusing
+        everything, and the suite would agree."""
+        service = _make_service(tmp_path)
+        _write_container_file(service, "V-Rising", {"info_enabled": True,
+                                                    "info_content": "hello"})
+
+        result = service.get_container_info("V-Rising")
+
+        assert result.success is True, result.error
 
 
 @pytest.mark.integration

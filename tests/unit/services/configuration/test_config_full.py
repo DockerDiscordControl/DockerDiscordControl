@@ -641,10 +641,12 @@ class TestConfigFormParserService:
                 return FakeResult(success=True, message="saved")
 
         # _save_channel_permissions calls into the channel service singleton.
-        # We patch it out so the test stays self-contained.
+        # We patch it out so the test stays self-contained. It returns True since
+        # 2026-09-20: the caller reads the result, and "no answer" now means the
+        # channel files were not written (review B5).
         monkeypatch.setattr(
             ConfigFormParserService, "_save_channel_permissions",
-            staticmethod(lambda perms: None),
+            staticmethod(lambda perms: True),
         )
 
         form = MultiDict([
@@ -739,11 +741,19 @@ class TestConfigMigrationService:
         assert svc.needs_real_modular_migration() is True
 
     def test_needs_migration_false_when_modular_exists(self, tmp_path):
+        # Until 2026-09-20 this pinned the OR that caused the defect: a file in
+        # containers_dir counted as "migrated" even though the legacy CHANNEL
+        # config was still unconverted, which is exactly how a half-finished
+        # migration made itself look finished (review C28). The target for each
+        # legacy file that is present has to be populated.
         svc = self._make(tmp_path)
         self._save_json(svc.channels_config_file, {"channel_permissions": {}})
-        # Create a real modular container file - should now skip migration.
         svc.containers_dir.mkdir(parents=True, exist_ok=True)
         (svc.containers_dir / "x.json").write_text("{}")
+        assert svc.needs_real_modular_migration() is True
+
+        svc.channels_dir.mkdir(parents=True, exist_ok=True)
+        (svc.channels_dir / "default.json").write_text("{}")
         assert svc.needs_real_modular_migration() is False
 
     def test_create_modular_directories(self, tmp_path):
@@ -955,28 +965,20 @@ class TestServerConfigService:
         containers.mkdir()
 
         # Redirect ConfigService so load_config() works against tmp_path.
-        # ServerConfigService also derives its containers_dir from
-        # __file__.parents[2], so we must redirect that too via monkeypatch.
+        # ServerConfigService is redirected in _patch_server_service_paths.
         _redirect_config_service(get_config_service(), config_dir)
 
         return config_dir
 
     def _patch_server_service_paths(self, monkeypatch, tmp_path):
-        """Make ``Path(__file__).parents[2]`` inside server_config_service
-        resolve to ``tmp_path`` so the *real* _load_container_configs body
-        executes (not a re-implementation), giving us real coverage.
+        """Point server_config_service at ``tmp_path / "config"`` so the *real*
+        _load_container_configs body executes (not a re-implementation).
+
+        Via DDC_CONFIG_DIR, the documented override. This used to fake the
+        module's ``__file__``, because the service ignored the variable; it
+        now reads utils.config_paths.get_config_dir().
         """
-        from services.config import server_config_service as scs_mod
-
-        # Ensure the directory layout the real code expects exists under tmp.
-        fake_module_dir = tmp_path / "services" / "config"
-        fake_module_dir.mkdir(parents=True, exist_ok=True)
-        # The module computes parents[2] from __file__, so __file__ must live
-        # 3 levels deep inside tmp_path.
-        fake_file = fake_module_dir / "server_config_service.py"
-        fake_file.write_text("# placeholder for tests\n")
-
-        monkeypatch.setattr(scs_mod, "__file__", str(fake_file))
+        monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path / "config"))
 
     def test_get_all_servers_returns_only_active(self, tmp_path, temp_config_dir, monkeypatch):
         self._patch_server_service_paths(monkeypatch, tmp_path)

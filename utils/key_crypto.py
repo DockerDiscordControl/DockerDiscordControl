@@ -34,8 +34,13 @@ def decrypt_key(encrypted_key: str, crypto_key: str = "NothingToEncrypt") -> str
             decrypted.append(byte ^ key_byte)
 
         return bytes(decrypted).decode()
-    except (RuntimeError):
-        # If decryption fails, return empty string (invalid key)
+    except (ValueError, TypeError, AttributeError):
+        # What this function actually raises: binascii.Error (a ValueError) from
+        # b64decode on input that is not base64, and UnicodeDecodeError (also a
+        # ValueError) when the XOR result is not text. The old clause named
+        # RuntimeError, which nothing here raises - so the documented "return
+        # empty string" never happened and the caller got the exception
+        # instead (review C14).
         return ""
 
 def encrypt_key(plain_key: str, crypto_key: str = "NothingToEncrypt") -> str:

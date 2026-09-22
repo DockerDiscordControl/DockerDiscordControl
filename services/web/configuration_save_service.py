@@ -37,7 +37,7 @@ class ConfigurationSaveRequest:
 class ConfigurationSaveResult:
     """Represents the result of configuration save operation."""
     success: bool
-    message: str
+    message: str = ""
     config_files: List[str] = None
     critical_settings_changed: bool = False
     error: Optional[str] = None
@@ -85,11 +85,33 @@ class ConfigurationSaveService:
             # Step 6: Save main configuration and container info
             save_result = self._save_configuration_files(processed_data, cleaned_form_data, request.config_split_enabled)
             if not save_result.success:
-                return save_result
+                # A ConfigurationSaveResult, not the SaveFilesResult this step
+                # produces: the caller reads `.error or .message` and
+                # `.critical_settings_changed`, neither of which that other
+                # dataclass has (review C48).
+                return ConfigurationSaveResult(
+                    success=False,
+                    error=save_result.error or "Failed to save configuration files",
+                    config_files=save_result.config_files
+                )
 
             # Step 7: Handle critical settings changes (cache invalidation, etc.)
+            #
+            # Everything above this line has already been WRITTEN TO DISK. A
+            # cache that could not be invalidated is worth saying, but it is not
+            # a failed save - and it used to be reported as one, because the
+            # ConfigCacheError raised here landed in the ConfigServiceError
+            # handler at the bottom (review C48).
+            cache_warning = None
             if critical_changes.changed:
-                self._handle_critical_changes(critical_changes)
+                try:
+                    self._handle_critical_changes(critical_changes)
+                except ConfigServiceError as cache_error:
+                    cache_warning = (f"saved, but a cache could not be invalidated "
+                                     f"({cache_error.message}) - a restart applies it")
+                    self.logger.error(
+                        f"Configuration was saved but the cache invalidation failed: "
+                        f"{cache_error}", exc_info=True)
 
             # Step 8: Update logging settings
             self._update_logging_settings()
@@ -107,8 +129,19 @@ class ConfigurationSaveService:
                 self.logger.warning(f"Could not emit channel_config_changed event: {e}")
 
             # Step 11: Build response
-            return self._build_save_response(message, save_result.config_files, critical_changes.changed, critical_changes.message)
+            response = self._build_save_response(message, save_result.config_files, critical_changes.changed, critical_changes.message)
+            if cache_warning:
+                response.message = f"{response.message} ({cache_warning})"
+            return response
 
+        except ConfigServiceError as e:
+            # Config persistence errors (disk full, permission denied) raised by save_config,
+            # or cache/reload errors re-raised by _handle_critical_changes
+            self.logger.error(f"Config service error saving configuration: {e}", exc_info=True)
+            return ConfigurationSaveResult(
+                success=False,
+                error=f"Error saving configuration: {e.message}"
+            )
         except (ImportError, AttributeError, RuntimeError) as e:
             # Service dependency errors (config service unavailable, service method failures)
             self.logger.error(f"Service dependency error saving configuration: {e}", exc_info=True)
@@ -270,15 +303,28 @@ class ConfigurationSaveService:
             else:
                 self.logger.warning("[SAVE_DEBUG] No 'servers' key in processed_data!")
 
-            # Get ALL containers from the containers directory, not just active ones
-            containers_dir = Path('config/containers')
+            # Get ALL containers from the containers directory, not just active ones.
+            # Via utils/config_paths.py: this was Path('config/containers'), relative to
+            # the working directory and blind to DDC_CONFIG_DIR - with the list empty,
+            # the info save below was skipped silently.
+            from utils.config_paths import get_config_dir
+            containers_dir = get_config_dir() / 'containers'
             all_container_names = []
             if containers_dir.exists():
                 for json_file in containers_dir.glob('*.json'):
                     try:
                         with open(json_file, 'r') as f:
                             container_data = json.load(f)
-                            container_name = container_data.get('container_name') or json_file.stem
+                            # The DOCKER name, like the active list below. These
+                            # two were built by different rules, so a file whose
+                            # container_name differs from its docker_name - what
+                            # migrate_containers_to_files leaves behind - showed
+                            # up under one name here and another there, and an
+                            # ACTIVE container had its info fields wiped as if it
+                            # had been switched off (review C51).
+                            container_name = (container_data.get('docker_name')
+                                              or container_data.get('container_name')
+                                              or json_file.stem)
                             all_container_names.append(container_name)
                     except (json.JSONDecodeError, ValueError) as e:
                         # JSON/data errors (malformed JSON, invalid container data)

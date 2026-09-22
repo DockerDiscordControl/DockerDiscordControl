@@ -299,15 +299,21 @@ class TestUpdateDockerCache:
         assert wh.docker_cache["containers"] == []
 
     def test_update_cache_image_id_fallback_when_no_tags(self, monkeypatch):
-        """No tags -> image field uses id[:12]."""
+        """A container created from a bare image id shows 12 characters of it.
+
+        This used to expect "sha256:deadb": the old code cut the first twelve
+        characters of the id INCLUDING the "sha256:" prefix, leaving five of
+        the hash. Since review E53 the name comes from attrs['Config']['Image']
+        and the prefix is dropped before shortening.
+        """
         import app.utils.web_helpers as wh
 
         c = MagicMock()
         c.id = "deadbeefcafe0011223344556677889900"
         c.name = "no_tags"
         c.status = "running"
-        c.image.tags = []
-        c.image.id = "sha256:deadbeefcafe0011223344"
+        c.attrs = {"Image": "sha256:deadbeefcafe0011223344",
+                   "Config": {"Image": "sha256:deadbeefcafe0011223344"}}
 
         client = MagicMock()
         client.containers.list.return_value = [c]
@@ -319,8 +325,7 @@ class TestUpdateDockerCache:
 
         wh.update_docker_cache(logging.getLogger("t"))
         result = [c for c in wh.docker_cache["containers"] if c["name"] == "no_tags"][0]
-        # First 12 chars of the image *id* string
-        assert result["image"] == "sha256:deadb"
+        assert result["image"] == "deadbeefcafe"
 
 
 class TestGetDockerContainersLive:
@@ -467,54 +472,46 @@ class TestSetInitialPasswordFromEnv:
         # Should silently return without touching config
         wh.set_initial_password_from_env()  # no exception
 
+    @staticmethod
+    def _patch_change_password(monkeypatch):
+        """Record calls to change_web_ui_password, which the helper now delegates to
+        (hash + token re-encryption + persist). raising=False: it may not exist yet."""
+        calls = []
+        monkeypatch.setattr(
+            "services.config.config_service.change_web_ui_password",
+            lambda new_password, **kwargs: calls.append(new_password),
+            raising=False,
+        )
+        return calls
+
     def test_env_var_sets_hash_when_unset(self, monkeypatch):
         import app.utils.web_helpers as wh
 
         monkeypatch.setenv("DDC_ADMIN_PASSWORD", "supersecret")
-
-        saved = {}
-
-        def fake_load_config():
-            return {"web_ui_password_hash": None}
-
-        def fake_save_config(cfg):
-            saved.update(cfg)
-            return True
+        calls = self._patch_change_password(monkeypatch)
 
         monkeypatch.setattr(
-            "services.config.config_service.load_config", fake_load_config
-        )
-        monkeypatch.setattr(
-            "services.config.config_service.save_config", fake_save_config
+            "services.config.config_service.load_config",
+            lambda: {"web_ui_password_hash": None},
         )
         wh.set_initial_password_from_env()
-        assert "web_ui_password_hash" in saved
-        # Make sure the saved hash is non-empty (proves generate_password_hash ran)
-        assert saved["web_ui_password_hash"] and len(saved["web_ui_password_hash"]) > 10
+        assert calls == ["supersecret"]
 
     def test_env_var_skips_when_password_already_set(self, monkeypatch):
         import app.utils.web_helpers as wh
         from werkzeug.security import generate_password_hash
 
         monkeypatch.setenv("DDC_ADMIN_PASSWORD", "supersecret")
+        calls = self._patch_change_password(monkeypatch)
 
         # Existing hash that is NOT 'admin' -> should skip
         existing = generate_password_hash("not-admin", method="pbkdf2:sha256:600000")
-        save_calls = {"n": 0}
-
-        def fake_save(cfg):
-            save_calls["n"] += 1
-            return True
-
         monkeypatch.setattr(
             "services.config.config_service.load_config",
             lambda: {"web_ui_password_hash": existing},
         )
-        monkeypatch.setattr(
-            "services.config.config_service.save_config", fake_save
-        )
         wh.set_initial_password_from_env()
-        assert save_calls["n"] == 0
+        assert calls == []
 
     def test_env_var_resets_when_default_admin(self, monkeypatch):
         """If existing hash matches 'admin', env var should overwrite."""
@@ -522,37 +519,29 @@ class TestSetInitialPasswordFromEnv:
         from werkzeug.security import generate_password_hash
 
         monkeypatch.setenv("DDC_ADMIN_PASSWORD", "supersecret")
+        calls = self._patch_change_password(monkeypatch)
         admin_hash = generate_password_hash("admin", method="pbkdf2:sha256:600000")
-        saved = {}
 
         monkeypatch.setattr(
             "services.config.config_service.load_config",
             lambda: {"web_ui_password_hash": admin_hash},
         )
-        monkeypatch.setattr(
-            "services.config.config_service.save_config",
-            lambda c: saved.update(c) or True,
-        )
         wh.set_initial_password_from_env()
-        # admin hash should have been replaced
-        assert saved.get("web_ui_password_hash") != admin_hash
+        assert calls == ["supersecret"]
 
     def test_env_var_handles_malformed_hash(self, monkeypatch):
         """A malformed hash triggers the data-error branch and resets."""
         import app.utils.web_helpers as wh
 
         monkeypatch.setenv("DDC_ADMIN_PASSWORD", "supersecret")
-        saved = {}
+        calls = self._patch_change_password(monkeypatch)
         monkeypatch.setattr(
             "services.config.config_service.load_config",
             lambda: {"web_ui_password_hash": "not-a-valid-hash"},
         )
-        monkeypatch.setattr(
-            "services.config.config_service.save_config",
-            lambda c: saved.update(c) or True,
-        )
         wh.set_initial_password_from_env()
-        # Either reset or skipped — function should not raise
+        # Either reset or skipped (werkzeug returns False for a malformed hash) — must not raise
+        assert calls in ([], ["supersecret"])
 
 
 class TestSetupActionLogger:
@@ -779,9 +768,8 @@ class TestCheckDockerConnectivity:
             "services.infrastructure.docker_connectivity_service.get_docker_connectivity_service",
             lambda: fake_service,
         )
-        result = asyncio.get_event_loop().run_until_complete(
-            wh.check_docker_connectivity(logging.getLogger("t"))
-        ) if not asyncio.get_event_loop().is_running() else None
+        # asyncio.get_event_loop() raises without a running loop on Python 3.14
+        result = asyncio.run(wh.check_docker_connectivity(logging.getLogger("t")))
         if result is None:
             # Fallback for environments where the loop is already running
             loop = asyncio.new_event_loop()
@@ -2457,14 +2445,6 @@ class TestMainRoutesAdditional:
         assert resp.status_code == 200
         body = resp.get_json()
         assert body["success"] is False
-
-    def test_simulate_donation_broadcast_returns_stub(self, main_app):
-        resp = main_app.test_client().post(
-            "/api/simulate-donation-broadcast", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
 
     def test_config_page_renders_with_service_data(self, main_app, monkeypatch):
         svc = MagicMock()

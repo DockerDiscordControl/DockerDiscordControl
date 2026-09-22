@@ -171,10 +171,10 @@ class TaskManager {
         } else {
             actionButtons = `
                 <div class="btn-group btn-group-sm" role="group">
-                    <button class="btn btn-primary editTaskBtn" data-task-id="${escapedData.id}" title="Edit Task" data-bs-toggle="tooltip">
+                    <button type="button" class="btn btn-primary editTaskBtn" data-task-id="${escapedData.id}" title="Edit Task" data-bs-toggle="tooltip">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-danger deleteTaskBtn" data-task-id="${escapedData.id}" title="Delete Task" data-bs-toggle="tooltip">
+                    <button type="button" class="btn btn-danger deleteTaskBtn" data-task-id="${escapedData.id}" title="Delete Task" data-bs-toggle="tooltip">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>`;
@@ -237,13 +237,20 @@ class TaskManager {
     }
 
     formatLastRunResult(task) {
+        let result;
         if (task.last_run_success === true) {
-            return `<span class="badge bg-success" title="${t('tasks.executed_successfully')}">${t('tasks.result_success')}</span>`;
+            result = `<span class="badge bg-success" title="${t('tasks.executed_successfully')}">${t('tasks.result_success')}</span>`;
         } else if (task.last_run_success === false) {
             const escapedError = this.escapeHtml(task.last_run_error || t('tasks.execution_failed'));
-            return `<span class="badge bg-danger" title="${escapedError}">${t('tasks.result_failed')}</span>`;
+            result = `<span class="badge bg-danger" title="${escapedError}">${t('tasks.result_failed')}</span>`;
+        } else {
+            result = `<span class="text-muted">${t('tasks.not_run_yet')}</span>`;
         }
-        return `<span class="text-muted">${t('tasks.not_run_yet')}</span>`;
+        // Show why a deactivated task stopped (e.g. paused after an upgrade, missed one-time run)
+        if (!task.is_active && task.last_run_error) {
+            result += `<div class="small text-muted">${this.escapeHtml(task.last_run_error)}</div>`;
+        }
+        return result;
     }
 
     formatDate(dateString, localDateString) {
@@ -336,7 +343,10 @@ class TaskManager {
             if (task.cycle === 'weekly') {
                 this.hideElement('editTaskDay');
                 this.showElement('editTaskWeekday');
-                this.setFormValue('editTaskWeekday', scheduleDetails.day);
+                // Stored as "monday" (or legacy "Mon"); the select options use "Mon".."Sun"
+                const weekday = String(scheduleDetails.day || '');
+                this.setFormValue('editTaskWeekday',
+                    weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1, 3).toLowerCase() : '');
             } else {
                 this.showElement('editTaskDay');
                 this.hideElement('editTaskWeekday');

@@ -67,7 +67,9 @@ class DonationStatusService:
             # Step 3: Get speed information using cached data
             speed_info = self._calculate_speed_information(
                 power=mech_cache_result.power,
-                total_donated=mech_cache_result.total_donated
+                total_donated=mech_cache_result.total_donated,
+                evolution_level=mech_cache_result.level,
+                power_max=getattr(getattr(mech_cache_result, 'bars', None), 'Power_max_for_level', None)
             )
 
             # Step 4: Get evolution information using cached data
@@ -81,7 +83,8 @@ class DonationStatusService:
                 status_data=status_data
             )
 
-        except (RuntimeError) as e:
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
+            # A superset of what the steps above can raise (review C46).
             self.logger.error(f"Error getting donation status: {e}", exc_info=True)
             return DonationStatusResult(
                 success=False,
@@ -89,21 +92,29 @@ class DonationStatusService:
             )
 
 
-    def _calculate_speed_information(self, power: float, total_donated: float) -> Dict[str, Any]:
+    def _calculate_speed_information(self, power: float, total_donated: float,
+                                     evolution_level: Optional[int] = None,
+                                     power_max: Optional[float] = None) -> Dict[str, Any]:
         """Calculate speed level and related information.
 
         Args:
             power: Current power amount (for speed calculation within level)
-            total_donated: Total donations received (for evolution level determination)
+            total_donated: Total donations received (legacy level guess if evolution_level is missing)
+            evolution_level: Actual mech level (preferred over a level guessed from total_donated)
+            power_max: Power bar maximum of that level (speed scale)
         """
         try:
-            from services.mech.speed_levels import SPEED_DESCRIPTIONS, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio
+            from services.mech.speed_levels import SPEED_DESCRIPTIONS, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio, get_speed_level_for_state
 
             # Calculate speed level using evolution-based calculation
-            # CRITICAL: Use total_donated for evolution level, power for speed calculation
             try:
-                evolution_level, max_power_for_level = _get_evolution_context(total_donated)
-                level = _calculate_speed_level_from_power_ratio(evolution_level, power, max_power_for_level)
+                if evolution_level is not None:
+                    # Real level + power bar: a level guessed from total_donated is wrong with dynamic costs
+                    level = get_speed_level_for_state(evolution_level, power, power_max)
+                else:
+                    # Legacy: total_donated for evolution level, power for speed calculation
+                    guessed_level, max_power_for_level = _get_evolution_context(total_donated)
+                    level = _calculate_speed_level_from_power_ratio(guessed_level, power, max_power_for_level)
             except (ImportError, ValueError, ZeroDivisionError):
                 # Fallback if evolution system unavailable
                 level = min(int(power), 100) if power > 0 else 0
@@ -155,6 +166,20 @@ class DonationStatusService:
             }
 
 
+    @staticmethod
+    def _next_level_name(level: int) -> str:
+        """Name of the evolution after `level`, or '' when there is none (level 11 is the last).
+
+        Read from the same configured source Discord uses, so both surfaces agree.
+        """
+        try:
+            if level >= 11:
+                return ''
+            from services.mech.mech_service_adapter import get_level_name
+            return get_level_name(level + 1) or ''
+        except (ImportError, AttributeError, RuntimeError, ValueError):
+            return ''
+
     def _build_status_data_from_cache(self, cache_result, speed_info: Dict[str, Any], evolution_info: Dict[str, Any]) -> Dict[str, Any]:
         """Build the comprehensive status data object from cached data - PERFORMANCE OPTIMIZED."""
         try:
@@ -165,6 +190,12 @@ class DonationStatusService:
                 'current_Power_raw': cache_result.power,  # Cache already includes decimals
                 'mech_level': cache_result.level,
                 'mech_level_name': cache_result.name,
+                # The name of the NEXT evolution, so the Web UI does not have to keep its own
+                # copy of the level names. It used to hold a hardcoded list ("STANDARD MECH",
+                # ...) that had drifted away from the configured ones ("The Corewalker
+                # Standard", ...), so the panel and Discord showed different names for the same
+                # level. Empty on level 11, which has no successor.
+                'next_level_name': self._next_level_name(cache_result.level),
                 'next_level_threshold': cache_result.threshold,
                 'glvl': cache_result.glvl,
                 'glvl_max': cache_result.glvl_max,
@@ -180,7 +211,12 @@ class DonationStatusService:
 
             return status_data
 
-        except (RuntimeError) as e:
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
+            # The fallback below exists for exactly this: a cache entry whose
+            # `bars` is missing or incomplete. `except (RuntimeError)` could
+            # never reach it, because that raises AttributeError - so the panel
+            # got a traceback instead of the degraded status this code was
+            # written to produce (review C46).
             self.logger.error(f"Error building status data from cache: {e}", exc_info=True)
             # Return minimal fallback status
             return {

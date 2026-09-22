@@ -919,50 +919,6 @@ class TestLogRoutes:
         assert body["success"] is False
         assert "error" in body
 
-    def test_clear_logs_success_passes_log_type(self, log_app, mock_log_service):
-        mock_log_service.clear_logs.return_value = _ok(data={"success": True, "cleared": 3})
-
-        client = log_app.test_client()
-        resp = client.post(
-            "/clear_logs",
-            json={"log_type": "bot"},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        # The service should have been called with a ClearLogRequest carrying our log_type.
-        called_arg = mock_log_service.clear_logs.call_args[0][0]
-        assert called_arg.log_type == "bot"
-
-    def test_clear_logs_defaults_to_container_when_no_body(
-        self, log_app, mock_log_service
-    ):
-        mock_log_service.clear_logs.return_value = _ok(data={"success": True})
-
-        client = log_app.test_client()
-        # Empty JSON object — `request.json` returns {} (falsy → default branch).
-        resp = client.post(
-            "/clear_logs",
-            json={},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 200
-        called_arg = mock_log_service.clear_logs.call_args[0][0]
-        assert called_arg.log_type == "container"
-
-    def test_clear_logs_failure_returns_status(self, log_app, mock_log_service):
-        mock_log_service.clear_logs.return_value = _fail("nope", status=500)
-
-        client = log_app.test_client()
-        resp = client.post(
-            "/clear_logs",
-            json={"log_type": "bot"},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 500
-        assert resp.get_json()["success"] is False
-
     def test_log_route_handles_service_import_error(
         self, log_app, monkeypatch
     ):
@@ -1042,21 +998,6 @@ class TestLogRoutes:
         resp = client.get("/action_logs_json", headers=_AUTH_HEADER)
         assert resp.status_code == 500
         assert resp.get_json()["success"] is False
-
-    def test_clear_logs_handles_runtime_error(self, log_app, monkeypatch):
-        svc = MagicMock()
-        svc.clear_logs.side_effect = RuntimeError("nope")
-        monkeypatch.setattr(
-            "services.web.container_log_service.get_container_log_service",
-            lambda: svc,
-        )
-        client = log_app.test_client()
-        resp = client.post(
-            "/clear_logs",
-            json={"log_type": "container"},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 500
 
     def test_application_logs_success(self, log_app, mock_log_service):
         mock_log_service.get_filtered_logs.return_value = _ok(content="app logs")
@@ -1535,37 +1476,3 @@ class TestActionLogRoutes:
         # send_file raises FileNotFoundError → handler redirects.
         # Some Flask versions raise NotFound (404); accept either contract.
         assert resp.status_code in {302, 404, 500}
-
-    def test_clear_action_log_writes_marker_and_returns_json(
-        self, action_log_app
-    ):
-        client = action_log_app.test_client()
-        resp = client.post("/clear-action-log", headers=_AUTH_HEADER)
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-
-        # Verify the file was rewritten with the cleared marker
-        path = action_log_app.config["log_path"]
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        assert "Log cleared by user" in content
-
-    def test_clear_action_log_handles_io_error(
-        self, action_log_app, monkeypatch
-    ):
-        real_open = open
-
-        def raising_open(path, mode="r", *a, **kw):
-            if str(path).endswith("action_log.json") and "w" in mode:
-                raise PermissionError("denied")
-            return real_open(path, mode, *a, **kw)
-
-        monkeypatch.setattr("builtins.open", raising_open)
-
-        client = action_log_app.test_client()
-        resp = client.post("/clear-action-log", headers=_AUTH_HEADER)
-        # Route swallows the error and returns JSON with success=False.
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is False

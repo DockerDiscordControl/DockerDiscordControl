@@ -32,5 +32,22 @@ async def grant_power_gift_step(context: StartupContext) -> None:
             # Clearing the cache causes Web UI to show "OFFLINE" until loop refreshes
         else:
             logger.info("Power gift not needed (power > 0 or already granted)")
-    except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
-        logger.error("Error checking/granting power gift: %s", e, exc_info=True)
+    except Exception as e:  # noqa: BLE001
+        # Broad on purpose. This is step 2 of 9, the sequence that runs it has no
+        # handler at all, and neither does its caller - so anything that escapes
+        # here stops the seven steps after it: no extensions, no commands, no
+        # scheduler. The bot connects to Discord and does nothing.
+        #
+        # What made it necessary: review D1 gave _heal_if_lagging a raise, so a
+        # mech snapshot that lags behind the event log and cannot be rebuilt now
+        # raises MechStateError instead of quietly burying a donation. That was
+        # right. But power_gift heals first too, the adapter passes the exception
+        # through, and MechStateError (-> MechServiceError -> DDCBaseException)
+        # is in none of the types that used to stand here. A repair that made
+        # the money safe made the startup fragile, on a path nobody checked
+        # (review E8).
+        #
+        # A power gift is a nicety; the bot starting is not. Nothing here is
+        # worth stopping a startup for.
+        logger.error("Error checking/granting power gift: %s: %s",
+                     type(e).__name__, e, exc_info=True)

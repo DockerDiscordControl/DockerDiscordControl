@@ -16,6 +16,7 @@ import logging
 import discord
 from pathlib import Path
 from typing import Dict, Any, Optional
+from utils.atomic_io import atomic_write_json
 from utils.logging_utils import get_module_logger
 from cogs.translation_manager import _
 
@@ -33,8 +34,10 @@ class UpdateNotifier:
         if config_dir:
             self.config_dir = Path(config_dir)
         else:
-            # Robust absolute path relative to project root
-            self.config_dir = Path(__file__).parents[2] / "config"
+            # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from
+            # __file__ before, blind to the variable.
+            from utils.config_paths import get_config_dir
+            self.config_dir = get_config_dir()
             
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.status_file = self.config_dir / "update_status.json"
@@ -52,16 +55,45 @@ class UpdateNotifier:
 
         try:
             with open(self.status_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                stored = json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error loading update status: {e}")
             return default_status
 
+        # What this method promises is the shape above, not whatever happens to
+        # be in the file. A file that parses used to come back untouched, so the
+        # two keys were only guaranteed on the error paths - and
+        # mark_notification_shown indexes status["notifications_shown"]
+        # directly. A hand-edited file, or one from another schema, raised
+        # KeyError there, inside send_update_notification, whose clause names
+        # RuntimeError and three discord exceptions: it left that method
+        # uncaught (review C65).
+        if not isinstance(stored, dict):
+            logger.error(f"{self.status_file.name} does not hold an object "
+                         f"({type(stored).__name__}) - starting from the defaults")
+            return default_status
+
+        # Fill the gaps, keep everything else: save_update_status writes the
+        # whole record back, so a key this version does not know must survive.
+        status = {**default_status, **stored}
+        if not isinstance(status.get("notifications_shown"), list):
+            logger.error(f"notifications_shown in {self.status_file.name} is not a list "
+                         f"({status.get('notifications_shown')!r}) - starting it empty")
+            status["notifications_shown"] = []
+        return status
+
     def save_update_status(self, status: Dict[str, Any]) -> bool:
         """Save update notification status."""
         try:
-            with open(self.status_file, 'w', encoding='utf-8') as f:
-                json.dump(status, f, indent=2, ensure_ascii=False)
+            # Write atomically instead of open(..., "w"): the latter truncates the
+            # file on open, and json.dump writes as a stream. Measured: on a
+            # serialisation error a HALF record was left behind
+            # ('{\n  "last_notified_version": "2.0",\n  "notifications_shown": '),
+            # and get_update_status:56-58 then falls back to the defaults - a
+            # long-dismissed update notice appears again.
+            # atomic_write_json serialises BEFORE opening (utils/atomic_io.py:66-69)
+            # and writes with the same parameters (indent=2, ensure_ascii=False).
+            atomic_write_json(self.status_file, status)
             return True
         except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
             logger.error(f"Error saving update status: {e}", exc_info=True)
@@ -176,7 +208,7 @@ class UpdateNotifier:
                         logger.info(f"Update notification sent to channel {channel_id}")
                     else:
                         logger.warning(f"Could not find channel {channel_id}")
-                except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+                except (RuntimeError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
                     logger.error(f"Error sending update notification to channel {channel_id}: {e}", exc_info=True)
 
             if sent_count > 0:

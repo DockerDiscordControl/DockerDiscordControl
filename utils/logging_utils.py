@@ -51,61 +51,69 @@ def is_debug_mode_enabled() -> bool:
             return _debug_mode_enabled or False
         is_debug_mode_enabled._loading = True
 
-        # Check if temporary debug mode is active and not expired
-        current_time = time.time()
-        if _temp_debug_mode_enabled and current_time < _temp_debug_expiry:
-            # Print a message every few seconds to confirm temp debug is active
-            if _last_debug_status_log is None or (current_time - _last_debug_status_log > 10):
-                print(f"TEMP DEBUG MODE IS ACTIVE! Expires in {int((_temp_debug_expiry - current_time) / 60)} minutes and {int((_temp_debug_expiry - current_time) % 60)} seconds")
-                _last_debug_status_log = current_time
-            return True
-        elif _temp_debug_mode_enabled and current_time >= _temp_debug_expiry:
-            # Temp debug mode has expired, reset it
-            _temp_debug_mode_enabled = False
-            print(f"Temporary debug mode expired")
-
-        # Use a non-blocking approach to get debug status
         try:
-            # Store previous value to detect changes
-            previous_value = _debug_mode_enabled
+            # Check if temporary debug mode is active and not expired
+            current_time = time.time()
+            if _temp_debug_mode_enabled and current_time < _temp_debug_expiry:
+                # Print a message every few seconds to confirm temp debug is active
+                if _last_debug_status_log is None or (current_time - _last_debug_status_log > 10):
+                    print(f"TEMP DEBUG MODE IS ACTIVE! Expires in {int((_temp_debug_expiry - current_time) / 60)} minutes and {int((_temp_debug_expiry - current_time) % 60)} seconds")
+                    _last_debug_status_log = current_time
+                return True
+            elif _temp_debug_mode_enabled and current_time >= _temp_debug_expiry:
+                # Temp debug mode has expired, reset it
+                _temp_debug_mode_enabled = False
+                print(f"Temporary debug mode expired")
 
-            # Lazy load config to avoid circular dependency during initialization
+            # Use a non-blocking approach to get debug status
             try:
-                from services.config.config_service import get_config_service as get_config_manager
-                config = get_config_manager().get_config(force_reload=False)
-            except (ImportError, AttributeError, RuntimeError, KeyError) as config_error:
-                # During service initialization, config may not be available yet
-                if _debug_mode_enabled is None:
-                    _debug_mode_enabled = False  # Safe default
+                # Store previous value to detect changes
+                previous_value = _debug_mode_enabled
+
+                # Lazy load config to avoid circular dependency during initialization
+                try:
+                    from services.config.config_service import get_config_service as get_config_manager
+                    config = get_config_manager().get_config(force_reload=False)
+                except (ImportError, AttributeError, RuntimeError, KeyError) as config_error:
+                    # During service initialization, config may not be available yet
+                    if _debug_mode_enabled is None:
+                        _debug_mode_enabled = False  # Safe default
+                    return _debug_mode_enabled
+
+                # Use the cached value of debug mode if available
+                _debug_mode_enabled = config.get('scheduler_debug_mode', False)
+
+                # Only output debug message when loaded for the first time or when the value changes
+                if previous_value != _debug_mode_enabled or (_last_debug_status_log is None) or (current_time - _last_debug_status_log > 300):
+                    # Only log if debug mode actually changed or it's the first time loading
+                    if previous_value != _debug_mode_enabled or _last_debug_status_log is None:
+                        print(f"Debug status loaded from configuration: {_debug_mode_enabled}")
+                    _last_debug_status_log = current_time
+
+            except (RuntimeError, TypeError, ValueError) as e:
+                # Fallback on errors
+                print(f"Error loading debug status: {e}")
+                if _debug_mode_enabled is None:  # Only set to False if currently None
+                    _debug_mode_enabled = False
+
+            # Check once more if temporary debug mode is active
+            return _debug_mode_enabled or _temp_debug_mode_enabled
+        finally:
+            # Always clear the recursion guard - it used to stay set after the
+            # temp-debug early return (or an exception), after which every call
+            # returned the stale cached value until restart.
+            if hasattr(is_debug_mode_enabled, '_loading'):
                 delattr(is_debug_mode_enabled, '_loading')
-                return _debug_mode_enabled
-
-            # Use the cached value of debug mode if available
-            _debug_mode_enabled = config.get('scheduler_debug_mode', False)
-
-            # Only output debug message when loaded for the first time or when the value changes
-            if previous_value != _debug_mode_enabled or (_last_debug_status_log is None) or (current_time - _last_debug_status_log > 300):
-                # Only log if debug mode actually changed or it's the first time loading
-                if previous_value != _debug_mode_enabled or _last_debug_status_log is None:
-                    print(f"Debug status loaded from configuration: {_debug_mode_enabled}")
-                _last_debug_status_log = current_time
-
-        except (RuntimeError, TypeError, ValueError) as e:
-            # Fallback on errors
-            print(f"Error loading debug status: {e}")
-            if _debug_mode_enabled is None:  # Only set to False if currently None
-                _debug_mode_enabled = False
-
-        # Check once more if temporary debug mode is active
-        result = _debug_mode_enabled or _temp_debug_mode_enabled
-
-        # Clear recursion guard
-        if hasattr(is_debug_mode_enabled, '_loading'):
-            delattr(is_debug_mode_enabled, '_loading')
-
-        return result
 
 # A filter that only allows DEBUG logs when debug mode is enabled
+# The one fallback timezone. It used to be written out here AND in
+# utils/time_utils.py with two different values ('Europe/Berlin' here, 'UTC'
+# there), so the two modules disagreed about what time it was (review C35).
+# It lives in this module because time_utils imports logging_utils and not the
+# other way round.
+DEFAULT_TIMEZONE = "Europe/Berlin"
+
+
 class DebugModeFilter(logging.Filter):
     """
     Filter that only allows DEBUG messages when debug mode is enabled.
@@ -129,6 +137,58 @@ class DebugModeFilter(logging.Filter):
         # Always allow all other levels (INFO and higher)
         return True
 
+# Levels remembered before debug mode lowered them, so switching debug off puts
+# every logger and handler back exactly where it was.
+_levels_before_debug = {}
+
+
+def _ddc_loggers():
+    """The 'ddc' logger and every real logger below it (placeholders skipped)."""
+    yield logging.getLogger('ddc')
+    for name, obj in list(logging.root.manager.loggerDict.items()):
+        if name.startswith('ddc.') and isinstance(obj, logging.Logger):
+            yield obj
+
+
+def _apply_debug_levels(enabled: bool) -> None:
+    """Let DEBUG records reach DebugModeFilter again - or stop letting them.
+
+    DebugModeFilter is meant to BE the switch: it passes DEBUG exactly while
+    debug mode is on and INFO and above always. It can only do that for records
+    that reach it, and Python drops a DEBUG record twice before any filter runs
+    - Logger.debug returns unless isEnabledFor(DEBUG), and callHandlers compares
+    record.levelno >= hdlr.level. Turning debug mode on used to refresh the
+    filters and leave both levels at INFO, so for every logger that already
+    existed the promised detailed logs never appeared (review C9).
+
+    Only handlers that carry a DebugModeFilter are lowered. A handler without
+    that filter keeps its own level as its gate, so nothing starts emitting
+    DEBUG that was not meant to.
+    """
+    global _levels_before_debug
+
+    if enabled:
+        # Merge, never replace: this runs again on every enable and on every
+        # refresh, and loggers are created all through the process's life. A
+        # target already remembered keeps its ORIGINAL level; a new one is
+        # remembered and lowered now.
+        for logger_instance in _ddc_loggers():
+            if (logger_instance not in _levels_before_debug
+                    and logging.NOTSET < logger_instance.level > logging.DEBUG):
+                _levels_before_debug[logger_instance] = logger_instance.level
+                logger_instance.setLevel(logging.DEBUG)
+            for handler in logger_instance.handlers:
+                if (handler not in _levels_before_debug
+                        and handler.level > logging.DEBUG
+                        and any(isinstance(f, DebugModeFilter) for f in handler.filters)):
+                    _levels_before_debug[handler] = handler.level
+                    handler.setLevel(logging.DEBUG)
+    else:
+        for target, level in _levels_before_debug.items():
+            target.setLevel(level)
+        _levels_before_debug = {}
+
+
 # A custom formatter class that uses the configured timezone
 class TimezoneFormatter(logging.Formatter):
     """
@@ -137,6 +197,16 @@ class TimezoneFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None, tz=None):
         super().__init__(fmt, datefmt)
         self.tz = tz
+
+    # tzinfo objects keyed by timezone name. pytz.timezone() is a lookup plus object
+    # construction; formatTime runs per log record, so the result is memoised here.
+    _TZ_CACHE = {}
+    # The configured timezone name, re-read at most every _TZ_NAME_TTL seconds. Kept on the
+    # formatter so logging never mutates state owned by another module. A timezone changed in
+    # the Web UI therefore reaches the log timestamps within this window.
+    _TZ_NAME_TTL = 30.0
+    _tz_name = None
+    _tz_name_read_at = 0.0
 
     def formatTime(self, record, datefmt=None):
         """
@@ -148,17 +218,31 @@ class TimezoneFormatter(logging.Formatter):
         try:
             import pytz
 
-            # Try to load the timezone from the configuration
-            try:
-                from services.config.config_service import load_config
-                config = load_config()
-                timezone_str = config.get('timezone', 'Europe/Berlin')
-            except (ImportError, AttributeError, KeyError, RuntimeError, TypeError):
-                # During initialization, use safe default
-                timezone_str = 'Europe/Berlin'
+            # This runs for EVERY formatted log record, and the loops log ~20 lines a minute -
+            # a full load_config() per line. The value is therefore cached here, on the
+            # formatter itself.
+            #
+            # Deliberately NOT utils.time_utils.get_configured_timezone(): that function writes
+            # a module-level cache, which would make emitting a log line mutate shared state in
+            # another module. It does exactly that to two legitimate tests (they clear that
+            # cache and a log record silently refills it, because pytest.ini enables live
+            # logging). Formatting a log line must not have side effects.
+            now = time.time()
+            timezone_str = self._tz_name
+            if timezone_str is None or (now - self._tz_name_read_at) >= self._TZ_NAME_TTL:
+                try:
+                    from services.config.config_service import load_config
+                    timezone_str = load_config().get('timezone', DEFAULT_TIMEZONE)
+                except (ImportError, AttributeError, KeyError, RuntimeError, TypeError):
+                    # During initialization, use safe default
+                    timezone_str = DEFAULT_TIMEZONE
+                type(self)._tz_name = timezone_str
+                type(self)._tz_name_read_at = now
 
-            # Convert the timestamp to the configured timezone
-            tz = pytz.timezone(timezone_str)
+            tz = self._TZ_CACHE.get(timezone_str)
+            if tz is None:
+                tz = pytz.timezone(timezone_str)
+                self._TZ_CACHE[timezone_str] = tz
             dt = datetime.fromtimestamp(record.created, tz)
 
             # Format with the correct timezone
@@ -237,6 +321,13 @@ def setup_logger(name: str, level=logging.INFO, log_to_console=True, log_to_file
         except (OSError, IOError, PermissionError) as e:
             print(f"Failed to set up file logging for {name}: {e}")
 
+    # Levels are set once, here, at whatever moment the logger happens to be
+    # built - and not every logger is built at import time. One created while
+    # debug mode is already running would otherwise stay deaf to DEBUG for the
+    # rest of the session (review C9).
+    if is_debug_mode_enabled():
+        _apply_debug_levels(True)
+
     return logger
 
 def refresh_debug_status():
@@ -259,6 +350,9 @@ def refresh_debug_status():
 
         # Reload the debug status
         debug_enabled = is_debug_mode_enabled()
+
+        # The permanent switch needs the same levels as the temporary one.
+        _apply_debug_levels(debug_enabled)
 
         # Create a logger for this function
         logger = logging.getLogger('ddc.config')
@@ -331,6 +425,10 @@ def enable_temporary_debug(duration_minutes=5):
         except (AttributeError, RuntimeError, TypeError) as e:
             print(f"Error refreshing log filters: {e}")
 
+        # Refreshing the filters is not enough on its own - the levels have to
+        # let the DEBUG records get as far as the filters (review C9).
+        _apply_debug_levels(True)
+
         return True, _temp_debug_expiry
     except (RuntimeError, ValueError, TypeError) as e:
         print(f"Error enabling temporary debug mode: {e}")
@@ -348,6 +446,11 @@ def disable_temporary_debug():
     try:
         _temp_debug_mode_enabled = False
         _temp_debug_expiry = 0
+
+        # Put the levels back where they were before debug mode lowered them,
+        # unless permanent debug mode is on and still wants them down.
+        if not is_debug_mode_enabled():
+            _apply_debug_levels(False)
 
         # Log the change
         logger = logging.getLogger('ddc.config')

@@ -90,7 +90,8 @@ def service():
 @pytest.fixture(autouse=True)
 def _patch_load_tasks():
     """Stop the service loop from hitting the real task store."""
-    with patch("services.scheduling.scheduler_service.load_tasks", return_value=[]):
+    with patch("services.scheduling.scheduler_service.load_tasks", return_value=[]), \
+         patch("services.scheduling.scheduler_service.pause_long_dead_tasks_once", return_value=0):
         yield
 
 

@@ -125,10 +125,13 @@ class TestDockerUtilsFallbackClient:
         with patch.object(
             docker_utils.docker, "from_env", return_value=fake_client
         ):
-            cm_factory = docker_utils.get_docker_client_async(
+            # The caller's real shape: "async with get_docker_client_async(...)".
+            # Until 2026-09-20 this test called the result itself, which is what
+            # the fallback handed back - a function, not a context manager. That
+            # was the defect, not the promise (review C4).
+            async with docker_utils.get_docker_client_async(
                 operation="info", container_name="anything"
-            )
-            async with cm_factory() as client:
+            ) as client:
                 assert client is fake_client
 
         # client.close was scheduled in the finally block.
@@ -146,8 +149,7 @@ class TestDockerUtilsFallbackClient:
         client = _mock_client()
         client.close.side_effect = OSError("close exploded")
         with patch.object(docker_utils.docker, "from_env", return_value=client):
-            cm_factory = docker_utils.get_docker_client_async()
-            async with cm_factory() as c:
+            async with docker_utils.get_docker_client_async() as c:  # see C4 above
                 assert c is client
         # Even though close raised, the cm exited cleanly (line 388 path).
         client.close.assert_called_once()
@@ -427,19 +429,22 @@ class TestDockerUtilsListTimeout:
 
 
 class TestDockerUtilsContainersDataRunningBranch:
-    """Lines 761-765: get_containers_data running-state with valid State."""
+    """get_containers_data: a running container from the low-level listing."""
 
     @pytest.mark.asyncio
-    async def test_running_state_with_string_state_keeps_started_at(
+    async def test_a_running_container_comes_back_as_running(
         self, monkeypatch
     ):
-        # Production reads c_data['State'] as string for ``.lower()``;
-        # then if running, again as dict for ``.get('StartedAt')``.
-        # That double-typed lookup means a single dict can never go through
-        # both branches cleanly: with a string, ``.get`` raises AttributeError
-        # caught by the outer except handler.
-        # However, producing a "running" status DOES exercise the running
-        # branch up until the AttributeError, covering lines 760-765.
+        # This test used to assert the opposite - that the entry comes back as
+        # "error_processing" - and explained why in its own comment: the code
+        # read c_data['State'] as a string for .lower() and then again as a
+        # dict for .get('StartedAt'), so every running container fell into the
+        # AttributeError handler. That is the defect, not the promise; it was
+        # written down as the expected result and kept the bug in place for as
+        # long as the test existed. The start time is gone (the low-level
+        # listing does not carry one; only an inspect call does), and what
+        # remains is the question this function is asked: is the container
+        # running (review C56).
         client = MagicMock()
         client.api.containers.return_value = [
             {
@@ -459,11 +464,11 @@ class TestDockerUtilsContainersDataRunningBranch:
         docker_utils._containers_cache = None
         docker_utils._cache_timestamp = 0
         result = await docker_utils.get_containers_data()
-        # The running branch attempts state_detail.get(...) on a string,
-        # which raises AttributeError caught by inner except -> entry
-        # becomes ``error_processing``.
         assert len(result) == 1
-        assert result[0]["status"] == "error_processing"
+        assert result[0]["status"] == "running"
+        assert result[0]["running"] is True
+        assert result[0]["ports"] == [{"PrivatePort": 80}]
+        assert "error" not in result[0]
 
 
 class TestDockerUtilsCacheTtlLoader:
@@ -501,9 +506,14 @@ class TestDockerUtilsListContainersInner:
     """list_docker_containers per-container exception branches (693-698)."""
 
     @pytest.mark.asyncio
-    async def test_list_skips_notfound_and_attrerror(
+    async def test_list_keeps_containers_whose_image_lookup_would_fail(
         self, monkeypatch
     ):
+        """Formerly test_list_skips_notfound_and_attrerror, which asserted that
+        a container whose image lookup raised was DROPPED from the list - the
+        very behaviour a user reported against v2.3.1 (review E53). The image
+        name now comes from attrs, so the lookup is never made and all three
+        containers stay."""
         # Use a real-ish container class so attribute access raises naturally.
         class _Image:
             def __init__(self, tags, id_):
@@ -528,6 +538,7 @@ class TestDockerUtilsListContainersInner:
                 self.id = f"{name}-id"
                 self.status = "running"
                 self.image = image
+                self.attrs = {"Config": {"Image": f"{name}:1"}}
 
         good_img = _Image(["nginx:1"], "sha:gooooooooood")
         good = _Container("good", good_img)
@@ -548,10 +559,10 @@ class TestDockerUtilsListContainersInner:
             _async_cm_yielding(client),
         )
         result = await docker_utils.list_docker_containers()
-        # Only the good entry survives -- the others raised NotFound /
-        # AttributeError respectively.
-        assert len(result) == 1
-        assert result[0]["name"] == "good"
+        assert [c["name"] for c in result] == ["broken", "good", "weird"], (
+            "a container whose image lookup would fail fell out of the list")
+        assert {c["name"]: c["image"] for c in result} == {
+            "broken": "broken:1", "good": "good:1", "weird": "weird:1"}
 
 
 class TestDockerUtilsContainersDataInner:
@@ -895,8 +906,8 @@ class TestDockerUtilsCompareBranches:
         )
 
         out = await docker_utils.compare_container_performance(["alpha"])
-        # Path 1261-1268: error entry appended, formatted as "❌ FEHLER"
-        assert "FEHLER" in out
+        # Path 1261-1268: error entry appended, formatted as "❌ ERROR"
+        assert "❌ ERROR" in out
 
 
 # =========================================================================== #
@@ -1105,11 +1116,37 @@ class TestContainerStatusDeactivateException:
 
         svc = ContainerStatusService()
 
-        # Force open() to raise inside _deactivate_container.
-        def _bad_open(*_a, **_kw):
-            raise IOError("disk gone")
+        # Force the WRITE inside _deactivate_container to raise.
+        #
+        # Two corrections live here, and the second was only found by measuring:
+        #
+        # 1. This used to patch builtins.open only. Since the write became atomic
+        #    (temp file + os.replace, SPEC.md Z7) the data goes through os.fdopen,
+        #    which builtins.open does not cover.
+        # 2. Failing on EVERY open (the obvious fix) does not test the write at
+        #    all: _deactivate_container reads the config file first, so the read
+        #    blew up, the method returned False, and the assertion below was
+        #    satisfied without the write ever being reached. Verified by mutation
+        #    - with the atomic helper deliberately swallowing all errors, this
+        #    test stayed green while the Z7 test went red.
+        #
+        # Hence: only write-mode opens fail, on both paths.
+        import os as _os
 
-        with patch("builtins.open", _bad_open):
+        real_open, real_fdopen = open, _os.fdopen
+
+        def _bad_write_open(target, mode="r", *a, **kw):
+            if "w" in mode or "a" in mode:
+                raise IOError("disk gone")
+            return real_open(target, mode, *a, **kw)
+
+        def _bad_write_fdopen(fd, mode="r", *a, **kw):
+            if "w" in mode or "a" in mode:
+                raise IOError("disk gone")
+            return real_fdopen(fd, mode, *a, **kw)
+
+        with patch("builtins.open", _bad_write_open), \
+             patch.object(_os, "fdopen", _bad_write_fdopen):
             ok = svc._deactivate_container("myc")
         assert ok is False
 
@@ -1175,16 +1212,14 @@ class TestContainerStatusFetchSuccessBranch:
         fake_container.attrs = {
             "State": {"StartedAt": "2024-01-01T00:00:00Z"},
             "NetworkSettings": {"Ports": {"80/tcp": []}},
+            "Config": {"Image": "nginx:latest"},
         }
-        fake_container.image = MagicMock(
-            tags=["nginx:latest"], id="sha256:abcd"
-        )
 
-        # The production code uses ``container.stats(stream=True, decode=True)``
-        # then iterates with ``next(...)``.  We provide a generator with one
-        # stats dict.
-        def _stats_gen(stream, decode):  # noqa: ARG001
-            yield {
+        # The production code uses ``container.stats(stream=False)`` (single
+        # snapshot with a filled precpu_stats), which returns one stats dict.
+        def _stats_gen(stream=True, decode=None):  # noqa: ARG001
+            assert stream is False
+            return {
                 "cpu_stats": {
                     "cpu_usage": {"total_usage": 200},
                     "system_cpu_usage": 1000,
@@ -1228,13 +1263,13 @@ class TestContainerStatusFetchSuccessBranch:
     ):
         svc = ContainerStatusService()
 
-        # A non-Mock plain object lacks .image -> AttributeError (line 416-426
-        # ``except (AttributeError, KeyError, IndexError)``).
+        # A plain object without .status -> AttributeError, which reaches the
+        # ``except (AttributeError, KeyError, IndexError)`` branch. This used to
+        # rely on a missing .image; since review E53 the image is read from
+        # attrs and .image is never touched, so the branch needs another way in.
         class _BareContainer:
-            status = "running"
             attrs = {"State": {"StartedAt": "2024-01-01T00:00:00Z"},
                      "NetworkSettings": {"Ports": {}}}
-            # No .image attribute -> AttributeError raised in production.
 
         fake_client = MagicMock()
         fake_client.containers.get.return_value = _BareContainer()
@@ -1300,9 +1335,9 @@ class TestContainerStatusFetchSuccessBranch:
         }
         fake_container.image = MagicMock(tags=["i:1"], id="sha256:1")
 
-        # Stats generator raises on next() -> StopIteration path.
-        def _empty_gen(stream, decode):  # noqa: ARG001
-            return iter([])  # next() raises StopIteration
+        # stats(stream=False) fails to decode -> fallback values path.
+        def _empty_gen(stream=True, decode=None):  # noqa: ARG001
+            raise ValueError("invalid stats JSON")
 
         fake_container.stats = _empty_gen
 
@@ -1321,10 +1356,11 @@ class TestContainerStatusFetchSuccessBranch:
         req = ContainerStatusRequest(container_name="ngx")
         result = await svc._fetch_container_status(req)
         assert result.success is True
-        # Fallback values applied.
-        assert result.cpu_percent == 0.1
-        assert result.memory_usage_mb == 2.0
-        assert result.memory_limit_mb == 1024.0
+        # Until 2026-09-20 the failure was filled in with 0.1 / 2.0 / 1024.0 and
+        # looked like a healthy idle container. Not measured is None (review C1).
+        assert result.cpu_percent is None
+        assert result.memory_usage_mb is None
+        assert result.memory_limit_mb is None
 
     @pytest.mark.asyncio
     async def test_fetch_handles_docker_notfound_and_deactivates(
@@ -1423,7 +1459,8 @@ class TestContainerStatusCpuMemoryEdgeCases:
             },
         }
         cpu = svc._calculate_cpu_percent_from_stats(stats, "x")
-        assert cpu == 0.1
+        # Same samples twice is zero load, not "a little" (review C1).
+        assert cpu == 0.0
 
     def test_memory_from_stats_handles_exception(self):
         svc = ContainerStatusService()
@@ -1432,8 +1469,8 @@ class TestContainerStatusCpuMemoryEdgeCases:
             "not-a-dict",  # type: ignore[arg-type]
             "x",
         )
-        assert usage_mb == 2.0
-        assert limit_mb == 1024.0
+        assert usage_mb is None
+        assert limit_mb is None
 
 
 class TestContainerStatusCompatibilityFallbacks:
@@ -1473,37 +1510,10 @@ class TestContainerStatusCompatibilityFallbacks:
 # =========================================================================== #
 
 
-class TestSpamProtectionPathException:
-    """Line 81-82: __file__.parents[2] resolution failure."""
-
-    def test_init_falls_back_when_parents_resolution_fails(
-        self, monkeypatch, tmp_path
-    ):
-        # We can't easily monkeypatch __file__ so instead trigger the
-        # except by passing config_dir=None and patching ``Path(__file__)``
-        # only for this module.  The import-time service has already
-        # resolved successfully, so we re-create with explicit None and
-        # observe the error-handling fallback by mocking Path itself.
-        original_path = Path
-
-        class _ExplodingPath(original_path):
-            @property
-            def parents(self):
-                raise RuntimeError("no parents")
-
-        # When Path(__file__) is called inside __init__ it returns our
-        # exploding path which fails on .parents access. ``except Exception``
-        # catches it and falls back to ``Path("config")`` (line 82).
-        monkeypatch.setattr(
-            "services.infrastructure.spam_protection_service.Path",
-            _ExplodingPath,
-        )
-        # Also redirect cwd so the fallback "config" path is created in
-        # tmp_path -- otherwise it would land in the project root.
-        monkeypatch.chdir(tmp_path)
-        svc = SpamProtectionService(config_dir=None)
-        # Fallback "config" directory should now exist relative to cwd.
-        assert svc.config_dir == _ExplodingPath("config")
+# TestSpamProtectionPathException was removed on 2026-09-19: it forced
+# ``Path(__file__).parents`` to raise so __init__ fell back to Path("config").
+# That branch no longer exists - the directory comes from
+# utils.config_paths.get_config_dir() (tests/spec/test_config_dir_spam_protection.py).
 
 
 class TestSpamProtectionSaveConfigFailure:
@@ -1555,8 +1565,11 @@ class TestSpamProtectionFallbacks:
 
 
 class TestSpamProtectionRemainingForCommand:
-    """Lines 248-252: get_remaining_cooldown command branch (action_type
-    is one of the listed commands)."""
+    """get_remaining_cooldown, command branch (action_type is one of the
+    listed commands).
+
+    Deliberately WITHOUT line numbers: they silently go stale with every change
+    to the file, and a comment pointing nowhere is worse than none."""
 
     def test_get_remaining_cooldown_for_command_action(
         self, tmp_path, monkeypatch
@@ -1566,14 +1579,17 @@ class TestSpamProtectionRemainingForCommand:
         import time as _t
 
         monkeypatch.setattr(_t, "time", lambda: 2000.0)
-        svc.add_user_cooldown(11, "ping")
+        # kind="command": since the fix the caller decides command or button,
+        # not a list of names any more. This test checks the command branch on
+        # purpose and must therefore say so.
+        svc.add_user_cooldown(11, "ping", kind="command")
         # ping has command cooldown of 3 (default config)
-        remaining = svc.get_remaining_cooldown(11, "ping")
+        remaining = svc.get_remaining_cooldown(11, "ping", kind="command")
         assert 2.9 <= remaining <= 3.0
 
 
 class TestSpamProtectionAddCooldownDisabled:
-    """Line 265: add_user_cooldown returns early when disabled."""
+    """add_user_cooldown returns early when disabled."""
 
     def test_add_user_cooldown_no_op_when_disabled(self, tmp_path):
         svc = SpamProtectionService(config_dir=str(tmp_path))
@@ -1628,10 +1644,16 @@ class TestDynamicCooldownGetForCommandFailures:
         call_count = {"n": 0}
 
         def _fake_cooldown(*_a, **_kw):
+            # The second style used to raise RuntimeError here, because that is
+            # what the fallback's except clause named. A plain constructor does
+            # not raise RuntimeError; what it can raise is TypeError or
+            # ValueError, and the clause names those now (review C62). The
+            # promise under test is unchanged: if neither style works, the
+            # method answers None instead of raising.
             call_count["n"] += 1
             if call_count["n"] == 1:
                 raise TypeError("3-arg form not supported")
-            raise RuntimeError("py-cord 2-arg also broken")
+            raise ValueError("py-cord 2-arg also broken")
 
         monkeypatch.setattr(dpy_commands, "Cooldown", _fake_cooldown)
         cd = mgr.get_cooldown_for_command("control")

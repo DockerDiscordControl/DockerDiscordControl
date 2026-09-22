@@ -41,7 +41,9 @@ class ContainerConfigSaveService:
         """Initialize the ContainerConfigSaveService."""
         # Robust absolute path relative to project root (3 levels up from services/config/container_config_save_service.py)
         self.base_dir = Path(__file__).parents[2]
-        self.containers_dir = self.base_dir / 'config' / 'containers'
+        # DDC_CONFIG_DIR via utils/config_paths.py - see there (split config, SPEC.md Z2).
+        from utils.config_paths import get_config_dir
+        self.containers_dir = get_config_dir() / 'containers'
 
         # Ensure containers directory exists
         self.containers_dir.mkdir(parents=True, exist_ok=True)

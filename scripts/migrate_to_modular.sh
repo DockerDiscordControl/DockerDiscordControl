@@ -365,10 +365,11 @@ fi
 log_step "Setting file permissions..."
 chmod 644 channels/*.json containers/*.json *.json 2>/dev/null || true
 
-# Try to set ownership (may fail if not root, but that's okay)
+# Try to set ownership (may fail if not root, but that's okay).
+# Use DDC's configured PUID/PGID (default 1000:1000 = the container's ddc user).
 if command -v chown >/dev/null 2>&1; then
-    chown -R 99:100 channels containers 2>/dev/null || true
-    chown 99:100 *.json 2>/dev/null || true
+    chown -R "${PUID:-1000}:${PGID:-1000}" channels containers 2>/dev/null || true
+    chown "${PUID:-1000}:${PGID:-1000}" *.json 2>/dev/null || true
 fi
 
 # Step 8: Verify migration

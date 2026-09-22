@@ -1,6 +1,6 @@
-# DockerDiscordControl v2.3.1 🐳
+# DockerDiscordControl v2.4.0 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.3.1-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.3.1) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-3480%2F3480-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.4.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.4.0) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-5715%2F5715-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-71%25-green?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,39 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v2.4.0 (2026-09-22) - Audit Release**
+
+A complete audit of DDC, followed by a second review pass focused on what changes for **existing
+installations** on upgrade. **188 findings fixed** and a suite of **5,715 tests**. Every source
+file in the project carries written evidence that it was read — 184 of 184.
+
+⚠️ **Please read the [upgrade notes](docs/CHANGELOG.md#v240---2026-09-22) before updating** — you
+will be logged out once, long-dead scheduled tasks are paused instead of being resurrected, and
+your bot token stays in plaintext until you encrypt it.
+
+**Fixed, among others**
+- **One container can no longer make all your servers disappear** — a container whose image had
+  been removed from the host emptied the whole container list.
+- **Admin users can be saved again** — every save failed with "Failed to save admin users".
+- **Scheduled tasks run the way you set them up** — weekly tasks were dropped, cron tasks
+  silently switched off, and one missed run could stop a recurring task for good.
+- **The bot stays responsive** — Docker calls no longer block it, which caused repeated container
+  timeouts and the flood of "SLOW batched processing" warnings.
+- **Every button answers** — a failure now gets a message instead of an endless "thinking…".
+- **Auto-actions with several containers work** — they locked themselves out and never ran.
+- **"Change password" changes the password** — it used to do nothing and stored the new password
+  in plaintext.
+
+🔒 **Security**
+- The **Encrypt token** button really encrypts the token; before, it reported success and changed
+  nothing. If you pressed it on an earlier version, press it again — see the upgrade notes.
+- CSRF protection on every route; rejected requests get a clear message.
+- Session cookie renamed to `ddc_session` with `SameSite=Lax`; new passwords require 12 characters.
+- Auto-action regex patterns are validated, and each search runs in a separate process with a
+  hard 0.5 s budget, so a catastrophic pattern can no longer freeze the bot.
+
+Full details in the [changelog](docs/CHANGELOG.md).
 
 ### ✅ **v2.3.1 (2026-08-08) - Security Patch**
 
@@ -469,7 +502,11 @@ environment:
 
 ## 🧪 Testing & Quality Assurance
 
-DockerDiscordControl maintains **86% test coverage** (3480 tests) with comprehensive automated testing:
+DockerDiscordControl maintains **71% test coverage** (4388 tests) with comprehensive automated testing.
+Measured over the whole application code — `services/`, `app/`, `utils/` and `cogs/` — with
+coverage 7.16.1 (28880 statements, 8286 uncovered). The service, web and utility layers sit at 88%;
+the Discord cog layer is the weak spot at roughly 28% and is where new tests are most needed —
+`docker_control.py` and `control_ui.py` alone account for 4568 statements at about 19%.
 
 ### Test Suites
 - **Unit Tests**: Service-level testing for core business logic
@@ -479,7 +516,7 @@ DockerDiscordControl maintains **86% test coverage** (3480 tests) with comprehen
 
 ### Continuous Integration
 All code changes are automatically validated through GitHub Actions:
-- ✅ **Automated Testing** - pytest with 86% coverage
+- ✅ **Automated Testing** - pytest with 71% coverage across the whole application code
 - ✅ **Code Quality** - pylint, flake8, mypy type checking
 - ✅ **Security Scanning** - bandit, semgrep, safety dependency checks
 - ✅ **Performance Benchmarks** - Automated performance regression testing
@@ -651,6 +688,16 @@ FLASK_SECRET_KEY=your-64-character-random-secret-key
 
 **Important**: The default password is 'setup' for security setup. You MUST change this immediately after first login. For production deployments, set DDC_ADMIN_PASSWORD before first start.
 
+### Web UI Port
+
+```bash
+# Port the Web UI listens on inside the container (default: 9374). Only needed with
+# host networking when 9374 is already in use - with bridge networking change the
+# host side of the port mapping (e.g. -p 8080:9374) instead. The image's
+# HEALTHCHECK follows this variable.
+DDC_WEB_PORT=9374
+```
+
 ### Performance Optimization Variables (New in 2025)
 
 DDC now includes advanced performance optimization settings that can be configured via environment variables:
@@ -818,10 +865,10 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 **First-Time Setup Issues:**
 - **Can't Login**: Visit `/setup` or use `admin` / `setup` credentials
 - **"Authentication Required"**: Use default credentials `admin` / `setup` or configure DDC_ADMIN_PASSWORD
-- **Password Reset**: Run `docker exec -it ddc python3 scripts/reset_password.py`
+- **Password Reset**: Run `docker exec -it -u ddc ddc python3 scripts/reset_password.py`
 
 **Common Issues:**
-- **Permission Errors**: Run `docker exec ddc /app/scripts/fix_permissions.sh`
+- **Permission Errors**: Restart the container (`docker restart ddc`) - the entrypoint repairs the ownership of the data directories on startup
 - **Configuration Not Saving**: Check file permissions in logs
 - **Bot Not Responding**: Verify token and Guild ID in Web UI
 

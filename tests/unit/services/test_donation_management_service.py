@@ -238,8 +238,8 @@ class TestDonationManagementService:
             "services.mech.progress_service.get_progress_service",
             return_value=progress_service,
         ):
-            # Index 0 = Charlie (newest first)
-            result = self.service.delete_donation(0)
+            # delete_donation takes the stable event seq (3 = Charlie), not a list index
+            result = self.service.delete_donation(3)
 
         assert result.success is True
         assert result.data["deleted_seq"] == 3  # Charlie's seq
@@ -265,7 +265,7 @@ class TestDonationManagementService:
 
         assert result.success is False
         assert result.error is not None
-        assert "Invalid index" in result.error
+        assert "not found" in result.error  # unknown seq (was: out-of-range list index)
 
     def test_get_donation_stats(
         self, patch_mech_service, patch_progress_paths, event_log_path
@@ -399,13 +399,13 @@ class TestDonationManagementServiceIntegration:
         assert stats_result.data.total_power == pytest.approx(300.0)
         assert stats_result.data.total_donations == 2
 
-        # 3) delete newest (Bob, seq=2 is index 0 in newest-first display)
+        # 3) delete newest (Bob) by its stable event seq=2
         progress_service = Mock()
         with patch(
             "services.mech.progress_service.get_progress_service",
             return_value=progress_service,
         ):
-            delete_result = service.delete_donation(0)
+            delete_result = service.delete_donation(2)
         assert delete_result.success is True
         assert delete_result.data["deleted_seq"] == 2
         progress_service.delete_donation.assert_called_once_with(2)

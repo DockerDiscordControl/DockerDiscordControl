@@ -30,6 +30,10 @@ MIN_PRIORITY = 1
 MAX_PRIORITY = 100
 MIN_COOLDOWN_MINUTES = 1
 MAX_COOLDOWN_MINUTES = 10080  # 7 days
+# Scope of a rule's cooldown. "container" is the default and the behaviour of every release
+# before v2.4.0: the cooldown applies to each affected container separately. "rule" applies it
+# to the rule as a whole, so one triggering blocks it for every container.
+COOLDOWN_SCOPES = {'container', 'rule'}
 MIN_DELAY_SECONDS = 0
 MAX_DELAY_SECONDS = 3600  # 1 hour
 VALID_ACTION_TYPES = {'RESTART', 'STOP', 'START', 'RECREATE', 'NOTIFY'}
@@ -47,32 +51,137 @@ def validate_discord_snowflake(value: str, field_name: str) -> Tuple[bool, str]:
     return True, ""
 
 
+# ReDoS heuristic: a group that contains a repeating quantifier and is itself repeated,
+# e.g. (a+)+, (\w+)*, (.*)+, ([a-z]+){2,}  (the classic catastrophic-backtracking shape)
+_QUANTIFIED_GROUP_RE = re.compile(r'\(((?:[^()\\]|\\.)*)\)(?:[+*]|\{\d+,\d*\})')
+_ESCAPE_OR_CHAR_CLASS_RE = re.compile(r'\\.|\[(?:[^\]\\]|\\.)*\]')
+_REPEAT_QUANTIFIER_RE = re.compile(r'[+*]|\{\d+,\d*\}')
+# A counted repeat directly after a group: "{2,}", "{1,5}", "{3}"
+_COUNTED_REPEAT_RE = re.compile(r'^\{\d+(?:,\d*)?\}')
+# A repeat followed by a separator inside the group body, e.g. "\d+\.", "[a-z]+-", "\w+\s".
+# Every repetition then has to consume that separator, so there is no ambiguity to backtrack.
+# Covered separators: escaped literals (\.), whitespace classes (\s, \t, \n) and plain
+# punctuation/space characters. Excluded are the "wide" classes \w \d \S \D \W and \b.
+_SEPARATOR_AFTER_REPEAT_RE = re.compile(
+    r'(?:[+*]|\{\d+(?:,\d*)?\})\s*(?:\\[^dwSDWb]|[^\\\[\]()+*?{}|\w])(?![?*])'
+)
+
+
+def _repeated_group_bodies(pattern: str) -> List[str]:
+    """Bodies of groups that are themselves repeated, e.g. the "a+" of "(a+)+".
+
+    Parsed by scanning parentheses so nested groups are seen too: the regex-based scan this
+    replaces could not span "((a+))+" and missed it (V2 review B2).
+    """
+    bodies: List[str] = []
+    stack: List[int] = []
+    i = 0
+    while i < len(pattern):
+        ch = pattern[i]
+        if ch == '\\':
+            i += 2
+            continue
+        if ch == '[':  # character class: skip to its end, brackets inside are literal
+            i += 1
+            while i < len(pattern) and pattern[i] != ']':
+                i += 2 if pattern[i] == '\\' else 1
+            i += 1
+            continue
+        if ch == '(':
+            stack.append(i)
+        elif ch == ')' and stack:
+            start = stack.pop()
+            rest = pattern[i + 1:]
+            if rest[:1] in ('+', '*') or _COUNTED_REPEAT_RE.match(rest):
+                bodies.append(pattern[start + 1:i])
+        i += 1
+    return bodies
+
+
+def _has_ambiguous_alternation(body: str) -> bool:
+    """True for alternations whose branches can match the same text, e.g. (a|a), (0|0|0), (\\s|\\s).
+
+    Such a group needs no inner quantifier to blow up once the group itself is repeated.
+    """
+    depth = 0
+    branches: List[str] = []
+    current = []
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if ch == '\\':
+            current.append(body[i:i + 2])
+            i += 2
+            continue
+        if ch == '[':
+            start = i
+            i += 1
+            while i < len(body) and body[i] != ']':
+                i += 2 if body[i] == '\\' else 1
+            i += 1
+            current.append(body[start:i])
+            continue
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        if ch == '|' and depth == 0:
+            branches.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+        i += 1
+    branches.append(''.join(current).strip())
+    if len(branches) < 2:
+        return False
+    seen = set()
+    for branch in branches:
+        normalized = branch.lstrip('?:')
+        if normalized in seen:
+            return True
+        seen.add(normalized)
+    return False
+
+
+def _has_nested_quantifier(pattern: str) -> bool:
+    """Check a regex pattern (as text) for catastrophic-backtracking shapes.
+
+    Flags a repeated group whose body either repeats itself ("(a+)+", "(\\w+)*") or contains an
+    ambiguous alternation ("(a|a)+"). A body that must consume a fixed separator, such as
+    "(\\d+\\.)+\\d+" or "([a-z0-9-]+\\.)+[a-z]{2,}", is safe and stays allowed: every repetition
+    makes progress, so there is nothing to backtrack into.
+    """
+    for body in _repeated_group_bodies(pattern):
+        stripped = _ESCAPE_OR_CHAR_CLASS_RE.sub('', body)
+        if _REPEAT_QUANTIFIER_RE.search(stripped):
+            # A literal separator after the repeat (the "(\d+\.)+" shape) keeps it safe
+            if _SEPARATOR_AFTER_REPEAT_RE.search(body):
+                continue
+            return True
+        if _has_ambiguous_alternation(body):
+            return True
+    return False
+
+
 def validate_regex_pattern(pattern: str) -> Tuple[bool, str]:
     """Validate a regex pattern for correctness and ReDoS safety."""
     if not pattern:
         return True, ""  # Empty is allowed
 
-    # Check for potentially dangerous patterns (ReDoS)
-    dangerous_patterns = [
-        r'(\+|\*)\+',           # Nested quantifiers like (a+)+
-        r'\(\.\*\)\+',          # (.*)+
-        r'\(\.\+\)\+',          # (.+)+
-        r'(\w+)+',              # (\w+)+
-        r'(a+)+',               # (a+)+
-    ]
-    for danger in dangerous_patterns:
-        if re.search(danger, pattern):
-            return False, f"Regex pattern may cause ReDoS (catastrophic backtracking): {pattern}"
+    # Limit pattern complexity (simple heuristic) - checked first to bound the checks below
+    if len(pattern) > 500:
+        return False, "Regex pattern too long (max 500 characters)"
+
+    # Check for potentially dangerous patterns (ReDoS). The pattern is inspected as text;
+    # applying a danger list as regexes flagged nearly every pattern with a word char.
+    if _has_nested_quantifier(pattern):
+        return False, f"Regex pattern may cause ReDoS (catastrophic backtracking): {pattern}"
 
     # Try to compile the pattern
     try:
         re.compile(pattern)
     except re.error as e:
         return False, f"Invalid regex pattern: {e}"
-
-    # Limit pattern complexity (simple heuristic)
-    if len(pattern) > 500:
-        return False, "Regex pattern too long (max 500 characters)"
 
     return True, ""
 
@@ -88,6 +197,14 @@ def sanitize_string(value: str, max_length: int = 100) -> str:
     clean = truncated.replace('<', '').replace('>', '')
     # Final length limit
     return clean[:max_length].strip()
+
+
+class ConfigUnreadable(RuntimeError):
+    """auto_actions.json exists but could not be read - never write over it."""
+
+
+UNREADABLE_MESSAGE = ("auto_actions.json could not be read; not overwriting it - "
+                      "repair or restore the file first")
 
 
 def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str] = None) -> Tuple[bool, str, List[str]]:
@@ -133,7 +250,10 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         errors.append(f"Too many keywords (max {MAX_KEYWORDS})")
     for kw in keywords:
         if len(str(kw)) > MAX_KEYWORD_LENGTH:
-            errors.append(f"Keyword too long (max {MAX_KEYWORD_LENGTH} chars): {kw[:20]}...")
+            # str(kw), not kw: the length above is measured on str(kw) as well, so a
+            # keyword that is not text gets here - and slicing it raised TypeError out
+            # of the validator instead of reporting the keyword (review B33).
+            errors.append(f"Keyword too long (max {MAX_KEYWORD_LENGTH} chars): {str(kw)[:20]}...")
 
     # Regex pattern
     regex_pattern = trigger.get('regex_pattern')
@@ -189,6 +309,12 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
     cooldown = safety.get('cooldown_minutes', 1440)
     if not isinstance(cooldown, int) or cooldown < MIN_COOLDOWN_MINUTES or cooldown > MAX_COOLDOWN_MINUTES:
         errors.append(f"Cooldown must be between {MIN_COOLDOWN_MINUTES} and {MAX_COOLDOWN_MINUTES} minutes")
+
+    # Missing scope is not an error: rules written by older versions have no such key and keep
+    # the previous per-container behaviour.
+    scope = safety.get('cooldown_scope', 'container')
+    if scope not in COOLDOWN_SCOPES:
+        errors.append(f"Cooldown scope must be one of {', '.join(sorted(COOLDOWN_SCOPES))}")
 
     # --- Result ---
     if errors:
@@ -282,6 +408,12 @@ class AutoActionRule:
     priority: int = 10
     # Safety settings
     cooldown_minutes: int = 1440
+    # Scope of the cooldown above: "container" (default, and the behaviour of every release
+    # before v2.4.0) applies it per affected container, so a rule covering three containers can
+    # act on each of them once per cooldown. "rule" applies it to the whole rule, so one
+    # triggering blocks the rule itself for that duration. The default keeps existing
+    # installations working exactly as before.
+    cooldown_scope: str = "container"
     only_if_running: bool = True
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -295,6 +427,7 @@ class AutoActionRule:
             trigger=TriggerConfig.from_dict(data.get('trigger', {})),
             action=ActionConfig.from_dict(data.get('action', {})),
             cooldown_minutes=data.get('safety', {}).get('cooldown_minutes', 1440),
+            cooldown_scope=data.get('safety', {}).get('cooldown_scope', 'container'),
             only_if_running=data.get('safety', {}).get('only_if_running', True),
             metadata=data.get('metadata', {})
         )
@@ -309,6 +442,7 @@ class AutoActionRule:
             "action": self.action.to_dict(),
             "safety": {
                 "cooldown_minutes": self.cooldown_minutes,
+                "cooldown_scope": self.cooldown_scope,
                 "only_if_running": self.only_if_running
             },
             "metadata": self.metadata
@@ -332,7 +466,11 @@ class AutoActionConfigService:
         except Exception:
             self.base_dir = Path(".")
             
-        self.config_file = self.base_dir / "config" / "auto_actions.json"
+        # Via utils/config_paths.py (DDC_CONFIG_DIR). Derived from
+        # Path(__file__).parents[2] before: the file sat outside a volume given
+        # by DDC_CONFIG_DIR, and in test runs it landed in the real config/.
+        from utils.config_paths import get_config_dir
+        self.config_file = get_config_dir() / "auto_actions.json"
         self._ensure_config_exists()
         logger.info(f"AutoActionConfigService initialized: {self.config_file}")
 
@@ -353,17 +491,37 @@ class AutoActionConfigService:
             self._save_config_file(default_config)
 
     def _load_config_file(self) -> Dict[str, Any]:
-        """Load raw JSON config from file."""
+        """Load raw JSON config from file.
+
+        An unreadable file raises ConfigUnreadable. It used to answer with an EMPTY
+        structure, which every writer then saved back over the file: one bad read
+        (a partial copy, a hand edit, disk trouble) wiped every rule the operator had
+        and reported success (review B, section 10 F1). Readers may fall back to
+        "no rules" - that only stops automation - but nothing may WRITE on top of a
+        configuration it could not read.
+        """
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error loading auto_actions.json: {e}")
+            raise ConfigUnreadable(str(e)) from e
+
+    def _load_for_reading(self) -> Dict[str, Any]:
+        """The configuration, or an empty one if it cannot be read (readers only)."""
+        try:
+            return self._load_config_file()
+        except ConfigUnreadable:
             return {"global_settings": {}, "auto_actions": []}
 
     def _save_config_file(self, data: Dict[str, Any]) -> bool:
         """Save JSON config to file atomically."""
+        temp_path = None
         try:
+            # temp_path before the try: mkstemp itself can fail - an unwritable
+            # config directory, no inodes left - and the cleanup below asks for
+            # temp_path. Unbound, it raised UnboundLocalError from inside the
+            # handler and replaced the real error with a confusing one (review B29).
             temp_dir = str(self.config_file.parent)
             fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True, suffix='.json.tmp')
             
@@ -382,10 +540,10 @@ class AutoActionConfigService:
             return True
         except Exception as e:
             logger.error(f"Error saving auto_actions.json: {e}", exc_info=True)
-            if os.path.exists(temp_path):
+            if temp_path and os.path.exists(temp_path):
                 try:
                     os.unlink(temp_path)
-                except:
+                except Exception:
                     pass
             return False
 
@@ -393,7 +551,7 @@ class AutoActionConfigService:
 
     def get_rules(self) -> List[AutoActionRule]:
         """Get all configured rules as objects."""
-        data = self._load_config_file()
+        data = self._load_for_reading()
         rules = []
         for rule_data in data.get('auto_actions', []):
             try:
@@ -412,7 +570,7 @@ class AutoActionConfigService:
 
     def get_global_settings(self) -> Dict[str, Any]:
         """Get global AAS settings."""
-        data = self._load_config_file()
+        data = self._load_for_reading()
         return data.get('global_settings', {
             "enabled": True,
             "global_cooldown_seconds": 30,
@@ -423,7 +581,7 @@ class AutoActionConfigService:
         """Add a new rule with comprehensive validation."""
         try:
             # Get protected containers for validation warnings
-            config = self._load_config_file()
+            config = self._load_config_file()   # raises ConfigUnreadable - see below
             protected = config.get('global_settings', {}).get('protected_containers', [])
 
             # Validate rule data
@@ -456,6 +614,8 @@ class AutoActionConfigService:
             else:
                 return ConfigResult(success=False, error="Failed to save config file")
 
+        except ConfigUnreadable as e:
+            return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
         except Exception as e:
             logger.error(f"AAS: Error adding rule: {e}")
             return ConfigResult(success=False, error=str(e))
@@ -501,13 +661,18 @@ class AutoActionConfigService:
             else:
                 return ConfigResult(success=False, error="Failed to save config file")
 
+        except ConfigUnreadable as e:
+            return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
         except Exception as e:
             logger.error(f"AAS: Error updating rule {rule_id}: {e}")
             return ConfigResult(success=False, error=str(e))
 
     def delete_rule(self, rule_id: str) -> ConfigResult:
         """Delete a rule by ID."""
-        config = self._load_config_file()
+        try:
+            config = self._load_config_file()
+        except ConfigUnreadable as e:
+            return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
         original_len = len(config.get('auto_actions', []))
         
         config['auto_actions'] = [r for r in config.get('auto_actions', []) if r.get('id') != rule_id]
@@ -521,7 +686,10 @@ class AutoActionConfigService:
 
     def update_global_settings(self, settings: Dict[str, Any]) -> ConfigResult:
         """Update global settings."""
-        config = self._load_config_file()
+        try:
+            config = self._load_config_file()
+        except ConfigUnreadable as e:
+            return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
         # Merge with existing settings to prevent data loss
         current = config.get('global_settings', {})
         current.update(settings)
@@ -535,7 +703,7 @@ class AutoActionConfigService:
         """Increment the trigger count for a rule after successful execution."""
         try:
             config = self._load_config_file()
-            rules = config.get('auto_actions', [])
+            rules = config.get('auto_actions', [])   # ConfigUnreadable -> caught below
 
             for rule in rules:
                 if rule.get('id') == rule_id:

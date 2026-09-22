@@ -156,13 +156,27 @@ def update_task_status():
         if is_active is None:  # Explicit check for None, since is_active can be a boolean
             return jsonify({"success": False, "error": "Missing is_active flag"}), 400
 
+        # A real boolean, not whatever Python's truthiness makes of it. This
+        # used to be bool(is_active), and bool("false") is True - a caller
+        # sending the string "false" switched the task ON and was told it had
+        # worked. These tasks start and stop containers on a schedule, so a
+        # task the operator believes is off, running, is the sharpest shape
+        # this can take. Refusing rather than interpreting: "false" could be
+        # meant either way by a caller we know nothing about, and there is no
+        # safe way to pick one (review D29).
+        if not isinstance(is_active, bool):
+            return jsonify({
+                "success": False,
+                "error": "is_active must be true or false"
+            }), 400
+
         # Use TaskManagementService for business logic
         from services.web.task_management_service import get_task_management_service, UpdateTaskStatusRequest
 
         service = get_task_management_service()
         request_obj = UpdateTaskStatusRequest(
             task_id=task_id,
-            is_active=bool(is_active)
+            is_active=is_active
         )
 
         # Update task status through service

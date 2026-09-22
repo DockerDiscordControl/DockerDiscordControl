@@ -95,6 +95,9 @@ class MechWebService:
             from services.mech.mech_evolutions import get_evolution_level
             from services.mech.speed_levels import get_combined_mech_status
 
+            # Power bar maximum of the real level (speed scale); None = level range fallback
+            power_max = None
+
             # Step 1: Get current mech status from cache (ultra-fast)
             if request.force_evolution_level is not None:
                 # Override evolution level (for Mech History)
@@ -115,6 +118,7 @@ class MechWebService:
 
                 if level_result.success:
                     evolution_level = level_result.current_level
+                    power_max = self._get_power_bar_max(data_store)
                 else:
                     # Fallback to calculation from power if MechDataStore fails
                     evolution_level = max(1, min(11, get_evolution_level(current_power)))
@@ -132,6 +136,7 @@ class MechWebService:
 
                 current_power = mech_cache_result.power
                 evolution_level = mech_cache_result.level
+                power_max = getattr(getattr(mech_cache_result, 'bars', None), 'Power_max_for_level', None)
                 self.logger.debug(f"Live mech animation request from cache: level={evolution_level}, power={current_power}")
 
             # Step 2: Get power-based animation with proper speed calculation (same logic as big mechs)
@@ -143,7 +148,9 @@ class MechWebService:
                 speed_level = 100  # Level 11 always has maximum speed (divine speed)
                 self.logger.debug(f"Level 11 using maximum speed level: {speed_level}")
             else:
-                speed_status = get_combined_mech_status(current_power)
+                # Real level + its power bar maximum (not a level guessed from the power amount)
+                speed_status = get_combined_mech_status(current_power, evolution_level=evolution_level,
+                                                        power_max=power_max)
                 speed_level = speed_status['speed']['level']
 
             # Get animation with power-based selection (walk vs rest) - unified service interface
@@ -282,17 +289,21 @@ class MechWebService:
         """
         try:
             if request.operation == 'get':
-                return self._get_difficulty()
+                result = self._get_difficulty()
             elif request.operation == 'set':
-                return self._set_difficulty(request.multiplier)
+                result = self._set_difficulty(request.multiplier)
             elif request.operation == 'reset':
-                return self._reset_difficulty()
+                result = self._reset_difficulty()
             else:
-                return MechConfigResult(
+                result = MechConfigResult(
                     success=False,
                     error=f"Invalid operation: {request.operation}",
                     status_code=400
                 )
+            if not result.success and result.data is None:
+                # Same shape as the success data, for callers that return data as-is
+                result.data = {'success': False, 'error': result.error}
+            return result
 
         except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
             # Service/data errors (missing services, invalid types, missing attributes/keys)
@@ -341,6 +352,19 @@ class MechWebService:
             # Service/data errors (missing services, invalid types, missing attributes/keys)
             self.logger.error(f"Service error getting donation status from MechDataStore: {e}", exc_info=True)
             return 20.0  # Fallback default
+
+    def _get_power_bar_max(self, data_store) -> Optional[float]:
+        """Power bar maximum of the current level (speed scale); None if unavailable."""
+        try:
+            from services.mech.mech_data_store import MechDataRequest
+
+            mech_data = data_store.get_comprehensive_data(MechDataRequest(include_decimals=True))
+            if mech_data.success:
+                return getattr(getattr(mech_data, 'bars', None), 'Power_max_for_level', None)
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError, RuntimeError) as e:
+            # Speed then falls back to the level's range from the evolution config
+            self.logger.debug(f"Could not get power bar maximum: {e}")
+        return None
 
     def _create_donation_animation(self, total_donations: float, donor_name: str, amount: str) -> Optional[bytes]:
         """Create donation animation using internal methods (no circular deps)."""
@@ -499,6 +523,7 @@ class MechWebService:
             return MechConfigResult(
                 success=True,
                 data={
+                    'success': True,
                     'multiplier': multiplier,
                     'is_auto': is_auto,
                     'status': 'auto' if is_auto else 'manual',
@@ -534,14 +559,18 @@ class MechWebService:
                     status_code=400
                 )
 
-            from services.mech.mech_service import get_mech_service
             # FIX: Use mech_evolutions directly instead of missing simple_evolution_service
             from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
 
-            mech_service = get_mech_service()
-
-            # Set evolution mode to static with custom difficulty
-            mech_service.set_evolution_mode(use_dynamic=False, difficulty_multiplier=multiplier)
+            # Set evolution mode to static with custom difficulty.
+            # Until v2.4.1 this called mech_service.set_evolution_mode(), which does not exist on
+            # the adapter - every save raised AttributeError and returned HTTP 500.
+            from services.config.config_service import (
+                get_config_service, SetEvolutionModeRequest)
+            mode_result = get_config_service().set_evolution_mode_service(
+                SetEvolutionModeRequest(use_dynamic=False, difficulty_multiplier=multiplier))
+            if not mode_result.success:
+                return MechConfigResult(success=False, error=mode_result.error, status_code=500)
 
             # Get updated simple evolution state (Reconstructed manually)
             total_donated = self._get_total_donations()
@@ -563,6 +592,7 @@ class MechWebService:
             return MechConfigResult(
                 success=True,
                 data={
+                    'success': True,  # The route returns data as-is; the Web UI checks data.success
                     'multiplier': multiplier,
                     'is_auto': False,
                     'status': 'manual',
@@ -588,12 +618,14 @@ class MechWebService:
     def _reset_difficulty(self) -> MechConfigResult:
         """Reset mech evolution difficulty to dynamic mode."""
         try:
-            from services.mech.mech_service import get_mech_service
-
-            mech_service = get_mech_service()
-
-            # Set evolution mode to dynamic (community-based)
-            mech_service.set_evolution_mode(use_dynamic=True, difficulty_multiplier=1.0)
+            # Set evolution mode to dynamic (community-based). See _set_difficulty for why this
+            # no longer goes through mech_service.
+            from services.config.config_service import (
+                get_config_service, SetEvolutionModeRequest)
+            mode_result = get_config_service().set_evolution_mode_service(
+                SetEvolutionModeRequest(use_dynamic=True, difficulty_multiplier=1.0))
+            if not mode_result.success:
+                return MechConfigResult(success=False, error=mode_result.error, status_code=500)
 
             # Log the action
             self._log_user_action(
@@ -605,6 +637,7 @@ class MechWebService:
             return MechConfigResult(
                 success=True,
                 data={
+                    'success': True,  # The route returns data as-is; the Web UI checks data.success
                     'multiplier': 1.0,  # Reset to normal in UI
                     'is_auto': True,
                     'status': 'auto',

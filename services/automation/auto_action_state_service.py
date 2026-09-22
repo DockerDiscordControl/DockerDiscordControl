@@ -43,7 +43,11 @@ class AutoActionStateService:
         except Exception:
             self.base_dir = Path(".")
             
-        self.state_file = self.base_dir / "config" / "auto_actions_state.json"
+        # Via utils/config_paths.py (DDC_CONFIG_DIR). Derived from
+        # Path(__file__).parents[2] before: the file sat outside a volume given
+        # by DDC_CONFIG_DIR, and in test runs it landed in the real config/.
+        from utils.config_paths import get_config_dir
+        self.state_file = get_config_dir() / "auto_actions_state.json"
         self._lock = Lock()
         
         # Runtime State
@@ -91,6 +95,7 @@ class AutoActionStateService:
         """Persist state to disk (async safe via lock)."""
         # Note: We don't need to save on every single event to avoid IO spam.
         # But for V1 reliability, we'll save on significant changes.
+        temp_path = None
         try:
             data = {
                 'global_last_triggered': self.global_last_triggered,
@@ -99,6 +104,10 @@ class AutoActionStateService:
                 'trigger_history': self.trigger_history
             }
             
+            # temp_path before the try: mkstemp itself can fail - an unwritable
+            # config directory, no inodes left - and the cleanup below asks for
+            # temp_path. Unbound, it raised UnboundLocalError from inside the
+            # handler and replaced the real error with a confusing one (review B29).
             temp_dir = str(self.state_file.parent)
             fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True, suffix='.json.tmp')
             
@@ -116,16 +125,17 @@ class AutoActionStateService:
                 
         except Exception as e:
             logger.error(f"Error saving AAS state: {e}")
-            if os.path.exists(temp_path):
+            if temp_path and os.path.exists(temp_path):
                 try:
                     os.unlink(temp_path)
-                except:
+                except Exception:
                     pass
 
     # --- Public API ---
 
     def check_cooldown(self, rule_id: str, container: str,
-                      global_cooldown: int, rule_cooldown_mins: int) -> tuple[bool, str]:
+                      global_cooldown: int, rule_cooldown_mins: int,
+                      cooldown_scope: str = "container") -> tuple[bool, str]:
         """
         Check if action is blocked by any cooldown.
         Returns: (is_blocked, reason)
@@ -140,11 +150,19 @@ class AutoActionStateService:
                 remaining = int(global_cooldown - (now - self.global_last_triggered))
                 return True, f"Global cooldown active ({remaining}s remaining)"
 
-            # 2. Container Cooldown (using rule specific time)
-            # We map container cooldowns to rules essentially, but user asked for "Per Container" cooldowns.
-            # If rule says 24h cooldown, it applies to the container affected by this rule.
-            last_run = self.container_cooldowns.get(container, 0)
             cooldown_sec = rule_cooldown_mins * 60
+
+            # 2. Rule Cooldown - only for rules using the "rule" scope (see
+            # acquire_execution_locks and AutoActionRule.cooldown_scope).
+            if cooldown_scope == "rule":
+                last_rule_run = self.rule_cooldowns.get(rule_id, 0)
+                if (now - last_rule_run) < cooldown_sec:
+                    remaining_min = int((cooldown_sec - (now - last_rule_run)) / 60)
+                    return True, f"Rule cooldown active ({remaining_min}m remaining)"
+
+            # 3. Container Cooldown (using rule specific time)
+            # Default scope: a 24h cooldown applies to each container affected by this rule.
+            last_run = self.container_cooldowns.get(container, 0)
 
             if (now - last_run) < cooldown_sec:
                 remaining_min = int((cooldown_sec - (now - last_run)) / 60)
@@ -164,31 +182,68 @@ class AutoActionStateService:
             - (True, "") if execution is allowed (cooldowns have been set)
             - (False, reason) if blocked by cooldown
         """
+        can_execute, reason, _ = self.acquire_execution_locks(
+            rule_id, [container], global_cooldown, rule_cooldown_mins
+        )
+        return can_execute, reason
+
+    def acquire_execution_locks(self, rule_id: str, containers: List[str],
+                                global_cooldown: int, rule_cooldown_mins: int,
+                                cooldown_scope: str = "container") -> tuple[bool, str, Optional[str]]:
+        """
+        Atomic check-and-set of all cooldowns for a rule targeting one or more containers.
+
+        The global cooldown is checked once per rule and every container cooldown is
+        checked before anything is set. Only if all checks pass are the global, rule and
+        container cooldowns set together, in one locked operation. If any check fails,
+        nothing is changed - so a multi-container rule can't block itself via the global
+        cooldown, and no container stays locked after an abort.
+
+        Returns: (can_execute, reason, blocked_container)
+            - (True, "", None) if execution is allowed (cooldowns have been set)
+            - (False, reason, container) if blocked; container is the blocking one
+              (the first target for the global cooldown)
+        """
+        if not containers:
+            return True, "", None  # Nothing to lock
+
         now = time.time()
 
         with self._lock:
-            # 1. Global Cooldown Check
+            # 1. Global Cooldown Check (once per rule)
             if (now - self.global_last_triggered) < global_cooldown:
                 remaining = int(global_cooldown - (now - self.global_last_triggered))
-                return False, f"Global cooldown active ({remaining}s remaining)"
+                return False, f"Global cooldown active ({remaining}s remaining)", containers[0]
 
-            # 2. Container Cooldown Check
-            last_run = self.container_cooldowns.get(container, 0)
             cooldown_sec = rule_cooldown_mins * 60
 
-            if (now - last_run) < cooldown_sec:
-                remaining_min = int((cooldown_sec - (now - last_run)) / 60)
-                return False, f"Container '{container}' cooldown active ({remaining_min}m remaining)"
+            # 2a. Rule Cooldown Check - only when the rule opted into the "rule" scope.
+            # Until v2.4.0 rule_cooldowns was written here but never read, so the cooldown
+            # always behaved per container. Rules keep that behaviour unless they say
+            # otherwise, see AutoActionRule.cooldown_scope (B9).
+            if cooldown_scope == "rule":
+                last_rule_run = self.rule_cooldowns.get(rule_id, 0)
+                if (now - last_rule_run) < cooldown_sec:
+                    remaining_min = int((cooldown_sec - (now - last_rule_run)) / 60)
+                    return False, f"Rule cooldown active ({remaining_min}m remaining)", containers[0]
 
-            # 3. ATOMIC: Set cooldowns immediately to prevent race condition
+            # 2b. Container Cooldown Check - all targets before setting anything
+            for container in containers:
+                last_run = self.container_cooldowns.get(container, 0)
+                if (now - last_run) < cooldown_sec:
+                    remaining_min = int((cooldown_sec - (now - last_run)) / 60)
+                    return False, f"Container '{container}' cooldown active ({remaining_min}m remaining)", container
+
+            # 3. ATOMIC: Set all cooldowns immediately to prevent race condition
             # This ensures no other concurrent check can pass between our check and the actual execution
             self.global_last_triggered = now
-            self.container_cooldowns[container] = now
             self.rule_cooldowns[rule_id] = now
+            for container in containers:
+                self.container_cooldowns[container] = now
 
         # Note: We don't save state here - that happens in record_trigger()
         # This is intentional: if execution fails, the state will be corrected in record_trigger()
-        return True, ""
+        return True, "", None
 
     def release_execution_lock(self, rule_id: str, container: str, success: bool):
         """
@@ -210,6 +265,17 @@ class AutoActionStateService:
             if container in self.container_cooldowns:
                 del self.container_cooldowns[container]
             # Don't reset global_last_triggered as other rules may have set it
+
+    def release_rule_cooldown(self, rule_id: str) -> None:
+        """Free the rule's own cooldown - only when the whole batch did nothing.
+
+        Per-container outcomes go through record_trigger, which never touches the
+        rule's cooldown any more (review B10).
+        """
+        with self._lock:
+            if rule_id in self.rule_cooldowns:
+                self.rule_cooldowns[rule_id] = 0
+                logger.debug(f"AAS: Released rule cooldown for '{rule_id}' - nothing was executed")
 
     def record_trigger(self, rule_id: str, rule_name: str, container: str, action: str, result: str, details: str = ""):
         """
@@ -236,9 +302,12 @@ class AutoActionStateService:
                         # Reset to 0 to allow immediate retry
                         self.container_cooldowns[container] = 0
                         logger.debug(f"AAS: Released container cooldown for '{container}' after failed execution")
-                    if rule_id in self.rule_cooldowns:
-                        self.rule_cooldowns[rule_id] = 0
-                        logger.debug(f"AAS: Released rule cooldown for '{rule_id}' after failed execution")
+                    # The RULE cooldown is NOT touched here: one rule can target several
+                    # containers, and this used to wipe the rule's cooldown even when an
+                    # earlier container in the same batch had succeeded - the rule then
+                    # fired again on the next message, restarting that container over and
+                    # over (review B10). The caller releases it once, through
+                    # release_rule_cooldown(), when nothing in the batch succeeded.
 
             elif result == "SKIPPED":
                 # Rule was skipped (blocked at acquisition stage by cooldown or protected container)

@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 import pytz
 
-from utils.logging_utils import setup_logger
+from utils.logging_utils import setup_logger, DEFAULT_TIMEZONE
 
 logger = setup_logger('ddc.time_utils')
 
@@ -158,7 +158,11 @@ def get_timezone_offset(tz_name: str) -> str:
     try:
         tz = pytz.timezone(tz_name)
         now = datetime.now(tz)
-        return now.strftime('%z')
+        # strftime('%z') gives "+0100" - no colon - while the fallback below
+        # gave "+00:00" and the docstring promised "+01:00". One function, three
+        # shapes (review C38). ISO it is, which is what the docstring says.
+        raw = now.strftime('%z')
+        return f"{raw[:3]}:{raw[3:]}" if len(raw) == 5 else "+00:00"
     except (pytz.exceptions.UnknownTimeZoneError, AttributeError, TypeError, ValueError) as e:
         logger.warning(f"Could not get offset for timezone '{tz_name}': {e}", exc_info=True)
         return "+00:00"
@@ -261,13 +265,13 @@ def get_configured_timezone() -> str:
 def _get_timezone_safe():
     """Get timezone from config with multiple fallbacks - SERVICE FIRST compliant."""
     try:
-        # First priority: Environment variable (for container-level override)
-        tz = os.environ.get('TZ')
-        if tz:
-            logger.debug(f"Using timezone from TZ environment variable: {tz}")
-            return tz
-
-        # Second priority: Service First - Use load_config from config_service
+        # First priority: what the operator configured in the web panel.
+        #
+        # The TZ environment variable used to come first, and the Dockerfile
+        # sets TZ="Europe/Berlin" in every image DDC ships - so this function
+        # always answered Berlin and the panel setting had NO effect on the
+        # times the bot writes into Discord, while the console log (which reads
+        # the config) showed a different hour entirely (review C35).
         try:
             from services.config.config_service import load_config
             config = load_config()
@@ -282,6 +286,13 @@ def _get_timezone_safe():
         except (AttributeError, TypeError, KeyError, RuntimeError) as e:
             logger.debug(f"Could not get timezone from config service: {e}", exc_info=True)
 
+        # Second priority: TZ, the container's own default, for an installation
+        # that has not configured one.
+        tz = os.environ.get('TZ')
+        if tz:
+            logger.debug(f"Using timezone from TZ environment variable: {tz}")
+            return tz
+
         # Third priority: Use ConfigManager if available (for legacy support)
         try:
             from services.config.config_service import get_config_service as get_config_manager
@@ -293,13 +304,15 @@ def _get_timezone_safe():
         except (ImportError, AttributeError, TypeError, KeyError, RuntimeError) as e:
             logger.debug(f"Could not get timezone from ConfigManager: {e}", exc_info=True)
 
-        # Final fallback: Default to UTC (safer than hardcoded Europe/Berlin)
-        logger.warning("All timezone detection methods failed, falling back to UTC")
-        return 'UTC'
+        # Final fallback: the ONE shared default, so this module and the log
+        # formatter cannot disagree about what time it is (review C35).
+        logger.warning("All timezone detection methods failed, falling back to %s",
+                       DEFAULT_TIMEZONE)
+        return DEFAULT_TIMEZONE
 
     except (RuntimeError, SystemError) as e:
         logger.error(f"Critical error in _get_timezone_safe: {e}", exc_info=True)
-        return 'UTC'
+        return DEFAULT_TIMEZONE
 
 def clear_timezone_cache():
     """

@@ -34,6 +34,8 @@ Example:
 
 import json
 import logging
+import os
+import tempfile
 import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
@@ -138,11 +140,20 @@ class StructuredLogger(logging.LoggerAdapter):
         super().__init__(logger, extra or {})
 
     def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple:
-        """Add context to log message."""
-        # Merge adapter context with call-specific extra
-        extra = kwargs.get('extra', {})
-        extra.update(self.extra)
-        kwargs['extra'] = extra
+        """Add context to log message.
+
+        The adapter's context is the GENERAL value - the same on every line -
+        and the call's own extra is the specific one, so the call wins. It used
+        to be the other way round: a logger built with context={'donor':
+        'unknown'} logged donor='unknown' even when the call said 'Jane'.
+
+        And the merge starts from a copy: `extra.update(...)` wrote into the
+        dictionary the CALLER passed in, so a caller that kept that dict around
+        found the adapter's context added to it (review C34).
+        """
+        merged = dict(self.extra)
+        merged.update(kwargs.get('extra') or {})
+        kwargs['extra'] = merged
         return msg, kwargs
 
 
@@ -356,8 +367,22 @@ class MetricsCollector:
         stats = self.get_stats()
         stats["timestamp"] = datetime.now(timezone.utc).isoformat()
 
-        with open(file_path, 'w') as f:
-            json.dumps(stats, f, indent=2)
+        # Serialize first, then write a temp file and os.replace() it, so a
+        # failure never leaves a truncated/empty export behind.
+        payload = json.dumps(stats, indent=2)
+        fd, tmp_path = tempfile.mkstemp(
+            prefix=".metrics_", suffix=".tmp", dir=os.path.dirname(os.path.abspath(file_path))
+        )
+        try:
+            with os.fdopen(fd, 'w') as f:
+                f.write(payload)
+            os.replace(tmp_path, file_path)
+        except BaseException:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
 
 # Global metrics instance
@@ -446,8 +471,13 @@ class TracingManager:
 
             try:
                 yield span
-            except (RuntimeError) as e:
-                # Record exception in span
+            except Exception as e:  # noqa: BLE001
+                # Broad on purpose: the point is to mark a span that FAILED, and
+                # an operation can fail with anything. `except (RuntimeError)`
+                # left every ValueError, KeyError and DDC exception unmarked, so
+                # the exported trace showed the span as successful while the
+                # operation had failed (review C37). CancelledError derives from
+                # BaseException and still passes through, as it must.
                 span.set_status(Status(StatusCode.ERROR))
                 span.record_exception(e)
                 raise

@@ -653,10 +653,30 @@ class TestConfigServiceInit:
         assert s.enabled is False
 
     def test_load_config_corrupted_returns_defaults(self, isolated_config_service):
+        """The name promises the DEFAULTS, not merely the type.
+
+        This asserted `isinstance(settings, TranslationSettings)` and nothing
+        else. A get_settings that answered a corrupted file with an object full
+        of empty or garbage fields satisfied that, and the operator would have
+        had translation silently pointed at nothing (review E52).
+        """
         isolated_config_service.config_file.write_text("not json{{{")
-        # Direct call works too — public API resilience:
+
         settings = isolated_config_service.get_settings()
+
         assert isinstance(settings, TranslationSettings)
+        # Every field the dataclass declares a default for must BE that default.
+        expected = TranslationSettings()
+        for field in ("enabled", "provider", "api_key_env", "deepl_api_url",
+                      "rate_limit_per_minute", "max_text_length",
+                      "show_original_link", "show_provider_footer"):
+            assert getattr(settings, field) == getattr(expected, field), (
+                f"{field} came back as {getattr(settings, field)!r}, "
+                f"not the default {getattr(expected, field)!r}"
+            )
+        # And translation stays OFF after a corrupted read - it must not start
+        # calling a paid API because the file could not be parsed.
+        assert settings.enabled is False
 
 
 class TestConfigServicePairs:

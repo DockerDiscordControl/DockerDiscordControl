@@ -37,3 +37,8 @@ audioop-lts==0.2.1; python_version >= "3.13"
 Pillow>=12.1.1,<14.0.0  # Security fix for CVE-2026-25990
 # CSRF protection — Flask-WTF provides the CSRFProtect middleware
 Flask-WTF>=1.2.1,<3.0.0
+# Cron schedules for scheduled tasks (pure Python; pulls in python-dateutil)
+croniter>=6.0.0,<8.0.0
+# System/process memory stats for the performance endpoint (musllinux abi3 wheels for amd64 + arm64).
+# Capped below 8: the builder has no linux-headers, so a release without a musllinux wheel would break the build.
+psutil>=7.0.0,<8.0.0

@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from types import SimpleNamespace
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -334,7 +335,9 @@ def test_parse_timestamp_with_just_date_and_hours_minutes():
 
 
 def test_get_configured_timezone_falls_back_when_config_service_raises(monkeypatch):
-    """When TZ unset and config service raises, returns 'UTC'."""
+    """When TZ unset and config service raises, returns the ONE shared default
+    (it pinned 'UTC' until review C35, while the log formatter used
+    'Europe/Berlin')."""
     monkeypatch.delenv("TZ", raising=False)
     tu.clear_timezone_cache()
     import services.config.config_service as svc_mod  # type: ignore
@@ -348,7 +351,7 @@ def test_get_configured_timezone_falls_back_when_config_service_raises(monkeypat
         lambda: (_ for _ in ()).throw(RuntimeError("fail")),
     )
     tz = tu._get_timezone_safe()
-    assert tz == "UTC"
+    assert tz == tu.DEFAULT_TIMEZONE
     tu.clear_timezone_cache()
 
 
@@ -409,19 +412,13 @@ def test_timed_decorator_default_metric_name():
 
 
 def test_metrics_collector_export_json_structure(tmp_path):
-    """export_json constructs a stats dict with timestamp; we tolerate the
-    known bug in the production code (uses json.dumps(stats, file, indent)
-    which raises TypeError) by confirming the call attempt happened."""
+    """export_json writes the stats dict (with timestamp) as valid JSON."""
     mc = obs.MetricsCollector()
     mc.increment("x")
     out = tmp_path / "metrics.json"
-    # Production code has a typo (json.dumps instead of json.dump). Catch
-    # that gracefully — the test still exercised get_stats() and the export
-    # code path up to the dumps() call, which is what we care about.
-    try:
-        mc.export_json(out)
-    except TypeError:
-        pass
+    mc.export_json(out)
+    data = json.loads(out.read_text())
+    assert "timestamp" in data
 
 
 def test_get_observability_context_disabled_tracing_yields_no_span():
@@ -472,66 +469,38 @@ def test_token_security_constructor_handles_import_failure(monkeypatch):
     assert mgr.config_service is None
 
 
-def test_verify_status_handles_corrupt_bot_config_json(tmp_path, monkeypatch):
-    """When bot_config.json is malformed JSON, verify_status returns the
-    error-message path with default values."""
-    cfg = tmp_path / "config"
-    cfg.mkdir()
-    # Write garbage that fails json.load -> RuntimeError-ish path
-    (cfg / "bot_config.json").write_text("{ not json")
+def _token_service(token="", password_hash="ph"):
+    """A ConfigService stand-in answering like the real one: since review E55
+    the token manager reads token and hash from get_config() (config.json)."""
+    svc = MagicMock()
+    svc.get_config.return_value = {"bot_token": token, "web_ui_password_hash": password_hash}
+    svc.encrypt_token.return_value = "gAAAAA-encrypted-by-test"
+    svc.decrypt_token.side_effect = lambda enc, h: token
+    svc.update_config_fields.return_value = SimpleNamespace(success=True)
+    return svc
 
-    # Patch token_security.Path so its parents[1]/config resolves to tmp_path
-    class _Stub:
-        def __init__(self, p):
-            self._p = Path(p)
 
-        @property
-        def parents(self):
-            return [tmp_path / "fake0", tmp_path]
-
-        def __truediv__(self, other):
-            return self._p / other
-
-    monkeypatch.setattr(ts, "Path", lambda arg: _Stub(arg) if not isinstance(arg, str) else cfg)
+def test_verify_status_handles_a_corrupt_config(monkeypatch):
+    """Was test_verify_status_handles_corrupt_bot_config_json. A corrupt
+    config reaches the status through the ConfigService since review E55; it
+    must still come back as a status with the error recommendation, not raise."""
     monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
+    svc = MagicMock()
+    svc.get_config.side_effect = json.JSONDecodeError("not json", "{ not json", 2)
+    status = ts.TokenSecurityManager(config_service=svc).verify_token_encryption_status()
+    assert any("Error checking token status" in r for r in status["recommendations"])
 
-    mgr = ts.TokenSecurityManager(config_service=MagicMock())
-    # Returning a status dict (no raise) is the contract
-    status = mgr.verify_token_encryption_status()
-    assert isinstance(status, dict)
-    assert "recommendations" in status
+def test_auto_encrypt_returns_status_when_already_encrypted(monkeypatch):
+    """An already encrypted token: the startup reports it and touches nothing."""
+    import services.config.config_service as svc_mod
 
-
-def test_auto_encrypt_returns_status_when_already_encrypted(monkeypatch, tmp_path):
-    """If token already starts with 'gAAAAA', auto encrypt is skipped & status returned."""
-    cfg = tmp_path / "config"
-    cfg.mkdir()
-    (cfg / "bot_config.json").write_text(
-        json.dumps({"bot_token": "gAAAAA-already"})
-    )
-    (cfg / "web_config.json").write_text(
-        json.dumps({"web_ui_password_hash": "ph"})
-    )
-
-    class _Stub:
-        def __init__(self, p):
-            self._p = Path(p)
-
-        @property
-        def parents(self):
-            return [tmp_path / "fake0", tmp_path]
-
-        def __truediv__(self, other):
-            return self._p / other
-
-    monkeypatch.setattr(ts, "Path", lambda arg: _Stub(arg) if not isinstance(arg, str) else cfg)
     monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-
+    svc = _token_service(token="gAAAAA-already")
+    monkeypatch.setattr(svc_mod, "get_config_service", lambda: svc)
     status = ts.auto_encrypt_token_on_startup()
-    assert isinstance(status, dict)
-    # auto_encrypt skips when already encrypted; status reflects that
-    assert "is_encrypted" in status
-
+    assert status["is_encrypted"] is True
+    svc.encrypt_token.assert_not_called()
+    svc.update_config_fields.assert_not_called()
 
 def test_auto_encrypt_skipped_when_env_var_set(monkeypatch, tmp_path):
     monkeypatch.setenv("DISCORD_BOT_TOKEN", "from-env")
@@ -771,6 +740,7 @@ def test_check_and_execute_runs_due_task_via_mocked_execute_task(fresh_service):
     task.task_id = "t-due"
     task.container_name = "ctr-due"
     task.next_run_ts = time.time()
+    task.is_system_task.return_value = False  # System tasks are not re-saved
 
     async def _ok_execute(t):
         return None
@@ -868,8 +838,10 @@ def test_check_and_execute_respects_max_concurrent_limit(fresh_service):
     mocked_exec.assert_not_called()
 
 
-def test_module_level_start_stop_get_helpers():
+def test_module_level_start_stop_get_helpers(monkeypatch):
     """The module-level wrappers delegate to the global service instance."""
+    # The one-time upgrade pass would write a marker into the real config dir
+    monkeypatch.setattr(ss, "pause_long_dead_tasks_once", lambda: 0)
     # Use the real global, but stop it after.
     started = ss.start_scheduler_service()
     try:
@@ -1128,12 +1100,15 @@ def test_format_datetime_with_timezone_zoneinfo_and_pytz_fail_berlin(monkeypatch
 def test_migrate_to_environment_variable_success_with_decrypted_token():
     """Success branch: config has bot_token_decrypted_for_usage."""
     mgr = ts.TokenSecurityManager(config_service=MagicMock())
-    # Provide the missing config_manager attribute that the method reads
+    # config_service is the attribute __init__ sets and the method reads.
+    # Until 2026-09-18 this said config_manager - an attribute that never existed
+    # in production; the test checked a success path the real code never
+    # reached, and could not fail for it.
     fake_manager = MagicMock()
     fake_manager.get_config.return_value = {
         "bot_token_decrypted_for_usage": "PLAIN-TOKEN-123"
     }
-    mgr.config_manager = fake_manager
+    mgr.config_service = fake_manager
 
     result = mgr.migrate_to_environment_variable()
     assert result["success"] is True
@@ -1146,7 +1121,7 @@ def test_migrate_to_environment_variable_no_decrypted_token():
     mgr = ts.TokenSecurityManager(config_service=MagicMock())
     fake_manager = MagicMock()
     fake_manager.get_config.return_value = {"bot_token": "still-encrypted"}
-    mgr.config_manager = fake_manager
+    mgr.config_service = fake_manager
 
     result = mgr.migrate_to_environment_variable()
     assert result["success"] is False
@@ -1159,83 +1134,26 @@ def test_migrate_to_environment_variable_propagates_attr_error():
     mgr = ts.TokenSecurityManager(config_service=MagicMock())
     fake_manager = MagicMock()
     fake_manager.get_config.side_effect = AttributeError("nope")
-    mgr.config_manager = fake_manager
+    mgr.config_service = fake_manager
 
     result = mgr.migrate_to_environment_variable()
     assert result["success"] is False
     assert result["error"]
 
 
-def test_encrypt_existing_plaintext_writes_when_encryption_returns_value(
-    monkeypatch, tmp_path
-):
-    """Happy path with non-falsy return: file is rewritten with encrypted token."""
-    cfg = tmp_path / "config"
-    cfg.mkdir()
-    (cfg / "bot_config.json").write_text(json.dumps({"bot_token": "plain"}))
-    (cfg / "web_config.json").write_text(json.dumps({"web_ui_password_hash": "ph"}))
+def test_encrypt_existing_plaintext_writes_when_encryption_returns_value():
+    """Happy path: the encrypted token is saved through the ConfigService -
+    config.json since review E55, not the v1 bot_config.json."""
+    svc = _token_service(token="plain")
+    assert ts.TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is True
+    svc.update_config_fields.assert_called_once_with({"bot_token": "gAAAAA-encrypted-by-test"})
 
-    class _Stub:
-        def __init__(self, p):
-            self._p = Path(p)
-
-        @property
-        def parents(self):
-            return [tmp_path / "fake0", tmp_path]
-
-        def __truediv__(self, other):
-            return self._p / other
-
-    def _path_factory(arg):
-        # The legacy fallback `Path("config")` returns the cfg directory.
-        if isinstance(arg, str) and arg == "config":
-            return cfg
-        # Otherwise return a stub whose parents[1] is tmp_path (so
-        # parents[1] / "config" resolves to the real cfg dir).
-        return _Stub(arg)
-
-    monkeypatch.setattr(ts, "Path", _path_factory)
-
-    svc = MagicMock()
-    svc.encrypt_token.return_value = "gAAAAA-encrypted-by-test"
-    mgr = ts.TokenSecurityManager(config_service=svc)
-    assert mgr.encrypt_existing_plaintext_token() is True
-
-    # File rewrite verified
-    new = json.loads((cfg / "bot_config.json").read_text())
-    assert new["bot_token"] == "gAAAAA-encrypted-by-test"
-
-
-def test_encrypt_existing_with_broken_path_uses_fallback(monkeypatch, tmp_path):
-    """Force Path(__file__) to raise so the except clause uses Path('config')."""
-    nonexistent = tmp_path / "definitely_does_not_exist"
-
-    def _path_factory(arg):
-        # Path(__file__) raises; fallback Path("config") returns a tmp dir that
-        # does not exist -> files-missing branch returns True.
-        if arg != "config":
-            raise RuntimeError("simulated parents failure")
-        return nonexistent
-
-    monkeypatch.setattr(ts, "Path", _path_factory)
-    mgr = ts.TokenSecurityManager(config_service=MagicMock())
-    assert mgr.encrypt_existing_plaintext_token() is True
-
-
-def test_verify_status_with_broken_path_uses_fallback(monkeypatch, tmp_path):
-    """Same fallback path covered for verify_token_encryption_status."""
-    nonexistent = tmp_path / "definitely_does_not_exist"
-
-    def _path_factory(arg):
-        if arg != "config":
-            raise RuntimeError("simulated parents failure")
-        return nonexistent
-
-    monkeypatch.setattr(ts, "Path", _path_factory)
-    monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-    mgr = ts.TokenSecurityManager(config_service=MagicMock())
-    status = mgr.verify_token_encryption_status()
-    assert isinstance(status, dict)
+# test_encrypt_existing_with_broken_path_uses_fallback and
+# test_verify_status_with_broken_path_uses_fallback were removed on 2026-09-19:
+# they forced Path(__file__) to raise so the ``except`` branch fell back to
+# Path("config"). That branch no longer exists - the directory comes from
+# utils.config_paths.get_config_dir() - and both tests had become unable to
+# fail (they replaced a Path symbol the code no longer calls).
 
 
 def test_verify_status_handles_runtime_error_during_processing(monkeypatch):
@@ -1263,35 +1181,14 @@ def test_auto_encrypt_outer_exception_returns_none(monkeypatch):
     assert result is None
 
 
-def test_legacy_wrapper_encrypt_existing_runs_through(monkeypatch, tmp_path):
+def test_legacy_wrapper_encrypt_existing_runs_through(monkeypatch):
     """legacy encrypt_existing_plaintext_token wrapper executes both calls."""
+    import services.config.config_service as svc_mod
+
     monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-
-    cfg = tmp_path / "config"
-    cfg.mkdir()
-
-    class _Stub:
-        def __init__(self, p):
-            self._p = Path(p)
-
-        @property
-        def parents(self):
-            return [tmp_path / "fake0", tmp_path]
-
-        def __truediv__(self, other):
-            return self._p / other
-
-    def _path_factory(arg):
-        # The legacy fallback `Path("config")` returns the cfg directory.
-        if isinstance(arg, str) and arg == "config":
-            return cfg
-        # Otherwise return a stub whose parents[1] is tmp_path (so
-        # parents[1] / "config" resolves to the real cfg dir).
-        return _Stub(arg)
-
-    monkeypatch.setattr(ts, "Path", _path_factory)
-
-    # No bot_config.json exists -> returns True (no migration needed)
+    monkeypatch.setattr(svc_mod, "get_config_service", lambda: _token_service(token=""))
+    # No token stored -> nothing to encrypt
     assert ts.encrypt_existing_plaintext_token() is True
     status = ts.verify_token_encryption_status()
-    assert isinstance(status, dict)
+    assert status["token_exists"] is False
+

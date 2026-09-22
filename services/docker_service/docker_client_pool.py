@@ -130,7 +130,12 @@ class DockerClientService:
             'queued_requests': 0,
             'max_queue_size': 0,
             'average_wait_time': 0.0,
-            'timeouts': 0
+            'timeouts': 0,
+            # Failures that are NOT timeouts. Without this counter
+            # successful_requests was computed as total - timeouts, so every
+            # service error was counted as a success and the health figure an
+            # operator reads looked better than the truth (review C32).
+            'failures': 0
         }
 
         # Event to signal when clients become available (to avoid busy waiting)
@@ -184,7 +189,15 @@ class DockerClientService:
                 # Fast path failed (pool empty, lock issues, etc.) - fall back to queue
                 logger.debug(f"[SERVICE] Request {request_id}: Fast path failed: {e}. Using queue.")
 
-            # Queue the request (slow path)
+            # Queue the request (slow path). The processor has to exist BEFORE
+            # anything goes on the queue: this entry point used to queue without
+            # checking, so a service built without a running loop left the
+            # request sitting there until the ~90 s queue timeout, which was
+            # then reported as error_type="timeout" although no Docker call had
+            # been attempted (review C33b). get_client_async() has always done
+            # this; the two entry points had drifted apart.
+            self._ensure_queue_processor()
+
             future = asyncio.Future()
             queue_request = QueueRequest(
                 request_id=request_id,
@@ -231,8 +244,35 @@ class DockerClientService:
                     queue_depth=self._queue.qsize()
                 )
 
+        except DockerConnectionError as e:
+            # Docker is unreachable. `_create_new_client_async` raises this and
+            # it derives from DDCBaseException -> Exception, not RuntimeError,
+            # so it passed the fast path's clause above AND the one below and
+            # left a method whose whole return type exists to carry a failure
+            # as a value (review E48).
+            #
+            # Both paths land here. The fast path raises it directly; the queue
+            # path re-raises it out of `await asyncio.wait_for(future, ...)`,
+            # because C33 taught the processor to hand the error to the waiting
+            # request - and the telling then walked out of the building.
+            self._queue_stats['failures'] += 1
+            total_time = (time.time() - start_time) * 1000
+            error_msg = f"Docker is not reachable: {e}"
+            logger.error(f"[SERVICE] Request {request_id}: {error_msg}")
+
+            return DockerClientResult(
+                success=False,
+                error_message=error_msg,
+                error_type="connection_error",
+                total_time_ms=total_time,
+                pool_size=len(self._pool),
+                active_connections=len(self._in_use),
+                queue_depth=self._queue.qsize()
+            )
+
         except (RuntimeError, ValueError, AttributeError, OSError) as e:
             # Queue/async operation errors, pool state errors
+            self._queue_stats['failures'] += 1
             total_time = (time.time() - start_time) * 1000
             error_msg = f"Docker client service error: {e}"
             logger.error(f"[SERVICE] Request {request_id}: ERROR - {error_msg}", exc_info=True)
@@ -285,8 +325,11 @@ class DockerClientService:
                 queue_size=stats['current_queue_size'],
                 max_connections=stats['max_connections'],
                 total_requests=stats['total_requests'],
-                successful_requests=stats['total_requests'] - stats['timeouts'],
-                failed_requests=stats['timeouts'],
+                # A timeout is one kind of failure, not the only one.
+                successful_requests=(stats['total_requests']
+                                     - stats['timeouts']
+                                     - stats.get('failures', 0)),
+                failed_requests=stats['timeouts'] + stats.get('failures', 0),
                 timeout_requests=stats['timeouts'],
                 average_wait_time_ms=stats['average_wait_time'] * 1000,  # Convert to ms
                 max_queue_size_reached=stats['max_queue_size']
@@ -308,14 +351,35 @@ class DockerClientService:
     def _start_queue_processor(self):
         """Start the background queue processor."""
         if self._queue_processor_task is None:
-            try:
-                loop = asyncio.get_running_loop()
-                self._client_available_event = asyncio.Event()
-                self._queue_processor_task = loop.create_task(self._process_queue())
-                logger.debug("Queue processor started")
-            except RuntimeError:
-                # No running loop, processor will be started when first async call is made
+            self._ensure_queue_processor(quiet=True)
+
+    def _ensure_queue_processor(self, quiet: bool = False) -> None:
+        """Start the queue processor unless one is actually running.
+
+        "Not None" was the old test, and a task that has DIED is not None - it
+        is finished. Nothing restarted it, so one Docker error disabled the
+        queue for the rest of the process's life (review C33).
+        """
+        task = self._queue_processor_task
+        if task is not None and not task.done():
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No running loop; the processor starts on the first async call.
+            if not quiet:
+                logger.error("Failed to start queue processor - no running event loop")
+            else:
                 logger.debug("No running loop found, queue processor will start on first async call")
+            return
+
+        if task is not None and task.done():
+            logger.warning("Queue processor had stopped - starting a new one")
+        if self._client_available_event is None:
+            self._client_available_event = asyncio.Event()
+        self._queue_processor_task = loop.create_task(self._process_queue())
+        logger.debug("Queue processor started")
 
     async def _process_queue(self):
         """Process queued requests in background."""
@@ -355,8 +419,15 @@ class DockerClientService:
                                 request.future.set_exception(asyncio.TimeoutError(f"Request timed out in queue after {queue_timeout}s"))
                                 self._queue.task_done()
                                 break
-                    except (RuntimeError, ValueError, AttributeError) as e:
-                        # Queue state errors, event errors
+                    except Exception as e:  # noqa: BLE001
+                        # Broad on purpose. _create_new_client_async raises
+                        # DockerConnectionError, which derives from
+                        # DDCBaseException -> Exception, not from RuntimeError:
+                        # it passed this clause AND the one around the loop, so
+                        # the processor died and every later queued request
+                        # waited out its timeout for the rest of the process's
+                        # life. The waiting request is told what happened
+                        # (review C33).
                         request.future.set_exception(e)
                         self._queue.task_done()
                         break
@@ -376,7 +447,7 @@ class DockerClientService:
             except asyncio.CancelledError:
                 logger.debug("Queue processor cancelled")
                 break
-            except (RuntimeError, ValueError, AttributeError, OSError) as e:
+            except Exception as e:  # noqa: BLE001 - see the clause above
                 logger.error(f"Error in queue processor: {e}", exc_info=True)
                 await asyncio.sleep(1)  # Brief pause before retrying
 
@@ -396,15 +467,7 @@ class DockerClientService:
         )
 
         # Ensure queue processor is running (late initialization if needed)
-        if self._queue_processor_task is None:
-            try:
-                loop = asyncio.get_running_loop()
-                if self._client_available_event is None:
-                    self._client_available_event = asyncio.Event()
-                self._queue_processor_task = loop.create_task(self._process_queue())
-                logger.debug("Queue processor started (late initialization)")
-            except RuntimeError:
-                logger.error("Failed to start queue processor - no running event loop")
+        self._ensure_queue_processor()
 
         # Try immediate acquisition first (fast path)
         fast_path_start = time.time()

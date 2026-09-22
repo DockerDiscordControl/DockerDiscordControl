@@ -10,6 +10,10 @@ Donation Utils - Minimal compatibility functions
 Now primarily uses MechService, these are compatibility functions.
 """
 
+from utils.logging_utils import get_module_logger
+
+logger = get_module_logger('donation_utils')
+
 def is_donations_disabled() -> bool:
     """Check if donations are disabled by premium key (compatibility function)."""
     try:
@@ -32,7 +36,9 @@ def is_donations_disabled() -> bool:
         else:
             return False
     except (ValueError, TypeError, AttributeError, RuntimeError) as e:
-        # Service or data access errors - return False for compatibility
+        # Service or data access errors - donations stay enabled, but say why: this
+        # returned False with no log at all, not even DEBUG (SPEC.md Z8, review A9).
+        logger.error(f"Could not tell whether donations are disabled: {e}", exc_info=True)
         return False
 
 def validate_donation_key(key: str) -> bool:
@@ -49,5 +55,8 @@ def validate_donation_key(key: str) -> bool:
         else:
             return False
     except (ValueError, TypeError, AttributeError, RuntimeError) as e:
-        # Service or validation errors - return False for compatibility
+        # Service or validation errors - the key counts as invalid, but say why: an
+        # admin with a CORRECT key was told "invalid" and nothing was logged
+        # (SPEC.md Z8, review A9).
+        logger.error(f"Donation key could not be validated: {e}", exc_info=True)
         return False

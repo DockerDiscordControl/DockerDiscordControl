@@ -12,12 +12,6 @@ Covers:
     * services.mech.mech_display_cache_service
     * services.mech.mech_high_res_service
     * services.mech.mech_story_service
-    * services.mech.mech_images   (only the pure-functions; the module's
-                                   top-level import of a non-existent
-                                   ``mech_evolution_loader`` is patched out
-                                   by reading the source and re-loading via
-                                   ``importlib`` — no ``sys.modules`` edits.)
-    * services.mech.monthly_member_cache
     * services.mech.mech_evolutions  (filling coverage gaps around the
                                        lookup helpers)
 
@@ -494,9 +488,14 @@ class TestMechStoryChapterMapping:
         assert svc.get_chapter_key_for_level(level) == expected_key
         assert svc.get_chapter_key(level) == expected_key
 
-    def test_chapter_key_unknown_level_falls_back(self, tmp_path):
+    def test_chapter_key_unknown_level_has_no_chapter(self, tmp_path):
+        # This test used to assert "prologue1" here. That fallback made the
+        # guard in get_story_chapter unreachable and handed a level outside
+        # 1-11 somebody else's chapter, which reads exactly like its own
+        # (review C72). A level that has no chapter now has none.
         svc = MechStoryService(story_dir=str(tmp_path))
-        assert svc.get_chapter_key_for_level(999) == "prologue1"
+        assert svc.get_chapter_key_for_level(999) is None
+        assert svc.get_chapter_key(999) is None
 
 
 class TestMechStoryLoading:
@@ -563,124 +562,6 @@ class TestMechStoryLoading:
         svc = MechStoryService()
         assert svc.story_dir.name == "stories"
         assert svc.story_dir.parent.name == "mech"
-
-
-# ===========================================================================
-# monthly_member_cache
-# ===========================================================================
-
-from services.mech.monthly_member_cache import (  # noqa: E402
-    MonthlyMemberCache,
-    get_monthly_member_cache,
-)
-
-
-class TestMonthlyMemberCache:
-    def test_default_when_no_cache_file(self, tmp_path):
-        cache = MonthlyMemberCache()
-        cache.cache_file = tmp_path / "missing.json"
-        cache._cache_data = None
-        assert cache.get_member_count() == 50
-
-    def test_reads_cache_file(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text(
-            json.dumps(
-                {
-                    "member_count": 123,
-                    "timestamp": "2025-09-12T13:56:30",
-                    "month_year": "2025-09",
-                }
-            ),
-            encoding="utf-8",
-        )
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        assert cache.get_member_count() == 123
-        info = cache.get_cache_info()
-        assert info["total_members"] == 123
-        assert info["month_year"] == "2025-09"
-        assert info["last_updated"] == "2025-09-12T13:56:30"
-
-    def test_handles_corrupt_json(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text("{not-json", encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        # Falls back to default member_count of 50
-        assert cache.get_member_count() == 50
-
-    def test_caches_across_calls(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({"member_count": 77}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        first = cache.get_member_count()
-        # Mutate file, but cached value should not change.
-        path.write_text(json.dumps({"member_count": 999}), encoding="utf-8")
-        second = cache.get_member_count()
-        assert first == 77
-        assert second == 77
-
-    def test_get_member_count_for_level_returns_same_count(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({"member_count": 42}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        assert cache.get_member_count_for_level(1) == 42
-        assert cache.get_member_count_for_level(11) == 42
-
-    def test_cache_info_uses_unknown_when_field_missing(self, tmp_path):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-        info = cache.get_cache_info()
-        assert info["last_updated"] == "Unknown"
-        assert info["total_members"] == 50
-
-    def test_singleton_helper(self):
-        a = get_monthly_member_cache()
-        b = get_monthly_member_cache()
-        assert a is b
-
-    def test_handles_io_error_on_open(self, tmp_path, monkeypatch):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({"member_count": 12}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-
-        # Patch builtins.open used by _load_cache so it raises OSError.
-        import builtins
-        real_open = builtins.open
-
-        def fake_open(target, *args, **kwargs):
-            if str(target) == str(path):
-                raise OSError("permission denied")
-            return real_open(target, *args, **kwargs)
-
-        monkeypatch.setattr(builtins, "open", fake_open)
-        # Falls back to default member_count of 50.
-        assert cache.get_member_count() == 50
-
-    def test_handles_typeerror_on_load(self, tmp_path, monkeypatch):
-        path = tmp_path / "cache.json"
-        path.write_text(json.dumps({"member_count": 12}), encoding="utf-8")
-        cache = MonthlyMemberCache()
-        cache.cache_file = path
-        cache._cache_data = None
-
-        # Force json.load to raise a TypeError (data structure error path).
-        import services.mech.monthly_member_cache as mod
-
-        monkeypatch.setattr(mod.json, "load", lambda *a, **k: (_ for _ in ()).throw(TypeError("bad")))
-        assert cache.get_member_count() == 50
 
 
 # ===========================================================================
@@ -795,13 +676,39 @@ class TestEvolutionDynamicCost:
         cfg_path.write_text(json.dumps({}), encoding="utf-8")
         svc = EvolutionConfigService(config_path=str(cfg_path))
 
-        # Stub out the central save to avoid hitting the real ConfigService.
-        with patch.object(svc, "save_config", return_value=True):
-            # Above-range value clamped to 2.5
+        # Catch what would have been written. `assert True` used to stand here,
+        # with the comment "no exception means the clamping branches executed" -
+        # so a set_difficulty_multiplier that stored 99.0 unclamped kept this
+        # test green, in a test named after the clamping. The reachable cost
+        # range was already wrong once for exactly this value (review C69).
+        with patch.object(svc, "save_config", return_value=True) as saved:
             svc.set_difficulty_multiplier(99.0)
-            # Below-range value clamped to 0.25
+            above = saved.call_args.args[0]["evolution_settings"]
+
             svc.set_difficulty_multiplier(-1.0)
-        assert True  # no exception means the clamping branches executed
+            below = saved.call_args.args[0]["evolution_settings"]
+
+        # The bounds are DERIVED from the level-2 base cost, they are not a
+        # fixed pair (review C69). An empty file still resolves through the
+        # fallback config, which prices level 2 at $10, so with
+        # LEVEL_2_COST_FLOOR=5 / CEILING=50 the reachable range is 0.5 to 5.0.
+        #
+        # The comment that used to sit here said "clamped to 2.5" and "to 0.25".
+        # Those are the numbers _lowest_difficulty()/_highest_difficulty()
+        # return only when the base cost is 0, a branch this test never takes.
+        # Nothing noticed, because the assertion was `assert True`.
+        assert svc._highest_difficulty() == pytest.approx(5.0)
+        assert svc._lowest_difficulty() == pytest.approx(0.5)
+
+        assert above["difficulty_multiplier"] == pytest.approx(5.0), (
+            f"99.0 was stored as {above['difficulty_multiplier']} - not clamped "
+            f"to the ceiling the level-2 cost allows"
+        )
+        assert below["difficulty_multiplier"] == pytest.approx(0.5), (
+            f"-1.0 was stored as {below['difficulty_multiplier']} - not clamped "
+            f"to the floor the level-2 cost allows"
+        )
+        assert above["manual_difficulty_override"] is True
 
 
 class TestEvolutionConfigService:
@@ -936,8 +843,7 @@ class TestEvolutionConfigService:
         assert info["multiplier"] == pytest.approx(2.5)
 
     def test_get_evolution_level_info_with_decay_json(self, tmp_path, monkeypatch):
-        # Place the production module at a tmp project root so the
-        # ``Path(__file__).parents[2]`` lookup hits our decay.json.
+        # A decay.json in a tmp config directory, selected via DDC_CONFIG_DIR.
         proj = tmp_path / "proj"
         cfg_dir = proj / "config" / "mech"
         cfg_dir.mkdir(parents=True)
@@ -947,11 +853,9 @@ class TestEvolutionConfigService:
         )
         from services.mech import mech_evolutions as ev_mod
 
-        # Build a fake __file__ path so that Path(__file__).parents[2] == proj.
-        fake_file = proj / "services" / "mech" / "mech_evolutions.py"
-        fake_file.parent.mkdir(parents=True)
-        fake_file.write_text("# placeholder\n", encoding="utf-8")
-        monkeypatch.setattr(ev_mod, "__file__", str(fake_file))
+        # decay.json is found via utils.config_paths.get_config_dir()
+        # (DDC_CONFIG_DIR); this used to fake the module's __file__.
+        monkeypatch.setenv("DDC_CONFIG_DIR", str(proj / "config"))
 
         info = ev_mod.get_evolution_level_info(3)
         assert info is not None
@@ -970,163 +874,3 @@ class TestEvolutionConfigService:
         with patch.object(svc, "_load_config", return_value=bad_cfg):
             levels = get_all_evolution_levels()
         assert sorted(levels.keys()) == [1, 2]
-
-
-# ===========================================================================
-# mech_images  (pure-function coverage; the module's top-level import of
-# ``services.mech.mech_evolution_loader`` is intentionally swapped out by
-# loading a patched copy of the source via importlib — this does NOT touch
-# ``sys.modules``, only the local module object the tests close over.)
-# ===========================================================================
-
-
-def _load_patched_mech_images():
-    """Load mech_images.py with the missing loader import replaced by a stub.
-
-    The real ``services.mech.mech_evolution_loader`` module does not exist in
-    the repository, so a normal import of ``services.mech.mech_images`` fails.
-    To exercise the pure helper functions (``calculate_frame_duration``,
-    ``get_mech_frames``, ``create_animated_gif``) without manipulating
-    ``sys.modules`` we read the source, replace the offending import line with
-    a local stub function, and load the result via ``importlib`` from a
-    temporary file.
-    """
-    src_path = (
-        Path(__file__).resolve().parents[4]
-        / "services"
-        / "mech"
-        / "mech_images.py"
-    )
-    src = src_path.read_text(encoding="utf-8")
-    patched = src.replace(
-        "from services.mech.mech_evolution_loader import get_mech_loader",
-        "def get_mech_loader():\n"
-        "    raise RuntimeError('stubbed: not used by tests that mock it')",
-    )
-
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(
-        suffix="_mech_images_patched.py", delete=False, mode="w", encoding="utf-8"
-    ) as tmp:
-        tmp.write(patched)
-        tmp_path = tmp.name
-
-    spec = importlib.util.spec_from_file_location("_mech_images_patched", tmp_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
-@pytest.fixture(scope="module")
-def mech_images_module():
-    return _load_patched_mech_images()
-
-
-class TestMechImagesPure:
-    def test_calculate_frame_duration_at_zero_is_max(self, mech_images_module):
-        assert mech_images_module.calculate_frame_duration(0) == 100
-
-    def test_calculate_frame_duration_at_full_is_min(self, mech_images_module):
-        assert mech_images_module.calculate_frame_duration(100) == 10
-
-    def test_calculate_frame_duration_clamps_below(self, mech_images_module):
-        # -50 should clamp to 0 -> 100ms
-        assert mech_images_module.calculate_frame_duration(-50) == 100
-
-    def test_calculate_frame_duration_clamps_above(self, mech_images_module):
-        # 200 should clamp to 100 -> 10ms
-        assert mech_images_module.calculate_frame_duration(200) == 10
-
-    def test_calculate_frame_duration_monotonic(self, mech_images_module):
-        # Ease-out cubic: duration should monotonically decrease as speed goes up.
-        last = mech_images_module.calculate_frame_duration(0)
-        for speed in (10, 25, 50, 75, 90, 100):
-            current = mech_images_module.calculate_frame_duration(speed)
-            assert current <= last
-            last = current
-
-    def test_get_mech_frames_handles_no_info(self, mech_images_module):
-        loader = MagicMock()
-        loader.get_level_info.return_value = None
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            assert mech_images_module.get_mech_frames(99) == []
-
-    def test_get_mech_frames_returns_frames(self, mech_images_module):
-        loader = MagicMock()
-        loader.get_level_info.return_value = {"frames": 3}
-        # Each call returns a small placeholder image.
-        loader.get_mech_image.side_effect = [
-            Image.new("RGBA", (10, 10)),
-            Image.new("RGBA", (10, 10)),
-            Image.new("RGBA", (10, 10)),
-        ]
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            frames = mech_images_module.get_mech_frames(1)
-        assert len(frames) == 3
-
-    def test_get_mech_frames_breaks_on_missing_frame(self, mech_images_module):
-        loader = MagicMock()
-        loader.get_level_info.return_value = {"frames": 4}
-        loader.get_mech_image.side_effect = [
-            Image.new("RGBA", (10, 10)),
-            None,  # break here
-            Image.new("RGBA", (10, 10)),
-            Image.new("RGBA", (10, 10)),
-        ]
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            frames = mech_images_module.get_mech_frames(1)
-        assert len(frames) == 1
-
-    def test_get_mech_frames_for_speed_returns_duration(self, mech_images_module):
-        loader = MagicMock()
-        loader.get_level_info.return_value = {"frames": 2}
-        loader.get_mech_image.side_effect = [
-            Image.new("RGBA", (10, 10)),
-            Image.new("RGBA", (10, 10)),
-        ]
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            frames, duration = mech_images_module.get_mech_frames_for_speed(1, 50)
-        assert len(frames) == 2
-        # Duration must be a positive int in [10, 100].
-        assert 10 <= duration <= 100
-
-    def test_create_animated_gif_returns_bytes(self, mech_images_module):
-        loader = MagicMock()
-        loader.get_level_info.return_value = {"frames": 2}
-        loader.get_mech_image.side_effect = [
-            Image.new("RGBA", (10, 10), (255, 0, 0, 255)),
-            Image.new("RGBA", (10, 10), (0, 255, 0, 255)),
-        ]
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            data = mech_images_module.create_animated_gif(1, speed=50)
-        assert isinstance(data, bytes)
-        assert data.startswith(b"GIF")
-
-    def test_create_animated_gif_no_frames_returns_empty(self, mech_images_module):
-        loader = MagicMock()
-        loader.get_level_info.return_value = None
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            assert mech_images_module.create_animated_gif(99, speed=50) == b""
-
-    def test_get_available_levels(self, mech_images_module):
-        loader = MagicMock()
-        loader.get_available_levels.return_value = [1, 2, 3]
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            assert mech_images_module.get_available_levels() == [1, 2, 3]
-
-    def test_get_level_info(self, mech_images_module):
-        loader = MagicMock()
-        loader.get_level_info.return_value = {"frames": 8, "resolution": (100, 100)}
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            assert mech_images_module.get_level_info(5) == {
-                "frames": 8,
-                "resolution": (100, 100),
-            }
-
-    def test_get_mech_image(self, mech_images_module):
-        loader = MagicMock()
-        sentinel = Image.new("RGBA", (4, 4))
-        loader.get_mech_image.return_value = sentinel
-        with patch.object(mech_images_module, "get_mech_loader", return_value=loader):
-            assert mech_images_module.get_mech_image(1, 0) is sentinel

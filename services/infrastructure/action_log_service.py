@@ -11,6 +11,9 @@ Action Log Service - Clean service architecture for user action logging
 
 import os
 import json
+import stat
+import tempfile
+import threading
 import pytz
 from datetime import datetime
 from pathlib import Path
@@ -76,6 +79,29 @@ class ServiceResult:
 _TEXT_LOG_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 _TEXT_LOG_BACKUP_COUNT = 3
 
+# Serialises the user_actions.json read-modify-write: actions are logged from
+# waitress threads and the bot event loop at the same time.
+_JSON_LOG_LOCK = threading.Lock()
+
+# The same reason, for the text log. It had no lock at all, neither around the
+# size check and the numbered renames of the rotation nor around the append
+# after them. Two writers could both pass the size check and both rename the
+# live file onto user_actions.log.1, so the second rename overwrote what the
+# first had just rotated away. Measured: 15 of 80 lines gone (review D13). A
+# lock of its own rather than the JSON one - the two files are independent and
+# holding one lock across both would serialise more than the problem needs.
+_TEXT_LOG_LOCK = threading.Lock()
+
+# The ONE place that names the action log files. action_logger.ACTION_LOG_FILE and
+# app/utils/web_helpers.ACTION_LOG_FILE refer to DEFAULT_TEXT_LOG_FILE. They used to
+# name the file themselves, and one drifted to logs/action_log.json - a file nothing
+# writes - so the panel's download button answered "not found" (review A3).
+DEFAULT_LOGS_DIR = Path(__file__).parents[2] / "logs"
+JSON_LOG_NAME = "user_actions.json"
+TEXT_LOG_NAME = "user_actions.log"
+DEFAULT_TEXT_LOG_FILE = DEFAULT_LOGS_DIR / TEXT_LOG_NAME
+
+
 class ActionLogService:
     """Clean service for managing user action logs with proper separation of concerns."""
 
@@ -85,19 +111,12 @@ class ActionLogService:
         Args:
             logs_dir: Directory to store log files. Defaults to logs/
         """
-        if logs_dir is None:
-            # Robust absolute path relative to project root
-            try:
-                self.logs_dir = Path(__file__).parents[2] / "logs"
-            except Exception:
-                self.logs_dir = Path("logs")
-        else:
-            self.logs_dir = Path(logs_dir)
+        self.logs_dir = DEFAULT_LOGS_DIR if logs_dir is None else Path(logs_dir)
 
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
-        self.json_log_file = self.logs_dir / 'user_actions.json'
-        self.text_log_file = self.logs_dir / 'user_actions.log'
+        self.json_log_file = self.logs_dir / JSON_LOG_NAME
+        self.text_log_file = self.logs_dir / TEXT_LOG_NAME
 
         logger.info(f"Action log service initialized: {self.logs_dir}")
 
@@ -181,36 +200,66 @@ class ActionLogService:
 
     def _save_to_json(self, entry: ActionLogEntry) -> ServiceResult:
         """Save log entry to JSON file."""
+        temp_path = None
         try:
-            # Read existing data
-            actions = []
-            if self.json_log_file.exists():
-                try:
-                    with open(self.json_log_file, 'r', encoding='utf-8') as f:
-                        content = f.read().strip()
-                        if content:
-                            actions = json.loads(content)
-                except (json.JSONDecodeError, IOError):
-                    actions = []
+            with _JSON_LOG_LOCK:
+                # Read existing data. An I/O error propagates (nothing is written),
+                # so an unreadable log is never replaced by a single entry.
+                actions = []
+                if self.json_log_file.exists():
+                    try:
+                        with open(self.json_log_file, 'r', encoding='utf-8') as f:
+                            content = f.read().strip()
+                        actions = json.loads(content) if content else []
+                    except (json.JSONDecodeError, UnicodeDecodeError) as decode_error:
+                        logger.error(f"Could not parse {self.json_log_file.name}: {decode_error}")
+                        actions = None
 
-            # Add new entry
-            actions.append(entry.to_dict())
+                    if not isinstance(actions, list):
+                        # Keep the corrupt history recoverable instead of overwriting it
+                        backup_file = self._backup_corrupt_json_log()
+                        logger.error(f"Moved unreadable action log to {backup_file.name}, starting a new one")
+                        actions = []
 
-            # Keep only last 10000 entries
-            if len(actions) > 10000:
-                actions = actions[-10000:]
+                # Add new entry
+                actions.append(entry.to_dict())
 
-            # Atomic write
-            temp_file = self.json_log_file.with_suffix('.tmp')
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(actions, f, indent=2, ensure_ascii=False)
-            temp_file.replace(self.json_log_file)
+                # Keep only last 10000 entries
+                if len(actions) > 10000:
+                    actions = actions[-10000:]
+
+                # Atomic write via a unique temp file in the same directory
+                fd, temp_path = tempfile.mkstemp(dir=str(self.logs_dir), prefix='.user_actions_', suffix='.json.tmp')
+                with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                    json.dump(actions, f, indent=2, ensure_ascii=False)
+                # Keep the permissions of the file being replaced (mkstemp uses 0600)
+                if self.json_log_file.exists():
+                    os.chmod(temp_path, stat.S_IMODE(self.json_log_file.stat().st_mode))
+                os.replace(temp_path, self.json_log_file)
+                temp_path = None
 
             return ServiceResult(success=True)
 
         except (IOError, OSError, PermissionError, json.JSONDecodeError, UnicodeDecodeError, UnicodeEncodeError, TypeError, ValueError) as e:
             # JSON save errors (file I/O, permissions, JSON parsing/serialization, encoding, type/value errors)
             return ServiceResult(success=False, error=str(e))
+        finally:
+            if temp_path:
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass  # Best effort cleanup
+
+    def _backup_corrupt_json_log(self) -> Path:
+        """Move an unreadable user_actions.json aside (raises OSError on failure)."""
+        stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = self.json_log_file.with_name(f"{self.json_log_file.name}.corrupt-{stamp}")
+        counter = 1
+        while backup_file.exists():
+            backup_file = self.json_log_file.with_name(f"{self.json_log_file.name}.corrupt-{stamp}-{counter}")
+            counter += 1
+        os.replace(self.json_log_file, backup_file)
+        return backup_file
 
     def _text_backup_path(self, index: int) -> Path:
         return self.text_log_file.parent / f"{self.text_log_file.name}.{index}"
@@ -240,11 +289,13 @@ class ActionLogService:
             # Format for text log
             text_line = f"{entry.action}|{entry.target}|{entry.user}|{entry.source}|{entry.details}\n"
 
-            self._rotate_text_log_if_needed()
+            # Rotation and append together under one lock: a rename between
+            # the two would move the file out from under this append.
+            with _TEXT_LOG_LOCK:
+                self._rotate_text_log_if_needed()
 
-            # Append to text file
-            with open(self.text_log_file, 'a', encoding='utf-8') as f:
-                f.write(text_line)
+                with open(self.text_log_file, 'a', encoding='utf-8') as f:
+                    f.write(text_line)
 
             return ServiceResult(success=True)
 

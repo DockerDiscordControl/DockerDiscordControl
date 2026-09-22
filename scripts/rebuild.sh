@@ -67,6 +67,18 @@ fi
 
 sleep 1
 
+# 🧹 Prune the build cache left behind by the --no-cache build.
+# Every --no-cache rebuild adds intermediate layers to the build cache; without
+# this they accumulate indefinitely (previously grew to >1.6 TB). The freshly
+# built image itself is already tagged and is NOT affected by this.
+# NOTE: "docker builder prune -a" is HOST-WIDE: it removes ALL build cache on this
+# Docker host (including other projects' cached layers), not only this build's.
+echo -e "${PURPLE}🧹 Pruning Docker build cache (host-wide, all projects)...${NC}"
+PRUNE_OUT=$(docker builder prune -a -f 2>/dev/null | grep -iE "^Total:" || true)
+echo -e "${GREEN}✅ Build cache pruned${NC}${PRUNE_OUT:+ (${PRUNE_OUT})}"
+
+sleep 1
+
 # 🔑 Check for existing bot token
 echo -e "${PURPLE}🔑 Checking for existing bot token...${NC}"
 if [ -f "./config/bot_config.json" ]; then
@@ -94,15 +106,22 @@ else
     echo -e "${CYAN}ℹ️  No .env file found${NC}"
 fi
 
-if [ -z "$FLASK_SECRET_KEY" ]; then
-    echo -e "${YELLOW}⚠️  FLASK_SECRET_KEY not set. Using a temporary key for development purposes only.${NC}"
-    echo -e "${CYAN}ℹ️  For production, create a .env file with a secure FLASK_SECRET_KEY value.${NC}"
-    FLASK_SECRET_KEY="temporary-dev-key-$(date +%s)"
+# 🔐 Only pass FLASK_SECRET_KEY when .env / the environment provides one. Without it,
+# DDC generates a random key once and keeps it in config/.flask_secret_key (sessions
+# survive restarts and the key is not predictable).
+SECRET_KEY_ARGS=()
+if [ -n "$FLASK_SECRET_KEY" ]; then
+    SECRET_KEY_ARGS=(-e FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" -e ENV_FLASK_SECRET_KEY="${FLASK_SECRET_KEY}")
+else
+    echo -e "${CYAN}ℹ️  FLASK_SECRET_KEY not set - DDC will use a persistent random key (config/.flask_secret_key).${NC}"
 fi
 
 # 🚀 Start the container
+# Checked with "if" (a bare call under set -e would abort the script) and stderr is
+# NOT discarded: the old container is already removed, so a failing docker run
+# (port in use, bad mount, ...) must show its error instead of leaving DDC down silently.
 echo -e "${GREEN}🚀 Starting new container dockerdiscordcontrol...${NC}"
-docker run -d \
+if docker run -d \
   --name dockerdiscordcontrol \
   -p 9374:9374 \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -111,11 +130,9 @@ docker run -d \
   -v "$(pwd)/cached_animations":/app/cached_animations \
   -v "$(pwd)/cached_displays":/app/cached_displays \
   -v "$(pwd)/assets":/app/assets \
-  -e FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" \
-  -e ENV_FLASK_SECRET_KEY="${FLASK_SECRET_KEY}" \
+  "${SECRET_KEY_ARGS[@]}" \
   -e PYTHONWARNINGS="ignore" \
   -e LOGGING_LEVEL="INFO" \
-  -e DDC_CACHE_TTL="60" \
   -e DDC_DOCKER_CACHE_DURATION="120" \
   -e DDC_DISCORD_SKIP_TOKEN_LOCK="true" \
   --restart unless-stopped \
@@ -125,9 +142,8 @@ docker run -d \
   --cpus 2.0 \
   --memory 512M \
   --memory-reservation 128M \
-  dockerdiscordcontrol 2>/dev/null
-
-if [ $? -eq 0 ]; then
+  --pids-limit 512 \
+  dockerdiscordcontrol; then
     echo -e "${GREEN}✅ Container started successfully!${NC}"
     sleep 1
     echo -e "${BLUE}📋 Script finished! Check the logs with: ${WHITE}docker logs dockerdiscordcontrol -f${NC}"
@@ -143,7 +159,8 @@ if [ $? -eq 0 ]; then
     fi
     echo ""
 else
-    echo -e "${RED}❌ Failed to start container${NC}"
+    echo -e "${RED}❌ Failed to start container (see the Docker error above)${NC}"
+    echo -e "${YELLOW}⚠️  The old container was already removed - DDC stays down until this is fixed and rebuild.sh is re-run.${NC}"
     exit 1
 fi
 

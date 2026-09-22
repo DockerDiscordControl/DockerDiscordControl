@@ -62,7 +62,7 @@ def isolated_web_app(monkeypatch, tmp_path, auth_headers):
     # Skip inline route registration that depends on additional services
     monkeypatch.setattr("app.web.routes.register_routes", lambda app: None)
 
-    return create_app({"TESTING": True})
+    return create_app({"TESTING": True, "WTF_CSRF_ENABLED": False})
 
 
 def test_spam_protection_routes_roundtrip(monkeypatch, isolated_web_app, auth_headers):

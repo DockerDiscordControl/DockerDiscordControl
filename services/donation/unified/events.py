@@ -78,8 +78,15 @@ def emit_reset_event(event_manager, *, source: str, old_state, new_state) -> Non
         "timestamp": datetime.now().isoformat(),
     }
 
+    # Its own type, not "donation_completed". This payload carries no amount
+    # and no donor - it is an admin wiping the ledger - and it used to travel
+    # under the name a real donation uses. Both listeners today are cache
+    # invalidators that cope with it, but each of them logged "Donation
+    # completed: $unknown" for it, and the next listener registered for
+    # donation_completed - an announcement is the obvious one - would have
+    # told a channel that somebody donated (review D35).
     event_manager.emit_event(
-        event_type="donation_completed",
+        event_type="donation_reset",
         source_service="unified_donations",
         data=event_data,
     )

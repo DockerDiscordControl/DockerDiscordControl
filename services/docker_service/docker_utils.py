@@ -17,6 +17,7 @@ from typing import Tuple, Optional, Dict, Any, List
 import docker
 import docker.client
 from utils.logging_utils import setup_logger
+from utils.container_image import image_name_of
 import time
 import os
 import json
@@ -57,86 +58,160 @@ def _load_timeout_from_config(config_key: str, env_key: str, default: str) -> fl
         config = load_config()
         advanced_settings = config.get('advanced_settings', {})
         if config_key in advanced_settings:
-            config_value = float(advanced_settings[config_key])
-            # TEMPORARY FIX: Override config values that are too small for current Docker daemon performance
-            if config_key == 'DDC_FAST_STATS_TIMEOUT' and config_value < 30:
-                logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance")
-                return 45.0
-            if config_key == 'DDC_FAST_INFO_TIMEOUT' and config_value < 30:
-                logger.info(f"Overriding {config_key} from {config_value}s to 45s due to Docker daemon performance")
-                return 45.0
-            return config_value
+            # The configured value, as configured. A block marked "TEMPORARY
+            # FIX" used to replace any DDC_FAST_STATS_TIMEOUT or
+            # DDC_FAST_INFO_TIMEOUT below 30 with 45.0 and log the substitution
+            # at INFO. The panel offers both fields with min="1" max="60" and
+            # suggests 10 - so the value the panel itself proposes was dead,
+            # along with everything from 1 to 29. A form that accepts a number
+            # and then ignores it is worse than one that refuses it (review
+            # C59). If the daemon really is too slow for the chosen value, the
+            # operator sees the timeouts and can raise it.
+            return float(advanced_settings[config_key])
     except (ConfigLoadError, KeyError, ValueError, TypeError) as e:
         # Config loading/parsing errors - fall back to environment variable
         logger.debug(f"Config load failed for {config_key}, using env/default: {e}")
 
     return float(os.environ.get(env_key, default))
 
-# Load timeout values with Advanced Settings integration
-DEFAULT_FAST_STATS_TIMEOUT = _load_timeout_from_config('DDC_FAST_STATS_TIMEOUT', 'DDC_FAST_STATS_TIMEOUT', '45.0')  # Increased from 10.0 due to slower Docker daemon
-DEFAULT_SLOW_STATS_TIMEOUT = _load_timeout_from_config('DDC_SLOW_STATS_TIMEOUT', 'DDC_SLOW_STATS_TIMEOUT', '60.0')
-DEFAULT_FAST_INFO_TIMEOUT = _load_timeout_from_config('DDC_FAST_INFO_TIMEOUT', 'DDC_FAST_INFO_TIMEOUT', '45.0')  # Increased from 2.0 due to slower Docker daemon
-DEFAULT_SLOW_INFO_TIMEOUT = _load_timeout_from_config('DDC_SLOW_INFO_TIMEOUT', 'DDC_SLOW_INFO_TIMEOUT', '60.0')
-DEFAULT_CONTAINER_LIST_TIMEOUT = _load_timeout_from_config('DDC_CONTAINER_LIST_TIMEOUT', 'DDC_CONTAINER_LIST_TIMEOUT', '30.0')  # Increased from 15.0
+# --------------------------------------------------------------------------- #
+# Timeout values - loaded on FIRST ACCESS, not at import time.
+#
+# These five used to be plain module-level assignments, each calling
+# _load_timeout_from_config() and therefore load_config(). That made a bare
+# ``import`` read configuration off disk: importing anything from
+# ``services.docker_service`` runs ``__init__.py:10``, which pulls this module,
+# which read five config files before a single line of caller code ran.
+#
+# Three problems came with that, and the third is how it was found:
+#   1. A failing read does not break a function, it breaks the IMPORT - as an
+#      ImportError deep inside a nine-level chain instead of a clear message.
+#   2. The net below catches (ConfigLoadError, KeyError, ValueError, TypeError).
+#      An AttributeError went straight through it.
+#   3. WHEN the config is read depended on who imported first. That made two
+#      tests in tests/unit/audit_2026_09/test_r2_g5_mech.py pass in their group
+#      and fail alone - found by running all 127 test files in isolation.
+#      See docs/quality/STAGE3_TESTS_THAT_CANNOT_FAIL.md.
+#
+# Module-level __getattr__ (PEP 562) keeps every reader unchanged: the names
+# still resolve to floats, CONTAINER_TYPE_PATTERNS and DEFAULT_TIMEOUT_CONFIG
+# still are dicts with the same keys. Only the moment of loading moved.
+# --------------------------------------------------------------------------- #
 
-# Log the loaded timeout values for debugging
-logger.info(f"[TIMEOUT_CONFIG] Loaded timeout values:")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_FAST_STATS_TIMEOUT: {DEFAULT_FAST_STATS_TIMEOUT}s")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_SLOW_STATS_TIMEOUT: {DEFAULT_SLOW_STATS_TIMEOUT}s")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_FAST_INFO_TIMEOUT: {DEFAULT_FAST_INFO_TIMEOUT}s")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_SLOW_INFO_TIMEOUT: {DEFAULT_SLOW_INFO_TIMEOUT}s")
-logger.info(f"[TIMEOUT_CONFIG] - DDC_CONTAINER_LIST_TIMEOUT: {DEFAULT_CONTAINER_LIST_TIMEOUT}s")
+_TIMEOUT_SPECS = {
+    'DEFAULT_FAST_STATS_TIMEOUT': ('DDC_FAST_STATS_TIMEOUT', '45.0'),
+    'DEFAULT_SLOW_STATS_TIMEOUT': ('DDC_SLOW_STATS_TIMEOUT', '60.0'),
+    'DEFAULT_FAST_INFO_TIMEOUT': ('DDC_FAST_INFO_TIMEOUT', '45.0'),
+    'DEFAULT_SLOW_INFO_TIMEOUT': ('DDC_SLOW_INFO_TIMEOUT', '60.0'),
+    'DEFAULT_CONTAINER_LIST_TIMEOUT': ('DDC_CONTAINER_LIST_TIMEOUT', '30.0'),
+}
 
-# Pattern-based timeout configuration (flexible and maintainable)
-CONTAINER_TYPE_PATTERNS = {
-    'game_server': {
-        'patterns': [
-            'minecraft', 'factorio', 'terraria', 'starbound', 'rust', 'ark', 'palworld',
-            'satisfactory', 'valheim', 'v-rising', 'vrising', 'conan', 'dayz', 'csgo',
-            'tf2', 'gmod', 'arma', 'squad', 'insurgency', 'mordhau', 'chivalry',
-            'space-engineers', 'astroneer', 'raft', 'green-hell', 'the-forest',
-            'subnautica', 'no-mans-sky', 'kerbal', 'cities-skylines', 'farming-simulator',
-            'truck-simulator', 'train-simulator', 'flight-simulator', 'assetto-corsa',
-            'project-cars', 'dirt-rally', 'f1-', 'gran-turismo', 'forza'
-        ],
-        'stats_timeout': DEFAULT_FAST_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT  # Fixed: Game servers should also have fast info timeouts
-    },
-    'media_server': {
-        'patterns': [
-            'plex', 'jellyfin', 'emby', 'kodi', 'sonarr', 'radarr', 'lidarr',
-            'bazarr', 'prowlarr', 'jackett', 'transmission', 'qbittorrent',
-            'deluge', 'rtorrent', 'sabnzbd', 'nzbget', 'overseerr', 'ombi',
-            'tautulli', 'organizr', 'heimdall', 'muximux'
-        ],
-        'stats_timeout': DEFAULT_SLOW_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT
-    },
-    'database': {
-        'patterns': [
-            'mysql', 'mariadb', 'postgres', 'postgresql', 'mongodb', 'redis',
-            'elasticsearch', 'influxdb', 'grafana', 'prometheus', 'clickhouse',
-            'cassandra', 'couchdb', 'neo4j', 'memcached', 'sqlite'
-        ],
-        'stats_timeout': DEFAULT_SLOW_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT
-    },
-    'web_server': {
-        'patterns': [
-            'nginx', 'apache', 'httpd', 'caddy', 'traefik', 'haproxy',
-            'nodejs', 'node', 'php', 'python', 'django', 'flask',
-            'wordpress', 'nextcloud', 'owncloud', 'photoprism', 'bitwarden'
-        ],
-        'stats_timeout': DEFAULT_SLOW_STATS_TIMEOUT,
-        'info_timeout': DEFAULT_FAST_INFO_TIMEOUT
+_lazy_values: Dict[str, Any] = {}
+
+
+def _timeout(name: str) -> float:
+    """Return a timeout, loading it from the config once and caching it."""
+    if name not in _lazy_values:
+        key, default = _TIMEOUT_SPECS[name]
+        _lazy_values[name] = _load_timeout_from_config(key, key, default)
+        # Logged here rather than at import: same information, but only once the
+        # value is actually wanted.
+        logger.info(f"[TIMEOUT_CONFIG] {key}: {_lazy_values[name]}s")
+    return _lazy_values[name]
+
+
+def _build_container_type_patterns() -> Dict[str, Any]:
+    """Pattern-based timeout configuration (flexible and maintainable)."""
+    return {
+        'game_server': {
+            'patterns': [
+                'minecraft', 'factorio', 'terraria', 'starbound', 'rust', 'ark', 'palworld',
+                'satisfactory', 'valheim', 'v-rising', 'vrising', 'conan', 'dayz', 'csgo',
+                'tf2', 'gmod', 'arma', 'squad', 'insurgency', 'mordhau', 'chivalry',
+                'space-engineers', 'astroneer', 'raft', 'green-hell', 'the-forest',
+                'subnautica', 'no-mans-sky', 'kerbal', 'cities-skylines', 'farming-simulator',
+                'truck-simulator', 'train-simulator', 'flight-simulator', 'assetto-corsa',
+                'project-cars', 'dirt-rally', 'f1-', 'gran-turismo', 'forza'
+            ],
+            'stats_timeout': _timeout('DEFAULT_FAST_STATS_TIMEOUT'),
+            'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')  # Fixed: Game servers should also have fast info timeouts
+        },
+        'media_server': {
+            'patterns': [
+                'plex', 'jellyfin', 'emby', 'kodi', 'sonarr', 'radarr', 'lidarr',
+                'bazarr', 'prowlarr', 'jackett', 'transmission', 'qbittorrent',
+                'deluge', 'rtorrent', 'sabnzbd', 'nzbget', 'overseerr', 'ombi',
+                'tautulli', 'organizr', 'heimdall', 'muximux'
+            ],
+            'stats_timeout': _timeout('DEFAULT_SLOW_STATS_TIMEOUT'),
+            'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')
+        },
+        'database': {
+            'patterns': [
+                'mysql', 'mariadb', 'postgres', 'postgresql', 'mongodb', 'redis',
+                'elasticsearch', 'influxdb', 'grafana', 'prometheus', 'clickhouse',
+                'cassandra', 'couchdb', 'neo4j', 'memcached', 'sqlite'
+            ],
+            'stats_timeout': _timeout('DEFAULT_SLOW_STATS_TIMEOUT'),
+            'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')
+        },
+        'web_server': {
+            'patterns': [
+                'nginx', 'apache', 'httpd', 'caddy', 'traefik', 'haproxy',
+                'nodejs', 'node', 'php', 'python', 'django', 'flask',
+                'wordpress', 'nextcloud', 'owncloud', 'photoprism', 'bitwarden'
+            ],
+            'stats_timeout': _timeout('DEFAULT_SLOW_STATS_TIMEOUT'),
+            'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')
+        }
     }
+
+
+def _build_default_timeout_config() -> Dict[str, Any]:
+    """Default timeout configuration."""
+    return {
+        'stats_timeout': _timeout('DEFAULT_FAST_STATS_TIMEOUT'),  # Use fast stats for default
+        'info_timeout': _timeout('DEFAULT_FAST_INFO_TIMEOUT')     # Use fast info for default
+    }
+
+
+# The names below are resolved on first access instead of at import time.
+# Everything a reader sees stays the same: the five DEFAULT_*_TIMEOUT names are
+# floats, CONTAINER_TYPE_PATTERNS and DEFAULT_TIMEOUT_CONFIG are dicts with the
+# same keys. Only the moment of loading moved. See the block above for why.
+_LAZY_BUILDERS = {
+    'CONTAINER_TYPE_PATTERNS': _build_container_type_patterns,
+    'DEFAULT_TIMEOUT_CONFIG': _build_default_timeout_config,
+    '_CACHE_TTL': lambda: _get_cache_ttl(),
 }
 
-# Default timeout configuration
-DEFAULT_TIMEOUT_CONFIG = {
-    'stats_timeout': DEFAULT_FAST_STATS_TIMEOUT,  # Use fast stats for default (1.5s)
-    'info_timeout': DEFAULT_FAST_INFO_TIMEOUT     # Use fast info for default (2.0s) - Fixed from 30.0s!
-}
+
+def _lazy_value(name: str) -> Any:
+    """Read one of the lazily built values from inside this module.
+
+    Needed because module-level __getattr__ (PEP 562) is only consulted for
+    attribute access from OUTSIDE (``docker_utils.X``). A bare name inside a
+    function body is looked up in globals() and would raise NameError, so every
+    in-module reader goes through here.
+    """
+    if name not in _lazy_values:
+        _lazy_values[name] = _LAZY_BUILDERS[name]()
+    return _lazy_values[name]
+
+
+def __getattr__(name: str) -> Any:
+    """PEP 562 module-level attribute access for the lazily loaded values.
+
+    Python only calls this for names that are NOT already in the module
+    namespace, so it costs nothing for every other attribute.
+    """
+    if name in _TIMEOUT_SPECS:
+        return _timeout(name)
+    if name in _LAZY_BUILDERS:
+        if name not in _lazy_values:
+            _lazy_values[name] = _LAZY_BUILDERS[name]()
+        return _lazy_values[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # Load custom timeout configuration from file
 _custom_timeout_config = None
@@ -150,12 +225,10 @@ def load_custom_timeout_config():
         return _custom_timeout_config
 
     _custom_config_loaded = True
-    # Robust absolute path relative to project root
-    try:
-        config_path = Path(__file__).parents[2] / "config" / "container_timeouts.json"
-    except Exception:
-        # Fallback if path resolution fails
-        config_path = Path("config/container_timeouts.json")
+    # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from __file__
+    # before, so custom timeouts in a DDC_CONFIG_DIR volume were never read.
+    from utils.config_paths import get_config_dir
+    config_path = get_config_dir() / "container_timeouts.json"
 
     try:
         if config_path.exists():
@@ -181,7 +254,7 @@ def get_container_timeouts(container_name: str) -> dict:
         Dict with 'stats_timeout' and 'info_timeout' values
     """
     if not container_name:
-        return DEFAULT_TIMEOUT_CONFIG.copy()
+        return _lazy_value('DEFAULT_TIMEOUT_CONFIG').copy()
 
     container_lower = container_name.lower()
 
@@ -195,8 +268,8 @@ def get_container_timeouts(container_name: str) -> dict:
             override_config = container_overrides[container_name]
             logger.debug(f"Container '{container_name}' using exact name override")
             return {
-                'stats_timeout': override_config.get('stats_timeout', DEFAULT_TIMEOUT_CONFIG['stats_timeout']),
-                'info_timeout': override_config.get('info_timeout', DEFAULT_TIMEOUT_CONFIG['info_timeout'])
+                'stats_timeout': override_config.get('stats_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                'info_timeout': override_config.get('info_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
             }
 
     # 2. Check custom patterns (medium priority)
@@ -207,12 +280,12 @@ def get_container_timeouts(container_name: str) -> dict:
                     if pattern in container_lower:
                         logger.debug(f"Container '{container_name}' matches custom pattern '{pattern}' from {pattern_name}")
                         return {
-                            'stats_timeout': pattern_config.get('stats_timeout', DEFAULT_TIMEOUT_CONFIG['stats_timeout']),
-                            'info_timeout': pattern_config.get('info_timeout', DEFAULT_TIMEOUT_CONFIG['info_timeout'])
+                            'stats_timeout': pattern_config.get('stats_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                            'info_timeout': pattern_config.get('info_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                         }
 
     # 3. Check built-in container type patterns (lowest priority)
-    for container_type, config in CONTAINER_TYPE_PATTERNS.items():
+    for container_type, config in _lazy_value('CONTAINER_TYPE_PATTERNS').items():
         for pattern in config['patterns']:
             if pattern in container_lower:
                 logger.debug(f"Container '{container_name}' matches built-in {container_type} pattern '{pattern}'")
@@ -223,7 +296,7 @@ def get_container_timeouts(container_name: str) -> dict:
 
     # Return default if no pattern matches
     logger.debug(f"Container '{container_name}' using default timeout configuration")
-    return DEFAULT_TIMEOUT_CONFIG.copy()
+    return _lazy_value('DEFAULT_TIMEOUT_CONFIG').copy()
 
 def get_container_type_info(container_name: str) -> dict:
     """
@@ -236,7 +309,7 @@ def get_container_type_info(container_name: str) -> dict:
         Dict with container type information including custom configuration
     """
     if not container_name:
-        return {'type': 'unknown', 'matched_pattern': None, 'timeout_config': DEFAULT_TIMEOUT_CONFIG, 'config_source': 'default'}
+        return {'type': 'unknown', 'matched_pattern': None, 'timeout_config': _lazy_value('DEFAULT_TIMEOUT_CONFIG'), 'config_source': 'default'}
 
     container_lower = container_name.lower()
     custom_config = load_custom_timeout_config()
@@ -250,8 +323,8 @@ def get_container_type_info(container_name: str) -> dict:
                 'type': 'custom_override',
                 'matched_pattern': container_name,
                 'timeout_config': {
-                    'stats_timeout': override_config.get('stats_timeout', DEFAULT_TIMEOUT_CONFIG['stats_timeout']),
-                    'info_timeout': override_config.get('info_timeout', DEFAULT_TIMEOUT_CONFIG['info_timeout'])
+                    'stats_timeout': override_config.get('stats_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                    'info_timeout': override_config.get('info_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                 },
                 'config_source': 'custom_override'
             }
@@ -266,14 +339,14 @@ def get_container_type_info(container_name: str) -> dict:
                             'type': f'custom_{pattern_name}',
                             'matched_pattern': pattern,
                             'timeout_config': {
-                                'stats_timeout': pattern_config.get('stats_timeout', DEFAULT_TIMEOUT_CONFIG['stats_timeout']),
-                                'info_timeout': pattern_config.get('info_timeout', DEFAULT_TIMEOUT_CONFIG['info_timeout'])
+                                'stats_timeout': pattern_config.get('stats_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['stats_timeout']),
+                                'info_timeout': pattern_config.get('info_timeout', _lazy_value('DEFAULT_TIMEOUT_CONFIG')['info_timeout'])
                             },
                             'config_source': 'custom_pattern'
                         }
 
     # Check built-in container type patterns
-    for container_type, config in CONTAINER_TYPE_PATTERNS.items():
+    for container_type, config in _lazy_value('CONTAINER_TYPE_PATTERNS').items():
         for pattern in config['patterns']:
             if pattern in container_lower:
                 return {
@@ -289,7 +362,7 @@ def get_container_type_info(container_name: str) -> dict:
     return {
         'type': 'default',
         'matched_pattern': None,
-        'timeout_config': DEFAULT_TIMEOUT_CONFIG,
+        'timeout_config': _lazy_value('DEFAULT_TIMEOUT_CONFIG'),
         'config_source': 'default'
     }
 
@@ -310,30 +383,30 @@ def get_smart_timeout(operation: str = 'default', container_name: str = None) ->
         timeout_config = container_type_info.get('timeout_config', {})
 
         if operation == 'stats':
-            timeout_value = timeout_config.get('stats_timeout', DEFAULT_FAST_STATS_TIMEOUT)
+            timeout_value = timeout_config.get('stats_timeout', _timeout('DEFAULT_FAST_STATS_TIMEOUT'))
             logger.debug(f"[TIMEOUT_DEBUG] {container_name}: stats operation -> {timeout_value}s (type: {container_type_info.get('type', 'unknown')}, source: {container_type_info.get('config_source', 'unknown')})")
             return timeout_value
         elif operation == 'info':
-            timeout_value = timeout_config.get('info_timeout', DEFAULT_FAST_INFO_TIMEOUT)
+            timeout_value = timeout_config.get('info_timeout', _timeout('DEFAULT_FAST_INFO_TIMEOUT'))
             logger.debug(f"[TIMEOUT_DEBUG] {container_name}: info operation -> {timeout_value}s (type: {container_type_info.get('type', 'unknown')}, source: {container_type_info.get('config_source', 'unknown')})")
             return timeout_value
 
     # Global operation timeouts from Advanced Settings
     if operation == 'stats':
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: stats operation -> {DEFAULT_FAST_STATS_TIMEOUT}s (global)")
-        return DEFAULT_FAST_STATS_TIMEOUT  # From DDC_FAST_STATS_TIMEOUT
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: stats operation -> {_timeout('DEFAULT_FAST_STATS_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_FAST_STATS_TIMEOUT')  # From DDC_FAST_STATS_TIMEOUT
     elif operation == 'info':
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: info operation -> {DEFAULT_FAST_INFO_TIMEOUT}s (global)")
-        return DEFAULT_FAST_INFO_TIMEOUT   # From DDC_FAST_INFO_TIMEOUT
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: info operation -> {_timeout('DEFAULT_FAST_INFO_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_FAST_INFO_TIMEOUT')   # From DDC_FAST_INFO_TIMEOUT
     elif operation == 'list':
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: list operation -> {DEFAULT_CONTAINER_LIST_TIMEOUT}s (global)")
-        return DEFAULT_CONTAINER_LIST_TIMEOUT  # From DDC_CONTAINER_LIST_TIMEOUT
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: list operation -> {_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')  # From DDC_CONTAINER_LIST_TIMEOUT
     elif operation == 'action':
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: action operation -> {DEFAULT_FAST_INFO_TIMEOUT}s (global)")
-        return DEFAULT_FAST_INFO_TIMEOUT   # Actions are usually fast
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: action operation -> {_timeout('DEFAULT_FAST_INFO_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_FAST_INFO_TIMEOUT')   # Actions are usually fast
     else:
-        logger.debug(f"[TIMEOUT_DEBUG] No container specified: default operation -> {DEFAULT_FAST_STATS_TIMEOUT}s (global)")
-        return DEFAULT_FAST_STATS_TIMEOUT  # Default fallback
+        logger.debug(f"[TIMEOUT_DEBUG] No container specified: default operation -> {_timeout('DEFAULT_FAST_STATS_TIMEOUT')}s (global)")
+        return _timeout('DEFAULT_FAST_STATS_TIMEOUT')  # Default fallback
 
 
 def get_docker_client_async(timeout: float = None, operation: str = 'default', container_name: str = None):
@@ -387,7 +460,11 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
                     # Client close errors are non-critical - just log
                     logger.debug(f"Error closing Docker client: {e}")
 
-    return individual_client
+    # Called, not handed over: every caller writes "async with
+    # get_docker_client_async(...)", and the bare function has no __aenter__ - so
+    # the safety net raised TypeError exactly when the connection pool was gone
+    # and it was the only thing left (review C4).
+    return individual_client()
 
 def get_docker_client():
     """
@@ -417,7 +494,7 @@ def get_docker_client():
     try:
         # Method 1: Standard socket (non-blocking)
         logger.info("Trying docker.from_env() for immediate connection...")
-        _docker_client = docker.from_env(timeout=int(DEFAULT_CONTAINER_LIST_TIMEOUT))
+        _docker_client = docker.from_env(timeout=int(_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')))
 
         # Quick ping test
         _docker_client.ping()
@@ -432,7 +509,7 @@ def get_docker_client():
         try:
             # Method 2: Direct socket path
             logger.info("Trying direct socket path...")
-            _docker_client = docker.DockerClient(base_url='unix:///var/run/docker.sock', timeout=int(DEFAULT_CONTAINER_LIST_TIMEOUT))
+            _docker_client = docker.DockerClient(base_url='unix:///var/run/docker.sock', timeout=int(_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')))
 
             # Quick ping test
             _docker_client.ping()
@@ -576,7 +653,12 @@ async def get_docker_stats(docker_container_name: str) -> Tuple[Optional[str], O
     except asyncio.TimeoutError:
         logger.error(f"Timeout getting Docker stats for {docker_container_name}")
         return None, None
-    except (docker.errors.DockerException, OSError, RuntimeError, KeyError, ValueError) as e:
+    # DockerServiceError first: get_docker_client_async raises
+    # DockerConnectionError when the daemon cannot be reached at all, and it
+    # is in none of the types below. This function is documented "or
+    # (None, None) on error" (review E49; E43 repaired its neighbour at 734
+    # and left this one).
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError, KeyError, ValueError) as e:
         logger.error(f"Error getting Docker stats for {docker_container_name}: {e}", exc_info=True)
         return None, None
 
@@ -618,15 +700,20 @@ async def get_docker_info(docker_container_name: str) -> Optional[Dict[str, Any]
     except asyncio.TimeoutError:
         logger.error(f"Timeout getting info for '{docker_container_name}'")
         return None
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+    # DockerServiceError first, for the same reason as get_docker_stats
+    # above. The automation service reads None from here as "the running
+    # state could not be determined" and says so in the log (review E49).
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
         logger.error(f"Docker error in get_docker_info for '{docker_container_name}': {e}", exc_info=True)
         return None
 
 async def docker_action(docker_container_name: str, action: str) -> bool:
+    # Honour the container's own StopTimeout (docker-py's restart() would force 10s)
+    from .docker_action_service import get_stop_timeout_kwargs
     valid_actions = {
         'start': lambda c: c.start(),
-        'stop': lambda c: c.stop(),
-        'restart': lambda c: c.restart(),
+        'stop': lambda c: c.stop(**get_stop_timeout_kwargs(c)),
+        'restart': lambda c: c.restart(**get_stop_timeout_kwargs(c)),
     }
     if action not in valid_actions:
         raise DockerError(f"Invalid Docker action: {action}")
@@ -653,7 +740,7 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
     except asyncio.TimeoutError:
         logger.error(f"Timeout during docker action '{action}' on '{docker_container_name}'")
         return False
-    except (docker.errors.DockerException, docker.errors.APIError, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, docker.errors.APIError, OSError, RuntimeError) as e:
         logger.error(f"Docker error during action '{action}' on '{docker_container_name}': {e}", exc_info=True)
         return False
 
@@ -671,7 +758,6 @@ def _get_cache_ttl() -> int:
     except (ConfigLoadError, KeyError, ValueError, TypeError):
         return 30  # Default fallback
 
-_CACHE_TTL = _get_cache_ttl()  # Load from Advanced Settings (typically 30s)
 _containers_cache_lock = threading.Lock()  # Thread safety for container cache
 
 async def list_docker_containers() -> List[Dict[str, Any]]:
@@ -682,8 +768,10 @@ async def list_docker_containers() -> List[Dict[str, Any]]:
             containers = []
             for container in raw_containers:
                 try:
-                     image_tags = container.image.tags
-                     image_name = image_tags[0] if image_tags else container.image.id[:12]
+                     # From attrs: container.image is a second request, and a
+                     # removed image made this container drop out of the list
+                     # through the NotFound handler below (review E53).
+                     image_name = image_name_of(container)
                      containers.append({
                          "id": container.short_id,
                          "name": container.name,
@@ -700,7 +788,7 @@ async def list_docker_containers() -> List[Dict[str, Any]]:
     except asyncio.TimeoutError:
         logger.error("Timeout listing Docker containers")
         return []
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
         logger.error(f"Docker error listing containers: {e}", exc_info=True)
         return []
 
@@ -721,7 +809,7 @@ async def is_container_exists(docker_container_name: str) -> bool:
             return True
     except docker.errors.NotFound:
         return False
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
         logger.error(f"Docker error checking existence of '{docker_container_name}': {e}", exc_info=True)
         return False
 
@@ -731,14 +819,17 @@ async def get_containers_data() -> List[Dict[str, Any]]:
 
     # Thread-safe cache access
     with _containers_cache_lock:
-        if _containers_cache is not None and (current_time - _cache_timestamp < _CACHE_TTL):
+        if _containers_cache is not None and (current_time - _cache_timestamp < _lazy_value('_CACHE_TTL')):
             logger.debug("Using cached container data")
             return _containers_cache.copy()  # Return copy to avoid modification
 
     try:
         # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_LIST_TIMEOUT) for container data retrieval
         async with get_docker_client_async(operation='list') as client:
-            containers_api_list = await asyncio.to_thread(client.api.containers, all=True, Lstat=True) # Use low-level API for more resilience
+            # Only keywords docker-py actually declares: APIClient.containers has a
+            # fixed signature and no **kwargs, so the "Lstat=True" that used to sit
+            # here raised TypeError on every single listing (review C56).
+            containers_api_list = await asyncio.to_thread(client.api.containers, all=True)
             result = []
             for c_data in containers_api_list:
                 try:
@@ -758,13 +849,14 @@ async def get_containers_data() -> List[Dict[str, Any]]:
                         "created": datetime.fromtimestamp(c_data.get('Created', 0), timezone.utc).isoformat() if c_data.get('Created') else "N/A",
                     }
                     if is_running:
-                        ports_info = c_data.get("Ports", {})
-                        container_info["ports"] = ports_info
-                        state_detail = c_data.get("State", {})
-                        if state_detail:
-                            container_info["started_at"] = state_detail.get("StartedAt", "")
-                            # Health status is not directly in low-level API list, would need inspect
-                            # container_info["health"] = "unknown"
+                        container_info["ports"] = c_data.get("Ports", {})
+                        # No start time here. In the low-level listing "State" is a
+                        # plain string ("running") - the object with StartedAt only
+                        # comes from an inspect call. Calling .get() on that string
+                        # raised AttributeError, which the handler below turned into
+                        # status "error_processing", running False: every healthy
+                        # running container was reported as broken (review C56).
+                        # Nothing outside ever read the field.
                     result.append(container_info)
                 except (AttributeError, KeyError, ValueError, TypeError) as e_inner:
                     logger.warning(f"Error processing individual container data for {c_data.get('Id', 'unknown_id')}: {e_inner}")
@@ -783,7 +875,7 @@ async def get_containers_data() -> List[Dict[str, Any]]:
                 _cache_timestamp = current_time
 
             return sorted_result
-    except (docker.errors.DockerException, asyncio.TimeoutError, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, OSError, RuntimeError) as e:
         logger.error(f"Error in get_containers_data: {e}", exc_info=True)
         return []
 
@@ -832,13 +924,24 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
         for container_name in container_names:
             start_time = time.time()
 
+            # Read once, up front, and hand the value to the error handlers
+            # below. They used to call get_container_timeouts() again while
+            # handling an error - including an error that came from that very
+            # call, because it reads the configuration and can raise. The
+            # handler then raised the same error a second time, and it left
+            # test_docker_performance altogether: the tool died on the one
+            # container it was asked to diagnose and took the report on all the
+            # others with it (review C57). None means "we never got that far".
+            timeout_config = None
+
             try:
+                # Use container-specific timeout
+                timeout_config = get_container_timeouts(container_name)
+
                 # Test both info and stats calls
                 info_task = asyncio.create_task(get_docker_info(container_name))
                 stats_task = asyncio.create_task(get_docker_stats(container_name))
 
-                # Use container-specific timeout
-                timeout_config = get_container_timeouts(container_name)
                 total_timeout = timeout_config['info_timeout'] + timeout_config['stats_timeout']
 
                 info, stats = await asyncio.wait_for(
@@ -862,6 +965,17 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
                 elif stats == ("N/A", "N/A"):
                     error_info = "Stats timeout"
                     timeout_count += 1
+                elif info is None:
+                    # An unreachable daemon used to arrive here as an exception
+                    # object, captured by `return_exceptions=True` above and
+                    # recorded as "Info error: ...". Since E49 get_docker_info
+                    # keeps the promise in its signature and answers None
+                    # instead - so the report has to read the None, or a
+                    # container nobody could reach is listed with a timing and
+                    # no errors, which reads as healthy.
+                    error_info = "Info error: Docker did not answer"
+                elif stats == (None, None):
+                    error_info = "Stats error: Docker did not answer"
 
                 if container_name not in results['container_results']:
                     results['container_results'][container_name] = {
@@ -891,14 +1005,14 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
                         'average_ms': 0,
                         'min_ms': float('inf'),
                         'max_ms': 0,
-                        'timeout_config': get_container_timeouts(container_name),
+                        'timeout_config': timeout_config,
                         'errors': []
                     }
 
                 results['container_results'][container_name]['times_ms'].append(elapsed_time)
                 results['container_results'][container_name]['errors'].append("Overall timeout")
 
-            except (asyncio.TimeoutError, docker.errors.DockerException, RuntimeError) as e:
+            except (docker.errors.DockerException, RuntimeError) as e:
                 elapsed_time = (time.time() - start_time) * 1000
                 logger.error(f"Performance test error for {container_name}: {e}", exc_info=True)
 
@@ -908,7 +1022,7 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
                         'average_ms': 0,
                         'min_ms': float('inf'),
                         'max_ms': 0,
-                        'timeout_config': get_container_timeouts(container_name),
+                        'timeout_config': timeout_config,
                         'errors': []
                     }
 
@@ -929,9 +1043,17 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
         results['summary']['total_time_ms'] = total_time_sum
         results['summary']['timeout_count'] = timeout_count
 
-        # Find fastest and slowest containers
-        fastest_container = min(results['container_results'].items(), key=lambda x: x[1]['average_ms'])
-        slowest_container = max(results['container_results'].items(), key=lambda x: x[1]['average_ms'])
+        # Find fastest and slowest containers, among those that were actually
+        # measured. A container whose calls failed on every iteration keeps
+        # times_ms empty and average_ms at its initial 0 - and min() over all of
+        # them then presented exactly that broken container to the operator as
+        # the fastest one, at 0 ms (review C58). Its errors list still says what
+        # happened to it. The list is not empty here: all_averages above is
+        # built from the same condition.
+        measured = [item for item in results['container_results'].items()
+                    if item[1]['times_ms']]
+        fastest_container = min(measured, key=lambda x: x[1]['average_ms'])
+        slowest_container = max(measured, key=lambda x: x[1]['average_ms'])
 
         results['summary']['fastest_container'] = {
             'name': fastest_container[0],
@@ -950,14 +1072,14 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
 
 async def analyze_docker_stats_performance(container_name: str, iterations: int = 5) -> dict:
     """
-    Detaillierte Analyse warum ein Container langsame Docker Stats hat.
+    Detailed analysis of why a container has slow Docker stats.
 
     Args:
-        container_name: Name des Docker-Containers
-        iterations: Anzahl der Test-Iterationen
+        container_name: name of the Docker container
+        iterations: number of test iterations
 
     Returns:
-        Dict mit detaillierten Performance-Metriken
+        Dict with detailed performance metrics
     """
     if not container_name:
         return {}
@@ -1020,7 +1142,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
         for iteration in range(iterations):
             logger.info(f"Performance analysis iteration {iteration + 1}/{iterations} for '{container_name}'")
 
-            # 1. Container-Objekt abrufen (sollte schnell sein, da gecacht)
+            # 1. Get the container object (should be fast, as it is cached)
             start_time = time.time()
             try:
                 # Note: container name already validated above, safe to use
@@ -1043,7 +1165,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
 
                 # 3. Analyze stats data for trends
                 if stats:
-                    # CPU-Metriken
+                    # CPU metrics
                     cpu_stats = stats.get('cpu_stats', {})
                     if cpu_stats:
                         cpu_usage = cpu_stats.get('cpu_usage', {}).get('total_usage', 0)
@@ -1055,7 +1177,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                             'online_cpus': cpu_stats.get('online_cpus', 1)
                         })
 
-                    # Memory-Metriken
+                    # Memory metrics
                     memory_stats = stats.get('memory_stats', {})
                     if memory_stats:
                         memory_usage = memory_stats.get('usage', 0)
@@ -1069,7 +1191,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                             'memory_percent': (memory_usage / memory_limit * 100) if memory_limit > 0 else 0
                         })
 
-                    # I/O-Metriken
+                    # I/O metrics
                     blkio_stats = stats.get('blkio_stats', {})
                     if blkio_stats:
                         io_service_bytes = blkio_stats.get('io_service_bytes_recursive', [])
@@ -1082,7 +1204,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                             'stats_call_time_ms': stats_call_time
                         })
 
-                    # Network-Metriken
+                    # Network metrics
                     networks = stats.get('networks', {})
                     if networks:
                         total_rx_bytes = sum(net.get('rx_bytes', 0) for net in networks.values())
@@ -1108,11 +1230,11 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 logger.error(f"Error retrieving stats (iteration {iteration}): {e}", exc_info=True)
                 continue
 
-            # Kurze Pause zwischen Iterationen
+            # Short pause between iterations
             if iteration < iterations - 1:
                 await asyncio.sleep(0.5)
 
-        # Analyse der Ergebnisse
+        # Analyse the results
         if results['timing_breakdown']['stats_call_times']:
             stats_times = results['timing_breakdown']['stats_call_times']
             avg_stats_time = sum(stats_times) / len(stats_times)
@@ -1129,17 +1251,17 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                 'min_stats_time_ms': min_stats_time,
                 'std_deviation_ms': std_deviation,
                 'variability_high': std_deviation > (avg_stats_time * 0.3),  # >30% variability
-                'consistently_slow': avg_stats_time > 1000,  # Durchschnitt >1s
-                'performance_category': 'langsam' if avg_stats_time > 1000 else 'mittel' if avg_stats_time > 500 else 'schnell'
+                'consistently_slow': avg_stats_time > 1000,  # average >1s
+                'performance_category': 'slow' if avg_stats_time > 1000 else 'medium' if avg_stats_time > 500 else 'fast'
             }
 
-            # Korrelations-Analyse (falls genug Daten)
+            # Correlation analysis (if there is enough data)
             if len(results['container_metrics']['memory_usage_trend']) >= 3:
                 memory_usage = [m['memory_percent'] for m in results['container_metrics']['memory_usage_trend']]
-                # Einfache Korrelation zwischen Memory-Nutzung und Stats-Zeit
+                # Simple correlation between memory usage and stats time
                 if len(memory_usage) == len(stats_times):
                     avg_memory = sum(memory_usage) / len(memory_usage)
-                    memory_high = avg_memory > 70  # >70% Memory-Nutzung
+                    memory_high = avg_memory > 70  # >70% memory usage
                     results['analysis']['memory_correlation'] = {
                         'avg_memory_percent': avg_memory,
                         'high_memory_usage': memory_high,
@@ -1163,7 +1285,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                    f"Average {results['analysis'].get('avg_stats_time_ms', 0):.1f}ms, "
                    f"Category: {results['analysis'].get('performance_category', 'unknown')}")
 
-    except (docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, KeyError) as e:
+    except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, KeyError) as e:
         logger.error(f"Error in performance analysis for '{container_name}': {e}", exc_info=True)
         results['error'] = str(e)
 
@@ -1171,28 +1293,28 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
 
 async def compare_container_performance(container_names: List[str] = None) -> str:
     """
-    Einfacher Vergleich der Docker Stats Performance zwischen Containern.
-    Zeigt dem User, warum manche Container langsamer sind.
+    Simple comparison of Docker stats performance between containers.
+    Shows the user why some containers are slower.
 
     Args:
-        container_names: Liste der Container zum Vergleichen
+        container_names: list of containers to compare
 
     Returns:
-        Formatierter String mit Vergleichsergebnissen
+        Formatted string with the comparison results
     """
     if not container_names:
-        # Automatisch laufende Container finden
+        # Find running containers automatically
         containers_data = await get_containers_data()
-        container_names = [c['name'] for c in containers_data if c.get('running', False)][:5]  # Max 5 Container
+        container_names = [c['name'] for c in containers_data if c.get('running', False)][:5]  # at most 5 containers
 
     if not container_names:
-        return "❌ Keine laufenden Container gefunden zum Testen."
+        return "❌ No running containers found to test."
 
-    logger.info(f"Vergleiche Performance von {len(container_names)} Containern")
+    logger.info(f"Comparing performance of {len(container_names)} containers")
     results = []
 
     for container_name in container_names:
-        logger.info(f"Teste Container: {container_name}")
+        logger.info(f"Testing container: {container_name}")
 
         # 🔒 SECURITY: Validate container name format before Docker API call
         from utils.common_helpers import validate_container_name
@@ -1200,14 +1322,14 @@ async def compare_container_performance(container_names: List[str] = None) -> st
             logger.error(f"compare_container_performance: Invalid container name format: {container_name}")
             continue
 
-        # Einfacher Performance-Test (3 Iterationen)
+        # Simple performance test (3 iterations)
         times = []
         try:
             # 🔧 PERFORMANCE: Use Advanced Settings timeout for performance comparison
             async with get_docker_client_async(operation='stats', container_name=container_name) as client:
                 container = await asyncio.to_thread(client.containers.get, container_name)
 
-                # 3 schnelle Tests
+                # 3 quick tests
                 for i in range(3):
                     start_time = time.time()
                     try:
@@ -1218,7 +1340,7 @@ async def compare_container_performance(container_names: List[str] = None) -> st
                         elapsed = (time.time() - start_time) * 1000
                         times.append(elapsed)
 
-                        # Kurze Pause
+                        # Short pause
                         if i < 2:
                             await asyncio.sleep(0.2)
 
@@ -1233,18 +1355,18 @@ async def compare_container_performance(container_names: List[str] = None) -> st
                     min_time = min(times)
                     max_time = max(times)
 
-                    # Container-Typ ermitteln
+                    # Determine the container type
                     container_type_info = get_container_type_info(container_name)
                     container_type = container_type_info.get('type', 'unknown')
                     matched_pattern = container_type_info.get('matched_pattern', 'none')
 
-                    # Performance-Kategorie
+                    # Performance category
                     if avg_time > 2000:
                         category = "🔴 VERY SLOW"
                     elif avg_time > 1000:
                         category = "🟡 SLOW"
                     elif avg_time > 500:
-                        category = "🟠 MITTEL"
+                        category = "🟠 MEDIUM"
                     else:
                         category = "🟢 FAST"
 
@@ -1258,21 +1380,21 @@ async def compare_container_performance(container_names: List[str] = None) -> st
                         'pattern': matched_pattern
                     })
 
-        except (docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, OSError) as e:
+        except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, OSError) as e:
             logger.error(f"Error testing {container_name}: {e}", exc_info=True)
             results.append({
                 'name': container_name,
                 'avg_time': -1,
-                'category': "❌ FEHLER",
+                'category': "❌ ERROR",
                 'error': str(e)
             })
 
-    # Ergebnisse sortieren (langsamste zuerst)
+    # Sort the results (slowest first)
     results.sort(key=lambda x: x.get('avg_time', 0), reverse=True)
 
-    # Formatierte Ausgabe erstellen
+    # Build the formatted output
     output_lines = [
-        "🔍 **DOCKER STATS PERFORMANCE VERGLEICH**",
+        "🔍 **DOCKER STATS PERFORMANCE COMPARISON**",
         "=" * 50,
         ""
     ]
@@ -1281,9 +1403,9 @@ async def compare_container_performance(container_names: List[str] = None) -> st
         if result.get('avg_time', -1) >= 0:
             output_lines.extend([
                 f"**{i+1}. {result['name']}** {result['category']}",
-                f"   ⏱️  Durchschnitt: {result['avg_time']:.0f}ms",
-                f"   📊 Bereich: {result['min_time']:.0f}ms - {result['max_time']:.0f}ms",
-                f"   🏷️  Typ: {result.get('type', 'unknown')} (Pattern: {result.get('pattern', 'none')})",
+                f"   ⏱️  Average: {result['avg_time']:.0f}ms",
+                f"   📊 Range: {result['min_time']:.0f}ms - {result['max_time']:.0f}ms",
+                f"   🏷️  Type: {result.get('type', 'unknown')} (pattern: {result.get('pattern', 'none')})",
                 ""
             ])
         else:

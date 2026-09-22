@@ -14,10 +14,12 @@ for various log types including container logs, bot logs, Discord logs, and acti
 
 import os
 import logging
-import asyncio
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+
+from services.exceptions import ContainerLogError
 
 logger = logging.getLogger(__name__)
 
@@ -54,12 +56,6 @@ class ActionLogRequest:
 
 
 @dataclass
-class ClearLogRequest:
-    """Represents a log clearing request."""
-    log_type: str = "container"
-
-
-@dataclass
 class LogResult:
     """Represents the result of log retrieval."""
     success: bool
@@ -76,12 +72,15 @@ class ContainerLogService:
         self.logger = logger
         self.default_container = 'dockerdiscordcontrol'
 
-        # Log file paths (try Docker paths first, then development paths)
+        # Log file paths: the Docker path first, then the local checkout. The second entry
+        # used to be the maintainer's absolute path, which existed on exactly one machine
+        # and was searched on every lookup. It is now derived from this file's location.
+        local_logs = Path(__file__).resolve().parents[2] / "logs"
         self.log_paths = {
-            'bot': ['/app/logs/bot.log', '/Volumes/appdata/dockerdiscordcontrol/logs/bot.log'],
-            'discord': ['/app/logs/discord.log', '/Volumes/appdata/dockerdiscordcontrol/logs/discord.log'],
-            'webui': ['/app/logs/webui_error.log', '/Volumes/appdata/dockerdiscordcontrol/logs/webui_error.log'],
-            'application': ['/app/logs/supervisord.log', '/Volumes/appdata/dockerdiscordcontrol/logs/supervisord.log']
+            'bot': ['/app/logs/bot.log', str(local_logs / 'bot.log')],
+            'discord': ['/app/logs/discord.log', str(local_logs / 'discord.log')],
+            'webui': ['/app/logs/webui_error.log', str(local_logs / 'webui_error.log')],
+            'application': ['/app/logs/supervisord.log', str(local_logs / 'supervisord.log')]
         }
 
     def get_container_logs(self, request: ContainerLogRequest) -> LogResult:
@@ -121,6 +120,15 @@ class ContainerLogService:
                 content=logs_content
             )
 
+        except ContainerLogError as e:
+            # A failure that is NOT "no such container" - it gets its own answer
+            # instead of borrowing the 404 (review C18).
+            self.logger.error(f"Could not read logs for {request.container_name}: {e}")
+            return LogResult(
+                success=False,
+                error=f"Could not read logs for '{request.container_name}': {e}",
+                status_code=500
+            )
         except (ImportError, AttributeError, TypeError, ValueError, RuntimeError) as e:
             # Service/async errors (missing services, invalid types, runtime/event loop errors)
             self.logger.error(f"Service error retrieving container logs for {request.container_name}: {e}", exc_info=True)
@@ -181,44 +189,17 @@ class ContainerLogService:
             else:
                 return self._get_action_logs_text(request.limit)
 
-        except (AttributeError, TypeError, ValueError, RuntimeError) as e:
-            # Data/service errors (invalid format type, type errors, runtime errors)
+        except (ImportError, OSError, AttributeError, TypeError, ValueError, RuntimeError) as e:
+            # A superset of what the two helpers re-raise. They catch
+            # (ImportError, AttributeError, OSError, TypeError[, ValueError]),
+            # log, and raise on purpose - leaving the answer to this clause. But
+            # ImportError and OSError were missing here, so exactly the two
+            # failures they were written to hand upwards left the service
+            # uncaught instead of becoming the polite 500 below (review C23).
             self.logger.error(f"Service error retrieving action logs: {e}", exc_info=True)
             return LogResult(
                 success=False,
                 error="Error fetching action logs",
-                status_code=500
-            )
-
-    def clear_logs(self, request: ClearLogRequest) -> LogResult:
-        """
-        Clear logs (limited functionality for Docker container logs).
-
-        Args:
-            request: ClearLogRequest with log type
-
-        Returns:
-            LogResult with clearing operation result
-        """
-        try:
-            self.logger.info(f"Clear logs request for type: {request.log_type}")
-
-            # Note: Docker container logs cannot be cleared directly
-            # This is prepared for future file-based logging implementation
-            return LogResult(
-                success=True,
-                data={
-                    'success': True,
-                    'message': f'{request.log_type.capitalize()} logs cleared (Note: Docker container logs persist until container restart)'
-                }
-            )
-
-        except (AttributeError, TypeError, ValueError) as e:
-            # Data/operation errors (invalid attributes, type errors, value errors)
-            self.logger.error(f"Error clearing logs: {e}", exc_info=True)
-            return LogResult(
-                success=False,
-                error=str(e),
                 status_code=500
             )
 
@@ -242,12 +223,19 @@ class ContainerLogService:
                 return None
             except _docker.errors.APIError as e:
                 self.logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
-                return None
+                raise ContainerLogError(f"Docker API error: {e}") from e
             finally:
                 client.close()
+        except ContainerLogError:
+            raise
         except Exception as e:
+            # None means ONE thing: the container is genuinely not there. It used
+            # to mean everything - an unreachable socket, a permission denied, a
+            # timeout - and the caller turned all of it into
+            # "Container '<name>' not found", 404. The person troubleshooting the
+            # log viewer was told the opposite of what had happened (review C18).
             self.logger.error(f"Failed to get Docker logs synchronously: {e}", exc_info=True)
-            return None
+            raise ContainerLogError(f"Could not read logs: {e}") from e
 
     def _validate_container_name(self, container_name: str) -> bool:
         """Validate container name to prevent injection attacks."""
@@ -258,58 +246,6 @@ class ContainerLogService:
             # Fallback validation if utility is not available
             import re
             return bool(re.match(r'^[a-zA-Z0-9_.-]+$', container_name))
-
-    async def _get_docker_client_async(self):
-        """Get Docker client with SERVICE FIRST pattern."""
-        try:
-            # SERVICE FIRST: Use Docker Client Service
-            from services.docker_service.docker_client_pool import get_docker_client_async
-            return get_docker_client_async(operation='logs', timeout=30.0)
-        except (ImportError, AttributeError, TypeError, RuntimeError) as e:
-            # Service/import errors (missing docker service, attribute errors, runtime errors)
-            self.logger.error(f"Failed to get Docker client: {e}", exc_info=True)
-            return None
-
-    async def _fetch_container_logs_async(self, client, container_name: str, max_lines: int) -> Optional[str]:
-        """Fetch logs from Docker container with error handling using SERVICE FIRST pattern."""
-        try:
-            import docker
-            import asyncio
-
-            # Use async thread execution for Docker API calls
-            container = await asyncio.to_thread(client.containers.get, container_name)
-            logs = await asyncio.to_thread(
-                lambda: container.logs(tail=max_lines, stdout=True, stderr=True)
-            )
-            return logs.decode('utf-8', errors='replace')
-
-        except docker.errors.NotFound:
-            self.logger.warning(f"Log request for non-existent container: {container_name}")
-            return None
-        except docker.errors.APIError as e:
-            self.logger.error(f"Docker API error when fetching logs for {container_name}: {e}")
-            raise RuntimeError("Could not retrieve logs due to a Docker API error")
-        except (ImportError, AttributeError, TypeError, UnicodeDecodeError, RuntimeError) as e:
-            # Import/decode/async errors (missing modules, attribute errors, decode errors, runtime errors)
-            self.logger.error(f"Error fetching container logs: {e}", exc_info=True)
-            raise
-
-    async def _get_container_logs_service_first(self, container_name: str, max_lines: int) -> Optional[str]:
-        """Get container logs using SERVICE FIRST Docker Client Service."""
-        try:
-            # Get Docker client using SERVICE FIRST pattern
-            client_context = await self._get_docker_client_async()
-            if not client_context:
-                return None
-
-            # Use the context manager for proper cleanup
-            async with client_context as client:
-                return await self._fetch_container_logs_async(client, container_name, max_lines)
-
-        except (AttributeError, TypeError, RuntimeError) as e:
-            # Async/context errors (missing attributes, type errors, runtime errors)
-            self.logger.error(f"Error in SERVICE FIRST container logs: {e}", exc_info=True)
-            return None
 
     def _get_bot_logs(self, max_lines: int) -> LogResult:
         """Get bot-specific logs with file fallback."""
@@ -402,6 +338,19 @@ class ContainerLogService:
 
             return LogResult(success=True, content=filtered_logs)
 
+        except ContainerLogError as e:
+            # The logs could not be read, and that is NOT "no such container" -
+            # it gets its own answer next to the 404 above, the same way
+            # get_container_logs answers it (review C18, E46). Without this the
+            # exception walks out of the service and out of the route, and the
+            # log tab fills with Flask's HTML error page at the exact moment the
+            # operator opened it to find out what was wrong.
+            self.logger.error(f"Could not read logs for the filtered view: {e}")
+            return LogResult(
+                success=False,
+                error=f"Could not read container logs: {e}",
+                status_code=500
+            )
         except (AttributeError, TypeError, RuntimeError, ValueError) as e:
             # Async/data errors (attribute errors, type errors, runtime/async errors, value errors)
             self.logger.error(f"Error getting filtered container logs: {e}", exc_info=True)
@@ -443,8 +392,16 @@ class ContainerLogService:
     def _get_action_logs_json(self, limit: int) -> LogResult:
         """Get action logs in JSON format."""
         try:
-            from services.infrastructure.action_logger import get_action_logs_json
-            action_logs = get_action_logs_json(limit=limit)
+            from services.infrastructure.action_logger import (
+                ActionLogUnreadable, get_action_logs_json)
+            try:
+                action_logs = get_action_logs_json(limit=limit)
+            except ActionLogUnreadable as e:
+                # A log that could not be read is a failed request, not an empty
+                # history. Without this the empty list came back wrapped in
+                # success=True and the route never saw a failure (review D5).
+                self.logger.error(f"Action logs could not be read: {e}")
+                return LogResult(success=False, error=str(e), status_code=500)
 
             return LogResult(
                 success=True,

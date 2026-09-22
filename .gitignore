@@ -76,6 +76,9 @@ docker-compose.override.yml
 .ionide/
 
 # Unit test / coverage reports
+# Messartefakt des AST-Zensus (scripts/audit_tests.py) - wird bei jedem Lauf neu
+# erzeugt und gehoert nicht in die Versionierung.
+test_audit.json
 htmlcov/
 .tox/
 .coverage
@@ -203,3 +206,17 @@ app/static/mech_sprites/
 FUEL_SYSTEM_MEMO.md
 FUEL_SYSTEM_FORMULAS.md
 config.backup_*/
+
+# SMB deletion artifacts (macOS on an SMB share)
+.smbdelete*
+
+# Internal, not for publication
+docs/DMC_PROJECT_PLAN.md
+# Audit working document: contains live install details and an incident report.
+# The publishable summary lives in docs/RELEASE_NOTES_NEXT.md.
+AUDIT_2026-09.md
+# Follow-up roadmap: contains live measurements from the maintainer's install.
+ROADMAP_2026-09_perf_mech.md
+
+# Runtime output of the performance monitor, written by the running app.
+data/

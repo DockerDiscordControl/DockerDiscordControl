@@ -25,6 +25,7 @@ from typing import Dict, Optional
 from zoneinfo import ZoneInfo
 
 from services.mech.progress_paths import ProgressPaths, clear_progress_paths_cache, get_progress_paths
+from utils.atomic_io import atomic_write_text
 
 logger = logging.getLogger("ddc.progress.runtime")
 
@@ -65,10 +66,10 @@ class ProgressRuntime:
         if not paths.config_file.exists():
             if self._default_config is None:
                 logger.debug("Creating empty progress config at %s", paths.config_file)
-                paths.config_file.write_text("{}\n", encoding="utf-8")
+                atomic_write_text(paths.config_file, "{}\n")
             else:
                 logger.debug("Seeding progress config with defaults at %s", paths.config_file)
-                paths.config_file.write_text(json.dumps(self._default_config, indent=2), encoding="utf-8")
+                atomic_write_text(paths.config_file, json.dumps(self._default_config, indent=2))
             self.invalidate_cache()
 
     def reset_paths(self) -> None:
@@ -106,14 +107,18 @@ class ProgressRuntime:
                 with self.paths.config_file.open("r", encoding="utf-8") as fh:
                     self._config_cache = json.load(fh) or {}
             except json.JSONDecodeError as exc:
+                # This branch recovers from a torn write - so it must not be able to
+                # tear itself. It used to rewrite the file with the same plain
+                # write_text that produced the damage (review C25).
                 logger.error("Invalid JSON in progress config (%s); resetting to defaults", exc)
                 if self._default_config is None:
                     self._config_cache = {}
-                    self.paths.config_file.write_text("{}\n", encoding="utf-8")
+                    atomic_write_text(self.paths.config_file, "{}\n")
                 else:
                     self._config_cache = dict(self._default_config)
-                    self.paths.config_file.write_text(
-                        json.dumps(self._default_config, indent=2), encoding="utf-8"
+                    atomic_write_text(
+                        self.paths.config_file,
+                        json.dumps(self._default_config, indent=2),
                     )
         return self._config_cache
 

@@ -12,7 +12,44 @@ on:
   workflow_dispatch:
 
 jobs:
+  # The gate. Without a green run here no image is published.
+  # Whoever installs DDC from Unraid Community Apps gets exactly this image - if
+  # the tests do not run, nobody notices until it shows up on the user's server.
+  # See SPEC.md Z10.
+  test:
+    name: Testlauf (Gatter)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+
+      - name: Run the test suite group by group
+        run: |
+          # One group per invocation - the reason is in tests/GROUPS.txt.
+          # No "|| true" and no continue-on-error: this step IS the gate. GitHub's
+          # default shell runs with -e, so a red pytest ends the step at once.
+          while read -r gruppe; do
+            case "$gruppe" in ''|'#'*) continue ;; esac
+            echo "::group::$gruppe"
+            python -m pytest "$gruppe" -q
+            echo "::endgroup::"
+          done < tests/GROUPS.txt
+
   build_and_push:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read

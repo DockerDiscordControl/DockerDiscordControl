@@ -10,6 +10,7 @@ Tracks last sent content and skips updates when content hasn't changed.
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import Dict, Any, Tuple, Optional
 
@@ -31,7 +32,12 @@ class ConditionalUpdateCacheService:
 
     def __init__(self):
         """Initialize conditional update cache service."""
-        self._last_sent_content: Dict[str, Dict[str, Any]] = {}
+        # An OrderedDict, because the cleanup below keeps "the most recent"
+        # entries and a plain dict cannot tell it which those are: updating an
+        # EXISTING key does not move it, only a new key is appended. The entry
+        # written on every pass therefore kept its first position and was the
+        # first to be thrown out (review D34).
+        self._last_sent_content: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
         self._update_stats = {
             'skipped': 0,
             'sent': 0,
@@ -55,6 +61,12 @@ class ConditionalUpdateCacheService:
         if last_content is None:
             # First time seeing this key - content has "changed"
             return True
+
+        # A read that hits is use. An entry the bot keeps comparing against is
+        # the most valuable one there is here - every comparison it answers is
+        # a Discord edit that did not happen - and without this it would drift
+        # to the front of the eviction queue while doing that job (review D34).
+        self._last_sent_content.move_to_end(cache_key)
 
         # Compare content
         has_changed = last_content != current_content
@@ -80,6 +92,7 @@ class ConditionalUpdateCacheService:
             content: Dictionary of content that was sent
         """
         self._last_sent_content[cache_key] = content
+        self._last_sent_content.move_to_end(cache_key)
         self._update_stats['sent'] += 1
 
         # Automatic cleanup every 100 operations
@@ -97,9 +110,11 @@ class ConditionalUpdateCacheService:
         if len(self._last_sent_content) <= keep_entries:
             return
 
-        # Keep only the most recent entries
-        sorted_items = list(self._last_sent_content.items())[-keep_entries:]
-        self._last_sent_content = dict(sorted_items)
+        # Keep only the most recently used entries. The order is maintained by
+        # move_to_end on every read that hits and every write, so the tail of
+        # this dict really is the recent end (review D34).
+        recent = list(self._last_sent_content.items())[-keep_entries:]
+        self._last_sent_content = OrderedDict(recent)
         logger.debug(f"Cleaned conditional update cache: kept {len(self._last_sent_content)} entries")
 
     def get_statistics(self) -> Dict[str, Any]:

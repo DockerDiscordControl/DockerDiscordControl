@@ -96,7 +96,7 @@ async def synchronize_commands_step(context: StartupContext) -> None:
             logger.info("Commands synchronized successfully")
         else:
             logger.info("Bot implementation does not provide sync_commands; skipping.")
-    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+    except (RuntimeError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
         logger.error("Error syncing commands: %s", e)
         await _fallback_register_commands(bot, logger, guild_id)
 
@@ -114,7 +114,7 @@ async def _fallback_register_commands(bot, logger, guild_id: int) -> None:
             try:
                 await bot.register_commands(guild_id=guild_id, commands=[cmd])
                 logger.info("Successfully registered command: %s", cmd.name)
-            except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+            except (RuntimeError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
                 logger.error("Error registering command %s: %s", cmd.name, e)
-    except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+    except (RuntimeError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
         logger.error("Fallback registration failed: %s", e)

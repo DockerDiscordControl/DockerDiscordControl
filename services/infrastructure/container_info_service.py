@@ -18,6 +18,8 @@ import re
 import json
 from typing import Dict, Any, Optional, List
 from pathlib import Path
+
+from utils.atomic_io import atomic_write_json
 from dataclasses import dataclass
 from utils.logging_utils import get_module_logger
 from services.config.server_config_service import get_server_config_service
@@ -34,6 +36,13 @@ def _validate_path_safety(name: str, base_dir: Path) -> None:
     resolved = (base_dir / f"{name}.json").resolve()
     if not str(resolved).startswith(str(base_dir.resolve())):
         raise ValueError(f"Path traversal detected: {name!r}")
+
+# What the protected info fields may hold. They were written into from_dict as
+# bare slices, where they silently shortened on READ while both writers kept
+# whatever they were given (review D18).
+MAX_PROTECTED_CONTENT = 250
+MAX_PROTECTED_PASSWORD = 60
+
 
 @dataclass(frozen=True)
 class ContainerInfo:
@@ -58,8 +67,14 @@ class ContainerInfo:
             custom_port=str(data.get('custom_port', '')),
             custom_text=str(data.get('custom_text', '')),
             protected_enabled=bool(data.get('protected_enabled', False)),
-            protected_content=str(data.get('protected_content', ''))[:250],  # Max 250 chars
-            protected_password=str(data.get('protected_password', ''))[:60]   # Max 60 chars
+            # What is stored, unchanged. These used to be bare slices here, so a
+            # value the writers had kept in full came back shorter on every
+            # read - the operator saved 300 characters, saw them saved, and
+            # found 250 the next time the panel loaded them. A reader that
+            # edits its data is how the two came to disagree; the limit is
+            # applied once, at the save below (review D18).
+            protected_content=str(data.get('protected_content', '')),
+            protected_password=str(data.get('protected_password', ''))
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -91,10 +106,39 @@ class ContainerInfoService:
         Args:
             config_file: Path to docker config file (kept for compatibility, not used)
         """
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.containers_dir = Path(base_dir) / "config" / "containers"
-        self.config_file = Path(base_dir) / "config" / "docker_config.json"  # Keep for backward compatibility
+        # DDC_CONFIG_DIR via utils/config_paths.py - see there (split config, SPEC.md Z2).
+        from utils.config_paths import get_config_dir
+        self.containers_dir = get_config_dir() / "containers"
+        self.config_file = get_config_dir() / "docker_config.json"  # Keep for backward compatibility
         logger.info(f"Container info service initialized using container files in: {self.containers_dir}")
+
+    def _find_by_stored_name(self, container_name: str) -> Optional[Path]:
+        """The container's file when it is not stored under its own name.
+
+        This scan reads files belonging to OTHER containers, so one of them
+        being unreadable must not decide this container's fate. The loop used
+        to open and parse each file unguarded, three times over in this class:
+        a half-written legacy leftover or a hand-edited file raised out of the
+        loop, and the caller's own handler turned that into "not found" or a
+        failed save for a container whose file was perfectly fine (review D19).
+        """
+        for file in sorted(self.containers_dir.glob("*.json")):
+            try:
+                with open(file, 'r', encoding='utf-8') as handle:
+                    data = json.load(handle)
+            except (OSError, json.JSONDecodeError, UnicodeDecodeError) as e:
+                logger.warning(f"Skipping {file.name} while looking for "
+                               f"'{container_name}': {e}")
+                continue
+            if not isinstance(data, dict):
+                logger.warning(f"Skipping {file.name} while looking for "
+                               f"'{container_name}': not an object")
+                continue
+            if (data.get('container_name') == container_name or
+                    data.get('docker_name') == container_name or
+                    data.get('name') == container_name):
+                return file
+        return None
 
     def get_container_info(self, container_name: str) -> ServiceResult:
         """Get container information by name from individual container JSON file.
@@ -113,15 +157,8 @@ class ContainerInfoService:
 
             if not container_file.exists():
                 # Try alternative naming patterns
-                for file in self.containers_dir.glob("*.json"):
-                    with open(file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if (data.get('container_name') == container_name or
-                            data.get('docker_name') == container_name or
-                            data.get('name') == container_name):
-                            container_file = file
-                            break
-                else:
+                container_file = self._find_by_stored_name(container_name)
+                if container_file is None:
                     # Container not found - return default info
                     default_info = ContainerInfo(
                         enabled=False,
@@ -151,6 +188,27 @@ class ContainerInfoService:
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
 
+    def _within_limits(self, container_name: str, info: ContainerInfo) -> ContainerInfo:
+        """The one place the protected-info limits are applied - and said aloud.
+
+        They used to be applied on READ, inside ContainerInfo.from_dict, while
+        neither writer enforced anything: the web handler passes the form field
+        through untouched, and an HTML maxlength is a suggestion to the browser,
+        not a rule for the server. So a value was stored in full and came back
+        shortened, without a word to anybody (review D18).
+        """
+        from dataclasses import replace
+
+        trimmed = {}
+        for field, limit in (("protected_content", MAX_PROTECTED_CONTENT),
+                             ("protected_password", MAX_PROTECTED_PASSWORD)):
+            value = getattr(info, field)
+            if len(value) > limit:
+                logger.warning(f"{field} for {container_name} is {len(value)} characters "
+                               f"and is stored shortened to {limit}")
+                trimmed[field] = value[:limit]
+        return replace(info, **trimmed) if trimmed else info
+
     def save_container_info(self, container_name: str, container_info: ContainerInfo) -> ServiceResult:
         """Save container information to individual container JSON file.
 
@@ -162,6 +220,7 @@ class ContainerInfoService:
             ServiceResult indicating success or failure
         """
         try:
+            container_info = self._within_limits(container_name, container_info)
             _validate_path_safety(container_name, self.containers_dir)
 
             # Find container JSON file
@@ -169,15 +228,8 @@ class ContainerInfoService:
 
             if not container_file.exists():
                 # Try alternative naming patterns
-                for file in self.containers_dir.glob("*.json"):
-                    with open(file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if (data.get('container_name') == container_name or
-                            data.get('docker_name') == container_name or
-                            data.get('name') == container_name):
-                            container_file = file
-                            break
-                else:
+                container_file = self._find_by_stored_name(container_name)
+                if container_file is None:
                     error_msg = f"Container file not found for: {container_name}"
                     logger.error(error_msg)
                     return ServiceResult(success=False, error=error_msg)
@@ -189,13 +241,18 @@ class ContainerInfoService:
             # Update info section
             container_data['info'] = container_info.to_dict()
 
-            # Atomic write using temporary file
-            temp_path = container_file.with_suffix('.tmp')
-            with open(temp_path, 'w', encoding='utf-8') as f:
-                json.dump(container_data, f, indent=2, ensure_ascii=False)
-
-            # Atomic rename
-            temp_path.rename(container_file)
+            # The shared helper, not a hand-rolled temp-then-rename. This used
+            # a FIXED temp name per container, `container_file.with_suffix('.tmp')`,
+            # and container info is written from BOTH processes - the web panel
+            # through container_info_web_handler and the bot through the Edit Info
+            # modal. Two savers for the same container aimed at the same path, one
+            # renamed it away while the other still held it, and that other one's
+            # rename hit a file that was no longer there. Measured: 3 of 30
+            # concurrent saves failed with "No such file or directory: web.tmp".
+            # Same shape as review C29 on the game query verdicts.
+            # atomic_write_json also fsyncs and keeps the target's permissions,
+            # neither of which the hand-rolled version did (review D7).
+            atomic_write_json(container_file, container_data)
 
             logger.info(f"Saved container info to {container_file.name}: {container_name}")
             return ServiceResult(success=True, data=container_info)
@@ -222,15 +279,8 @@ class ContainerInfoService:
 
             if not container_file.exists():
                 # Try alternative naming patterns
-                for file in self.containers_dir.glob("*.json"):
-                    with open(file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        if (data.get('container_name') == container_name or
-                            data.get('docker_name') == container_name or
-                            data.get('name') == container_name):
-                            container_file = file
-                            break
-                else:
+                container_file = self._find_by_stored_name(container_name)
+                if container_file is None:
                     logger.debug(f"Container file not found for: {container_name}")
                     return ServiceResult(success=True)  # Not an error if container doesn't exist
 
@@ -250,53 +300,14 @@ class ContainerInfoService:
                 'protected_password': ''
             }
 
-            # Atomic write using temporary file
-            temp_path = container_file.with_suffix('.tmp')
-            with open(temp_path, 'w', encoding='utf-8') as f:
-                json.dump(container_data, f, indent=2, ensure_ascii=False)
-
-            # Atomic rename
-            temp_path.rename(container_file)
+            # The shared helper - see the reason at save_container_info (review D7).
+            atomic_write_json(container_file, container_data)
 
             logger.info(f"Reset container info to defaults: {container_name}")
             return ServiceResult(success=True)
 
         except (IOError, OSError, PermissionError, RuntimeError, TypeError, ValueError, json.JSONDecodeError, docker.errors.APIError, docker.errors.DockerException) as e:
             error_msg = f"Error resetting info for {container_name}: {e}"
-            logger.error(error_msg)
-            return ServiceResult(success=False, error=error_msg)
-
-    def list_all_containers(self) -> ServiceResult:
-        """List all containers from docker_config.json servers array.
-
-        Returns:
-            ServiceResult with list of container names
-        """
-        try:
-            container_names = []
-
-            if not self.config_file.exists():
-                logger.debug("Docker config file not found, returning empty list")
-                return ServiceResult(success=True, data=container_names)
-
-            with open(self.config_file, 'r', encoding='utf-8') as f:
-                docker_config = json.load(f)
-
-            # Extract container names from servers array
-            # SERVICE FIRST: Use ServerConfigService instead of direct config access
-            server_config_service = get_server_config_service()
-            servers = server_config_service.get_all_servers()
-            for server in servers:
-                # Use docker_name as primary, fallback to name
-                container_name = server.get('docker_name') or server.get('name')
-                if container_name:
-                    container_names.append(container_name)
-
-            logger.debug(f"Found {len(container_names)} containers in docker config")
-            return ServiceResult(success=True, data=container_names)
-
-        except (IOError, OSError, PermissionError, RuntimeError, TypeError, ValueError, json.JSONDecodeError, docker.errors.APIError, docker.errors.DockerException) as e:
-            error_msg = f"Error listing containers from docker config: {e}"
             logger.error(error_msg)
             return ServiceResult(success=False, error=error_msg)
 

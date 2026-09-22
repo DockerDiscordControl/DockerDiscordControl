@@ -492,12 +492,13 @@ class TranslationService:
         if context.channel_id in target_ids:
             return []
 
+        # The key is needed for TRANSLATING, not for forwarding. Returning here
+        # also blocked the attachment-only passthrough below, which the code
+        # itself describes as having nothing to translate - so a pair set up to
+        # mirror screenshots did nothing until someone entered a DeepL key it
+        # would never use (review C50).
         api_key = self._resolve_api_key(settings)
-        if not api_key:
-            logger.warning("No translation API key configured — skipping translation")
-            return []
-
-        provider = self._get_provider(settings, api_key)
+        provider = self._get_provider(settings, api_key) if api_key else None
         session = await self._get_session()
         pairs = self.config_service.get_pairs()
         translated_pairs = []
@@ -519,6 +520,11 @@ class TranslationService:
                 continue
 
             if text.strip():
+                if provider is None:
+                    logger.warning("No translation API key configured — skipping "
+                                   "translation of a message with text")
+                    continue
+
                 # Unicode-safe truncation
                 text = _safe_truncate(text, settings.max_text_length)
 
@@ -572,7 +578,13 @@ class TranslationService:
             content_lower = context.content.lower() if context.content else ""
             for et in context.embed_texts:
                 et_lower = et.lower()
-                # Only filter if embed text covers >50% of content (real duplicate)
+                # Drop an embed text that is CONTAINED IN the message, in full,
+                # and long enough not to be an accident - nothing is lost by it,
+                # because every character is already in the message above. The
+                # comment here used to promise a ">50% coverage" ratio that the
+                # line never computed; the behaviour was right and the comment
+                # was not (review C49, section 28 F7, reported as a defect and
+                # refuted as one).
                 if content_lower and len(et_lower) > 20 and et_lower in content_lower:
                     continue
                 parts.append(et)
@@ -609,10 +621,12 @@ class TranslationService:
 
             # Set first image attachment as embed image, fall back to original embed images
             image_set = False
+            embedded_image_url = None
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
                 if ct.startswith('image/') and not image_set:
                     embed.set_image(url=att['url'])
+                    embedded_image_url = att['url']
                     image_set = True
                     break
 
@@ -663,7 +677,14 @@ class TranslationService:
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
                 filename = att.get('filename', 'file')
-                if ct.startswith('video/') or (ct.startswith('image/') and not image_set):
+                # Not "was any image embedded" but "is THIS the embedded one".
+                # image_set is a flag about the loop above and is already True
+                # here for every attachment, so the second and every further
+                # image fell through both branches: not embedded, not uploaded,
+                # not linked, not logged - simply gone from the forwarded post
+                # (review C12).
+                if ct.startswith('video/') or (ct.startswith('image/')
+                                               and att['url'] != embedded_image_url):
                     try:
                         async with session.get(att['url'], timeout=aiohttp.ClientTimeout(total=30)) as resp:
                             if resp.status == 200:

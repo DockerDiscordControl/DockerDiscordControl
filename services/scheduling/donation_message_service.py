@@ -31,10 +31,38 @@ def get_bot_instance() -> Optional[Any]:
     """
     Get the global bot instance.
 
+    Uses the instance registered via set_bot_instance() (bot.py does this) and
+    falls back to a module-level ``bot`` attribute of the ``bot`` module.
+
     Returns:
         Bot instance or None if not available
     """
-    return _bot_instance
+    if _bot_instance is not None:
+        return _bot_instance
+    try:
+        # Try to import bot from main module
+        import bot as bot_module
+        if hasattr(bot_module, 'bot') and bot_module.bot:
+            return bot_module.bot
+        logger.warning("Bot module found but bot instance is None")
+        return None
+    except ImportError:
+        logger.warning("Could not import bot module")
+        return None
+    except (AttributeError, RuntimeError) as e:
+        logger.warning(f"Error accessing bot instance: {e}")
+        return None
+
+def _get_level_name(level: int) -> str:
+    """Return the mech level name from the evolution config (same lookup as the Web UI)."""
+    try:
+        from services.mech.mech_evolutions import get_evolution_level_info
+        level_info = get_evolution_level_info(level)
+        if level_info and getattr(level_info, 'name', None):
+            return level_info.name
+    except (ImportError, AttributeError, KeyError, ValueError, TypeError, OSError) as e:
+        logger.debug(f"Could not resolve mech level name for level {level}: {e}")
+    return f"Level {level}"
 
 async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
     """
@@ -63,7 +91,7 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
         progress_service = get_progress_service()
         current_state = progress_service.get_state()
 
-        current_power = current_state.power_dollars
+        current_power = current_state.power_current
         logger.info(f"Current mech power: ${current_power:.2f}")
 
         # Check if power is 0 and add system donation if needed
@@ -79,9 +107,23 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
                     idempotency_key=None  # Let it generate unique key
                 )
                 power_boost_given = True
-                logger.info(f"System donation successful. New power: ${new_state.power_dollars:.2f}")
-            except (ValueError, TypeError, RuntimeError) as donation_error:
-                logger.error(f"Failed to add system donation: {donation_error}", exc_info=True)
+                current_state = new_state  # Show the boosted state in the message
+                logger.info(f"System donation successful. New power: ${new_state.power_current:.2f}")
+            except Exception as donation_error:  # noqa: BLE001
+                # Broad on purpose, and the comment below was always the intent:
+                # the appeal has nothing to do with whether the gift worked.
+                #
+                # This tuple used to be (ValueError, TypeError, RuntimeError).
+                # add_system_donation calls _heal_if_lagging under the lock, and
+                # review D1 gave that helper a raise - a snapshot that lags
+                # behind the event log and cannot be rebuilt now raises
+                # MechStateError instead of quietly burying a donation. That
+                # repair was right, and MechStateError is in none of the three
+                # tuples in this file, so it left the task entirely and the
+                # month's appeal was sent to nobody (review E12). Same sentence
+                # as the startup power gift, second location (review E8).
+                logger.error("Failed to add system donation: %s: %s",
+                             type(donation_error).__name__, donation_error, exc_info=True)
                 # Continue anyway to send the message
         else:
             logger.info(f"Mech has power (${current_power:.2f}) - no power boost needed")
@@ -114,12 +156,32 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
         if bot:
             config = load_config()
             channels_config = config.get('channel_permissions', {})
+            level_name = _get_level_name(current_state.level)
 
             sent_count = 0
             failed_count = 0
 
             for channel_id_str, channel_info in channels_config.items():
                 try:
+                    # Status channels only. The loop used to send to every
+                    # entry in channel_permissions without looking at what the
+                    # channel is for, so a channel configured only for
+                    # 'control' - where the operator's start/stop buttons live
+                    # - or only for 'download' received the public donation
+                    # appeal all the same, against this block's own comment.
+                    # Same question as _collect_status_channels in
+                    # services/member_count/service.py asks for the identical
+                    # loop (review C74).
+                    if not isinstance(channel_info, dict):
+                        logger.warning(f"Invalid channel config for {channel_id_str}: "
+                                       f"{type(channel_info).__name__} - skipped")
+                        continue
+                    commands = channel_info.get('commands', {})
+                    if not isinstance(commands, dict) or not commands.get('serverstatus', False):
+                        logger.debug(f"Channel {channel_id_str} is not a status channel - "
+                                     f"no donation appeal sent")
+                        continue
+
                     channel_id = int(channel_id_str)
                     channel = bot.get_channel(channel_id)
 
@@ -130,11 +192,11 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
                             color=message_color
                         )
 
-                        # Add current mech stats
+                        # Add current mech stats (ProgressState fields)
                         state_info = (
-                            f"🔋 Power: ${current_state.power_dollars:.2f}\n"
-                            f"📊 Level: {current_state.level} - {current_state.level_name}\n"
-                            f"🎯 Evolution: {current_state.evolution_progress:.1f}%"
+                            f"🔋 Power: ${current_state.power_current:.2f}\n"
+                            f"📊 Level: {current_state.level} - {level_name}\n"
+                            f"🎯 Evolution: {current_state.evo_percent}%"
                         )
                         embed.add_field(name=_("Mech Status"), value=state_info, inline=False)
 
@@ -164,25 +226,3 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
     except (RuntimeError, ValueError, TypeError) as task_error:
         logger.error(f"Error executing donation_message task: {task_error}", exc_info=True)
         return False
-
-
-def get_bot_instance():
-    """
-    Get the bot instance from the running bot process.
-
-    Returns:
-        Bot instance or None if not available
-    """
-    try:
-        # Try to import bot from main module
-        import bot as bot_module
-        if hasattr(bot_module, 'bot') and bot_module.bot:
-            return bot_module.bot
-        logger.warning("Bot module found but bot instance is None")
-        return None
-    except ImportError:
-        logger.warning("Could not import bot module")
-        return None
-    except (AttributeError, RuntimeError) as e:
-        logger.warning(f"Error accessing bot instance: {e}")
-        return None

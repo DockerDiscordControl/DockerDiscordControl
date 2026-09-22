@@ -4,6 +4,9 @@
 
 import json
 import logging
+import os
+import stat
+import tempfile
 from pathlib import Path
 from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, timedelta
@@ -11,6 +14,18 @@ import asyncio
 from threading import Lock
 
 logger = logging.getLogger('ddc.admin_service')
+
+def _admins_file() -> Path:
+    """admins.json in the config directory - DDC_CONFIG_DIR, else <project>/config.
+
+    Was derived at three places from Path(__file__).parents[2], ignoring the
+    variable: a user pointing DDC_CONFIG_DIR at their volume kept the admin list
+    outside it and lost it on container re-creation, and in test runs
+    save_admin_data wrote into the real config/ (SPEC.md Z2).
+    """
+    from utils.config_paths import get_config_dir
+    return get_config_dir() / 'admins.json'
+
 
 class AdminService:
     """Service First implementation for admin user management.
@@ -23,11 +38,84 @@ class AdminService:
 
     def __init__(self):
         self._admin_users_cache: Optional[List[str]] = None
+        self._admin_containers_cache: Optional[Dict[str, List[str]]] = None
         self._cache_timestamp: Optional[datetime] = None
         self._cache_lock = Lock()
         self._cache_ttl = timedelta(minutes=5)  # Cache for 5 minutes
         self._config: Optional[Dict[str, Any]] = None
         logger.info("AdminService initialized")
+
+    def _load_admin_containers(self) -> Dict[str, List[str]]:
+        """The per-admin container assignment from admins.json.
+
+        A user id absent from the mapping means EVERY container - that is the
+        upgrade default and it is not negotiable: anything else would silently
+        strip every existing admin of their rights the moment this shipped. An
+        empty list is a different statement and a deliberate one: "this admin
+        may control nothing".
+
+        Any error gives back an empty mapping, which makes every admin
+        unscoped - but that is harmless, because the caller has already had to
+        get past is_user_admin(), and THAT returns False when the same file
+        cannot be read (review F1).
+        """
+        try:
+            admins_file = _admins_file()
+            if not admins_file.exists():
+                return {}
+            with open(admins_file, 'r') as handle:
+                content = handle.read()
+            if not content.strip():
+                return {}
+            raw = json.loads(content).get('admin_containers', {})
+            if not isinstance(raw, dict):
+                logger.warning("admin_containers is not an object - ignoring it")
+                return {}
+            assignment: Dict[str, List[str]] = {}
+            for user_id, containers in raw.items():
+                if not isinstance(containers, list):
+                    logger.warning(f"admin_containers for {user_id} is not a list - ignoring it")
+                    continue
+                assignment[str(user_id)] = [str(name) for name in containers
+                                            if isinstance(name, (str, int))]
+            return assignment
+        except (IOError, OSError, PermissionError, RuntimeError, ValueError,
+                TypeError, json.JSONDecodeError) as e:
+            logger.error(f"Error reading admin_containers: {e}", exc_info=True)
+            return {}
+
+    def get_admin_containers(self, user_id: Union[str, int],
+                             force_refresh: bool = False) -> Optional[List[str]]:
+        """Which containers this admin may control.
+
+        ``None`` means every container - no assignment was made. A list means
+        exactly those, and an empty list means none. Somebody who is not an
+        admin gets an empty list: this mapping narrows a right, it never grants
+        one.
+        """
+        if not self.is_user_admin(user_id, force_refresh=force_refresh):
+            return []
+
+        with self._cache_lock:
+            if force_refresh or self._admin_containers_cache is None or not self._is_cache_valid():
+                self._admin_containers_cache = self._load_admin_containers()
+            assignment = self._admin_containers_cache
+
+        containers = assignment.get(str(user_id))
+        return None if containers is None else list(containers)
+
+    def may_control(self, user_id: Union[str, int], docker_name: str,
+                    force_refresh: bool = False) -> bool:
+        """Whether the admin list lets this user control THIS container (B2).
+
+        This is the B2 branch alone. The channel branch (B1) is decided before
+        it and is not touched by any assignment: whoever may write in a control
+        channel may still do everything there.
+        """
+        containers = self.get_admin_containers(user_id, force_refresh=force_refresh)
+        if containers is None:
+            return True
+        return str(docker_name) in containers
 
     def _load_admin_users(self) -> List[str]:
         """Load admin users from admins.json file.
@@ -38,9 +126,8 @@ class AdminService:
         try:
             # Get base directory from config
             from services.config.config_service import load_config
-            # Robust absolute path relative to project root
-            base_dir = Path(__file__).parents[2]
-            admins_file = base_dir / 'config' / 'admins.json'
+            # Via utils/config_paths.py (DDC_CONFIG_DIR): see _admins_file().
+            admins_file = _admins_file()
 
             if not admins_file.exists():
                 logger.info("admins.json not found, no admins configured")
@@ -70,7 +157,7 @@ class AdminService:
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON in admins.json: {e}")
                 return []
-            except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
+            except (IOError, OSError, PermissionError, RuntimeError) as e:
                 logger.error(f"Error reading admins.json: {e}", exc_info=True)
                 return []
 
@@ -134,6 +221,7 @@ class AdminService:
         """Clear the admin users cache."""
         with self._cache_lock:
             self._admin_users_cache = None
+            self._admin_containers_cache = None
             self._cache_timestamp = None
             logger.info("Admin users cache cleared")
 
@@ -149,34 +237,39 @@ class AdminService:
         try:
             from services.config.config_service import load_config
             config = load_config()
-            # Robust absolute path relative to project root
-            base_dir = Path(__file__).parents[2]
-            admins_file = base_dir / 'config' / 'admins.json'
+            # Via utils/config_paths.py (DDC_CONFIG_DIR): see _admins_file().
+            admins_file = _admins_file()
 
             if not admins_file.exists():
-                return {'discord_admin_users': [], 'admin_notes': {}}
+                return {'discord_admin_users': [], 'admin_notes': {}, 'admin_containers': {}}
 
             try:
                 with open(admins_file, 'r') as f:
                     admin_data = json.load(f)
                     return {
                         'discord_admin_users': admin_data.get('discord_admin_users', []),
-                        'admin_notes': admin_data.get('admin_notes', {})
+                        'admin_notes': admin_data.get('admin_notes', {}),
+                        'admin_containers': admin_data.get('admin_containers', {})
                     }
             except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
                 logger.error(f"Error reading admin data: {e}", exc_info=True)
-                return {'discord_admin_users': [], 'admin_notes': {}}
+                return {'discord_admin_users': [], 'admin_notes': {}, 'admin_containers': {}}
 
         except (IOError, OSError, PermissionError, RuntimeError) as e:
             logger.error(f"Error in get_admin_data: {e}", exc_info=True)
-            return {'discord_admin_users': [], 'admin_notes': {}}
+            return {'discord_admin_users': [], 'admin_notes': {}, 'admin_containers': {}}
 
-    def save_admin_data(self, admin_users: List[str], admin_notes: Dict[str, str] = None) -> bool:
-        """Save admin users and notes to file.
+    def save_admin_data(self, admin_users: List[str], admin_notes: Dict[str, str] = None,
+                        admin_containers: Optional[Dict[str, List[str]]] = None) -> bool:
+        """Save admin users, notes and container assignments to file.
 
         Args:
             admin_users: List of Discord user IDs
             admin_notes: Optional dict of user notes
+            admin_containers: Optional per-admin container assignment. Left out,
+                the assignment already on disk is CARRIED OVER rather than
+                dropped - this method knew two keys and writing the whole file
+                from them would have silently deleted the third (review F1).
 
         Returns:
             True if successful, False otherwise
@@ -188,25 +281,46 @@ class AdminService:
                 logger.error("Config unavailable, cannot save admin data")
                 return False
 
-            # Robust absolute path relative to project root
-            base_dir = Path(__file__).parents[2]
-            admins_file = base_dir / 'config' / 'admins.json'
+            # Via utils/config_paths.py (DDC_CONFIG_DIR): see _admins_file().
+            admins_file = _admins_file()
 
             # Ensure directory exists
             admins_file.parent.mkdir(parents=True, exist_ok=True)
 
-            # Prepare data
+            # Prepare data. An assignment that was not passed is read back from
+            # the file and kept: this writer replaces the whole document, so
+            # leaving it out would delete it.
+            if admin_containers is None:
+                admin_containers = self._load_admin_containers()
+
             admin_data = {
                 'discord_admin_users': admin_users,
-                'admin_notes': admin_notes or {}
+                'admin_notes': admin_notes or {},
+                'admin_containers': admin_containers or {}
             }
 
-            # Write to file
-            with open(admins_file, 'w') as f:
-                json.dump(admin_data, f, indent=2)
+            # Write atomically (temp file in the same directory + os.replace) so a
+            # failed or interrupted write never leaves a truncated admins.json
+            fd, temp_path = tempfile.mkstemp(dir=str(admins_file.parent), prefix='.admins_', suffix='.json.tmp')
+            try:
+                with os.fdopen(fd, 'w') as f:
+                    json.dump(admin_data, f, indent=2)
+                    f.flush()
+                    os.fsync(f.fileno())
+                # Keep the permissions of the file being replaced (mkstemp uses 0600)
+                if admins_file.exists():
+                    os.chmod(temp_path, stat.S_IMODE(admins_file.stat().st_mode))
+                os.replace(temp_path, str(admins_file))
+            except BaseException:
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass  # Best effort cleanup
+                raise
 
             # Invalidate cache
             self._admin_users_cache = None
+            self._admin_containers_cache = None
             self._cache_timestamp = None
 
             logger.info(f"Saved {len(admin_users)} admin users to {admins_file}")
@@ -215,10 +329,11 @@ class AdminService:
         except (IOError, OSError, PermissionError) as e:
             logger.error(f"File I/O error saving admin data to {admins_file}: {e}", exc_info=True)
             return False
-        except json.JSONEncodeError as e:
+        except (TypeError, ValueError) as e:
+            # json.dump raises TypeError/ValueError for unserializable data
             logger.error(f"JSON encoding error saving admin data: {e}", exc_info=True)
             return False
-        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError) as e:
+        except (RuntimeError, asyncio.TimeoutError) as e:
             logger.error(f"Runtime error saving admin data: {e}", exc_info=True)
             return False
 

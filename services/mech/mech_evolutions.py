@@ -32,6 +32,11 @@ class EvolutionLevelInfo:
     decay_per_day: float = 1.0
 
 # SERVICE FIRST: JSON config management (replaces evolution_config_manager functionality)
+# The cost range the difficulty clamp keeps level 2 inside (review C69).
+LEVEL_2_COST_FLOOR = 5.0
+LEVEL_2_COST_CEILING = 50.0
+
+
 class EvolutionConfigService:
     """SERVICE FIRST: Unified evolution configuration service."""
 
@@ -39,8 +44,10 @@ class EvolutionConfigService:
         if config_path:
             self.config_path = Path(config_path)
         else:
-            # Robust default path relative to project root
-            self.config_path = Path(__file__).parents[2] / "config" / "mech" / "evolution.json"
+            # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from
+            # __file__ before, blind to the variable.
+            from utils.config_paths import get_config_dir
+            self.config_path = get_config_dir() / "mech" / "evolution.json"
             
         # Use central ConfigService for robust JSON handling
         from services.config.config_service import get_config_service
@@ -133,10 +140,20 @@ class EvolutionConfigService:
         return config.get("evolution_settings", {}).get("difficulty_multiplier", 1.0)
 
     def set_difficulty_multiplier(self, multiplier: float) -> bool:
-        """Set difficulty multiplier (affects all evolution costs)."""
-        # Clamp multiplier to ensure Level 2 stays between $5-$50
-        # Base cost for Level 2 is $20, so multiplier range is 0.25-2.5
-        multiplier = max(0.25, min(2.5, multiplier))
+        """Set difficulty multiplier (affects all evolution costs).
+
+        The multiplier is clamped so the level-2 cost stays between
+        LEVEL_2_COST_FLOOR and LEVEL_2_COST_CEILING.
+        """
+        # Derived from the base cost, not written out as a pair of numbers.
+        # It used to be a fixed 0.25-2.5 with a comment saying "base cost for
+        # Level 2 is $20" - but _get_fallback_config, which is what every
+        # installation without its own evolution.json actually uses, gives
+        # level 2 a cost of $10. The reachable range was therefore $2.50-$25:
+        # half of the promised ceiling, and below the promised floor
+        # (review C69). Nothing changes for the panel - its slider is min 0.5,
+        # max 2.4, and both ends sit inside the clamp either way.
+        multiplier = max(self._lowest_difficulty(), min(self._highest_difficulty(), multiplier))
 
         config = self._load_config()
         evolution_settings = config.setdefault("evolution_settings", {})
@@ -144,6 +161,23 @@ class EvolutionConfigService:
         evolution_settings["manual_difficulty_override"] = True  # Mark as manually set
 
         return self.save_config(config)
+
+    def _level_2_base_cost(self) -> float:
+        """The base cost the multiplier is applied to, as configured."""
+        config = self._load_config()
+        level_data = config.get("base_evolution_costs", {}).get("2", {})
+        try:
+            return float(level_data.get("cost", 0))
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _lowest_difficulty(self) -> float:
+        base_cost = self._level_2_base_cost()
+        return LEVEL_2_COST_FLOOR / base_cost if base_cost > 0 else 0.25
+
+    def _highest_difficulty(self) -> float:
+        base_cost = self._level_2_base_cost()
+        return LEVEL_2_COST_CEILING / base_cost if base_cost > 0 else 2.5
 
     def is_auto_difficulty(self) -> bool:
         """Check if automatic difficulty adjustment is enabled."""
@@ -315,8 +349,9 @@ def get_evolution_level_info(level: int) -> Optional[EvolutionLevelInfo]:
     # This ensures consistency with progress_service logic
     decay_val = level_data.get("decay_per_day", 1.0)
     try:
-        # Robust absolute path relative to project root
-        decay_path = Path(__file__).parents[2] / "config" / "mech" / "decay.json"
+        # Operator's copy, else the shipped default - see services/mech/mech_defaults.py.
+        from services.mech.mech_defaults import resolve_mech_file
+        decay_path = resolve_mech_file("decay.json")
         if decay_path.exists():
             with open(decay_path, "r") as f:
                 d_cfg = json.load(f)

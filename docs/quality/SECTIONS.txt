@@ -1,0 +1,297 @@
+# Stage 4 - the application code cut into reviewable sections
+#
+# Format per line:  <path>:<first>-<last>
+# Sections are separated by '## Section NN' and span at most 2000 lines. Cuts
+# are made at class and function boundaries, for classes that are too large at
+# method boundaries - a section should be readable in one go.
+#
+# tests/spec/test_stage4_sections.py checks: every source file lies in exactly
+# one section, without gaps or overlaps.
+
+## Section 01  (1266 lines, 4 pieces)
+cogs/__init__.py:1-7
+cogs/admin_overview.py:1-901
+cogs/auto_action_monitor.py:1-74
+cogs/control_helpers.py:1-284
+
+## Section 02  (1832 lines, 1 piece)
+# Cut moved up from 1991 to 1801 on 2026-09-21, to the class boundary at
+# PasswordProtectedView. Section 02 had reached 1,991 of the 2,000 lines a
+# section may hold and the next repair in this file (review D32) did not fit.
+# Same reasoning as section 38: the cut is an instrument for reading the code,
+# not a budget the code has to stay inside. Both halves of control_ui.py were
+# already fully reviewed in both passes, and every finding of either pass in
+# this file is dealt with, so no finding label ends up naming a section that
+# no longer holds its lines.
+cogs/control_ui.py:1-1832
+
+## Section 03  (1948 lines, 1 piece)
+cogs/control_ui.py:1833-3780
+
+## Section 04  (1794 lines, 1 piece)
+cogs/docker_control.py:1-1794
+
+## Section 05  (1803 lines, 1 piece)
+cogs/docker_control.py:1795-3597
+
+## Section 06  (1839 lines, 1 piece)
+cogs/docker_control.py:3598-5436
+
+## Section 07  (694 lines, 1 piece)
+cogs/enhanced_info_modal_simple.py:1-694
+
+## Section 08  (1398 lines, 1 piece)
+cogs/status_handlers.py:1-1398
+
+## Section 09  (1966 lines, 1 piece)
+cogs/status_info_integration.py:1-1966
+
+## Section 10  (1864 lines, 8 pieces)
+cogs/status_info_integration.py:1967-2400
+cogs/translation_manager.py:1-149
+cogs/translation_monitor.py:1-97
+services/__init__.py:1-51
+services/admin/__init__.py:1-5
+services/admin/admin_service.py:1-379
+services/automation/__init__.py:1-14
+services/automation/auto_action_config_service.py:1-735
+
+## Section 11  (1689 lines, 5 pieces)
+services/automation/auto_action_state_service.py:1-364
+services/automation/automation_service.py:1-556
+services/config/__init__.py:1-16
+services/config/channel_config_service.py:1-576
+services/config/config_cache_service.py:1-177
+
+## Section 12  (1478 lines, 3 pieces)
+services/config/config_form_parser_service.py:1-531
+services/config/config_loader_service.py:1-481
+services/config/config_migration_service.py:1-466
+
+## Section 13  (1863 lines, 5 pieces)
+services/config/config_service.py:1-1248
+services/config/config_validation_service.py:1-212
+services/config/container_config_save_service.py:1-150
+services/config/server_config_service.py:1-233
+services/discord/__init__.py:1-20
+
+## Section 14  (1542 lines, 6 pieces)
+services/discord/channel_cleanup_service.py:1-499
+services/discord/conditional_update_cache_service.py:1-184
+services/discord/embed_helper_service.py:1-173
+services/discord/status_overview_service.py:1-363
+services/docker_service/__init__.py:1-28
+services/docker_service/docker_action_service.py:1-295
+
+## Section 15  (771 lines, 1 piece)
+services/docker_service/docker_client_pool.py:1-771
+
+## Section 16  (1951 lines, 5 pieces)
+services/docker_service/docker_utils.py:1-1454
+services/docker_service/server_order.py:1-111
+services/docker_service/status_cache_runtime.py:1-101
+services/docker_status/__init__.py:1-34
+services/docker_status/fetch_service.py:1-251
+
+## Section 17  (1775 lines, 13 pieces)
+services/docker_status/models.py:1-376
+services/docker_status/performance_service.py:1-234
+services/donation/__init__.py:1-24
+services/donation/donation_config.py:1-50
+services/donation/donation_management_service.py:1-446
+services/donation/donation_utils.py:1-62
+services/donation/notification_service.py:1-79
+services/donation/unified/__init__.py:1-30
+services/donation/unified/events.py:1-93
+services/donation/unified/member_count.py:1-38
+services/donation/unified/models.py:1-97
+services/donation/unified/processors.py:1-69
+services/donation/unified/reset.py:1-177
+
+## Section 18  (1673 lines, 8 pieces)
+services/donation/unified/service.py:1-483
+services/donation/unified/validation.py:1-44
+services/donation/unified_donation_service.py:1-31
+services/exceptions.py:1-299
+services/infrastructure/__init__.py:1-0
+services/infrastructure/action_log_service.py:1-387
+services/infrastructure/action_logger.py:1-103
+services/infrastructure/container_info_service.py:1-326
+
+## Section 19  (1970 lines, 5 pieces)
+services/infrastructure/container_status_service.py:1-837
+services/infrastructure/docker_connectivity_service.py:1-269
+services/infrastructure/dynamic_cooldown_manager.py:1-193
+services/infrastructure/event_manager.py:1-118
+services/infrastructure/game_query_service.py:1-553
+
+## Section 20  (1546 lines, 5 pieces)
+services/infrastructure/game_query_support_service.py:1-341
+services/infrastructure/spam_protection_service.py:1-553
+services/infrastructure/update_notifier.py:1-235
+services/mech/__init__.py:1-30
+services/mech/mech_display_cache_service.py:1-387
+
+## Section 21  (1846 lines, 1 piece)
+services/mech/animation_cache_service.py:1-1846
+
+## Section 22  (1670 lines, 4 pieces)
+services/mech/mech_data_store.py:1-939
+services/mech/mech_defaults.py:1-34
+services/mech/mech_evolutions.py:1-449
+services/mech/mech_high_res_service.py:1-248
+
+## Section 23  (1932 lines, 9 pieces)
+services/mech/mech_reset_service.py:1-378
+services/mech/mech_service.py:1-32
+services/mech/mech_service_adapter.py:1-299
+services/mech/mech_state_manager.py:1-191
+services/mech/mech_status_cache_service.py:1-464
+services/mech/mech_story_service.py:1-204
+services/mech/progress/__init__.py:1-17
+services/mech/progress/runtime.py:1-158
+services/mech/progress_paths.py:1-189
+
+## Section 24  (1740 lines, 1 piece)
+services/mech/progress_service.py:1-1740
+
+## Section 25  (1276 lines, 7 pieces)
+services/mech/speed_levels.py:1-427
+services/member_count/__init__.py:1-17
+services/member_count/service.py:1-296
+services/scheduling/__init__.py:1-36
+services/scheduling/donation_message_service.py:1-228
+services/scheduling/runtime.py:1-201
+services/scheduling/schedule_helpers.py:1-71
+
+## Section 26  (1745 lines, 1 piece)
+services/scheduling/scheduler.py:1-1745
+
+## Section 27  (1979 lines, 4 pieces)
+services/scheduling/scheduler.py:1746-2260
+services/scheduling/scheduler_service.py:1-552
+services/status/status_cache_service.py:1-225
+services/translation/translation_config_service.py:1-687
+
+## Section 28  (1893 lines, 4 pieces)
+services/translation/translation_service.py:1-762
+services/web/__init__.py:1-12
+services/web/configuration_page_service.py:1-554
+services/web/configuration_save_service.py:1-565
+
+## Section 29  (1842 lines, 7 pieces)
+services/web/container_log_service.py:1-430
+services/web/container_refresh_service.py:1-207
+services/web/diagnostics_service.py:1-263
+services/web/donation_service.py:1-314
+services/web/donation_status_service.py:1-251
+services/web/donation_tracking_service.py:1-163
+services/web/i18n_service.py:1-214
+
+## Section 30  (1841 lines, 5 pieces)
+services/web/mech_music_service.py:1-224
+services/web/mech_status_details_service.py:1-410
+services/web/mech_web_service.py:1-676
+services/web/performance_stats_service.py:1-181
+services/web/security_service.py:1-350
+
+## Section 31  (1954 lines, 6 pieces)
+services/web/task_management_service.py:1-1087
+app/__init__.py:1-13
+app/auth.py:1-249
+app/blueprints/action_log_routes.py:1-91
+app/blueprints/automation_routes.py:1-272
+app/blueprints/log_routes.py:1-242
+
+## Section 32  (1828 lines, 2 pieces)
+app/blueprints/main_routes.py:1-1514
+app/blueprints/tasks_bp.py:1-314
+
+## Section 33  (1998 lines, 24 pieces)
+app/blueprints/translation_routes.py:1-363
+app/bootstrap/__init__.py:1-34
+app/bootstrap/performance.py:1-55
+app/bootstrap/runtime.py:1-200
+app/bot/__init__.py:1-13
+app/bot/commands.py:1-45
+app/bot/dependencies.py:1-62
+app/bot/events.py:1-134
+app/bot/factory.py:1-44
+app/bot/runtime.py:1-62
+app/bot/startup.py:1-39
+app/bot/startup_context.py:1-57
+app/bot/startup_steps/__init__.py:1-52
+app/bot/startup_steps/commands.py:1-120
+app/bot/startup_steps/cooldowns.py:1-29
+app/bot/startup_steps/diagnostics.py:1-26
+app/bot/startup_steps/member_count.py:1-126
+app/bot/startup_steps/notifications.py:1-35
+app/bot/startup_steps/power.py:1-53
+app/bot/startup_steps/scheduler.py:1-27
+app/bot/token.py:1-123
+app/constants.py:1-17
+app/utils/__init__.py:1-7
+app/utils/container_info_web_handler.py:1-275
+
+## Section 34  (1990 lines, 10 pieces)
+# app/bot/startup_steps/sequence.py moved here from 33 on 2026-09-21: 33 had
+# grown to 2,021 of the 2,000 a section may hold, and this is the file that
+# grew (review E9). 34 had the room.
+app/bot/startup_steps/sequence.py:1-65
+app/utils/port_diagnostics.py:1-600
+app/utils/shared_data.py:1-105
+app/utils/web_helpers.py:1-909
+app/web/__init__.py:1-12
+app/web/action_logger.py:1-20
+app/web/app_factory.py:1-61
+app/web/background.py:1-85
+app/web/blueprints.py:1-31
+app/web/compat.py:1-102
+
+## Section 35  (1869 lines, 15 pieces)
+app/web/config.py:1-169
+app/web/csrf.py:1-125
+app/web/diagnostics.py:1-30
+app/web/extensions.py:1-26
+app/web/i18n.py:1-64
+app/web/logging.py:1-60
+app/web/routes.py:1-191
+app/web/security.py:1-86
+app/web_ui.py:1-36
+utils/__init__.py:1-7
+utils/app_commands_helper.py:1-150
+utils/atomic_io.py:1-70
+utils/common_helpers.py:1-501
+utils/config_cache.py:1-307
+utils/config_paths.py:1-47
+
+## Section 36  (1856 lines, 6 pieces)
+# utils/import_utils.py moved here from 35 on 2026-09-21: 35 had grown to
+# 2,024 of the 2,000 lines a section may hold. 36 had the room, and both
+# halves of 35 were reviewed in stage C either way.
+# utils/container_image.py added 2026-09-22 (review E53): alphabetically it
+# sits on the 35/36 boundary, and 35 is the section that already overflowed.
+utils/container_image.py:1-52
+utils/import_utils.py:1-165
+utils/logging_utils.py:1-546
+utils/observability.py:1-593
+utils/settings.py:1-113
+utils/time_utils.py:1-387
+
+## Section 37  (781 lines, 3 pieces)
+utils/performance_metrics.py:1-419
+utils/key_crypto.py:1-84
+utils/token_security.py:1-278
+
+## Section 38  (324 lines, 4 pieces)
+# Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
+# lines a section may hold, and the next repair in main_routes.py (review D25)
+# did not fit. The section cut is an instrument for reading the code, not a
+# budget the code has to stay inside - letting it decide whether a fix may be
+# written would be the wrong way round. security_routes.py is the piece that
+# moves because no finding of either pass points at it, so no finding label
+# ends up naming a section that no longer holds its file.
+app/blueprints/security_routes.py:1-205
+cogs/ddc_ui.py:1-94
+services/status/__init__.py:1-13
+services/translation/__init__.py:1-12

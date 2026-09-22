@@ -1,0 +1,175 @@
+{
+  "section": "01",
+  "verdicts": [
+    {
+      "name": "cogs/admin_overview.py:39 AdminOverviewView",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:54 AdminOverviewAdminButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:69 AdminOverviewAdminButton.callback",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:156 AdminOverviewRestartAllButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:172 AdminOverviewRestartAllButton.callback",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "cogs/admin_overview.py:230 AdminOverviewStopAllButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:246 AdminOverviewStopAllButton.callback",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "cogs/admin_overview.py:304 AdminOverviewDonateButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:319 AdminOverviewDonateButton.callback",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:396 RestartAllConfirmationView",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:408 StopAllConfirmationView",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:420 ConfirmRestartAllButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:433 ConfirmRestartAllButton.callback",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "cogs/admin_overview.py:597 ConfirmStopAllButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:610 ConfirmStopAllButton.callback",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "cogs/admin_overview.py:774 CancelBulkActionButton",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/admin_overview.py:784 CancelBulkActionButton.callback",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/auto_action_monitor.py:18 AutoActionMonitor",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/auto_action_monitor.py:27 AutoActionMonitor.on_message",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/auto_action_monitor.py:73 setup",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:42 schedule_container_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:121 schedule_action_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:138 schedule_cycle_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:164 schedule_time_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:203 schedule_month_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:248 schedule_weekday_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:280 schedule_day_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:315 schedule_info_period_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:341 schedule_year_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/autocomplete_handlers.py:351 schedule_task_id_select",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "cogs/control_helpers.py:27 get_guild_id",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_helpers.py:38 container_select",
+      "verdict": "checked"
+    },
+    {
+      "name": "cogs/control_helpers.py:172 validate_custom_address",
+      "verdict": "checked"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/admin_overview.py",
+      "line": 190,
+      "trigger": "A channel's 'control' permission is revoked after its Admin Overview panel was posted while it still had that permission. The panel is a persistent view (View(timeout=None), custom_id keyed only by channel_id, so it never expires). A user who is still on the global admin list (admins.json) opens that now-unauthorized channel and presses 'Restart All' or 'Stop All': AdminOverviewRestartAllButton.callback (line 190-191) and AdminOverviewStopAllButton.callback (line 264-265) check only admin_service.is_user_admin_async(user_id); the confirm buttons ConfirmRestartAllButton.callback / ConfirmStopAllButton.callback (which do the actual docker_action_service_first calls) check no permission at all. None of the four ever calls _channel_has_permission(channel_id, 'control') (cogs/control_helpers.py:96) for self.channel_id, so every active container in the whole instance is restarted/stopped even though the channel itself no longer grants control.",
+      "suggestion": "Re-check the CURRENT channel permission for self.channel_id (the way control_ui.py:304 was fixed to read only the live permission) in addition to, or as the actual gate instead of, the global admin check, so an old panel in a demoted channel loses its effect immediately as decided for Z5.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "This file alone does not show whether the code that posts/refreshes the Admin Overview message (out of this section) deletes or rebuilds the view without these buttons once a channel's control permission is revoked, which would close the window described here. I also cannot rule out that this is meant to be a documented admin override for control channels (comparable to B12 for the scheduler) that was simply never written down in SPEC.md the way B12 was - B2's own stated scope is status channels only, not control channels, which is why I lean toward this being a gap rather than an intended exception."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/admin_overview.py",
+      "line": 570,
+      "trigger": "Inside ConfirmRestartAllButton.callback's per-container loop, the only exceptions caught around docker_action_service_first are asyncio.TimeoutError and (RuntimeError, OSError) (line 542-546). If that call raises any other exception type partway through the loop (e.g. a docker-library error), it escapes the loop; the surrounding except at line 570 only catches (ImportError, KeyError, RuntimeError, asyncio.TimeoutError), which does not match either, so no followup.send ever runs. finally still releases _bulk_operation_in_progress, but the admin gets no message at all about how many containers were already restarted before the crash. The identical pattern exists in ConfirmStopAllButton.callback (inner catch line 719-723, outer catch line 747).",
+      "suggestion": "Give the outer except (or a final bare except) in both confirm-button callbacks a fallback branch that still reports whatever counts were reached, instead of leaving the admin with no result summary when an unlisted exception type surfaces.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "docker_action_service_first's implementation is outside this section, so I cannot say which exception types it can realistically raise beyond RuntimeError/OSError; this is only a gap in the code's own exception-type coverage, not a confirmed reachable failure. Both names this affects (cogs/admin_overview.py:433 and :610) are already recorded as 'finding' against F1 in the verdicts list, so this second issue at the same two functions has no verdict entry of its own."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/autocomplete_handlers.py",
+      "line": 406,
+      "trigger": "If load_tasks() (services/scheduling/scheduler.py, out of this section) raises anything other than RuntimeError - e.g. an OSError or a JSON-parsing error while reading the tasks file - schedule_task_id_select has no matching handler: the inner per-task catch (line 401) and the outer catch (line 406-408) both name only RuntimeError. The exception then propagates out of the autocomplete callback instead of the function returning [], so the '/schedule_delete' task-ID dropdown shows no options with none of the intended 'Error in schedule_task_id_select' log line to explain why.",
+      "suggestion": "Broaden both except clauses to cover the I/O/parsing errors load_tasks() can raise, the way schedule_container_select already catches a wider set of exception types for its own data source.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "load_tasks()'s implementation is outside this section, so I cannot confirm which exception types it can actually raise; if it never raises anything but RuntimeError in practice, this is not reachable."
+    }
+  ],
+  "notes": "cogs/autocomplete_handlers.py:42 schedule_container_select builds active_docker_data_set from a live Docker/API status query (lines 64-90) but never reads that set again - the choices returned always come from the configured servers list, not from it. No behaviour difference results (the comment at line 93-97 says listing configured, schedulable containers is the actual goal), so this is dead computation rather than a graded finding, but it does mean the Docker-status fallback path (line 83-90) is also unreachable in terms of output. cogs/control_helpers.py:172 validate_custom_address's own docstring warns that this exact kind of duplicated security check caused a real Z5 break elsewhere (the task-delete button existed twice, one copy missing the channel check) and says this check 'stood twice ... in control_ui.py and status_info_integration.py'; both of those files are outside this section, so I could not verify whether they now actually call this shared function or still carry their own local copies that could drift from it again. Separately, validate_custom_address's hostname branch accepts a port of up to 5 digits without checking it is <= 65535 (e.g. 'host:99999' validates as True); I have no visibility into what a downstream consumer does with an out-of-range port, so I could not state a concrete trigger and did not turn this into a finding."
+}

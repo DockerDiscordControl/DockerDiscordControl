@@ -11,6 +11,7 @@ Module containing status handler functions for Docker containers.
 These are implemented as a mixin class to be used with the main DockerControlCog.
 """
 import asyncio
+import os
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple, Union
@@ -18,7 +19,8 @@ import discord
 
 # Import necessary utilities
 from utils.logging_utils import get_module_logger
-from services.infrastructure.container_status_service import get_docker_info_dict_service_first, get_docker_stats_service_first
+from services.infrastructure.container_status_service import (
+    get_docker_info_dict_service_first, get_docker_stats_service_first, get_container_status_service)
 from utils.time_utils import format_datetime_with_timezone
 from services.config.server_config_service import get_server_config_service
 from services.docker_status import get_performance_service, get_fetch_service, ContainerStatusResult
@@ -33,6 +35,41 @@ from .translation_manager import _
 
 # Configure logger for this module
 logger = get_module_logger('status_handlers')
+
+# Parallel Docker fetches per bulk status run. stats(stream=False) takes ~1.7 s per running
+# container (34 containers: 3 parallel -> 21 s, 8 parallel -> 8 s). Status fetches don't use
+# the DockerClientService pool (get_docker_client_async opens its own client per fetch), but
+# each one blocks a default-executor thread (asyncio.to_thread) for that time.
+BULK_FETCH_MAX_CONCURRENCY = 6
+
+
+def _bulk_fetch_concurrency() -> int:
+    """Parallel fetches for one bulk run: up to 6, but keep 2 default-executor threads free
+    for other asyncio.to_thread work (e.g. the auto-action regex check has a 0.5 s budget)."""
+    cpu_count = getattr(os, 'process_cpu_count', os.cpu_count)() or 1
+    default_workers = min(32, cpu_count + 4)  # ThreadPoolExecutor default used by to_thread
+    return max(3, min(BULK_FETCH_MAX_CONCURRENCY, default_workers - 2))
+
+def _age_hint_threshold_seconds(handler) -> float:
+    """From when on a cached status is old enough to deserve an age hint in the embed.
+
+    The status loop refreshes every ``status_refresh_interval_seconds``, so an age anywhere
+    between zero and one interval is entirely normal. The hint should therefore say "a refresh
+    was missed", not "we are somewhere inside the normal cycle" - hence one and a half intervals.
+
+    Both display sites used to compare against ``cache_ttl_seconds``, which is ``interval * 2.5``.
+    With the 120 s interval configured on a real installation that meant data of up to five
+    minutes was shown without any hint that it was old.
+
+    Falls back to ``cache_ttl_seconds`` - the previous behaviour - when no interval has been
+    published, e.g. for a bare mixin in tests.
+    """
+    interval = getattr(handler, 'status_refresh_interval_seconds', None)
+    ttl = getattr(handler, 'cache_ttl_seconds', 0) or 0
+    if not isinstance(interval, (int, float)) or isinstance(interval, bool) or interval <= 0:
+        return ttl
+    return interval * 1.5
+
 
 class StatusHandlersMixin:
     """
@@ -106,8 +143,8 @@ class StatusHandlersMixin:
         if fast_containers:
             logger.debug(f"[INTELLIGENT_BULK_FETCH] Phase 1: Processing {len(fast_containers)} fast containers in parallel")
 
-            # Use semaphore for controlled concurrency
-            MAX_CONCURRENT_FAST = min(3, len(fast_containers))  # Max 3 concurrent to match Docker pool capacity
+            # Use semaphore for controlled concurrency (see _bulk_fetch_concurrency)
+            MAX_CONCURRENT_FAST = min(_bulk_fetch_concurrency(), len(fast_containers))
             semaphore = asyncio.Semaphore(MAX_CONCURRENT_FAST)
 
             async def fetch_fast_container(container_name):
@@ -146,9 +183,22 @@ class StatusHandlersMixin:
         successful_fetches = 0
         failed_fetches = 0
 
-        for result in all_results:
+        # all_results holds the fast containers in order, then the slow ones, so a
+        # result that came back as an exception can still be named. It used to be
+        # logged and dropped, and the container was simply missing from the answer -
+        # against this function's own promise of complete data, and impossible for a
+        # caller to tell from "never asked" (review B25).
+        fetched_names = list(fast_containers) + list(slow_containers)
+
+        for fetched_name, result in zip(fetched_names, all_results):
             if isinstance(result, Exception):
-                logger.error(f"[INTELLIGENT_BULK_FETCH] Exception in fetch result: {result}")
+                logger.error(f"[INTELLIGENT_BULK_FETCH] Exception in fetch result for "
+                             f"{fetched_name}: {result}")
+                status_results[fetched_name] = ContainerStatusResult.error_result(
+                    docker_name=fetched_name,
+                    error=result,
+                    error_type='fetch'
+                )
                 failed_fetches += 1
                 continue
 
@@ -165,6 +215,22 @@ class StatusHandlersMixin:
             # Process the fetched data - ALWAYS COMPLETE DETAILS
             display_name = server_config.get('name', docker_name)
             details_allowed = server_config.get('allow_detailed_status', True)
+
+            # "not info", like the single-container path a few hundred lines down:
+            # an answer that is empty but not None used to be read as offline here
+            # and as "not found" there, so one container had two verdicts depending
+            # on which loop last touched it (review B37). What decides either way is
+            # is_container_not_found(), which asks Docker itself.
+            if not info and get_container_status_service().is_container_not_found(docker_name):
+                # Docker answered "no such container" (deleted/renamed/being recreated): cached
+                # like offline, but shown as "not found" instead of 🔴 / an endless 🔄
+                status_results[docker_name] = ContainerStatusResult.not_found_result(
+                    docker_name=docker_name,
+                    display_name=display_name,
+                    details_allowed=details_allowed
+                )
+                successful_fetches += 1
+                continue
 
             if isinstance(info, Exception) or info is None:
                 # Container offline or error - still provide complete status structure
@@ -194,7 +260,8 @@ class StatusHandlersMixin:
 
                         days = delta.days
                         hours, remainder = divmod(delta.seconds, 3600)
-                        minutes, _ = divmod(remainder, 60)
+                        # Don't unpack into `_` - that would shadow the translation function
+                        minutes = remainder // 60
                         uptime_parts = []
                         if days > 0:
                             uptime_parts.append(f"{days}d")
@@ -229,10 +296,12 @@ class StatusHandlersMixin:
                                 uptime_parts.append(f"{minutes}m")
                             uptime = " ".join(uptime_parts) if uptime_parts else "< 1m"
                     # Fallback to old stats method if SERVICE FIRST data not available
-                    elif not isinstance(stats, Exception) and stats:
-                        cpu_stat, ram_stat = stats
-                        cpu = cpu_stat if cpu_stat is not None else 'N/A'
-                        ram = ram_stat if ram_stat is not None else 'N/A'
+                    elif isinstance(stats, dict) and stats:
+                        # get_docker_stats_service_first() returns a dict, same as in get_status()
+                        cpu_percent = stats.get('cpu_percent')
+                        memory_mb = stats.get('memory_usage_mb')
+                        cpu = f"{cpu_percent:.1f}%" if cpu_percent is not None else 'N/A'
+                        ram = f"{memory_mb:.0f}MB" if memory_mb is not None else 'N/A'
                     else:
                         # No stats available
                         pass  # Keep N/A values set above
@@ -308,14 +377,24 @@ class StatusHandlersMixin:
                 # queried as minecraft without the user setting anything. Token protocols
                 # (satisfactory) always use the user's explicit choice.
                 proto = cfg.get('query_protocol', 'source')
-                if proto not in TOKEN_PROTOCOLS:
-                    try:
-                        from services.infrastructure.game_query_support_service import get_game_query_support_service
-                        detected = get_game_query_support_service().get_protocol(docker_name)
+                try:
+                    from services.infrastructure.game_query_support_service import get_game_query_support_service
+                    support = get_game_query_support_service()
+                    # Skip servers the support detection already found unreachable. Querying one
+                    # costs a full timeout every single cycle and can never succeed (finding P1:
+                    # with 6 enabled containers and one dead server that was ~10 s of every
+                    # status cycle). Nothing is lost if it comes back: a non-final verdict keeps
+                    # being re-probed by _run_support_probes on its own schedule, and a final one
+                    # is re-checked through the manual "test now" button. An unknown container
+                    # yields None here and is queried normally.
+                    if support.is_supported(docker_name) is False:
+                        continue
+                    if proto not in TOKEN_PROTOCOLS:
+                        detected = support.get_protocol(docker_name)
                         if detected:
                             proto = detected
-                    except (ImportError, RuntimeError, AttributeError):
-                        pass
+                except (ImportError, RuntimeError, AttributeError):
+                    pass
                 host, ports = await svc.resolve_query_candidates(
                     docker_name, cfg.get('query_host', ''), cfg.get('query_port', 0), proto)
                 if not host or not ports:
@@ -338,10 +417,24 @@ class StatusHandlersMixin:
             except asyncio.TimeoutError:
                 logger.debug("[GAME_QUERY] Player-count enrichment exceeded budget; skipping cycle")
                 return
+            # Report the outcome back to the verdict store. A positive verdict is otherwise never
+            # re-checked, so a server that used to answer and no longer does kept costing a full
+            # timeout every cycle (finding P1b). Repeated failures put it back into probing.
+            try:
+                from services.infrastructure.game_query_support_service import get_game_query_support_service
+                verdicts = get_game_query_support_service()
+            except (ImportError, RuntimeError, AttributeError):
+                verdicts = None
+
             for docker_name, q in query_results.items():
                 if q.success and q.players_online is not None and docker_name in status_results:
                     status_results[docker_name].players_online = q.players_online
                     status_results[docker_name].max_players = q.max_players
+                if verdicts is not None:
+                    if q.success:
+                        verdicts.note_query_success(docker_name)
+                    elif q.error_type in ('timeout', 'unreachable'):
+                        verdicts.note_query_failure(docker_name)
         except (ImportError, RuntimeError, AttributeError, KeyError, TypeError) as e:
             logger.debug(f"[GAME_QUERY] Player-count enrichment skipped: {e}")
 
@@ -454,7 +547,14 @@ class StatusHandlersMixin:
                         # CRITICAL: Cache error with docker_name as key (not display_name!)
                         self.status_cache_service.set_error(docker_name, result.error or Exception(result.error_message))
                         logger.warning(f"[BULK_UPDATE] Failed to update {display_name}: {result.error_message}")
-        except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
+        # A cancellation is not an error - it is how asyncio says "stop". Caught
+        # and logged like a failure, the task reported itself finished although it
+        # had been told to stop: on shutdown the bot waited for work that was
+        # already ending, and a caller's wait_for no longer stopped what it timed
+        # out on (review B30).
+        except asyncio.CancelledError:
+            raise
+        except (RuntimeError, KeyError, TypeError) as e:
             logger.error(f"[BULK_UPDATE] Error during bulk update: {e}", exc_info=True)
 
     async def get_status(self, server_config: Dict[str, Any]) -> ContainerStatusResult:
@@ -483,6 +583,14 @@ class StatusHandlersMixin:
         try:
             info = await get_docker_info_dict_service_first(docker_name)
 
+            if not info and get_container_status_service().is_container_not_found(docker_name):
+                # Same "not found" state as bulk_fetch_container_status (keeps it on refreshes)
+                return ContainerStatusResult.not_found_result(
+                    docker_name=docker_name,
+                    display_name=display_name,
+                    details_allowed=details_allowed
+                )
+
             if not info:
                 # Container does not exist or Docker daemon is unreachable
                 logger.warning(f"Container info not found for {docker_name}. Assuming offline.")
@@ -509,7 +617,8 @@ class StatusHandlersMixin:
 
                         days = delta.days
                         hours, remainder = divmod(delta.seconds, 3600)
-                        minutes, _ = divmod(remainder, 60)
+                        # Don't unpack into `_` - that would shadow the translation function
+                        minutes = remainder // 60
                         uptime_parts = []
                         if days > 0:
                             uptime_parts.append(f"{days}d")
@@ -527,8 +636,12 @@ class StatusHandlersMixin:
                 if details_allowed:
                     stats_dict = await get_docker_stats_service_first(docker_name)
                     if stats_dict and isinstance(stats_dict, dict):
-                        cpu_percent = stats_dict.get('cpu_percent', 0.0)
-                        memory_mb = stats_dict.get('memory_usage_mb', 0.0)
+                        # No default: a key that is not there was not measured, and the
+                        # line below turns that into 'N/A'. With 0.0 it used to read like
+                        # an idle container instead - a number nobody measured, and one the
+                        # bulk path shows as N/A for the same answer (review B20).
+                        cpu_percent = stats_dict.get('cpu_percent')
+                        memory_mb = stats_dict.get('memory_usage_mb')
                         cpu = f"{cpu_percent:.1f}%" if cpu_percent is not None else 'N/A'
                         ram = f"{memory_mb:.1f} MB" if memory_mb is not None else 'N/A'
                     else:
@@ -549,8 +662,25 @@ class StatusHandlersMixin:
                 details_allowed=details_allowed
             )
 
-        except (RuntimeError, OSError, ValueError, KeyError, TypeError) as e:
-            logger.error(f"Error getting status for {docker_name}: {e}", exc_info=True)
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose. This is the SINGLE-container path - the refresh
+            # button on a container panel - and its whole job is to come back
+            # with a ContainerStatusResult, a failed one included, so the panel
+            # can show the failure in place.
+            #
+            # The tuple that stood here listed five types and not the one the
+            # chain underneath actually produces (review E16):
+            #   get_docker_info_dict_service_first -> get_container_status
+            #     -> _fetch_container_status -> get_docker_client_async,
+            # which raises DockerConnectionError when the daemon is gone. The
+            # button raised instead of showing a failed container.
+            #
+            # The bulk path is not affected: it asks check_connectivity first,
+            # and review B25 turns an exception in a gathered result into a
+            # named error result. This path has neither, which is why the same
+            # sentence had to be answered twice.
+            logger.error("Error getting status for %s: %s: %s",
+                         docker_name, type(e).__name__, e, exc_info=True)
             return ContainerStatusResult.error_result(
                 docker_name=docker_name,
                 error=e,
@@ -595,7 +725,6 @@ class StatusHandlersMixin:
             logger.error(f"[_GEN_EMBED] No docker_name found in server_conf for display_name '{display_name}'!")
             docker_name = display_name  # Fallback to display_name if no docker_name available
 
-        cached_entry = self.status_cache_service.get(docker_name)
         now = datetime.now(timezone.utc)
 
         # --- Check for pending action first --- (Moved before status_result processing)
@@ -652,11 +781,17 @@ class StatusHandlersMixin:
                     del self.pending_actions[docker_name]
 
         # --- Determine status_result (from cache or live) ---
+        # Read AFTER the pending handling above: it fetches the container's current
+        # status when a pending action passes its timeout and writes it into the
+        # cache. Reading the entry before that block meant the message showed the
+        # state from BEFORE the action - or "loading" when there was no entry at all
+        # (review B9).
+        cached_entry = self.status_cache_service.get(docker_name)
         if cached_entry:
             cache_age = (now - cached_entry['timestamp']).total_seconds()
             # PATIENT APPROACH: ALWAYS use cache if available - background collects fresh data
             # Show cache age when data is older so user knows freshness
-            if cache_age < self.cache_ttl_seconds:
+            if cache_age < _age_hint_threshold_seconds(self):
                 cache_age_indicator = ""  # No indicator for fresh data
             else:
                 # Add age indicator for older data
@@ -692,18 +827,19 @@ class StatusHandlersMixin:
         if status_result is None:
             # Check if we have cache age indicator to determine type of message
             if 'embed_cache_indicator' in locals() and 'loading' in embed_cache_indicator:
-                # Loading status
+                # Loading status. Plain lines, no box: this used to draw a
+                # ┌── │ └── frame inside a code block, which does not reflow and
+                # broke apart on a phone (same finding as the "processing"
+                # message in control_ui.py, 2026-09-19). The footer was a
+                # hard-coded English "Background data collection in progress".
                 embed = discord.Embed(
-                    description=_("""```
-┌── Loading Status ───────────
-│ 🔄 Fetching container data...
-│ ⏱️ Background process running
-│ 📊 Please wait for fresh data
-└─────────────────────────────
-```"""),
+                    title=f"🔄 {_('Loading Status')}",
+                    description=f"{_('Fetching container data...')}\n"
+                                f"⏱️ {_('Background process running')}\n"
+                                f"📊 {_('Please wait for fresh data')}",
                     color=0x3498db
                 )
-                embed.set_footer(text="Background data collection in progress • https://ddc.bot")
+                embed.set_footer(text="https://ddc.bot")
             else:
                 # Error status
                 embed = discord.Embed(
@@ -743,6 +879,10 @@ class StatusHandlersMixin:
                 offline_text = cached_translations['offline_text']
                 status_text = online_text if running else offline_text
                 current_emoji = "🟢" if running else "🔴"
+                if status_result.not_found:
+                    # Deleted/renamed container - own state instead of "offline"
+                    status_text = _("Not found")
+                    current_emoji = "❓"
 
                 # Check if we should always collapse
                 # CRITICAL FIX: Use docker_name (stable identifier) instead of display_name for expanded state lookup
@@ -818,7 +958,8 @@ class StatusHandlersMixin:
                 if allow_toggle and running and details_allowed:
                     view = ControlView(
                         self, server_conf, is_running=running,
-                        channel_has_control_permission=_channel_has_permission(channel_id, server_conf)
+                        channel_has_control_permission=_channel_has_permission(channel_id, server_conf),
+                        channel_id=channel_id
                     )
                 else:
                     view = None
@@ -915,7 +1056,7 @@ class StatusHandlersMixin:
             current_time = format_datetime_with_timezone(now_footer, timezone_str, time_only=True)
 
             # Enhanced timestamp with cache age info
-            if 'embed_cache_age' in locals() and embed_cache_age > self.cache_ttl_seconds:
+            if 'embed_cache_age' in locals() and embed_cache_age > _age_hint_threshold_seconds(self):
                 timestamp_line = f"{last_update_text}: {current_time} (data: {int(embed_cache_age)}s alt)"
             else:
                 timestamp_line = f"{last_update_text}: {current_time}"
@@ -973,7 +1114,7 @@ class StatusHandlersMixin:
 
             else:
                 # CONTROL CHANNEL: Use standard ControlView
-                view = ControlView(self, server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle)
+                view = ControlView(self, server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle, channel_id=channel_id)
         else:
             view = None # Ensure view is None if server_conf is missing or critical error
 
@@ -1115,7 +1256,9 @@ class StatusHandlersMixin:
             else:
                 logger.warning(f"[SEND_STATUS] No embed generated for '{display_name}' (likely error in helper?), cannot send/edit.")
 
-        except (RuntimeError, asyncio.CancelledError, KeyError, TypeError) as e:
+        except asyncio.CancelledError:
+            raise  # see the note in bulk_update_status_cache (review B30)
+        except (RuntimeError, KeyError, TypeError) as e:
             logger.error(f"[SEND_STATUS] Outer error processing server '{display_name}' for channel {channel.id}: {e}", exc_info=True)
         return msg
 
@@ -1247,7 +1390,9 @@ class StatusHandlersMixin:
         except discord.Forbidden:
             logger.error(f"_edit_single_message: Missing permissions to fetch/edit message {message_id} in channel {channel_id}.")
             return discord.Forbidden(f"Permissions error for {message_id}")
-        except (discord.HTTPException, RuntimeError, asyncio.CancelledError, KeyError, TypeError, ValueError) as e:
+        except asyncio.CancelledError:
+            raise  # see the note in bulk_update_status_cache (review B30)
+        except (discord.HTTPException, RuntimeError, KeyError, TypeError, ValueError) as e:
             elapsed_time = (time.time() - start_time) * 1000
             logger.error(f"_edit_single_message: Failed to edit message {message_id} for '{display_name}' after {elapsed_time:.1f}ms: {e}", exc_info=True)
             return e

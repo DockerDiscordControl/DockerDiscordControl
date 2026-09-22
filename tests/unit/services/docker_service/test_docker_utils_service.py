@@ -62,7 +62,10 @@ def fake_docker_client():
     """A MagicMock simulating ``docker.DockerClient``."""
     client = MagicMock(name="DockerClient")
     container = MagicMock(name="Container")
-    container.attrs = {"State": {"Status": "running"}, "Id": "abc123"}
+    # Real containers carry Config.Image; the image name is read from there
+    # since review E53, not from container.image (a second API request).
+    container.attrs = {"State": {"Status": "running"}, "Id": "abc123",
+                       "Image": "sha256:deadbeef", "Config": {"Image": "nginx:latest"}}
     container.short_id = "abc123abc123"
     container.name = "demo"
     container.status = "running"
@@ -164,9 +167,14 @@ class TestTimeoutConfig:
             == 21.0
         )
 
-    def test_load_timeout_from_config_overrides_small_fast_stats(
+    def test_load_timeout_from_config_keeps_a_small_fast_stats(
         self, monkeypatch
     ):
+        # These two tests used to assert 45.0 here - they wrote down the block
+        # marked "TEMPORARY FIX" that replaced every configured value below 30.
+        # The panel offers this field with min="1" max="60" and suggests 10, so
+        # that block made the suggested value and half the accepted range dead
+        # (review C59). What the operator sets is what is used.
         def _fake_load():
             return {"advanced_settings": {"DDC_FAST_STATS_TIMEOUT": "5"}}
 
@@ -177,10 +185,10 @@ class TestTimeoutConfig:
             docker_utils._load_timeout_from_config(
                 "DDC_FAST_STATS_TIMEOUT", "X", "1.0"
             )
-            == 45.0
+            == 5.0
         )
 
-    def test_load_timeout_from_config_overrides_small_fast_info(
+    def test_load_timeout_from_config_keeps_a_small_fast_info(
         self, monkeypatch
     ):
         def _fake_load():
@@ -193,7 +201,7 @@ class TestTimeoutConfig:
             docker_utils._load_timeout_from_config(
                 "DDC_FAST_INFO_TIMEOUT", "X", "1.0"
             )
-            == 45.0
+            == 5.0
         )
 
 
@@ -370,26 +378,19 @@ class TestLoadCustomTimeoutConfig:
         assert result is None
 
     def test_loads_valid_json(self, tmp_path, monkeypatch):
-        # Create file at expected location
+        # The real function, pointed at tmp_path via DDC_CONFIG_DIR. This used
+        # to call a local re-implementation ("we cannot easily monkeypatch
+        # parents[2]") and so could not fail; the module now reads
+        # utils.config_paths.get_config_dir().
         cfg_path = tmp_path / "container_timeouts.json"
         payload = {"container_overrides": {"a": {"stats_timeout": 1.0}}}
         cfg_path.write_text(json.dumps(payload))
+        monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
 
-        # Re-route the module-level resolution
         docker_utils._custom_config_loaded = False
         docker_utils._custom_timeout_config = None
 
-        original_init = Path.__truediv__
-
-        def fake_load_custom():
-            # Re-run with our path
-            docker_utils._custom_config_loaded = True
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                docker_utils._custom_timeout_config = json.load(f)
-            return docker_utils._custom_timeout_config
-
-        # We cannot easily monkeypatch parents[2], so just call our shim:
-        result = fake_load_custom()
+        result = docker_utils.load_custom_timeout_config()
         assert result == payload
 
     def test_caches_after_first_load(self, monkeypatch):
@@ -1121,7 +1122,7 @@ class TestPerformanceHelpers:
         out = await docker_utils.compare_container_performance(
             container_names=None
         )
-        assert "Keine laufenden Container" in out
+        assert "No running containers" in out
 
     @pytest.mark.asyncio
     async def test_compare_container_performance_runs_for_explicit_names(
@@ -1155,7 +1156,7 @@ class TestPerformanceHelpers:
             _make_async_client_cm(fake_docker_client),
         )
         out = await docker_utils.compare_container_performance(["nginx"])
-        assert "DOCKER STATS PERFORMANCE VERGLEICH" in out
+        assert "DOCKER STATS PERFORMANCE COMPARISON" in out
         # Restore wait_for to be safe between tests
         monkeypatch.setattr(asyncio, "wait_for", original_wait_for)
 

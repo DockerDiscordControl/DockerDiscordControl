@@ -7,6 +7,7 @@ Service First: Configuration Management for Channel Translation.
 Handles CRUD operations, validation, and persistence for channel_translations.json.
 """
 
+import copy
 import json
 import logging
 import threading
@@ -232,6 +233,15 @@ class ConfigResult:
 
 # --- Service ---
 
+class TranslationKeyUnreadable(RuntimeError):
+    """The translation encryption key file exists but cannot be used.
+
+    Raised instead of quietly minting a replacement: the stored API key was
+    encrypted with the key in that file, so overwriting it destroys the secret
+    (review C27).
+    """
+
+
 class TranslationConfigService:
     """Service for managing channel_translations.json configuration."""
 
@@ -241,7 +251,11 @@ class TranslationConfigService:
         except Exception:
             self.base_dir = Path(".")
 
-        self.config_file = self.base_dir / "config" / "channel_translations.json"
+        # Via utils/config_paths.py (DDC_CONFIG_DIR) - derived from __file__
+        # before: outside a DDC_CONFIG_DIR volume, and in test runs the default
+        # file written below landed in the real config/.
+        from utils.config_paths import get_config_dir
+        self.config_file = get_config_dir() / "channel_translations.json"
         self._file_lock = threading.Lock()  # Protects read-modify-write operations
         self._key_lock = threading.Lock()   # Protects encryption key creation
         self._ensure_config_exists()
@@ -257,14 +271,60 @@ class TranslationConfigService:
             }
             self._save_config_file(default_config)
 
+    # Cached copy and the mtime it was read at (review E32).
+    _cached_config: Optional[Dict[str, Any]] = None
+    _cached_mtime: float = -1.0
+
     def _load_config_file(self) -> Dict[str, Any]:
-        """Load raw JSON config from file."""
+        """Load raw JSON config from file, cached on the file's mtime.
+
+        The cache is not a nicety. ``TranslationMonitor.on_message`` listens to
+        EVERY message in every channel the bot can see and hands each one to
+        ``TranslationService.process_message``, which opens with
+        ``get_settings()`` and ``get_source_channel_ids()`` - two calls to this
+        method - before it can decide the message has nothing to do with it.
+
+        Measured in the running container, on a channel that is not a
+        translation source at all:
+
+            process_message: 0.20 ms per message, 2.0 file reads per message
+
+        So every message anybody wrote anywhere on the server made DDC open and
+        parse this file twice, on a bind-mounted filesystem, to find that out.
+        Same sentence as review E30: a configuration read on a path that runs
+        per item rather than per operation.
+
+        Keyed on the mtime rather than a timer, so an edit from the web panel
+        or by hand is picked up on the next call and nothing has to be
+        invalidated by hand. A file that cannot be stat'ed is read the old way.
+        """
+        try:
+            mtime = os.path.getmtime(self.config_file)
+        except OSError:
+            mtime = None
+
+        if mtime is not None and self._cached_config is not None and mtime == self._cached_mtime:
+            # A COPY, always. Every write path here does
+            # `config = self._load_config_file()`, mutates it and saves it -
+            # so handing out the cached object would let a save that FAILED
+            # leave its change in memory, and DDC would go on believing
+            # something that is not on disk. Copying a one-kilobyte dict costs
+            # a fraction of the file read it replaces.
+            return copy.deepcopy(self._cached_config)
+
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error loading channel_translations.json: {e}")
+            # Not cached: a corrupt file is expected to be fixed, and the next
+            # call should see that rather than the fallback.
             return {"settings": TranslationSettings().to_dict(), "channel_pairs": []}
+
+        if mtime is not None:
+            self._cached_config = data
+            self._cached_mtime = mtime
+        return copy.deepcopy(data)
 
     def _save_config_file(self, data: Dict[str, Any]) -> bool:
         """Save JSON config to file atomically."""
@@ -351,22 +411,34 @@ class TranslationConfigService:
         """
         key_file = self.config_file.parent / ".translation_key"
         # Fast path: key file already exists (no lock needed)
-        try:
-            if key_file.exists():
-                stored_key = key_file.read_bytes().strip()
-                return Fernet(stored_key)
-        except Exception as e:
-            logger.warning(f"Could not load translation encryption key, generating new one: {e}")
+        if key_file.exists():
+            try:
+                return Fernet(key_file.read_bytes().strip())
+            except Exception as e:
+                # NOT "generate a new one". The stored api_key_encrypted was
+                # encrypted with the key in this very file; writing a fresh one
+                # over it destroys the operator's DeepL or Google key for good,
+                # and this runs on the READ path, so a permission mismatch was
+                # enough to do it (review C27).
+                raise TranslationKeyUnreadable(
+                    f"{key_file} exists but cannot be used ({type(e).__name__}: {e}). "
+                    "It is NOT being replaced - the stored API key was encrypted "
+                    "with it. Fix the file's permissions or contents, or clear the "
+                    "API key in the web panel and enter it again."
+                ) from e
 
-        # Slow path: need to create key (locked to prevent race condition)
+        # Slow path: the file does not exist. Locked so two callers cannot each
+        # create one and the loser's key be lost.
         with self._key_lock:
             # Double-check after acquiring lock
-            try:
-                if key_file.exists():
-                    stored_key = key_file.read_bytes().strip()
-                    return Fernet(stored_key)
-            except Exception:
-                pass
+            if key_file.exists():
+                try:
+                    return Fernet(key_file.read_bytes().strip())
+                except Exception as e:
+                    raise TranslationKeyUnreadable(
+                        f"{key_file} exists but cannot be used "
+                        f"({type(e).__name__}: {e})"
+                    ) from e
 
             new_key = Fernet.generate_key()
             try:
@@ -403,6 +475,13 @@ class TranslationConfigService:
                         f = self._get_encryption_key()
                         encrypted = f.encrypt(api_key.encode()).decode()
                         settings['api_key_encrypted'] = encrypted
+                    except TranslationKeyUnreadable as e:
+                        # The one case where the plaintext fallback below would
+                        # be the wrong answer: the key file is there and broken,
+                        # so writing the secret unencrypted turns a transient
+                        # problem into a plaintext secret on disk (review C27).
+                        logger.error(f"Refusing to store the translation API key: {e}")
+                        return ConfigResult(success=False, error=str(e))
                     except Exception as e:
                         logger.error(f"Encryption failed for translation API key: {e}")
                         # Fallback: store plaintext (user is warned via log)
@@ -442,11 +521,15 @@ class TranslationConfigService:
 
     def add_pair(self, pair_data: Dict[str, Any]) -> ConfigResult:
         """Add a new channel pair with validation. Thread-safe."""
+        # Sanitise FIRST, then validate. The other way round, the validator
+        # enforced "Pair name is required" on a name that the sanitiser then
+        # emptied - "<<>>" passed the check and was saved as a pair with no
+        # name at all (review C52).
+        pair_data['name'] = sanitize_string(pair_data.get('name', ''), MAX_PAIR_NAME_LENGTH)
+
         is_valid, error_msg, warnings = validate_pair_data(pair_data)
         if not is_valid:
             return ConfigResult(success=False, error=f"Validation failed: {error_msg}")
-
-        pair_data['name'] = sanitize_string(pair_data.get('name', ''), MAX_PAIR_NAME_LENGTH)
         if 'id' not in pair_data or not pair_data['id']:
             pair_data['id'] = str(uuid.uuid4())
         pair_data['metadata'] = {
@@ -481,11 +564,12 @@ class TranslationConfigService:
 
     def update_pair(self, pair_id: str, pair_data: Dict[str, Any]) -> ConfigResult:
         """Update an existing channel pair. Thread-safe."""
+        # Same order as add_pair, for the same reason (review C52).
+        pair_data['name'] = sanitize_string(pair_data.get('name', ''), MAX_PAIR_NAME_LENGTH)
+
         is_valid, error_msg, warnings = validate_pair_data(pair_data)
         if not is_valid:
             return ConfigResult(success=False, error=f"Validation failed: {error_msg}")
-
-        pair_data['name'] = sanitize_string(pair_data.get('name', ''), MAX_PAIR_NAME_LENGTH)
 
         with self._file_lock:
             try:

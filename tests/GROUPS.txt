@@ -1,0 +1,60 @@
+# The test groups of this project - one group per pytest invocation.
+#
+# WHY ONE BY ONE: tests/unit/services, tests/unit/cogs and tests/unit/utils have
+# no __init__.py but are named like the real packages services/, cogs/, utils/.
+# In ONE shared pytest run they shadow those, and collection aborts:
+#   pytest tests/unit/  -> 79 collection errors, not a single test runs
+#   pytest tests/       -> 18 collection errors, not a single test runs
+# Both measured on 2026-09-17. --import-mode=importlib does not fix it, and three
+# retrofitted __init__.py make it worse, 54 errors (reverted).
+#
+# This file is the ONLY source of the group list. The CI workflows read it, so
+# no copies drift apart. tests/spec/test_z10_group_list.py makes sure every
+# test file lies in exactly one group - otherwise a new file would silently
+# never run.
+#
+# See SPEC.md Z10.
+
+tests/spec
+tests/unit/services/mech
+tests/unit/services/web
+tests/unit/services/scheduler
+tests/unit/services/configuration
+tests/unit/services/infrastructure
+tests/unit/services/automation
+tests/unit/services/docker_service
+tests/unit/services/donation
+tests/unit/services/discord_admin
+tests/unit/services/translation
+tests/unit/cogs
+tests/unit/blueprints
+tests/unit/extended
+tests/unit/audit_2026_09
+tests/unit/utils
+tests/unit/security
+tests/unit/storage
+tests/unit/i18n
+tests/unit/infrastructure
+tests/unit/performance
+tests/unit/app_modules
+tests/security
+tests/integration
+tests/performance
+tests/test_bootstrap_performance.py
+tests/test_bootstrap_runtime.py
+tests/test_docker_status_cache_runtime.py
+tests/test_donation_system_functional.py
+tests/test_member_count_service.py
+tests/test_progress_paths.py
+tests/test_progress_runtime.py
+tests/test_runtime_slots.py
+tests/test_scheduler_runtime.py
+tests/test_unified_donation_service.py
+tests/test_web_config.py
+tests/test_web_factory.py
+tests/test_web_logging.py
+tests/test_web_spam_and_advanced_settings.py
+tests/unit/services/test_container_info_service.py
+tests/unit/services/test_docker_pool_fetch.py
+tests/unit/services/test_docker_status_services.py
+tests/unit/services/test_donation_management_service.py

@@ -30,7 +30,7 @@ class DonationClickRequest:
 class DonationClickResult:
     """Represents the result of donation click tracking operation."""
     success: bool
-    message: str
+    message: str = ""
     timestamp: Optional[str] = None
     error: Optional[str] = None
 
@@ -108,7 +108,7 @@ class DonationTrackingService:
             else:
                 # Fallback to IP address
                 user_identifier = self._get_ip_identifier(request_obj)
-        except:
+        except Exception:
             # Final fallback to IP
             user_identifier = self._get_ip_identifier(request_obj)
 
@@ -121,7 +121,7 @@ class DonationTrackingService:
             if request_obj.headers.get('X-Forwarded-For'):
                 ip_address = request_obj.headers.get('X-Forwarded-For').split(',')[0].strip()
             return f"IP: {ip_address}"
-        except:
+        except Exception:
             return "IP: Unknown"
 
     def _get_current_timestamp(self) -> str:

@@ -17,17 +17,16 @@ These tests exercise the behaviours that real callers depend on:
   - XOR encryption round-trip (and graceful failure on garbage input)
   - ConfigCache set/get/clear semantics, expiration and memory stats.
 
-The tests intentionally avoid touching the real on-disk ``config/`` directory
-(restrictive permissions on the SMB-mounted Mac dev host) by writing into
-``tmp_path`` and monkeypatching ``utils.token_security.Path`` so the module
-resolves config files inside the temp dir.
+The token tests never touch an on-disk ``config/`` directory: since review
+E55 the token manager reads everything through the ConfigService, and ``_svc()``
+stands in for it with the answers the real service gives.
 """
 
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
@@ -55,51 +54,17 @@ from utils.token_security import (
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
-def fake_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """
-    Creates a config/ dir under tmp_path and patches the Path used by
-    token_security so its ``Path(__file__).parents[1] / 'config'`` resolves
-    to this temp directory.
-    """
-    cfg = tmp_path / "config"
-    cfg.mkdir()
-
-    real_path = Path
-
-    class _PatchedPath(type(real_path())):
-        # Pathlib uses concrete subclasses depending on platform; we only need
-        # to intercept ``Path(__file__).parents[1] / 'config'``. Easiest is to
-        # monkeypatch the symbol the module imported.
-        pass
-
-    # Replace the Path symbol inside token_security with a stub that, when
-    # called with the module's __file__, returns a path whose parents[1]
-    # points at tmp_path (so 'config' resolves to ``cfg``).
-    class _Stub:
-        def __init__(self, p):
-            self._p = real_path(p)
-
-        @property
-        def parents(self):
-            # parents[1] should be tmp_path
-            return [tmp_path / "fake0", tmp_path]
-
-        def __truediv__(self, other):
-            return self._p / other
-
-    def _factory(arg):
-        # When called with a string (e.g. "config" fallback) or with __file__
-        if isinstance(arg, str) and arg == "config":
-            return cfg
-        return _Stub(arg)
-
-    monkeypatch.setattr(token_security, "Path", _factory)
-    return cfg
-
-
-def _write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload), encoding="utf-8")
+def _svc(token: str = "", password_hash: str = "ph", *, encrypt_to="gAAAAA-encrypted",
+         round_trip: bool = True) -> MagicMock:
+    """A ConfigService stand-in that answers like the real one (review E55):
+    token and hash from get_config(), a decrypt that round-trips, a save that
+    reports its result."""
+    svc = MagicMock()
+    svc.get_config.return_value = {"bot_token": token, "web_ui_password_hash": password_hash}
+    svc.encrypt_token.return_value = encrypt_to
+    svc.decrypt_token.side_effect = lambda enc, h: token if round_trip else "not-the-token"
+    svc.update_config_fields.return_value = SimpleNamespace(success=True)
+    return svc
 
 
 # ---------------------------------------------------------------------------
@@ -185,204 +150,160 @@ class TestTokenSecurityManager:
         mgr = TokenSecurityManager()
         assert mgr.config_service is sentinel
 
-    def test_encrypt_existing_plaintext_no_files_returns_true(
-        self, fake_config_dir: Path
-    ) -> None:
-        mgr = TokenSecurityManager(config_service=MagicMock())
-        # No bot_config.json / web_config.json exist
-        assert mgr.encrypt_existing_plaintext_token() is True
+    # Since review E55 the manager reads the token and the password hash from
+    # the ConfigService (config.json), not from bot_config.json/web_config.json -
+    # the v1 files, which no running v2.4 has. These tests used to write those
+    # files and hand in a bare MagicMock, whose get_config() then returned a
+    # MagicMock: truthy, and "encrypted" by startswith(). Several of them passed
+    # without reaching the code they were named after. _svc() now answers the
+    # way the real service does.
 
-    def test_encrypt_existing_plaintext_already_encrypted_short_circuits(
-        self, fake_config_dir: Path
-    ) -> None:
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": "gAAAAAabc"})
-        _write_json(fake_config_dir / "web_config.json", {"web_ui_password_hash": "h"})
-        svc = MagicMock()
-        mgr = TokenSecurityManager(config_service=svc)
-        assert mgr.encrypt_existing_plaintext_token() is True
-        # Since token is already encrypted, encrypt_token must NOT be called.
+    def test_encrypt_existing_plaintext_no_token_returns_true(self) -> None:
+        svc = _svc(token="")
+        assert TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is True
         svc.encrypt_token.assert_not_called()
+        svc.update_config_fields.assert_not_called()
 
-    def test_encrypt_existing_plaintext_no_token_returns_true(
-        self, fake_config_dir: Path
-    ) -> None:
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": ""})
-        _write_json(fake_config_dir / "web_config.json", {"web_ui_password_hash": "h"})
-        mgr = TokenSecurityManager(config_service=MagicMock())
-        assert mgr.encrypt_existing_plaintext_token() is True
-
-    def test_encrypt_existing_plaintext_no_password_hash_returns_true(
-        self, fake_config_dir: Path
-    ) -> None:
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": "plaintok"})
-        _write_json(fake_config_dir / "web_config.json", {"web_ui_password_hash": ""})
-        svc = MagicMock()
-        mgr = TokenSecurityManager(config_service=svc)
-        assert mgr.encrypt_existing_plaintext_token() is True
+    def test_encrypt_existing_plaintext_already_encrypted_short_circuits(self) -> None:
+        svc = _svc(token="gAAAAAalready")
+        assert TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is True
         svc.encrypt_token.assert_not_called()
+        svc.update_config_fields.assert_not_called()
 
-    def test_encrypt_existing_plaintext_happy_path(self, fake_config_dir: Path) -> None:
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": "plain-tok"})
-        _write_json(
-            fake_config_dir / "web_config.json", {"web_ui_password_hash": "ph"}
-        )
-        svc = MagicMock()
-        svc.encrypt_token.return_value = "gAAAAA-encrypted"
-        mgr = TokenSecurityManager(config_service=svc)
+    def test_encrypt_existing_plaintext_no_password_hash_returns_false(self) -> None:
+        """Was ..._returns_true: without a hash there is no key, nothing gets
+        encrypted - and answering True made the panel report "encrypted
+        successfully" over a plaintext token (review E55)."""
+        svc = _svc(token="plaintok", password_hash="")
+        assert TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is False
+        svc.encrypt_token.assert_not_called()
+        svc.update_config_fields.assert_not_called()
 
-        ok = mgr.encrypt_existing_plaintext_token()
-
-        assert ok is True
+    def test_encrypt_existing_plaintext_happy_path(self) -> None:
+        svc = _svc(token="plain-tok", password_hash="ph")
+        assert TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is True
         svc.encrypt_token.assert_called_once_with("plain-tok", "ph")
-        # File was rewritten with the encrypted token
-        new = json.loads((fake_config_dir / "bot_config.json").read_text())
-        assert new["bot_token"] == "gAAAAA-encrypted"
+        svc.update_config_fields.assert_called_once_with({"bot_token": "gAAAAA-encrypted"})
 
-    def test_encrypt_existing_plaintext_no_service_returns_false(
-        self, fake_config_dir: Path
-    ) -> None:
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": "plain"})
-        _write_json(
-            fake_config_dir / "web_config.json", {"web_ui_password_hash": "ph"}
-        )
+    def test_encrypt_existing_plaintext_no_service_returns_false(self) -> None:
         mgr = TokenSecurityManager(config_service=MagicMock())
         mgr.config_service = None  # simulate unavailable service
         assert mgr.encrypt_existing_plaintext_token() is False
 
-    def test_encrypt_existing_plaintext_encrypt_returns_none(
-        self, fake_config_dir: Path
-    ) -> None:
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": "plain"})
-        _write_json(
-            fake_config_dir / "web_config.json", {"web_ui_password_hash": "ph"}
-        )
-        svc = MagicMock()
-        svc.encrypt_token.return_value = None  # encryption failed
-        mgr = TokenSecurityManager(config_service=svc)
-        assert mgr.encrypt_existing_plaintext_token() is False
+    def test_encrypt_existing_plaintext_encrypt_returns_none(self) -> None:
+        svc = _svc(token="plain", password_hash="ph", encrypt_to=None)
+        assert TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is False
+        svc.update_config_fields.assert_not_called()
+
+    def test_a_token_that_does_not_round_trip_is_never_written(self) -> None:
+        """The key comes from the password hash. A ciphertext that does not
+        decrypt back to the token would lock the bot out - it is refused
+        before anything is written."""
+        svc = _svc(token="plain", password_hash="ph", round_trip=False)
+        assert TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is False
+        svc.update_config_fields.assert_not_called()
+
+    def test_a_failed_save_is_not_reported_as_success(self) -> None:
+        svc = _svc(token="plain", password_hash="ph")
+        svc.update_config_fields.return_value = SimpleNamespace(success=False, message="disk full")
+        assert TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is False
 
     def test_verify_status_with_environment_token(
-        self, fake_config_dir: Path, monkeypatch: pytest.MonkeyPatch
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("DISCORD_BOT_TOKEN", "env-tok-abc")
-        mgr = TokenSecurityManager(config_service=MagicMock())
-        status = mgr.verify_token_encryption_status()
+        status = TokenSecurityManager(config_service=_svc(token="")).verify_token_encryption_status()
         assert status["environment_token_used"] is True
         assert any("environment variable" in r for r in status["recommendations"])
-        # Early return: token_exists / is_encrypted should remain False defaults
+        # No copy in config.json, so none is reported.
         assert status["token_exists"] is False
         assert status["is_encrypted"] is False
 
-    def test_verify_status_no_token(
-        self, fake_config_dir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_verify_status_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-        # No config files at all
-        mgr = TokenSecurityManager(config_service=MagicMock())
-        status = mgr.verify_token_encryption_status()
+        status = TokenSecurityManager(config_service=_svc(token="")).verify_token_encryption_status()
         assert status["token_exists"] is False
         assert status["is_encrypted"] is False
         assert any("No bot token" in r for r in status["recommendations"])
 
-    def test_verify_status_plaintext_can_encrypt(
-        self, fake_config_dir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_verify_status_plaintext_can_encrypt(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": "plain"})
-        _write_json(
-            fake_config_dir / "web_config.json", {"web_ui_password_hash": "ph"}
-        )
-        mgr = TokenSecurityManager(config_service=MagicMock())
-        status = mgr.verify_token_encryption_status()
+        status = TokenSecurityManager(config_service=_svc(token="plain", password_hash="ph")
+                                      ).verify_token_encryption_status()
         assert status["token_exists"] is True
         assert status["is_encrypted"] is False
         assert status["password_hash_available"] is True
         assert status["can_encrypt"] is True
         assert any("can be encrypted" in r for r in status["recommendations"])
 
-    def test_verify_status_plaintext_cannot_encrypt(
-        self, fake_config_dir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_verify_status_plaintext_cannot_encrypt(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": "plain"})
-        _write_json(fake_config_dir / "web_config.json", {})
-        mgr = TokenSecurityManager(config_service=MagicMock())
-        status = mgr.verify_token_encryption_status()
+        status = TokenSecurityManager(config_service=_svc(token="plain", password_hash="")
+                                      ).verify_token_encryption_status()
         assert status["token_exists"] is True
         assert status["is_encrypted"] is False
         assert status["can_encrypt"] is False
         assert any("Set admin password" in r for r in status["recommendations"])
 
-    def test_verify_status_already_encrypted(
-        self, fake_config_dir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_verify_status_already_encrypted(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-        _write_json(
-            fake_config_dir / "bot_config.json", {"bot_token": "gAAAAAencrypted"}
-        )
-        _write_json(
-            fake_config_dir / "web_config.json", {"web_ui_password_hash": "ph"}
-        )
-        mgr = TokenSecurityManager(config_service=MagicMock())
-        status = mgr.verify_token_encryption_status()
+        status = TokenSecurityManager(config_service=_svc(token="gAAAAAencrypted", password_hash="ph")
+                                      ).verify_token_encryption_status()
         assert status["token_exists"] is True
         assert status["is_encrypted"] is True
         assert any("encrypted and secure" in r for r in status["recommendations"])
 
-    def test_migrate_to_environment_variable_no_manager(self) -> None:
+    def test_migrate_to_environment_variable_without_config_service(self) -> None:
         mgr = TokenSecurityManager(config_service=MagicMock())
-        # config_manager attribute is never set, so the AttributeError path
-        # is exercised. The function should return a result dict with error
-        # set, not raise.
+        # Without a config service the method must return an error dictionary
+        # instead of raising.
+        #
+        # Until 2026-09-18 the method read self.config_manager - an attribute
+        # __init__ never sets. So EVERY call ended up in this branch, and the path
+        # was dead in practice; this test pinned that as expected behaviour
+        # instead of reporting it. Now the branch is set up explicitly instead of
+        # relying on a defect.
+        mgr.config_service = None
         result = mgr.migrate_to_environment_variable()
         assert isinstance(result, dict)
         assert result["success"] is False
         assert result["error"]  # non-empty error
 
-    def test_legacy_wrappers_call_through(
-        self, fake_config_dir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_legacy_wrappers_call_through(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import services.config.config_service as svc_mod  # type: ignore
+
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-        # legacy verify_status: no files -> defaults
+        monkeypatch.setattr(svc_mod, "get_config_service", lambda: _svc(token=""))
         st = legacy_verify_status()
         assert isinstance(st, dict)
         assert "recommendations" in st
-
-        # legacy encrypt_existing_plaintext_token: no files -> True
+        # no token -> nothing to do
         assert legacy_encrypt_existing_plaintext_token() is True
 
-    def test_auto_encrypt_on_startup_no_token(
-        self, fake_config_dir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_auto_encrypt_on_startup_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import services.config.config_service as svc_mod  # type: ignore
+
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-        # No config files -> status returns defaults; auto encrypt should not
-        # crash and should return the status dict.
+        monkeypatch.setattr(svc_mod, "get_config_service", lambda: _svc(token=""))
         status = auto_encrypt_token_on_startup()
         assert isinstance(status, dict)
         assert status["token_exists"] is False
 
-    def test_auto_encrypt_on_startup_triggers_encryption(
-        self, fake_config_dir: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
-        _write_json(fake_config_dir / "bot_config.json", {"bot_token": "plain"})
-        _write_json(
-            fake_config_dir / "web_config.json", {"web_ui_password_hash": "ph"}
-        )
-
-        fake_svc = MagicMock()
-        fake_svc.encrypt_token.return_value = "gAAAAAencrypted"
-
-        # Patch the lazy import inside TokenSecurityManager.__init__
+    def test_auto_encrypt_on_startup_does_not_encrypt(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Was ..._triggers_encryption. Decided by the operator on 2026-09-22
+        (review E55): the token is encrypted when the Web UI button is pressed,
+        never on its own at startup. The startup reports; it writes nothing."""
         import services.config.config_service as svc_mod  # type: ignore
 
+        monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
+        fake_svc = _svc(token="plain", password_hash="ph")
         monkeypatch.setattr(svc_mod, "get_config_service", lambda: fake_svc)
 
         status = auto_encrypt_token_on_startup()
-        assert status is not None
-        # File should now contain the encrypted token
-        bot_cfg = json.loads((fake_config_dir / "bot_config.json").read_text())
-        assert bot_cfg["bot_token"] == "gAAAAAencrypted"
+
+        assert status["token_exists"] is True and status["is_encrypted"] is False
+        fake_svc.encrypt_token.assert_not_called()
+        fake_svc.update_config_fields.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

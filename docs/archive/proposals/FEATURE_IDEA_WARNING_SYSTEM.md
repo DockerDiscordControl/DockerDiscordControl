@@ -1,66 +1,66 @@
 # Feature Idea: Warning/Alerting System
 
-**Status:** Konzeptphase - Noch nicht geplant
-**Erstellt:** 2025-11-30
+**Status:** Concept phase - not yet planned
+**Created:** 2025-11-30
 
 ---
 
-## Grundidee
+## Basic idea
 
-Ein Monitoring-System das bei bestimmten Bedingungen automatisch Warnungen ausgibt und optional Aktionen auslöst:
+A monitoring system that automatically issues warnings under certain conditions and optionally triggers actions:
 
-- **CPU-Last**: Warnung wenn längere Zeit sehr hoch → Optional Container-Neustart
-- **RAM-Verbrauch**: Warnung bei Schwellenwert-Überschreitung
-- **Idle-Detection**: Server nach X Stunden Inaktivität automatisch stoppen
+- **CPU load**: Warning when very high for an extended period → optionally restart the container
+- **RAM usage**: Warning when a threshold is exceeded
+- **Idle detection**: Automatically stop a server after X hours of inactivity
 
 ---
 
-## Architektur-Analyse
+## Architecture analysis
 
-### AAS vs. Warning System - Unterschiedliche Paradigmen
+### AAS vs. Warning System - different paradigms
 
-| | AAS (aktuell) | Warning System (neu) |
+| | AAS (current) | Warning System (new) |
 |---|---|---|
-| **Trigger** | Discord-Nachrichten | Docker Metriken |
-| **Modus** | Event-driven (reaktiv) | Polling-based (aktiv) |
-| **Quelle** | Extern (Update-Bots) | Intern (Docker Stats API) |
+| **Trigger** | Discord messages | Docker metrics |
+| **Mode** | Event-driven (reactive) | Polling-based (active) |
+| **Source** | External (update bots) | Internal (Docker Stats API) |
 
-### Technisch machbar
+### Technically feasible
 
 **Pro:**
-- Docker SDK liefert CPU%, RAM, Network I/O
-- Könnte Action-Layer teilen (start/stop/restart)
-- Cooldowns & Protected Containers wiederverwenden
-- Benachrichtigungen an Discord-Channel
+- Docker SDK provides CPU%, RAM, network I/O
+- Could share the action layer (start/stop/restart)
+- Reuse cooldowns & protected containers
+- Notifications to a Discord channel
 
-**Herausforderungen:**
-- **CPU "längere Zeit hoch"** → Braucht Zustandstracking (gleitender Durchschnitt, Schwellenwert-Dauer)
-- **"Idle" erkennen** → Was ist idle? Netzwerk-Traffic? Spieleranzahl? Sehr spielspezifisch
-- **Polling-Intervall** → Zu häufig = Overhead, zu selten = Spikes verpasst
-- **False Positives** → Kurze Spitzen sollten keine Aktionen auslösen
-
----
-
-## Einschätzung
-
-**Signifikante Scope-Erweiterung:**
-- DDC = "Discord-basierte Docker-Steuerung"
-- Warning System = "Monitoring System" → andere Produktkategorie
-- Tools wie Prometheus, Uptime Kuma, cAdvisor machen das bereits gut
-
-**Empfehlung:** Wenn überhaupt, dann als separates, optionales Modul - nicht in AAS einweben.
+**Challenges:**
+- **CPU "high for an extended period"** → needs state tracking (moving average, threshold duration)
+- **Detecting "idle"** → What is idle? Network traffic? Player count? Very game-specific
+- **Polling interval** → too frequent = overhead, too rare = spikes missed
+- **False positives** → short spikes should not trigger actions
 
 ---
 
-## Offene Fragen
+## Assessment
 
-- [ ] Hauptanwendungsfall definieren (Game-Server-Idle?)
-- [ ] Abgrenzung zu existierenden Monitoring-Tools
-- [ ] Polling-Intervall und Performance-Impact
-- [ ] Idle-Definition pro Container-Typ
+**Significant scope expansion:**
+- DDC = "Discord-based Docker control"
+- Warning System = "monitoring system" → a different product category
+- Tools such as Prometheus, Uptime Kuma, cAdvisor already do this well
+
+**Recommendation:** If at all, then as a separate, optional module - do not weave it into AAS.
 
 ---
 
-## Nächste Schritte
+## Open questions
 
-Warten auf weitere Anforderungen und Priorisierung.
+- [ ] Define the main use case (game server idle?)
+- [ ] Distinction from existing monitoring tools
+- [ ] Polling interval and performance impact
+- [ ] Idle definition per container type
+
+---
+
+## Next steps
+
+Waiting for further requirements and prioritisation.

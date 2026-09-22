@@ -2,8 +2,8 @@
 # =============================================================================
 # DockerDiscordControl - Reset All Donations (Test Mode)
 # =============================================================================
-# WARNUNG: Löscht ALLE Donations und Event-Historie!
-# Nur für Test-Betrieb geeignet!
+# WARNING: deletes ALL donations and the event history!
+# Only suitable for test operation!
 # =============================================================================
 
 set -e
@@ -17,19 +17,19 @@ PROGRESS_DIR="$BASE_DIR/config/progress"
 echo "🔄 DDC - Reset All Donations"
 echo "=============================="
 echo ""
-echo "📂 Arbeitsverzeichnis: $BASE_DIR"
+echo "📂 Working directory: $BASE_DIR"
 echo ""
-echo "⚠️  WARNUNG: Dies löscht ALLE Donations und Event-Historie!"
+echo "⚠️  WARNING: this deletes ALL donations and the event history!"
 echo ""
-read -p "Fortfahren? (yes/no): " confirm
+read -p "Continue? (yes/no): " confirm
 
 if [ "$confirm" != "yes" ]; then
-    echo "❌ Abgebrochen."
+    echo "❌ Aborted."
     exit 1
 fi
 
 echo ""
-echo "📦 Erstelle Backup..."
+echo "📦 Creating backup..."
 BACKUP_DIR="$PROGRESS_DIR/backup_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 
@@ -44,30 +44,30 @@ if [ -d "$PROGRESS_DIR/snapshots" ]; then
 fi
 
 echo ""
-echo "🗑️  Lösche Event Log..."
+echo "🗑️  Deleting event log..."
 echo "" > "$PROGRESS_DIR/events.jsonl"
-echo "✅ Event log gelöscht"
+echo "✅ Event log deleted"
 
 echo ""
-echo "🗑️  Lösche Snapshots..."
+echo "🗑️  Deleting snapshots..."
 rm -rf "$PROGRESS_DIR/snapshots"/*
-echo "✅ Snapshots gelöscht"
+echo "✅ Snapshots deleted"
 
 echo ""
-echo "🗑️  Reset Sequenz-Nummer..."
+echo "🗑️  Resetting sequence number..."
 echo "0" > "$PROGRESS_DIR/last_seq.txt"
-echo "✅ Sequenz zurückgesetzt"
+echo "✅ Sequence reset"
 
 echo ""
-echo "🔄 Starte Container neu..."
+echo "🔄 Restarting container..."
 docker restart dockerdiscordcontrol
 
 echo ""
-echo "✅ Reset abgeschlossen!"
+echo "✅ Reset complete!"
 echo "📊 Status:"
-echo "   - Alle Donations gelöscht"
-echo "   - Level reset zu 1"
-echo "   - Power reset zu $0"
-echo "   - Backup erstellt in: $BACKUP_DIR"
+echo "   - All donations deleted"
+echo "   - Level reset to 1"
+echo "   - Power reset to $0"
+echo "   - Backup created in: $BACKUP_DIR"
 echo ""
-echo "🎉 Fertig! DDC ist jetzt im frischen Zustand."
+echo "🎉 Done! DDC is now in a fresh state."

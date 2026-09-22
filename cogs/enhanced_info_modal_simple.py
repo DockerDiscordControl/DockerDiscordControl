@@ -10,6 +10,8 @@ Simplified Container Info Modal - Single modal with dropdown selects
 """
 
 import asyncio
+import time
+
 import discord
 import docker
 import re
@@ -19,13 +21,27 @@ from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
 from services.infrastructure.action_logger import log_user_action
 from cogs.translation_manager import _
+from .ddc_ui import DDCModal
 # Channel-based security is handled by the calling UI button
 
 logger = get_module_logger('enhanced_info_modal_simple')
 
 # Pre-compiled regex for IP validation
 
-class SimplifiedContainerInfoModal(discord.ui.Modal):
+def _info_summary(info: dict) -> str:
+    """What a log line may say about a container's info: names, never values.
+
+    Both modals used to log the whole dict at INFO on every open, including
+    protected_password and protected_content in plain text - and the action log is
+    downloadable from the web panel (SPEC.md Z9 in spirit, review B7).
+    """
+    return (f"enabled={bool(info.get('enabled'))}, show_ip={bool(info.get('show_ip'))}, "
+            f"text={'yes' if info.get('custom_text') else 'no'}, "
+            f"protected={'yes' if info.get('protected_enabled') else 'no'}, "
+            f"password={'set' if info.get('protected_password') else 'unset'}")
+
+
+class SimplifiedContainerInfoModal(DDCModal):
     """Simplified modal with all options in one dialog."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str = None):
@@ -55,7 +71,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
         self.container_info = {}
         if container_data:
             self.container_info = container_data.get('info', {})
-            logger.info(f"Loaded info for {container_name}: {self.container_info}")
+            logger.info(f"Loaded info for {container_name}: {_info_summary(self.container_info)}")
         else:
             logger.warning(f"Container configuration not found for: {container_name}")
             self.container_info = {}
@@ -181,9 +197,15 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
             if custom_ip and not validate_ip_format(custom_ip):
                 ip_warning = _("\n⚠️ IP format might be invalid: `{ip}`").format(ip=custom_ip[:50])
 
-            # Create ContainerInfo object and save via service
-            # Preserve existing protected info if it exists
+            # Create ContainerInfo object and save via service.
+            # Preserve the CURRENT protected info, re-read here: self.container_info is
+            # the snapshot from when this modal was opened, and the modal lives 300 s.
+            # Writing the snapshot back reverted anything the protected-info modal had
+            # changed in between - silently, with a success message (review B6).
             existing_info = self.container_info
+            current = self.info_service.get_container_info(self.container_name)
+            if current.success and current.data is not None:
+                existing_info = current.data.to_dict()
             container_info = ContainerInfo(
                 enabled=enabled,
                 show_ip=show_ip,
@@ -297,7 +319,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
                 )
 
 
-class ProtectedInfoModal(discord.ui.Modal):
+class ProtectedInfoModal(DDCModal):
     """Modal for managing protected container information."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str = None):
@@ -327,7 +349,7 @@ class ProtectedInfoModal(discord.ui.Modal):
         self.container_info = {}
         if container_data:
             self.container_info = container_data.get('info', {})
-            logger.info(f"Loaded protected info for {container_name}: {self.container_info}")
+            logger.info(f"Loaded protected info for {container_name}: {_info_summary(self.container_info)}")
         else:
             logger.warning(f"Container configuration not found for: {container_name}")
             self.container_info = {}
@@ -341,34 +363,34 @@ class ProtectedInfoModal(discord.ui.Modal):
         # Protected Info Enable field
         protected_enabled = self.container_info.get('protected_enabled', False)
         self.protected_enabled = discord.ui.InputText(
-            label=_("🔐 Geschützte Informationen aktivieren"),
+            label=_("🔐 Enable Protected Information"),
             style=InputTextStyle.short,
             value="X" if protected_enabled else "",
             max_length=1,
             required=False,
-            placeholder=_("'X' eingeben zum Aktivieren, leer lassen zum Deaktivieren")
+            placeholder=_("Type 'X' to enable, leave empty to disable")
         )
         self.add_item(self.protected_enabled)
 
         # Protected Content field
         self.protected_content = discord.ui.InputText(
-            label=_("🔒 Geschützte Information"),
+            label=_("🔒 Protected Information"),
             style=InputTextStyle.long,
             value=self.container_info.get('protected_content', ''),
             max_length=250,
             required=False,
-            placeholder=_("Geheime Server-Details, Admin-Passwörter, etc. (max 250 Zeichen)")
+            placeholder=_("Secret server details, admin passwords, etc. (max 250 characters)")
         )
         self.add_item(self.protected_content)
 
         # Protected Password field
         self.protected_password = discord.ui.InputText(
-            label=_("🗝️ Passwort für geschützte Informationen"),
+            label=_("🗝️ Password for Protected Information"),
             style=InputTextStyle.short,
             value=self.container_info.get('protected_password', ''),
             max_length=60,
             required=False,
-            placeholder=_("Passwort zum Schutz der geheimen Informationen (max 60 Zeichen)")
+            placeholder=_("Password to protect secret information (max 60 characters)")
         )
         self.add_item(self.protected_password)
 
@@ -388,14 +410,14 @@ class ProtectedInfoModal(discord.ui.Modal):
             # Validate inputs
             if protected_enabled and not protected_content:
                 await interaction.response.send_message(
-                    _("❌ Geschützte Informationen sind aktiviert, aber kein Inhalt angegeben."),
+                    _("❌ Protected information is enabled but no content provided."),
                     ephemeral=True
                 )
                 return
 
             if protected_enabled and not protected_password:
                 await interaction.response.send_message(
-                    _("❌ Geschützte Informationen sind aktiviert, aber kein Passwort angegeben."),
+                    _("❌ Protected information is enabled but no password provided."),
                     ephemeral=True
                 )
                 return
@@ -444,21 +466,21 @@ class ProtectedInfoModal(discord.ui.Modal):
 
                 # Create success embed
                 embed = discord.Embed(
-                    title=_("🔒 Geschützte Informationen aktualisiert"),
-                    description=_("Geschützte Informationen für **{name}** erfolgreich gespeichert").format(name=self.display_name),
+                    title=_("🔒 Protected Information Updated"),
+                    description=_("Protected information for **{name}** successfully saved").format(name=self.display_name),
                     color=discord.Color.green()
                 )
 
                 if protected_enabled:
                     embed.add_field(
                         name=_("✅ Status"),
-                        value=_("🔐 Geschützte Informationen aktiviert\n🗝️ Passwort gesetzt\n📄 {content_length} Zeichen Inhalt").format(content_length=len(protected_content)),
+                        value=_("🔐 Protected information enabled\n🗝️ Password set\n📄 {content_length} characters of content").format(content_length=len(protected_content)),
                         inline=False
                     )
                 else:
                     embed.add_field(
                         name=_("❌ Status"),
-                        value=_("🔓 Geschützte Informationen deaktiviert"),
+                        value=_("🔓 Protected information disabled"),
                         inline=False
                     )
 
@@ -468,26 +490,63 @@ class ProtectedInfoModal(discord.ui.Modal):
             else:
                 logger.error(f"Protected info save failed for {self.container_name}: {result.error}")
                 await interaction.response.send_message(
-                    _("❌ Fehler beim Speichern der geschützten Informationen für **{name}**").format(name=self.display_name),
+                    _("❌ Error saving protected information for **{name}**").format(name=self.display_name),
                     ephemeral=True
                 )
 
-        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        # IOError/OSError/PermissionError and the docker errors belong here just as
+        # much as in the sibling modal a hundred lines up, which catches them for the
+        # same call: config/ is deliberately locked down, so a save that cannot write
+        # is a real case. Without them the exception left the callback and the user
+        # saw Discord's own "The application did not respond" - no word on whether
+        # the secret had been saved (review B19).
+        except (IOError, OSError, PermissionError, RuntimeError,
+                asyncio.TimeoutError, discord.Forbidden, discord.HTTPException,
+                discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error in protected info modal submission: {e}", exc_info=True)
 
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    _("❌ Ein Fehler ist aufgetreten: {error}").format(error=str(e)[:100]),
+                    _("❌ An error occurred: {error}").format(error=str(e)[:100]),
                     ephemeral=True
                 )
             else:
                 await interaction.followup.send(
-                    _("❌ Ein Fehler ist aufgetreten: {error}").format(error=str(e)[:100]),
+                    _("❌ An error occurred: {error}").format(error=str(e)[:100]),
                     ephemeral=True
                 )
 
 
-class PasswordValidationModal(discord.ui.Modal):
+# Guessing the protected password is limited: THREE tries per minute PER PERSON
+# (operator's decision, 2026-09-20). Everyone in a control channel may open the
+# modal (SPEC.md B1) and it compared the password with a plain "!=", with no limit
+# at all - every wrong try only went into the action log (review B12). The window
+# is rolling; a correct password clears the record so nobody is locked out by their
+# own typos. Per person, not per container: the limit follows the guesser.
+_PASSWORD_ATTEMPTS: dict = {}
+MAX_PASSWORD_ATTEMPTS = 3
+PASSWORD_ATTEMPT_WINDOW_SECONDS = 60
+
+
+def _password_attempt_allowed(user_id) -> tuple:
+    """(allowed, seconds to wait). Records this attempt when it is allowed."""
+    now = time.time()
+    recent = [t for t in _PASSWORD_ATTEMPTS.get(user_id, [])
+              if now - t < PASSWORD_ATTEMPT_WINDOW_SECONDS]
+    if len(recent) >= MAX_PASSWORD_ATTEMPTS:
+        _PASSWORD_ATTEMPTS[user_id] = recent
+        return False, PASSWORD_ATTEMPT_WINDOW_SECONDS - (now - recent[0])
+    recent.append(now)
+    _PASSWORD_ATTEMPTS[user_id] = recent
+    return True, 0.0
+
+
+def _clear_password_attempts(user_id) -> None:
+    """A correct password frees the person again."""
+    _PASSWORD_ATTEMPTS.pop(user_id, None)
+
+
+class PasswordValidationModal(DDCModal):
     """Modal for validating password to access protected information."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str, container_info: dict):
@@ -517,8 +576,43 @@ class PasswordValidationModal(discord.ui.Modal):
         logger.info(f"Password validation attempt for {self.container_name} by {interaction.user}")
 
         try:
+            allowed, wait_seconds = _password_attempt_allowed(interaction.user.id)
+            if not allowed:
+                await interaction.response.send_message(
+                    _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                        remaining=wait_seconds),
+                    ephemeral=True
+                )
+                return
+
+            # Ask now, not when the button was built (review E27). self.container_info
+            # is a snapshot taken by StatusInfoView.__init__, and that view is
+            # persistent (timeout=None) - it is rebuilt only when the status message
+            # is regenerated, which is every 5 minutes by default and up to an hour
+            # if the operator set update_interval_minutes that high. In between, a
+            # password changed in the web panel had no effect here and the replaced
+            # secret kept being handed out.
+            #
+            # Same sentence as review B3 / SPEC.md Z5, and the same answer: ask at
+            # the moment of the action. One small JSON read per password submission
+            # is not a cost worth trading a stale secret for.
+            info = self.container_info
+            try:
+                result = get_container_info_service().get_container_info(self.container_name)
+                if result.success and result.data:
+                    info = result.data.to_dict()
+            except Exception as e:  # noqa: BLE001
+                # Falling back to the snapshot on purpose: refusing outright would
+                # lock the operator out of their own data over a transient error,
+                # and a read failure is no reason to hand the secret out either.
+                logger.warning(
+                    "Could not re-read the protected info for %s (%s: %s) - checking "
+                    "against the snapshot the button was built with, which may be "
+                    "up to one refresh interval old",
+                    self.container_name, type(e).__name__, e)
+
             entered_password = self.password_input.value.strip()
-            stored_password = self.container_info.get('protected_password', '')
+            stored_password = info.get('protected_password', '')
 
             if not stored_password:
                 await interaction.response.send_message(
@@ -543,8 +637,9 @@ class PasswordValidationModal(discord.ui.Modal):
                 )
                 return
 
-            # Password correct - show protected info
-            protected_content = self.container_info.get('protected_content', '')
+            # Password correct - show protected info, from the same fresh read as
+            # the password above: they belong together (review E27).
+            protected_content = info.get('protected_content', '')
 
             if not protected_content:
                 await interaction.response.send_message(
@@ -552,6 +647,8 @@ class PasswordValidationModal(discord.ui.Modal):
                     ephemeral=True
                 )
                 return
+
+            _clear_password_attempts(interaction.user.id)
 
             # Log successful access
             log_user_action(
@@ -575,12 +672,13 @@ class PasswordValidationModal(discord.ui.Modal):
                 inline=False
             )
 
-            embed.set_footer(text=f"Accessed by {interaction.user.display_name} • Container: {self.container_name}")
+            embed.set_footer(text=_("Accessed by {user} • Container: {container}").format(
+                user=interaction.user.display_name, container=self.container_name))
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
             logger.info(f"Protected info accessed for {self.container_name} by {interaction.user}")
 
-        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
+        except (RuntimeError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error in password validation modal: {e}", exc_info=True)
 
             if not interaction.response.is_done():

@@ -795,14 +795,19 @@ class TestFetchServiceEmergencyFetch:
     async def test_emergency_full_fetch_returns_exceptions_as_values(
         self, fetch_service
     ):
-        """When the inner fetches raise, ``asyncio.gather(return_exceptions=True)``
-        captures them as values - the emergency path treats this as success and
-        returns the exception objects in the info/stats slots.
+        """When the info fetch raises, the error is returned as a value (as
+        ``gather(return_exceptions=True)`` did before), stats are skipped and the
+        emergency fetch is recorded as a failure, not a success.
         """
         prev_err = RuntimeError("previous failure")
 
         async def _boom(*_a, **_kw):
             raise OSError("docker daemon unreachable")
+
+        from services.docker_status import get_performance_service
+
+        perf = get_performance_service()
+        before = perf.get_profile("abc_emerg_exc").successful_attempts
 
         with patch(
             "services.docker_status.fetch_service.get_docker_info_dict_service_first",
@@ -813,28 +818,26 @@ class TestFetchServiceEmergencyFetch:
                 _boom,
             ):
                 name, info, stats = await fetch_service._emergency_full_fetch(
-                    "abc", prev_err
+                    "abc_emerg_exc", prev_err
                 )
-        assert name == "abc"
-        # Exceptions are captured as values by gather(return_exceptions=True).
+        assert name == "abc_emerg_exc"
         assert isinstance(info, OSError)
-        assert isinstance(stats, OSError)
+        assert stats is None
+        assert perf.get_profile("abc_emerg_exc").successful_attempts == before
 
     @pytest.mark.asyncio
     async def test_emergency_full_fetch_runtime_error_path(
         self, fetch_service
     ):
-        """If the emergency block itself blows up (e.g. ``gather`` raises a
-        ``RuntimeError`` synchronously), the except path returns the previous
-        exception with no stats."""
+        """If the emergency block itself blows up (e.g. ``wait_for`` raises a
+        ``RuntimeError``), the except path returns the previous exception with
+        no stats."""
         prev_err = RuntimeError("previous failure")
 
-        # Patch asyncio.gather to raise RuntimeError synchronously - this
-        # forces the exception handler in _emergency_full_fetch to fire.
-        async def _bad_gather(*_a, **_kw):
-            raise RuntimeError("gather exploded")
+        async def _bad_wait_for(coro, timeout):  # noqa: ARG001
+            coro.close()
+            raise RuntimeError("wait_for exploded")
 
-        # Need a passing info/stats coro source so create_task succeeds.
         with patch(
             "services.docker_status.fetch_service.get_docker_info_dict_service_first",
             new_callable=AsyncMock,
@@ -846,8 +849,8 @@ class TestFetchServiceEmergencyFetch:
                 return_value=None,
             ):
                 with patch(
-                    "services.docker_status.fetch_service.asyncio.gather",
-                    _bad_gather,
+                    "services.docker_status.fetch_service.asyncio.wait_for",
+                    _bad_wait_for,
                 ):
                     name, info, stats = await fetch_service._emergency_full_fetch(
                         "xyz", prev_err

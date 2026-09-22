@@ -471,12 +471,23 @@ class TestConfigService:
     def test_load_config_handles_corrupt_file(
         self, config_service: AutoActionConfigService
     ):
-        # Write invalid JSON
+        """Readers survive a corrupt file; the raw loader reports it.
+
+        Until 2026-09-20 the raw loader answered with the empty fallback, and every
+        writer saved THAT back over the file - one bad read wiped all rules (review
+        B, section 10 F1). Readers still fall back; writers now refuse.
+        """
+        from services.automation.auto_action_config_service import ConfigUnreadable
+
         config_service.config_file.write_text("{not-json")
-        data = config_service._load_config_file()
-        # Returns sane fallback
+
+        with pytest.raises(ConfigUnreadable):
+            config_service._load_config_file()
+
+        data = config_service._load_for_reading()
         assert "global_settings" in data
         assert data["auto_actions"] == []
+        assert config_service.get_rules() == []
 
     def test_get_rules_skips_invalid_entries(
         self, config_service: AutoActionConfigService
@@ -590,8 +601,14 @@ class TestStateService:
         state_service.record_trigger(
             "r1", "Restart", "nginx", "RESTART", "FAILED", "boom"
         )
-        # Failed (without "cooldown" in details) -> reset to 0
+        # Failed (without "cooldown" in details) -> the CONTAINER may retry at once
         assert state_service.container_cooldowns["nginx"] == 0
+        # The rule's own cooldown is not touched by a single container's outcome since
+        # 2026-09-20: with several targets, one failure used to wipe the cooldown a
+        # successful sibling had just set (review B10). The caller releases it when
+        # nothing in the batch succeeded:
+        assert state_service.rule_cooldowns["r1"] > 0
+        state_service.release_rule_cooldown("r1")
         assert state_service.rule_cooldowns["r1"] == 0
 
     def test_record_trigger_skipped_no_state_change(

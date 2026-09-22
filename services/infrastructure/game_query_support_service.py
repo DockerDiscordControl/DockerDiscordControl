@@ -33,6 +33,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from utils.logging_utils import get_module_logger
+import fcntl
+from contextlib import contextmanager
 
 logger = get_module_logger('game_query_support_service')
 
@@ -45,6 +47,13 @@ PROBE_WINDOW_SECONDS = 900.0
 # was offline) starts a FRESH 15-min window instead of counting the dead time.
 WINDOW_GAP_RESET_SECONDS = 300.0
 
+# How many consecutive failed live queries demote a FINAL positive verdict back into probing.
+# A positive verdict is otherwise permanent (should_probe skips final entries), so a server that
+# answered once and later stopped - query port no longer published, moved behind a firewall -
+# kept costing a full query timeout on every status cycle. At a 120 s cycle three in a row is
+# about six minutes, which comfortably survives a container restart.
+QUERY_FAILURE_DEMOTE_THRESHOLD = 3
+
 _SUPPORT_FILENAME = 'query_support.json'
 # Fields that define the verdict (used for change detection; 'updated' is excluded so a
 # still-probing container doesn't rewrite the file every cycle).
@@ -52,10 +61,9 @@ _VERDICT_FIELDS = ('supported', 'final', 'protocol', 'port', 'probing_since')
 
 
 def _config_dir() -> Path:
-    override = os.environ.get('DDC_CONFIG_DIR', '').strip()
-    if override:
-        return Path(override)
-    return Path(__file__).resolve().parent.parent.parent / 'config'
+    # The rule lives in utils/config_paths.py; this was a copy of it.
+    from utils.config_paths import get_config_dir
+    return get_config_dir()
 
 
 def _read_verdicts_at(path: Path) -> Dict[str, Dict[str, Any]]:
@@ -75,41 +83,89 @@ def read_support_verdicts() -> Dict[str, Dict[str, Any]]:
     return _read_verdicts_at(_config_dir() / _SUPPORT_FILENAME)
 
 
+@contextmanager
+def _cross_process_lock(path: Path):
+    """Serialise the read-modify-write ACROSS PROCESSES.
+
+    The bot and the web process both write this file, and an atomic write alone
+    does not make a read-modify-write atomic: if both read before either writes,
+    the second write replaces the file with a state that never saw the first
+    one's key. A manual re-test could lose its verdict to the bot's next probe,
+    and the panel's checkbox stayed locked until the bot re-probed on its own
+    schedule (review C29).
+
+    flock blocks the OS thread, which under gevent means the hub - the critical
+    section is one small JSON read and write, which is the right trade here.
+    """
+    lock_path = path.with_name(path.name + '.lock')
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+
 def _atomic_update(mutate, path: Optional[Path] = None) -> None:
     """Read-modify-write a SINGLE key of the verdicts file without clobbering the others.
 
     All writers (the bot's per-key _set/note_offline AND the web process's manual re-test)
-    go through this, so neither ever overwrites verdicts owned by the other.
+    go through this, so neither ever overwrites verdicts owned by the other. That
+    promise is kept by the lock below - without it, the sentence was simply untrue.
     """
     path = path or (_config_dir() / _SUPPORT_FILENAME)
-    state = _read_verdicts_at(path)
     try:
-        mutate(state)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix('.tmp')
-        tmp.write_text(json.dumps(state), encoding='utf-8')
-        tmp.replace(path)
+        with _cross_process_lock(path):
+            state = _read_verdicts_at(path)
+            mutate(state)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            # Per process: a fixed ".tmp" name is shared by every writer, so two
+            # concurrent writes could tear even a single key update (review C29).
+            tmp = path.with_name(f"{path.name}.tmp.{os.getpid()}")
+            tmp.write_text(json.dumps(state), encoding='utf-8')
+            tmp.replace(path)
     except Exception as e:  # noqa: BLE001
-        logger.debug(f"[QUERY_SUPPORT] atomic update failed: {e}")
+        # ERROR, not DEBUG: this file carries the verdicts AND the 'testing' flag
+        # behind the panel's re-test spinner. A swallowed write leaves the spinner
+        # turning for good, and the caller in main_routes.py cannot notice - its own
+        # "except Exception: pass" never sees anything, because everything ends here
+        # (SPEC.md Z8, review A10).
+        logger.error(f"[QUERY_SUPPORT] verdicts file could not be written: {e}", exc_info=True)
 
 
-def set_testing(name: str, testing: bool = True) -> None:
-    """Flag a container as currently being (manually) tested - drives the UI spinner."""
+def set_testing(name: str, testing: bool = True, path: Optional[Path] = None) -> None:
+    """Flag a container as currently being (manually) tested - drives the UI spinner.
+
+    ``path`` defaults to the shared location, which is what the web process
+    wants. It exists because ``GameQuerySupportService`` can be pointed at
+    another file, and these two helpers used to write to the default one
+    regardless - so a holder of such an instance wrote to a different file
+    than the one it reads back, with both writes reporting success
+    (review C66).
+    """
     def _m(state):
         entry = dict(state.get(name) or {})
         entry['testing'] = bool(testing)
         state[name] = entry
-    _atomic_update(_m)
+    _atomic_update(_m, path)
 
 
 def record_manual_success(name: str, protocol: Optional[str] = None,
-                          port: Optional[int] = None) -> None:
-    """A manual re-test answered -> mark FINAL supported (unlocks the checkbox, permanent)."""
+                          port: Optional[int] = None,
+                          path: Optional[Path] = None) -> None:
+    """A manual re-test answered -> mark FINAL supported (unlocks the checkbox, permanent).
+
+    ``path`` as in :func:`set_testing`.
+    """
     def _m(state):
         state[name] = {'supported': True, 'final': True, 'protocol': protocol,
                        'port': port, 'probing_since': None, 'testing': False,
                        'updated': time.time()}
-    _atomic_update(_m)
+    _atomic_update(_m, path)
 
 
 class GameQuerySupportService:
@@ -119,6 +175,9 @@ class GameQuerySupportService:
         self._path = path or (_config_dir() / _SUPPORT_FILENAME)
         self._state: Dict[str, Dict[str, Any]] = {}   # name -> verdict dict
         self._last_probe: Dict[str, float] = {}        # name -> monotonic ts (in-memory only)
+        # name -> consecutive failed live queries. In memory only on purpose: persisting it
+        # would rewrite the verdict file on every status cycle for no benefit.
+        self._failures: Dict[str, int] = {}
         self._load_file()
 
     # --- verdict access ----------------------------------------------------
@@ -173,6 +232,52 @@ class GameQuerySupportService:
         gave_up = (now_wall - since) >= PROBE_WINDOW_SECONDS
         self._set(name, supported=False, final=gave_up, protocol=None,
                   port=None, probing_since=since)
+
+    def note_query_success(self, name: str) -> None:
+        """A live query answered - clear any failure streak."""
+        self._failures.pop(name, None)
+
+    def note_query_failure(self, name: str,
+                           threshold: int = QUERY_FAILURE_DEMOTE_THRESHOLD) -> bool:
+        """Count a failed live query and demote a stale positive verdict after `threshold`.
+
+        Only FINAL POSITIVE verdicts are affected. Those are the ones nothing ever re-checks:
+        should_probe() skips final entries, so before this a server that used to answer and no
+        longer does was queried to full timeout forever. Unknown and already-negative containers
+        are left alone (the probe path owns those).
+
+        After demotion the container is back in the probing window, so it is re-tested and either
+        recovers or becomes a final negative - at which point the status loop skips it entirely.
+
+        Returns True when the verdict was demoted.
+        """
+        if not self.is_final(name) or self.is_supported(name) is not True:
+            return False
+        count = self._failures.get(name, 0) + 1
+        self._failures[name] = count
+        if count < threshold:
+            return False
+        self._failures.pop(name, None)
+        self._last_probe.pop(name, None)  # allow an immediate re-probe
+        self._set(name, supported=False, final=False, protocol=None, port=None,
+                  probing_since=time.time())
+        logger.info("[GAME_QUERY] %s failed %d live queries in a row - resetting its verdict so "
+                    "it gets probed again", name, count)
+        return True
+
+    def set_testing(self, name: str, testing: bool = True) -> None:
+        """Flag a container as being tested, in THIS instance's file.
+
+        The module-level helper of the same name writes to the shared default
+        location; an instance that was pointed elsewhere needs this one, or it
+        writes to a file it never reads back (review C66).
+        """
+        set_testing(name, testing, self._path)
+
+    def record_manual_success(self, name: str, protocol: Optional[str] = None,
+                              port: Optional[int] = None) -> None:
+        """A manual re-test answered, recorded in THIS instance's file."""
+        record_manual_success(name, protocol, port, self._path)
 
     def note_offline(self, name: str) -> None:
         """Container observed offline: reset the probe window for a not-yet-final container

@@ -28,7 +28,8 @@ from utils.observability import metrics, tracing, get_structured_logger
 import time
 
 # Import specific exceptions for better error handling
-from services.exceptions import MechServiceError, DonationServiceError
+from services.exceptions import (DDCBaseException, DonationServiceError,
+                                 MechServiceError)
 
 
 logger = get_module_logger("unified_donation_service")
@@ -86,9 +87,19 @@ class UnifiedDonationService:
                 new_state = execute_sync_donation(self.mech_service, request)
 
                 clear_mech_cache()
-                event_id = events.emit_donation_event(
-                    self.event_manager, request, old_state=old_state, new_state=new_state
-                )
+                # The booking is done. Announcing it is not part of it: this used to
+                # share the try below, so a failure HERE answered success=False /
+                # DATA_ERROR for money already in the ledger, and a donor told "failed"
+                # pays again (SPEC.md Z3, review A7). The listener half was fixed in
+                # bb11ede; this is the emitter itself.
+                try:
+                    event_id = events.emit_donation_event(
+                        self.event_manager, request, old_state=old_state, new_state=new_state
+                    )
+                except Exception as emit_error:
+                    logger.error(f"Donation booked, but the event could not be emitted: "
+                                 f"{emit_error}", exc_info=True)
+                    event_id = None
 
                 # Calculate processing duration
                 duration_ms = (time.time() - start_time) * 1000
@@ -120,7 +131,7 @@ class UnifiedDonationService:
                     success=True,
                     old_state=old_state,
                     new_state=new_state,
-                    event_emitted=True,
+                    event_emitted=event_id is not None,
                     event_id=event_id,
                 )
             except MechServiceError as exc:
@@ -177,8 +188,15 @@ class UnifiedDonationService:
                     error_message=f"Data processing error: {exc}",
                     error_code="DATA_ERROR",
                 )
-            except (RuntimeError, OSError) as exc:  # pragma: no cover - defensive logging
-                # System/runtime errors (file I/O, event emission)
+            except (RuntimeError, OSError, DDCBaseException) as exc:
+                # System/runtime errors (file I/O, event emission), and every DDC
+                # exception that is not a MechServiceError. DDCBaseException
+                # inherits straight from Exception, so a ConfigLoadError while the
+                # level-up prices the next goal, a ConfigCacheError or a
+                # DonationServiceError walked past all three handlers and left
+                # this method - and the donor saw Discord's own "application did
+                # not respond" instead of the reason (review D20, the shape of
+                # reviews C6 and C33).
                 duration_ms = (time.time() - start_time) * 1000
                 metrics.increment("donations.system_error.total")
 
@@ -256,9 +274,19 @@ class UnifiedDonationService:
                 )
 
                 clear_mech_cache()
-                event_id = events.emit_donation_event(
-                    self.event_manager, request, old_state=old_state, new_state=new_state
-                )
+                # The booking is done. Announcing it is not part of it: this used to
+                # share the try below, so a failure HERE answered success=False /
+                # DATA_ERROR for money already in the ledger, and a donor told "failed"
+                # pays again (SPEC.md Z3, review A7). The listener half was fixed in
+                # bb11ede; this is the emitter itself.
+                try:
+                    event_id = events.emit_donation_event(
+                        self.event_manager, request, old_state=old_state, new_state=new_state
+                    )
+                except Exception as emit_error:
+                    logger.error(f"Donation booked, but the event could not be emitted: "
+                                 f"{emit_error}", exc_info=True)
+                    event_id = None
 
                 # Calculate processing duration
                 duration_ms = (time.time() - start_time) * 1000
@@ -293,7 +321,7 @@ class UnifiedDonationService:
                     success=True,
                     old_state=old_state,
                     new_state=new_state,
-                    event_emitted=True,
+                    event_emitted=event_id is not None,
                     event_id=event_id,
                 )
             except MechServiceError as exc:
@@ -350,8 +378,15 @@ class UnifiedDonationService:
                     error_message=f"Data processing error: {exc}",
                     error_code="DATA_ERROR",
                 )
-            except (RuntimeError, OSError) as exc:  # pragma: no cover - defensive logging
-                # System/runtime errors (file I/O, event emission)
+            except (RuntimeError, OSError, DDCBaseException) as exc:
+                # System/runtime errors (file I/O, event emission), and every DDC
+                # exception that is not a MechServiceError. DDCBaseException
+                # inherits straight from Exception, so a ConfigLoadError while the
+                # level-up prices the next goal, a ConfigCacheError or a
+                # DonationServiceError walked past all three handlers and left
+                # this method - and the donor saw Discord's own "application did
+                # not respond" instead of the reason (review D20, the shape of
+                # reviews C6 and C33).
                 duration_ms = (time.time() - start_time) * 1000
                 metrics.increment("donations.async.system_error.total")
 
@@ -394,12 +429,14 @@ def get_unified_donation_service() -> UnifiedDonationService:
     return _unified_donation_service
 
 
-def process_web_ui_donation(donor_name: str, amount: float) -> DonationResult:
+def process_web_ui_donation(donor_name: str, amount: float,
+                            idempotency_key: Optional[str] = None) -> DonationResult:
     service = get_unified_donation_service()
     request = DonationRequest(
         donor_name=f"WebUI:{donor_name}",
         amount=amount,
         source="web_ui",
+        idempotency_key=idempotency_key,
     )
     return service.process_donation(request)
 
@@ -411,6 +448,7 @@ async def process_discord_donation(
     guild_id: Optional[str] = None,
     channel_id: Optional[str] = None,
     bot_instance=None,
+    idempotency_key: Optional[str] = None,
 ) -> DonationResult:
     service = get_unified_donation_service()
     request = DonationRequest(
@@ -422,16 +460,19 @@ async def process_discord_donation(
         discord_channel_id=channel_id,
         bot_instance=bot_instance,
         use_member_count=True,
+        idempotency_key=idempotency_key,
     )
     return await service.process_donation_async(request)
 
 
-def process_test_donation(donor_name: str, amount: float) -> DonationResult:
+def process_test_donation(donor_name: str, amount: float,
+                          idempotency_key: Optional[str] = None) -> DonationResult:
     service = get_unified_donation_service()
     request = DonationRequest(
         donor_name=f"Test:{donor_name}",
         amount=amount,
         source="test",
+        idempotency_key=idempotency_key,
     )
     return service.process_donation(request)
 

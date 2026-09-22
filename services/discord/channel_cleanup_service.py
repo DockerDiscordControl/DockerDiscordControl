@@ -223,7 +223,32 @@ class ChannelCleanupService:
 
             # Step 3: Calculate results
             result.messages_deleted = result.bulk_deleted + result.individually_deleted + result.purge_deleted
-            result.success = True
+            # Success only if nothing was refused. This said True unconditionally, so a
+            # cleanup in a channel without "Manage Messages" reported "✅ CLEANUP
+            # SUCCESS ... 0/N" while every message was still there (SPEC.md Z3,
+            # review A11).
+            result.success = result.permission_errors == 0 and result.timeout_errors == 0
+            if result.permission_errors:
+                result.error = (f"{result.permission_errors} message(s) could not be deleted - "
+                                f"the bot is missing the permission in this channel")
+                logger.warning(f"🧹 CLEANUP INCOMPLETE: Channel {request.channel.id} - "
+                               f"{result.messages_deleted}/{result.messages_found} deleted, "
+                               f"{result.permission_errors} refused (missing permission)")
+            elif result.timeout_errors:
+                # timeout_errors was raised at the purge timeout and read
+                # nowhere, so a run that ran out of time reported success as
+                # long as nothing had been refused. The fallback after a
+                # timeout walks at most 50 messages, however many matched, so
+                # this is a half-done cleanup presented as a finished one -
+                # the shape Z3 exists to forbid (review D4). The line above
+                # carries review A11, which fixed the layer over this one.
+                result.error = (f"the cleanup ran out of time after "
+                                f"{request.purge_timeout:.0f}s - "
+                                f"{result.messages_deleted} of {result.messages_found} "
+                                f"message(s) were deleted, the rest are still there")
+                logger.warning(f"🧹 CLEANUP INCOMPLETE: Channel {request.channel.id} - "
+                               f"{result.messages_deleted}/{result.messages_found} deleted, "
+                               f"timed out")
 
             # Choose appropriate logging based on method used
             if result.purge_deleted > 0:
@@ -325,7 +350,7 @@ class ChannelCleanupService:
             # Fallback to individual deletion
             await self._individual_delete_messages(request, messages, result)
 
-        except (RuntimeError, asyncio.CancelledError, asyncio.TimeoutError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (RuntimeError, asyncio.TimeoutError, discord.HTTPException, discord.NotFound) as e:
             logger.warning(f"⚠️ CLEANUP: Bulk delete failed, trying individual deletion: {e}")
             # Fallback to individual deletion
             await self._individual_delete_messages(request, messages, result)
@@ -350,7 +375,7 @@ class ChannelCleanupService:
             except discord.Forbidden:
                 result.permission_errors += 1
                 logger.debug(f"No permission to delete message {message.id}")
-            except (IOError, OSError, PermissionError, RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+            except (IOError, OSError, PermissionError, RuntimeError, discord.HTTPException) as e:
                 logger.debug(f"Failed to delete message {message.id}: {e}")
 
         result.individually_deleted += deleted_count
@@ -378,39 +403,70 @@ class ChannelCleanupService:
             result.timeout_errors += 1
             result.method_used = "purge timeout -> fallback"
             logger.warning(f"⚠️ CLEANUP: Purge timeout after {request.purge_timeout}s, using fallback method")
-
-            # Fallback: manual deletion with limit for safety
-            deleted_count = 0
-            messages_checked = 0
-
-            async for message in request.channel.history(limit=min(request.message_limit, 50)):
-                messages_checked += 1
-
-                if request.custom_filter and request.custom_filter(message):
-                    try:
-                        await message.delete()
-                        deleted_count += 1
-                        await asyncio.sleep(0.1)  # Rate limiting
-                    except (discord.NotFound, discord.Forbidden):
-                        pass
-                elif not request.custom_filter:
-                    result.messages_preserved += 1
-
-                if messages_checked >= 50:  # Hard safety limit
-                    break
-
-            result.individually_deleted = deleted_count
-            logger.info(f"🧹 CLEANUP: Fallback deleted {deleted_count}/{messages_checked} messages")
+            await self._delete_one_by_one(request, result)
 
         except discord.Forbidden:
+            # NOT "no action", which is what this used to be. purge() needs
+            # 'Manage Messages' because it deletes in BULK; deleting its own
+            # messages is something a bot may do without that permission. So
+            # the shortcut being refused says nothing about the work itself,
+            # and giving up here told the operator a cleanup had failed for a
+            # permission they never needed to grant. Both neighbours already
+            # knew better - the timeout branch above falls back, and
+            # _bulk_delete_messages falls back on this very exception
+            # (review D33).
             result.permission_errors += 1
-            result.method_used = "purge forbidden -> no action"
-            logger.warning(f"⚠️ CLEANUP: Missing 'Manage Messages' permission for purge in channel {request.channel.id}")
+            result.method_used = "purge forbidden -> deleting one by one"
+            logger.warning(f"⚠️ CLEANUP: No 'Manage Messages' for purge in channel "
+                           f"{request.channel.id} - deleting the bot's own messages one by one")
+            await self._delete_one_by_one(request, result)
 
-        except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
+        except (RuntimeError, discord.HTTPException, discord.NotFound) as e:
             result.method_used = f"purge error -> {str(e)[:50]}"
             logger.warning(f"⚠️ CLEANUP: Purge failed with error: {e}")
             raise  # Re-raise to be handled by main cleanup method
+
+    async def _delete_one_by_one(
+        self,
+        request: ChannelCleanupRequest,
+        result: ChannelCleanupResult
+    ) -> None:
+        """Walk the channel and delete the matching messages singly.
+
+        What to do when the purge shortcut is not available - because it timed
+        out, or because the bot may not bulk-delete here. Extracted so both
+        reasons take the same road: it sat inline in the timeout branch, and
+        the Forbidden branch beside it did nothing at all (review D33).
+        """
+        deleted_count = 0
+        messages_checked = 0
+
+        async for message in request.channel.history(limit=min(request.message_limit, 50)):
+            messages_checked += 1
+
+            if request.custom_filter and request.custom_filter(message):
+                try:
+                    await message.delete()
+                    deleted_count += 1
+                    await asyncio.sleep(0.1)  # Rate limiting
+                except discord.NotFound:
+                    # Already gone - that is the wanted end state.
+                    pass
+                except discord.Forbidden:
+                    # Counted, not swallowed. Both were caught by one
+                    # `pass` here, so a fallback that was refused every
+                    # single message reported a pure timeout and the
+                    # operator never heard the one thing they could fix
+                    # (review D4).
+                    result.permission_errors += 1
+            elif not request.custom_filter:
+                result.messages_preserved += 1
+
+            if messages_checked >= 50:  # Hard safety limit
+                break
+
+        result.individually_deleted = deleted_count
+        logger.info(f"🧹 CLEANUP: Deleted {deleted_count}/{messages_checked} messages one by one")
 
 
 # Singleton instance

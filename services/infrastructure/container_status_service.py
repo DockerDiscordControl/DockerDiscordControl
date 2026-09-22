@@ -14,6 +14,8 @@ and proper caching for high-performance Discord status updates.
 
 import asyncio
 import docker.errors
+
+from utils.container_image import image_name_of
 import json
 import logging
 import os
@@ -22,6 +24,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
+# DockerConnectivity failures arrive here as DockerServiceError - see the
+# handlers below and review E44.
+from services.exceptions import DockerServiceError
+from utils.atomic_io import atomic_write_json
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('container_status_service')
@@ -53,10 +59,11 @@ class ContainerStatusResult:
     is_running: bool = False
     status: str = "unknown"
 
-    # Stats (if requested)
-    cpu_percent: float = 0.0
-    memory_usage_mb: float = 0.0
-    memory_limit_mb: float = 0.0
+    # Stats (if requested). None means "not measured" - the panel renders that as
+    # N/A instead of a plausible-looking number (review C1).
+    cpu_percent: Optional[float] = None
+    memory_usage_mb: Optional[float] = None
+    memory_limit_mb: Optional[float] = None
 
     # Detailed info (if requested)
     uptime_seconds: int = 0
@@ -104,11 +111,15 @@ class ContainerStatusService:
         self._formatted_cache: Dict[str, Dict[str, Any]] = {}
 
         # Make TTL configurable from environment
-        cache_duration = int(os.environ.get('DDC_DOCKER_CACHE_DURATION', '30'))
+        from utils.settings import get_setting
+        cache_duration = get_setting('DDC_DOCKER_CACHE_DURATION', 30)
         self._cache_ttl = float(cache_duration)  # Now configurable!
 
         # Performance tracking
         self._performance_history: Dict[str, List[float]] = {}
+
+        # Containers whose NotFound was already logged as warning (avoids log spam per poll)
+        self._not_found_logged: set = set()
 
         self.logger.info(f"Container Status Service initialized (SINGLE CACHE) with {self._cache_ttl}s TTL")
 
@@ -117,6 +128,9 @@ class ContainerStatusService:
         Deactivate a container that no longer exists by setting active=false in its config file.
         The JSON file is kept (not deleted) to preserve settings if the container is recreated.
 
+        Note: no longer called automatically on a Docker NotFound (a container that is
+        being recreated, e.g. by an Unraid auto-update, would stay hidden).
+
         Args:
             container_name: Name of the container to deactivate
 
@@ -124,7 +138,10 @@ class ContainerStatusService:
             True if deactivation was successful, False otherwise
         """
         try:
-            config_path = Path(os.environ.get('DDC_CONFIG_DIR', '/app/config'))
+            # Via utils/config_paths.py. This copy took a value of only spaces
+            # (or with surrounding spaces) literally, unlike the other five.
+            from utils.config_paths import get_config_dir
+            config_path = get_config_dir()
             container_file = config_path / 'containers' / f'{container_name}.json'
 
             if not container_file.exists():
@@ -143,9 +160,13 @@ class ContainerStatusService:
             # Set to inactive
             container_config['active'] = False
 
-            # Save back to file
-            with open(container_file, 'w', encoding='utf-8') as f:
-                json.dump(container_config, f, indent=2, ensure_ascii=False)
+            # Previously a plain open(..., "w"): that truncates the file the moment
+            # it is opened, so a crash before the write left the user's container
+            # configuration EMPTY - display name, allowed actions, order, info texts,
+            # all gone. This runs automatically when Docker reports a container as
+            # permanently absent, so nobody triggers it and nobody watches it.
+            # See SPEC.md Z7.
+            atomic_write_json(container_file, container_config)
 
             self.logger.info(f"✓ Container '{container_name}' automatically deactivated (config file preserved)")
             return True
@@ -194,7 +215,7 @@ class ContainerStatusService:
 
             return result
 
-        except (AttributeError, ImportError, RuntimeError) as e:
+        except (DockerServiceError, AttributeError, ImportError, RuntimeError) as e:
             duration_ms = (time.time() - start_time) * 1000
             self.logger.error(f"Service error getting container status for {request.container_name}: {e}", exc_info=True)
 
@@ -307,8 +328,14 @@ class ContainerStatusService:
                 error_message=f"Data error: {str(e)}"
             )
 
-    def _calculate_cpu_percent_from_stats(self, stats: dict, container_name: str) -> float:
-        """Calculate CPU percentage from Docker stats with fallback methods."""
+    def _calculate_cpu_percent_from_stats(self, stats: dict, container_name: str) -> Optional[float]:
+        """CPU percentage from Docker stats, or None when it cannot be measured.
+
+        It used to answer 0.1 for every failure AND for a container that truly
+        used no CPU, so a broken measurement looked like a healthy, almost idle
+        one. None travels through get_docker_stats_service_first() to the panel,
+        which renders it as "N/A" (review C1, stage C finding 19 F1).
+        """
         try:
             cpu_stats = stats.get('cpu_stats', {})
             precpu_stats = stats.get('precpu_stats', {})
@@ -336,25 +363,29 @@ class ContainerStatusService:
                         online_cpus = os.cpu_count() or 1
 
                 cpu_percent = (cpu_delta / system_delta) * online_cpus * 100.0
-                cpu_percent = max(0.0, min(cpu_percent, 100.0 * online_cpus))
-                return cpu_percent if cpu_percent > 0.0 else 0.1
+                return max(0.0, min(cpu_percent, 100.0 * online_cpus))
 
-            # Method 2: Fallback for running containers
+            # The container ran and used measurable CPU time, but the two samples
+            # are identical: that is zero load, not "a little".
             if system_cpu_usage > 0 and cpu_usage > 0:
-                return 0.1
+                return 0.0
 
-            # Method 3: Minimal activity
-            return 0.1
+            # Nothing usable in the answer - say so instead of inventing a number.
+            return None
         except Exception as e:
             self.logger.warning(f"CPU calculation error for {container_name}: {e}")
-            return 0.1
+            return None
 
     def _calculate_memory_from_stats(self, stats: dict, container_name: str) -> tuple:
-        """Calculate memory usage and limit from Docker stats. Returns (usage_mb, limit_mb)."""
+        """Memory usage and limit in MB, or (None, None) when they cannot be read.
+
+        The placeholders 2.0 MB of 1024 MB used to stand in for every failure -
+        a plausible reading for a container nobody could measure (review C1).
+        """
         try:
             memory_stats = stats.get('memory_stats', {}) if stats else {}
             if not memory_stats:
-                return 2.0, 1024.0
+                return None, None
 
             # Try different methods to get memory usage
             memory_usage = memory_stats.get('usage', 0)
@@ -371,13 +402,112 @@ class ContainerStatusService:
             memory_limit = memory_stats.get('limit', 0)
 
             # Convert to MB with fallbacks
-            memory_usage_mb = memory_usage / (1024 * 1024) if memory_usage > 0 else 2.0
-            memory_limit_mb = memory_limit / (1024 * 1024) if memory_limit > 0 else 1024.0
+            memory_usage_mb = memory_usage / (1024 * 1024) if memory_usage > 0 else None
+            memory_limit_mb = memory_limit / (1024 * 1024) if memory_limit > 0 else None
 
             return memory_usage_mb, memory_limit_mb
         except Exception as e:
             self.logger.warning(f"Memory calculation error for {container_name}: {e}")
-            return 2.0, 1024.0
+            return None, None
+
+    def _query_container_sync(self, client, request: ContainerStatusRequest, start_time: float) -> ContainerStatusResult:
+        """
+        Blocking part of _fetch_container_status - runs in a worker thread.
+
+        Every Docker SDK call here (containers.get, image lookup, stats) is a synchronous
+        HTTP request. Called directly from async code they blocked the event loop, so the
+        "parallel" bulk fetch ran serially and asyncio.wait_for timeouts could only fire
+        after the call had returned.
+        """
+        # Get basic container info
+        try:
+            container = client.containers.get(request.container_name)
+            is_running = container.status == 'running'
+            status = container.status
+
+            # Read from attrs. container.image is an extra API call, and when the
+            # image has been removed from the host it raises ImageNotFound - a
+            # NotFound, which the handler below reported as "container_not_found"
+            # for a container that was running (review E53).
+            image = image_name_of(container)
+
+            # Calculate uptime
+            if is_running and container.attrs.get('State', {}).get('StartedAt'):
+                started_at_str = container.attrs['State']['StartedAt']
+                # Parse Docker's timestamp format
+                started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
+                uptime_seconds = int((datetime.now(timezone.utc) - started_at).total_seconds())
+            else:
+                uptime_seconds = 0
+
+            # Get ports info
+            ports = container.attrs.get('NetworkSettings', {}).get('Ports', {}) if request.include_details else {}
+
+        except (AttributeError, KeyError, IndexError) as e:
+            # Container not found or data access error
+            duration_ms = (time.time() - start_time) * 1000
+            self.logger.warning(f"Container data access error for {request.container_name}: {e}")
+            return ContainerStatusResult(
+                success=False,
+                container_name=request.container_name,
+                error_message=f"Container not found or inaccessible: {e}",
+                error_type="container_not_found",
+                query_duration_ms=duration_ms
+            )
+        except (ValueError, TypeError) as e:
+            # Container data format error
+            duration_ms = (time.time() - start_time) * 1000
+            self.logger.error(f"Container data format error for {request.container_name}: {e}", exc_info=True)
+            return ContainerStatusResult(
+                success=False,
+                container_name=request.container_name,
+                error_message=f"Container data format error: {e}",
+                error_type="data_format_error",
+                query_duration_ms=duration_ms
+            )
+
+        # Get stats if requested and container is running
+        cpu_percent = 0.0
+        memory_usage_mb = 0.0
+        memory_limit_mb = 0.0
+
+        if request.include_stats and is_running:
+            try:
+                # stream=False: the daemon samples twice and fills precpu_stats, so CPU% covers
+                # the last ~1s. The first frame of a stream has an empty precpu_stats, which
+                # made CPU% the average since start instead of the current load.
+                stats = container.stats(stream=False)
+
+                # Calculate CPU and memory using helper methods
+                cpu_percent = self._calculate_cpu_percent_from_stats(stats, request.container_name)
+                memory_usage_mb, memory_limit_mb = self._calculate_memory_from_stats(stats, request.container_name)
+
+            except Exception as e:
+                # Broad on purpose: whatever the stats call throws, the container's
+                # STATE was read fine - so the result stays a success and only the
+                # numbers say "not measured" (review C1).
+                self.logger.warning(f"Could not get stats for {request.container_name}: {e}")
+                cpu_percent = None
+                memory_usage_mb = None
+                memory_limit_mb = None
+
+        duration_ms = (time.time() - start_time) * 1000
+
+        return ContainerStatusResult(
+            success=True,
+            container_name=request.container_name,
+            is_running=is_running,
+            status=status,
+            cpu_percent=cpu_percent,
+            memory_usage_mb=memory_usage_mb,
+            memory_limit_mb=memory_limit_mb,
+            uptime_seconds=uptime_seconds,
+            image=image,
+            ports=ports,
+            query_duration_ms=duration_ms,
+            cached=False,
+            cache_age_seconds=0.0
+        )
 
     async def _fetch_container_status(self, request: ContainerStatusRequest) -> ContainerStatusResult:
         """Fetch fresh container status from Docker daemon."""
@@ -392,99 +522,23 @@ class ContainerStatusService:
                 operation='stats' if request.include_stats else 'info',
                 container_name=request.container_name
             ) as client:
-                # Get basic container info
-                try:
-                    container = client.containers.get(request.container_name)
-                    is_running = container.status == 'running'
-                    status = container.status
+                # One worker thread for all blocking SDK calls of this container
+                result = await asyncio.to_thread(self._query_container_sync, client, request, start_time)
 
-                    # Basic container details
-                    image = container.image.tags[0] if container.image.tags else str(container.image.id)[:12]
-
-                    # Calculate uptime
-                    if is_running and container.attrs.get('State', {}).get('StartedAt'):
-                        started_at_str = container.attrs['State']['StartedAt']
-                        # Parse Docker's timestamp format
-                        started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
-                        uptime_seconds = int((datetime.now(timezone.utc) - started_at).total_seconds())
-                    else:
-                        uptime_seconds = 0
-
-                    # Get ports info
-                    ports = container.attrs.get('NetworkSettings', {}).get('Ports', {}) if request.include_details else {}
-
-                except (AttributeError, KeyError, IndexError) as e:
-                    # Container not found or data access error
-                    duration_ms = (time.time() - start_time) * 1000
-                    self.logger.warning(f"Container data access error for {request.container_name}: {e}")
-                    return ContainerStatusResult(
-                        success=False,
-                        container_name=request.container_name,
-                        error_message=f"Container not found or inaccessible: {e}",
-                        error_type="container_not_found",
-                        query_duration_ms=duration_ms
-                    )
-                except (ValueError, TypeError) as e:
-                    # Container data format error
-                    duration_ms = (time.time() - start_time) * 1000
-                    self.logger.error(f"Container data format error for {request.container_name}: {e}", exc_info=True)
-                    return ContainerStatusResult(
-                        success=False,
-                        container_name=request.container_name,
-                        error_message=f"Container data format error: {e}",
-                        error_type="data_format_error",
-                        query_duration_ms=duration_ms
-                    )
-
-                # Get stats if requested and container is running
-                cpu_percent = 0.0
-                memory_usage_mb = 0.0
-                memory_limit_mb = 0.0
-
-                if request.include_stats and is_running:
-                    try:
-                        # Get container stats (use stream=True with decode for single snapshot)
-                        stats_generator = container.stats(stream=True, decode=True)
-                        try:
-                            stats = next(stats_generator)
-                        finally:
-                            stats_generator.close()
-
-                        # Calculate CPU and memory using helper methods
-                        cpu_percent = self._calculate_cpu_percent_from_stats(stats, request.container_name)
-                        memory_usage_mb, memory_limit_mb = self._calculate_memory_from_stats(stats, request.container_name)
-
-                    except (StopIteration, KeyError, AttributeError, ValueError, TypeError) as e:
-                        self.logger.warning(f"Could not get stats for {request.container_name}: {e}")
-                        cpu_percent = 0.1
-                        memory_usage_mb = 2.0
-                        memory_limit_mb = 1024.0
-
-                duration_ms = (time.time() - start_time) * 1000
-
-                return ContainerStatusResult(
-                    success=True,
-                    container_name=request.container_name,
-                    is_running=is_running,
-                    status=status,
-                    cpu_percent=cpu_percent,
-                    memory_usage_mb=memory_usage_mb,
-                    memory_limit_mb=memory_limit_mb,
-                    uptime_seconds=uptime_seconds,
-                    image=image,
-                    ports=ports,
-                    query_duration_ms=duration_ms,
-                    cached=False,
-                    cache_age_seconds=0.0
-                )
+            if result.success:
+                self._not_found_logged.discard(request.container_name)
+            return result
 
         except docker.errors.NotFound as e:
-            # Container not found error - automatically deactivate it
+            # Container not found - report it (status only). The container config is
+            # deliberately NOT changed: during an Unraid auto-update the container is
+            # removed and recreated, and a single NotFound must not hide it permanently.
             duration_ms = (time.time() - start_time) * 1000
-            self.logger.warning(f"Container '{request.container_name}' not found (may have been removed or renamed)")
-
-            # Automatically deactivate the container to prevent future errors
-            self._deactivate_container(request.container_name)
+            if request.container_name not in self._not_found_logged:
+                self._not_found_logged.add(request.container_name)
+                self.logger.warning(f"Container '{request.container_name}' not found (may have been removed, renamed or is being recreated)")
+            else:
+                self.logger.debug(f"Container '{request.container_name}' still not found")
 
             return ContainerStatusResult(
                 success=False,
@@ -504,7 +558,7 @@ class ContainerStatusService:
                 error_type="docker_service_error",
                 query_duration_ms=duration_ms
             )
-        except (RuntimeError, OSError, IOError) as e:
+        except (DockerServiceError, RuntimeError, OSError, IOError) as e:
             duration_ms = (time.time() - start_time) * 1000
             self.logger.error(f"Docker communication error for {request.container_name}: {e}", exc_info=True)
 
@@ -515,6 +569,15 @@ class ContainerStatusService:
                 error_type="docker_error",
                 query_duration_ms=duration_ms
             )
+
+    def is_container_not_found(self, container_name: str) -> bool:
+        """True if the last Docker query for this container answered NotFound.
+
+        Lets callers of the compatibility functions (which return None for any failure)
+        tell a deleted/renamed container apart from an unreachable one. Cleared again by
+        the next successful query (e.g. after the container was recreated).
+        """
+        return container_name in self._not_found_logged
 
     def _get_from_cache(self, container_name: str) -> Optional[Dict[str, Any]]:
         """Get container status from cache."""

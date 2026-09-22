@@ -1216,7 +1216,7 @@ class TestExecuteTask:
             lambda: True,
         )
         # Suppress update_task file IO.
-        monkeypatch.setattr(scheduler_mod, "update_task", lambda t: True)
+        monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         # Suppress the donation-task recalc to avoid touching load_config.
         monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
 
@@ -1253,7 +1253,7 @@ class TestExecuteTask:
             sys.modules, "services.scheduling.donation_message_service", fake_dms
         )
 
-        monkeypatch.setattr(scheduler_mod, "update_task", lambda t: True)
+        monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
 
         task = ScheduledTask(
@@ -1285,7 +1285,7 @@ class TestExecuteTask:
             sys.modules, "services.scheduling.donation_message_service", fake_dms
         )
 
-        monkeypatch.setattr(scheduler_mod, "update_task", lambda t: True)
+        monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
 
         task = ScheduledTask(
@@ -1310,7 +1310,7 @@ class TestExecuteTask:
         monkeypatch.setitem(
             sys.modules, "services.scheduling.donation_message_service", None
         )
-        monkeypatch.setattr(scheduler_mod, "update_task", lambda t: True)
+        monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
 
         task = ScheduledTask(
@@ -1333,7 +1333,7 @@ class TestExecuteTask:
         monkeypatch.setattr(
             scheduler_mod, "docker_action_service_first", _fake_action
         )
-        monkeypatch.setattr(scheduler_mod, "update_task", lambda t: True)
+        monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         monkeypatch.setattr(scheduler_mod, "log_user_action", lambda **kw: None)
 
         task = _make_daily_task(container_name="docker-target", hour=4, minute=0)
@@ -1350,7 +1350,7 @@ class TestExecuteTask:
         monkeypatch.setattr(
             scheduler_mod, "docker_action_service_first", _fake_action
         )
-        monkeypatch.setattr(scheduler_mod, "update_task", lambda t: True)
+        monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         monkeypatch.setattr(scheduler_mod, "log_user_action", lambda **kw: None)
 
         task = _make_daily_task(container_name="docker-target", hour=4, minute=0)
@@ -1367,7 +1367,7 @@ class TestExecuteTask:
         monkeypatch.setattr(
             scheduler_mod, "docker_action_service_first", _fake_action
         )
-        monkeypatch.setattr(scheduler_mod, "update_task", lambda t: True)
+        monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         monkeypatch.setattr(scheduler_mod, "log_user_action", lambda **kw: None)
 
         task = _make_daily_task(container_name="docker-target", hour=4, minute=0)
@@ -1389,7 +1389,7 @@ class TestExecuteTask:
         monkeypatch.setattr(
             scheduler_mod, "docker_action_service_first", _slow_action
         )
-        monkeypatch.setattr(scheduler_mod, "update_task", lambda t: True)
+        monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         monkeypatch.setattr(scheduler_mod, "log_user_action", lambda **kw: None)
 
         task = _make_daily_task(container_name="slow-target", hour=4, minute=0)

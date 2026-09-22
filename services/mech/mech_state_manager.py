@@ -19,11 +19,26 @@ logger = logging.getLogger(__name__)
 class MechStateManager:
     """Minimal state manager for Discord bot persistence"""
 
-    def __init__(self, state_file: str = "config/mech_state.json"):
+    def __init__(self, state_file: str = None):
+        # Default via utils/config_paths.py (DDC_CONFIG_DIR). Was the RELATIVE
+        # "config/mech_state.json": dependent on the working directory, blind to
+        # the variable - and the file is created right here (_ensure_state_file).
+        if state_file is None:
+            from utils.config_paths import get_config_dir
+            state_file = str(get_config_dir() / "mech_state.json")
         self.state_file = state_file
         self.state_cache: Dict[str, Any] = {}
         self._cleanup_tmp_files()
         self._ensure_state_file()
+        # Read before anyone writes. Every setter mutates state_cache and then
+        # hands the WHOLE cache to save_state, which REPLACES the file - so a
+        # manager that starts with an empty cache destroys the file with its
+        # first write: other channels' expanded states, every remembered Glvl,
+        # the overview message ids that exist precisely to survive a restart.
+        # docker_control.py happened to repair this from outside by calling
+        # load_state() right after building the singleton; that made the class
+        # safe only for that one caller (review C5).
+        self.load_state()
 
     def _cleanup_tmp_files(self):
         """Remove orphaned atomic-write temp files (e.g. from a crash between write and replace)."""
@@ -46,13 +61,43 @@ class MechStateManager:
             self.save_state({})
 
     def load_state(self) -> Dict[str, Any]:
-        """Load state from file"""
+        """Load state from file, and never raise at the caller.
+
+        The caller is ``DockerControlCog.__init__`` step 1, which re-raises -
+        correctly, since a half-built cog is worse than none. But that means
+        anything this method lets through costs DDC its container commands
+        entirely, for a file that holds which mech panels were expanded
+        (review E21).
+
+        The old tuple was ``(FileNotFoundError, json.JSONDecodeError)``: a
+        missing file and a corrupt one. It did not cover a file that exists, is
+        valid, and cannot be OPENED. ``PermissionError`` is an ``OSError``, not
+        a ``FileNotFoundError`` - and a root-owned file has broken this
+        installation before, which is why every ``docker exec`` here runs
+        ``-u ddc``.
+
+        A missing file is the normal first start and stays quiet. Anything else
+        is logged at ERROR with its reason, because that is a thing an operator
+        can actually go and fix - and because what is being dropped is real:
+        mech expand states, Glvl tracking, and the overview message ids that let
+        a restart delete the old overview instead of posting a duplicate.
+        """
         try:
             with open(self.state_file, 'r') as f:
                 self.state_cache = json.load(f)
             return self.state_cache
-        except (FileNotFoundError, json.JSONDecodeError):
-            logger.warning(f"Could not load state from {self.state_file}, using empty state")
+        except FileNotFoundError:
+            logger.debug(f"No state file at {self.state_file} yet, starting empty")
+            return {}
+        except (OSError, ValueError) as e:
+            # ValueError covers json.JSONDecodeError; OSError covers permissions,
+            # a directory in the file's place, and an I/O error on the mount.
+            logger.error(
+                "Could not read the persisted state from %s (%s: %s) - continuing "
+                "with empty state. Mech panel states and the tracked overview "
+                "message ids are lost until this is fixed, which can mean a "
+                "duplicate overview after a restart.",
+                self.state_file, type(e).__name__, e, exc_info=True)
             return {}
 
     def save_state(self, state: Dict[str, Any]):

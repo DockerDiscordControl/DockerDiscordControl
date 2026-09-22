@@ -86,8 +86,8 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                {# Spieler-Checkbox: gesperrt, bis der Container als abfragbar bestaetigt ist
-                                   (Auto-Probe im Bot). Bereits aktivierte bleiben umschaltbar. #}
+                                {# Players checkbox: locked until the container is confirmed as queryable
+                                   (auto-probe in the bot). Ones already enabled stay switchable. #}
                                 {% set q_supported = (query_support.get(container.name, {}).get('supported')) if query_support else none %}
                                 {% set q_enabled_now = server_config.get('query_enabled') %}
                                 {# token protocols (Satisfactory) can't be auto-probed -> never lock them #}

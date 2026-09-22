@@ -18,10 +18,26 @@ from services.status.status_cache_service import get_status_cache_service
 from services.config.server_config_service import get_server_config_service
 from services.config.config_service import load_config  # Keep for backward compatibility
 from cogs.translation_manager import _
+from .ddc_ui import DDCView
 
 logger = logging.getLogger('ddc.admin_overview')
 
-class AdminOverviewView(View):
+
+async def _refresh_tracked_admin_overview(cog, channel_id: int) -> bool:
+    """Refresh a channel's tracked Admin Overview message after a bulk action.
+
+    Looks the message up by its tracked ID instead of matching the embed title, which is
+    translated (e.g. "Admin-Übersicht") and therefore never matched in non-English setups.
+    """
+    tracked = getattr(cog, 'channel_server_message_ids', {}).get(channel_id) or {}
+    message_id = tracked.get('admin_overview')
+    if not message_id:
+        logger.debug(f"No tracked admin overview in channel {channel_id} - nothing to refresh")
+        return False
+    return await cog._update_overview_message(channel_id, message_id, 'admin_overview')
+
+
+class AdminOverviewView(DDCView):
     """View for admin overview in control channels with bulk container management."""
 
     def __init__(self, cog_instance, channel_id: int, has_running_containers: bool):
@@ -120,7 +136,8 @@ class AdminOverviewAdminButton(Button):
                 return
 
             # Create dropdown view with containers list
-            view = AdminContainerSelectView(self.cog, containers, self.channel_id)
+            view = AdminContainerSelectView(self.cog, containers, self.channel_id,
+                                            user_id=interaction.user.id)
             await interaction.followup.send(
                 _("Select a container to control:"),
                 view=view,
@@ -171,7 +188,15 @@ class AdminOverviewRestartAllButton(Button):
             admin_service = get_admin_service()
             user_id = str(interaction.user.id)
 
-            # Check if user is admin using service
+            # Check if user is admin using service.
+            #
+            # The admin list and NOT the channel's permission - SPEC.md B2:
+            # the list exists so that admins may act where channel membership
+            # alone permits nothing. Both review passes read the missing
+            # channel check here as a critical hole (pass 1 section 01 F1,
+            # pass 2 F1/F2) and both were wrong. Adding one would refuse the
+            # operator in a status channel. Pinned by
+            # tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py.
             is_admin = await admin_service.is_user_admin_async(user_id)
             if not is_admin:
                 await interaction.followup.send(
@@ -245,7 +270,15 @@ class AdminOverviewStopAllButton(Button):
             admin_service = get_admin_service()
             user_id = str(interaction.user.id)
 
-            # Check if user is admin using service
+            # Check if user is admin using service.
+            #
+            # The admin list and NOT the channel's permission - SPEC.md B2:
+            # the list exists so that admins may act where channel membership
+            # alone permits nothing. Both review passes read the missing
+            # channel check here as a critical hole (pass 1 section 01 F1,
+            # pass 2 F1/F2) and both were wrong. Adding one would refuse the
+            # operator in a status channel. Pinned by
+            # tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py.
             is_admin = await admin_service.is_user_admin_async(user_id)
             if not is_admin:
                 await interaction.followup.send(
@@ -378,7 +411,7 @@ class AdminOverviewDonateButton(Button):
 # CONFIRMATION VIEWS FOR BULK ACTIONS
 # =============================================================================
 
-class RestartAllConfirmationView(View):
+class RestartAllConfirmationView(DDCView):
     """Confirmation view for restarting all containers."""
 
     def __init__(self, cog_instance, channel_id: int):
@@ -390,7 +423,7 @@ class RestartAllConfirmationView(View):
         self.add_item(ConfirmRestartAllButton(cog_instance, channel_id))
         self.add_item(CancelBulkActionButton())
 
-class StopAllConfirmationView(View):
+class StopAllConfirmationView(DDCView):
     """Confirmation view for stopping all containers."""
 
     def __init__(self, cog_instance, channel_id: int):
@@ -427,6 +460,37 @@ class ConfirmRestartAllButton(Button):
             logger.error(f"Error deferring restart all confirmation: {e}", exc_info=True)
             return
 
+        # The admin list again, at THIS press. The first button checked it up
+        # to 30 seconds ago; this is a separate interaction, and the Z5
+        # clarification says the list is read at the moment of the press and
+        # never from a message. Without it this callback authorised nothing at
+        # all - its only protection was that Discord does not deliver an
+        # ephemeral message's interaction to anybody else (review D36).
+        #
+        # NO channel check here, deliberately: SPEC.md B2 - the global admin
+        # list exists so that admins may act where channel membership alone
+        # permits nothing. Adding one would refuse the operator in a status
+        # channel, which is exactly the regression the Z5 fix of 2026-09-16/17
+        # caused and that had to be undone on 2026-09-19. Both review passes
+        # read this as a hole; it is a decision. See
+        # tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py.
+        try:
+            admin_service = get_admin_service()
+            if not await admin_service.is_user_admin_async(str(interaction.user.id)):
+                await interaction.followup.send(
+                    _("❌ You don't have permission for this action."),
+                    ephemeral=True
+                )
+                return
+        except (AttributeError, ImportError, RuntimeError) as e:
+            # A permission that cannot be read is not a permission granted.
+            logger.error(f"Could not check admin status for bulk action: {e}", exc_info=True)
+            await interaction.followup.send(
+                _("❌ Your permission could not be checked. Nothing was done."),
+                ephemeral=True
+            )
+            return
+
         # Edge case: Prevent concurrent bulk operations
         if hasattr(self.cog, '_bulk_operation_in_progress'):
             if self.cog._bulk_operation_in_progress:
@@ -445,7 +509,8 @@ class ConfirmRestartAllButton(Button):
             all_servers = server_config_service.get_all_servers()
 
             # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
-            servers = [s for s in all_servers if s.get('active', False)]
+            # A missing 'active' field means active (same default as ServerConfigService)
+            servers = [s for s in all_servers if s.get('active', True)]
 
             if not servers:
                 await interaction.followup.send(
@@ -459,6 +524,13 @@ class ConfirmRestartAllButton(Button):
             restarted_count = 0
             failed_count = 0
             skipped_count = 0
+            # Containers the status cache had nothing about. They used to land
+            # in skipped_count, and the operator read "Skipped (not running)"
+            # about a container that was never asked and never touched - a
+            # measurement that was not taken, reported as one that was
+            # (review D14).
+            unknown_count = 0
+            not_allowed_count = 0
 
             # Import docker service with error handling
             try:
@@ -480,6 +552,12 @@ class ConfirmRestartAllButton(Button):
                 if not docker_name or not isinstance(docker_name, str):
                     continue
 
+                # Respect per-container allowed_actions (same check as the single-container button)
+                if 'restart' not in server.get('allowed_actions', []):
+                    logger.info(f"Restart All: Skipping {docker_name} - 'restart' not in allowed_actions")
+                    not_allowed_count += 1
+                    continue
+
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
                 # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
                 status_cache_service = get_status_cache_service()
@@ -487,7 +565,8 @@ class ConfirmRestartAllButton(Button):
 
                 # Extract is_running from cache data (ContainerStatusResult object)
                 is_running = False
-                if cached_entry and cached_entry.get('data'):
+                status_known = bool(cached_entry and cached_entry.get('data'))
+                if status_known:
                     status_result = cached_entry['data']
                     # Modern format: ContainerStatusResult dataclass
                     from services.docker_status.models import ContainerStatusResult
@@ -521,8 +600,12 @@ class ConfirmRestartAllButton(Button):
                                 except (RuntimeError, OSError) as e:
                                     logger.error(f"Error restarting {docker_name}: {e}", exc_info=True)
                                     failed_count += 1
-                else:
+                elif status_known:
                     skipped_count += 1
+                else:
+                    logger.warning(f"No cached status for {docker_name} - not touched, "
+                                   f"and reported as unchecked rather than as idle")
+                    unknown_count += 1
 
             # Send result message
             description = _("Successfully restarted: **{count}** containers").format(count=restarted_count)
@@ -530,6 +613,10 @@ class ConfirmRestartAllButton(Button):
                 description += _("\nFailed: **{count}** containers").format(count=failed_count)
             if skipped_count > 0:
                 description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
+            if unknown_count > 0:
+                description += _("\nNot checked (no current status): **{count}** containers").format(count=unknown_count)
+            if not_allowed_count > 0:
+                description += _("\nSkipped (action not allowed): **{count}** containers").format(count=not_allowed_count)
 
             embed = discord.Embed(
                 title=_("🔄 Restart All Complete"),
@@ -559,29 +646,13 @@ class ConfirmRestartAllButton(Button):
         try:
             await asyncio.sleep(5)
             await self._update_admin_overview()
-        except (asyncio.CancelledError, RuntimeError) as e:
+        except RuntimeError as e:
             logger.error(f"Error updating admin overview after restart: {e}", exc_info=True)
 
     async def _update_admin_overview(self):
         """Update admin overview message after bulk action."""
         try:
-            # Find and update admin overview messages in channel
-            channel = self.cog.bot.get_channel(self.channel_id)
-            if channel:
-                async for message in channel.history(limit=50):
-                    if message.author == self.cog.bot.user and message.embeds:
-                        embed = message.embeds[0]
-                        if embed.title == "Admin Overview":
-                            # SERVICE FIRST: Recreate admin overview using service
-                            server_config_service = get_server_config_service()
-                            ordered_servers = server_config_service.get_ordered_servers()
-                            config = load_config()  # Still need config for embed creation
-
-                            new_embed, _, has_running = await self.cog._create_admin_overview_embed(ordered_servers, config)
-                            new_view = AdminOverviewView(self.cog, self.channel_id, has_running)
-
-                            await message.edit(embed=new_embed, view=new_view)
-                            break
+            await _refresh_tracked_admin_overview(self.cog, self.channel_id)
         except (discord.errors.DiscordException, ImportError, AttributeError) as e:
             logger.error(f"Error updating admin overview: {e}", exc_info=True)
 
@@ -610,6 +681,37 @@ class ConfirmStopAllButton(Button):
             logger.error(f"Error deferring stop all confirmation: {e}", exc_info=True)
             return
 
+        # The admin list again, at THIS press. The first button checked it up
+        # to 30 seconds ago; this is a separate interaction, and the Z5
+        # clarification says the list is read at the moment of the press and
+        # never from a message. Without it this callback authorised nothing at
+        # all - its only protection was that Discord does not deliver an
+        # ephemeral message's interaction to anybody else (review D36).
+        #
+        # NO channel check here, deliberately: SPEC.md B2 - the global admin
+        # list exists so that admins may act where channel membership alone
+        # permits nothing. Adding one would refuse the operator in a status
+        # channel, which is exactly the regression the Z5 fix of 2026-09-16/17
+        # caused and that had to be undone on 2026-09-19. Both review passes
+        # read this as a hole; it is a decision. See
+        # tests/spec/test_the_bulk_buttons_answer_to_the_admin_list.py.
+        try:
+            admin_service = get_admin_service()
+            if not await admin_service.is_user_admin_async(str(interaction.user.id)):
+                await interaction.followup.send(
+                    _("❌ You don't have permission for this action."),
+                    ephemeral=True
+                )
+                return
+        except (AttributeError, ImportError, RuntimeError) as e:
+            # A permission that cannot be read is not a permission granted.
+            logger.error(f"Could not check admin status for bulk action: {e}", exc_info=True)
+            await interaction.followup.send(
+                _("❌ Your permission could not be checked. Nothing was done."),
+                ephemeral=True
+            )
+            return
+
         # Edge case: Prevent concurrent bulk operations
         if hasattr(self.cog, '_bulk_operation_in_progress'):
             if self.cog._bulk_operation_in_progress:
@@ -628,7 +730,8 @@ class ConfirmStopAllButton(Button):
             all_servers = server_config_service.get_all_servers()
 
             # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
-            servers = [s for s in all_servers if s.get('active', False)]
+            # A missing 'active' field means active (same default as ServerConfigService)
+            servers = [s for s in all_servers if s.get('active', True)]
 
             if not servers:
                 await interaction.followup.send(
@@ -642,6 +745,13 @@ class ConfirmStopAllButton(Button):
             stopped_count = 0
             failed_count = 0
             skipped_count = 0
+            # Containers the status cache had nothing about. They used to land
+            # in skipped_count, and the operator read "Skipped (not running)"
+            # about a container that was never asked and never touched - a
+            # measurement that was not taken, reported as one that was
+            # (review D14).
+            unknown_count = 0
+            not_allowed_count = 0
 
             # Import docker service with error handling
             try:
@@ -663,6 +773,12 @@ class ConfirmStopAllButton(Button):
                 if not docker_name or not isinstance(docker_name, str):
                     continue
 
+                # Respect per-container allowed_actions (same check as the single-container button)
+                if 'stop' not in server.get('allowed_actions', []):
+                    logger.info(f"Stop All: Skipping {docker_name} - 'stop' not in allowed_actions")
+                    not_allowed_count += 1
+                    continue
+
                 # SERVICE FIRST: Use StatusCacheService to check if container is running
                 # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
                 status_cache_service = get_status_cache_service()
@@ -670,7 +786,8 @@ class ConfirmStopAllButton(Button):
 
                 # Extract is_running from cache data (ContainerStatusResult object)
                 is_running = False
-                if cached_entry and cached_entry.get('data'):
+                status_known = bool(cached_entry and cached_entry.get('data'))
+                if status_known:
                     status_result = cached_entry['data']
                     # Modern format: ContainerStatusResult dataclass
                     from services.docker_status.models import ContainerStatusResult
@@ -704,8 +821,12 @@ class ConfirmStopAllButton(Button):
                                 except (RuntimeError, OSError) as e:
                                     logger.error(f"Error stopping {docker_name}: {e}", exc_info=True)
                                     failed_count += 1
-                else:
+                elif status_known:
                     skipped_count += 1
+                else:
+                    logger.warning(f"No cached status for {docker_name} - not touched, "
+                                   f"and reported as unchecked rather than as idle")
+                    unknown_count += 1
 
             # Send result message
             description = _("Successfully stopped: **{count}** containers").format(count=stopped_count)
@@ -713,6 +834,10 @@ class ConfirmStopAllButton(Button):
                 description += _("\nFailed: **{count}** containers").format(count=failed_count)
             if skipped_count > 0:
                 description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
+            if unknown_count > 0:
+                description += _("\nNot checked (no current status): **{count}** containers").format(count=unknown_count)
+            if not_allowed_count > 0:
+                description += _("\nSkipped (action not allowed): **{count}** containers").format(count=not_allowed_count)
 
             embed = discord.Embed(
                 title=_("⏹️ Stop All Complete"),
@@ -742,29 +867,13 @@ class ConfirmStopAllButton(Button):
         try:
             await asyncio.sleep(5)
             await self._update_admin_overview()
-        except (asyncio.CancelledError, RuntimeError) as e:
+        except RuntimeError as e:
             logger.error(f"Error updating admin overview after stop: {e}", exc_info=True)
 
     async def _update_admin_overview(self):
         """Update admin overview message after bulk action."""
         try:
-            # Find and update admin overview messages in channel
-            channel = self.cog.bot.get_channel(self.channel_id)
-            if channel:
-                async for message in channel.history(limit=50):
-                    if message.author == self.cog.bot.user and message.embeds:
-                        embed = message.embeds[0]
-                        if embed.title == "Admin Overview":
-                            # SERVICE FIRST: Recreate admin overview using service
-                            server_config_service = get_server_config_service()
-                            ordered_servers = server_config_service.get_ordered_servers()
-                            config = load_config()  # Still need config for embed creation
-
-                            new_embed, _, has_running = await self.cog._create_admin_overview_embed(ordered_servers, config)
-                            new_view = AdminOverviewView(self.cog, self.channel_id, has_running)
-
-                            await message.edit(embed=new_embed, view=new_view)
-                            break
+            await _refresh_tracked_admin_overview(self.cog, self.channel_id)
         except (discord.errors.DiscordException, ImportError, AttributeError) as e:
             logger.error(f"Error updating admin overview: {e}", exc_info=True)
 

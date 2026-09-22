@@ -10,6 +10,7 @@ Tracks response times, success rates, and provides intelligent timeout calculati
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 
@@ -52,7 +53,7 @@ class PerformanceProfileService:
             max_docker_timeout = max(stats_timeout_ms, info_timeout_ms)
 
             config = PerformanceConfig(
-                min_timeout=5000,      # 5 seconds minimum
+                min_timeout=10000,     # 10 seconds minimum (a floor that fast polls can't lower)
                 max_timeout=int(max_docker_timeout),  # Match Docker config timeouts
                 default_timeout=int(min(30000, max_docker_timeout * 0.8)), # 30s or 80% of max Docker timeout
                 slow_threshold=8000,   # 8+ seconds = slow container
@@ -143,9 +144,11 @@ class PerformanceProfileService:
         """
         profile = self.get_profile(container_name)
 
-        # Base timeout on average response time with safety margin
+        # Base timeout on a high percentile of recent response times (not the average:
+        # a run of fast polls must not shrink the timeout below what a slow poll needs)
+        high_response_time = self._high_percentile(profile.response_times, profile.avg_response_time)
         adaptive_timeout = max(
-            profile.avg_response_time * self._config.timeout_multiplier,
+            high_response_time * self._config.timeout_multiplier,
             profile.max_response_time * 1.5,  # 1.5x worst recorded time
             float(self._config.min_timeout)  # Never go below minimum
         )
@@ -159,6 +162,15 @@ class PerformanceProfileService:
             logger.debug(f"Increased timeout for {container_name} due to low success rate: {profile.success_rate:.2f}")
 
         return adaptive_timeout
+
+    @staticmethod
+    def _high_percentile(values: List[float], default: float, percentile: float = 0.95) -> float:
+        """Nearest-rank percentile of the recorded response times (default if there are none)."""
+        if not values:
+            return default
+        ordered = sorted(values)
+        index = max(0, math.ceil(percentile * len(ordered)) - 1)
+        return ordered[index]
 
     def classify_containers(self, container_names: List[str]) -> ContainerClassification:
         """

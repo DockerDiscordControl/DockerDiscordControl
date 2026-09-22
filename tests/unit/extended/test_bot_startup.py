@@ -411,16 +411,29 @@ class TestStartupSequence:
         _run(step_sequence.run_startup_sequence(ctx, [step_a, step_b]))
         assert order == ["a", "b"]
 
-    def test_run_startup_sequence_propagates_exception(self):
+    def test_run_startup_sequence_carries_on_past_a_failed_step(self):
+        """Changed on the operator's decision, 2026-09-21 (review E9).
+
+        This used to assert that a step's exception propagated and stopped the
+        rest. The sequence runs in handle_ready(), so the bot is already
+        connected by then and an abort protects nothing - it only means fewer
+        of the remaining steps run. A power gift that could not be granted took
+        the scheduler down with it.
+        """
+        ran = []
+
         async def good(ctx):
-            return None
+            ran.append("good")
 
         async def bad(ctx):
             raise RuntimeError("step failed")
 
+        async def after(ctx):
+            ran.append("after")
+
         ctx = _make_context()
-        with pytest.raises(RuntimeError, match="step failed"):
-            _run(step_sequence.run_startup_sequence(ctx, [good, bad]))
+        _run(step_sequence.run_startup_sequence(ctx, [good, bad, after]))
+        assert ran == ["good", "after"]
 
     def test_run_startup_sequence_no_steps_is_noop(self):
         ctx = _make_context()
@@ -801,70 +814,52 @@ class TestStartupCommandsStep:
 class TestStartupMemberCount:
     """Tests for app/bot/startup_steps/member_count.py."""
 
-    def test_initialize_member_count_step_returns_when_snapshot_missing(
-        self, monkeypatch, tmp_path, caplog
-    ):
-        # Fake services
-        snap_file = tmp_path / "main.json"  # does NOT exist
-        fake_paths = SimpleNamespace(snapshot_for=lambda _: snap_file)
-        fake_progress = SimpleNamespace(
-            get_state=lambda: SimpleNamespace(level=1),
-        )
+    @staticmethod
+    def _install_progress(monkeypatch, snap_data, requirement=100, get_state=None):
+        """Fake progress_service: one snapshot object behind load/persist + LOCK."""
+        import threading
 
-        # Replace the imported helpers in the module with our fakes.
-        monkeypatch.setattr(step_member_count, "get_progress_paths", lambda: fake_paths)
-
-        # The function imports get_progress_service / get_progress_paths INSIDE
-        # the function body — we must inject those into sys.modules.
+        snap = SimpleNamespace(**snap_data)
+        persisted = []
         progress_mod = types.ModuleType("services.mech.progress_service")
-        progress_mod.get_progress_service = lambda: fake_progress
+        progress_mod.LOCK = threading.RLock()
+        progress_mod.get_progress_service = lambda: SimpleNamespace(
+            mech_id="main",
+            get_state=get_state or (lambda: SimpleNamespace(level=snap.level)),
+        )
+        progress_mod.load_snapshot = lambda mech_id: snap
+        progress_mod.persist_snapshot = lambda s: persisted.append(dict(vars(s)))
         progress_mod.current_bin = lambda x: 0
-        progress_mod.requirement_for_level_and_bin = lambda level, b, member_count: 100
+        progress_mod.requirement_for_level_and_bin = lambda level, b, member_count: requirement
         monkeypatch.setitem(sys.modules, "services.mech.progress_service", progress_mod)
+        return snap, persisted
 
-        paths_mod = types.ModuleType("services.mech.progress_paths")
-        paths_mod.get_progress_paths = lambda: fake_paths
-        monkeypatch.setitem(sys.modules, "services.mech.progress_paths", paths_mod)
+    def test_initialize_member_count_step_logs_error_when_state_unavailable(
+        self, monkeypatch, caplog
+    ):
+        def broken_state():
+            raise RuntimeError("progress unavailable")
 
-        # member_count_service is fetched once at function entry.
+        self._install_progress(monkeypatch, {"level": 1, "last_user_count_sample": 0},
+                               get_state=broken_state)
         member_service = MagicMock()
         monkeypatch.setattr(
             step_member_count, "get_member_count_service", lambda: member_service
         )
 
         ctx = _make_context()
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.ERROR):
             _run(step_member_count.initialize_member_count_step(ctx))
-        assert any("Snapshot file not found" in r.getMessage() for r in caplog.records)
+        assert any("Error initializing Level 1 member count" in r.getMessage() for r in caplog.records)
         # member_count_service.first_connected_guild MUST NOT be called.
         member_service.first_connected_guild.assert_not_called()
 
     def test_initialize_member_count_step_skips_update_when_unchanged(
-        self, monkeypatch, tmp_path
+        self, monkeypatch
     ):
-        snap_file = tmp_path / "main.json"
-        snap_data = {
-            "level": 1,
-            "last_user_count_sample": 25,
-            "goal_requirement": 100,
-        }
-        snap_file.write_text(json.dumps(snap_data))
-
-        fake_paths = SimpleNamespace(snapshot_for=lambda _: snap_file)
-        fake_progress = SimpleNamespace(
-            get_state=lambda: SimpleNamespace(level=1),
+        _, persisted = self._install_progress(
+            monkeypatch, {"level": 1, "last_user_count_sample": 25, "goal_requirement": 100}
         )
-
-        monkeypatch.setattr(step_member_count, "get_progress_paths", lambda: fake_paths)
-        progress_mod = types.ModuleType("services.mech.progress_service")
-        progress_mod.get_progress_service = lambda: fake_progress
-        progress_mod.current_bin = lambda x: 0
-        progress_mod.requirement_for_level_and_bin = lambda level, b, member_count: 100
-        monkeypatch.setitem(sys.modules, "services.mech.progress_service", progress_mod)
-
-        paths_mod = types.ModuleType("services.mech.progress_paths")
-        paths_mod.get_progress_paths = lambda: fake_paths
-        monkeypatch.setitem(sys.modules, "services.mech.progress_paths", paths_mod)
 
         guild = SimpleNamespace(name="g", id=42)
         member_service = MagicMock()
@@ -879,38 +874,25 @@ class TestStartupMemberCount:
         # No publish/persist when value unchanged.
         member_service.publish_member_count.assert_not_called()
         member_service.persist_member_count_snapshot.assert_not_called()
+        assert persisted == []
 
     def test_initialize_member_count_step_publishes_when_count_changed(
-        self, monkeypatch, tmp_path
+        self, monkeypatch
     ):
-        snap_file = tmp_path / "main.json"
-        snap_data = {
-            "level": 1,
-            "last_user_count_sample": 10,
-            "goal_requirement": 100,
-        }
-        snap_file.write_text(json.dumps(snap_data))
-
-        fake_paths = SimpleNamespace(snapshot_for=lambda _: snap_file)
-        fake_progress = SimpleNamespace(
-            get_state=lambda: SimpleNamespace(level=1),
+        snap, persisted = self._install_progress(
+            monkeypatch,
+            {"level": 1, "last_user_count_sample": 10, "goal_requirement": 100,
+             "difficulty_bin": 1, "power_acc": 700},
+            requirement=200,
         )
-
-        monkeypatch.setattr(step_member_count, "get_progress_paths", lambda: fake_paths)
-        progress_mod = types.ModuleType("services.mech.progress_service")
-        progress_mod.get_progress_service = lambda: fake_progress
-        progress_mod.current_bin = lambda x: 0
-        progress_mod.requirement_for_level_and_bin = lambda level, b, member_count: 200
-        monkeypatch.setitem(sys.modules, "services.mech.progress_service", progress_mod)
-
-        paths_mod = types.ModuleType("services.mech.progress_paths")
-        paths_mod.get_progress_paths = lambda: fake_paths
-        monkeypatch.setitem(sys.modules, "services.mech.progress_paths", paths_mod)
 
         guild = SimpleNamespace(name="g", id=42)
         member_service = MagicMock()
         member_service.first_connected_guild.return_value = guild
         member_service.compute_unique_member_count.return_value = 25  # changed
+        # publish_member_count updates the snapshot (real code: update_member_count)
+        member_service.publish_member_count.side_effect = (
+            lambda count: setattr(snap, "last_user_count_sample", count))
         monkeypatch.setattr(
             step_member_count, "get_member_count_service", lambda: member_service
         )
@@ -920,31 +902,18 @@ class TestStartupMemberCount:
         member_service.publish_member_count.assert_called_once_with(25)
         member_service.persist_member_count_snapshot.assert_called_once()
 
-        # Snapshot should now record the new goal/difficulty bin.
-        updated = json.loads(snap_file.read_text())
-        assert updated["goal_requirement"] == 200
-        assert updated["difficulty_bin"] == 0
+        # Snapshot re-read under the lock: new goal/bin, published count kept
+        assert persisted[-1]["goal_requirement"] == 200
+        assert persisted[-1]["difficulty_bin"] == 0
+        assert persisted[-1]["last_user_count_sample"] == 25
+        assert persisted[-1]["power_acc"] == 700
 
     def test_initialize_member_count_step_warns_when_no_guild(
-        self, monkeypatch, tmp_path, caplog
+        self, monkeypatch, caplog
     ):
-        snap_file = tmp_path / "main.json"
-        snap_file.write_text(json.dumps({
-            "level": 1, "last_user_count_sample": 0, "goal_requirement": 1
-        }))
-        fake_paths = SimpleNamespace(snapshot_for=lambda _: snap_file)
-        fake_progress = SimpleNamespace(get_state=lambda: SimpleNamespace(level=1))
-        monkeypatch.setattr(step_member_count, "get_progress_paths", lambda: fake_paths)
-
-        progress_mod = types.ModuleType("services.mech.progress_service")
-        progress_mod.get_progress_service = lambda: fake_progress
-        progress_mod.current_bin = lambda x: 0
-        progress_mod.requirement_for_level_and_bin = lambda level, b, member_count: 1
-        monkeypatch.setitem(sys.modules, "services.mech.progress_service", progress_mod)
-
-        paths_mod = types.ModuleType("services.mech.progress_paths")
-        paths_mod.get_progress_paths = lambda: fake_paths
-        monkeypatch.setitem(sys.modules, "services.mech.progress_paths", paths_mod)
+        _, persisted = self._install_progress(
+            monkeypatch, {"level": 1, "last_user_count_sample": 0, "goal_requirement": 1}
+        )
 
         member_service = MagicMock()
         member_service.first_connected_guild.return_value = None  # no connected guild
@@ -957,6 +926,7 @@ class TestStartupMemberCount:
             _run(step_member_count.initialize_member_count_step(ctx))
         # No publish (early return inside _refresh_member_count).
         member_service.publish_member_count.assert_not_called()
+        assert persisted == []
 
 
 # ---------------------------------------------------------------------------
@@ -1061,7 +1031,7 @@ class TestWebRoutes:
         admin_data = {"discord_admin_users": ["111"], "admin_notes": {"111": "founder"}}
         admin_service = SimpleNamespace(
             get_admin_data=lambda: admin_data,
-            save_admin_data=lambda u, n: True,
+            save_admin_data=lambda u, n, admin_containers=None: True,
         )
         monkeypatch.setattr(web_routes, "get_admin_service", lambda: admin_service)
         web_routes.register_routes(app)
@@ -1075,7 +1045,7 @@ class TestWebRoutes:
         monkeypatch.setattr(web_routes.auth, "login_required", lambda f: f)
         admin_service = SimpleNamespace(
             get_admin_data=lambda: {},
-            save_admin_data=lambda u, n: True,
+            save_admin_data=lambda u, n, admin_containers=None: True,
         )
         monkeypatch.setattr(web_routes, "get_admin_service", lambda: admin_service)
         web_routes.register_routes(app)
@@ -1093,7 +1063,7 @@ class TestWebRoutes:
         monkeypatch.setattr(web_routes.auth, "login_required", lambda f: f)
         admin_service = SimpleNamespace(
             get_admin_data=lambda: {},
-            save_admin_data=lambda u, n: True,
+            save_admin_data=lambda u, n, admin_containers=None: True,
         )
         monkeypatch.setattr(web_routes, "get_admin_service", lambda: admin_service)
         web_routes.register_routes(app)
@@ -1109,7 +1079,7 @@ class TestWebRoutes:
         monkeypatch.setattr(web_routes.auth, "login_required", lambda f: f)
         admin_service = SimpleNamespace(
             get_admin_data=lambda: {},
-            save_admin_data=lambda u, n: False,
+            save_admin_data=lambda u, n, admin_containers=None: False,
         )
         monkeypatch.setattr(web_routes, "get_admin_service", lambda: admin_service)
         web_routes.register_routes(app)

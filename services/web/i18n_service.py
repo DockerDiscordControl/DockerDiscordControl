@@ -8,9 +8,10 @@
 """Internationalization service for the Web UI."""
 
 import json
+import re
 import threading
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, FrozenSet, List, Optional
 
 import logging
 from utils.logging_utils import setup_logger
@@ -18,6 +19,14 @@ from utils.logging_utils import setup_logger
 logger = setup_logger('ddc.i18n_service', level=logging.DEBUG)
 
 _LOCALES_DIR = Path(__file__).resolve().parent.parent.parent / 'locales'
+_PROJECT_ROOT = _LOCALES_DIR.parent
+
+# Front-end sources scanned for t('web.…') calls: those web.* texts are added to the JS payload.
+_JS_KEY_SOURCES = (
+    (_PROJECT_ROOT / 'app' / 'templates', '**/*.html'),
+    (_PROJECT_ROOT / 'app' / 'static' / 'js', '*.js'),
+)
+_JS_WEB_KEY_RE = re.compile(r"""(?<![\w$.])t\(\s*['"](web\.[\w.-]+)['"]""")
 
 _instance = None
 _instance_lock = threading.Lock()
@@ -36,6 +45,7 @@ class I18nService:
         self._meta: Dict[str, Dict[str, Any]] = {}
         self._available_codes: set = set()
         self._load_lock = threading.Lock()
+        self._js_web_keys: Optional[FrozenSet[str]] = None
         self._load_meta()
         self._discover_available_locales()
         # Eagerly load only English (fallback target) to keep translate() hot path snappy.
@@ -88,6 +98,7 @@ class I18nService:
         with self._load_lock:
             previously_loaded = list(self._translations.keys())
             self._translations.clear()
+            self._js_web_keys = None
         self._load_meta()
         self._discover_available_locales()
         for lang in previously_loaded:
@@ -123,8 +134,30 @@ class I18nService:
 
         return result
 
+    def get_js_web_keys(self) -> FrozenSet[str]:
+        """Return the web.* keys that templates/JS pass to the JS ``t()`` helper.
+
+        Found once by scanning the front-end sources, so only these ~100 of the
+        ~700 web.* texts are embedded in every page.
+        """
+        if self._js_web_keys is None:
+            keys = set()
+            for base_dir, pattern in _JS_KEY_SOURCES:
+                for path in base_dir.glob(pattern):
+                    try:
+                        keys.update(_JS_WEB_KEY_RE.findall(path.read_text(encoding='utf-8')))
+                    except (OSError, UnicodeDecodeError) as e:
+                        logger.warning(f"Could not scan {path} for t('web.*') keys: {e}")
+            self._js_web_keys = frozenset(keys)
+            logger.debug(f"Found {len(keys)} web.* keys used by JS t() calls")
+        return self._js_web_keys
+
     def get_js_translations(self, lang: str = 'en') -> Dict[str, str]:
-        """Get translations for JS (keys starting with 'js.')."""
+        """Get translations for JS.
+
+        js.* keys are exposed without their prefix (``t('status.active')``); the
+        web.* keys used by ``t('web.…')`` calls keep their full key.
+        """
         js_trans = {}
         self._ensure_loaded(lang)
         self._ensure_loaded('en')
@@ -137,6 +170,11 @@ class I18nService:
                 short_key = key[3:]  # strip 'js.' prefix
                 value = lang_dict.get(key) or en_dict.get(key, key)
                 js_trans[short_key] = value
+
+        for key in self.get_js_web_keys():
+            value = lang_dict.get(key) or en_dict.get(key)
+            if value:
+                js_trans[key] = value
 
         return js_trans
 

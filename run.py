@@ -11,23 +11,42 @@ Single Entry Point for DockerDiscordControl (DDC).
 Starts both the Web UI (via Waitress) and the Discord Bot in a single process.
 """
 
+import errno
 import threading
 import logging
 import sys
 import os
 import time
 from waitress import serve
+from app.bootstrap.runtime import get_web_port
 from app.web_ui import create_app
-from bot import main as run_bot
+from bot import main as run_bot, install_sigterm_handler
 from utils.logging_utils import get_module_logger
 
 # Setup logger
 logger = get_module_logger("ddc.main")
 
+# A port that is still in use (host network, previous instance shutting down) gets
+# a few more bind attempts before the process gives up.
+WEB_BIND_ATTEMPTS = 5
+WEB_BIND_RETRY_DELAY = 3
+
+
+def _terminate_process(exit_code: int) -> None:
+    """Exit the whole process immediately, whichever thread calls this."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.flush()
+        except (OSError, ValueError):
+            pass
+    os._exit(exit_code)
+
+
 def start_web_server():
     """Starts the Flask Web UI using Waitress in a separate thread."""
     try:
-        logger.info("🚀 Starting Web UI via Waitress on port 9374...")
+        port = get_web_port()
+        logger.info(f"🚀 Starting Web UI via Waitress on port {port}...")
 
         # Create Flask app
         app = create_app()
@@ -43,22 +62,48 @@ def start_web_server():
         threads = max(2, min(16, threads))
         logger.info(f"Waitress thread pool size: {threads} (cpu_count={cpu_count})")
 
-        serve(
-            app,
-            host="0.0.0.0",
-            port=9374,
-            threads=threads,
-            ident="DDC-Web",
-            _quiet=True  # Reduce waitress startup logs
-        )
+        for attempt in range(1, WEB_BIND_ATTEMPTS + 1):
+            try:
+                serve(
+                    app,
+                    host="0.0.0.0",
+                    port=port,
+                    threads=threads,
+                    ident="DDC-Web",
+                    _quiet=True  # Reduce waitress startup logs
+                )
+                break
+            except OSError as e:
+                if e.errno != errno.EADDRINUSE:
+                    raise
+                if attempt == WEB_BIND_ATTEMPTS:
+                    logger.critical(
+                        f"🔥 Port {port} is already in use. With host networking set DDC_WEB_PORT "
+                        f"to a free port; with bridge networking change the host port mapping."
+                    )
+                    raise
+                logger.warning(
+                    f"Port {port} is already in use (attempt {attempt}/{WEB_BIND_ATTEMPTS}) - "
+                    f"retrying in {WEB_BIND_RETRY_DELAY} s..."
+                )
+                time.sleep(WEB_BIND_RETRY_DELAY)
+        logger.critical("🔥 Web Server stopped unexpectedly")
     except Exception as e:
         logger.critical(f"🔥 Web Server failed to start: {e}", exc_info=True)
-        # We don't exit here to let the bot keep running if web fails, 
-        # but in a single container, this usually means a restart is needed.
-        sys.exit(1)
+
+    # sys.exit() here would only end this daemon thread and leave the container
+    # "Up" without a web UI (the only place to fix the configuration). Terminate
+    # the whole process instead so Docker's restart policy restarts the container.
+    logger.critical("💀 Web UI is not running - terminating DDC so the container gets restarted")
+    _terminate_process(1)
 
 def main():
     """Main execution flow."""
+    # run.py is PID 1 in the container: without a handler SIGTERM is ignored and
+    # `docker stop` waits 10 s before killing. py-cord installs its own handler
+    # once bot.run() starts.
+    install_sigterm_handler(logger)
+
     logger.info("==================================================")
     logger.info("   DockerDiscordControl (DDC) - Startup Sequence   ")
     logger.info("==================================================")

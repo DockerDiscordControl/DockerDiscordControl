@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import docker
 import json
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -29,6 +30,49 @@ def _validate_admin_users(admin_users: List[str]) -> Dict[str, Any]:
     return {"success": True}
 
 
+def _validate_admin_containers(admin_containers: Any,
+                               admin_users: List[str]) -> Dict[str, Any]:
+    """Check a per-admin container assignment before it is written (review F5).
+
+    Every name is checked against the configured containers, because a typo
+    does not fail - it silently means "this admin may control nothing on that
+    one", and nothing would ever say so. The admin is simply refused later and
+    nobody connects it to a letter. So an unknown name is refused here, by name.
+
+    An id that is not on the admin list is refused as well: this mapping
+    narrows a right, and writing one for somebody who has none is a statement
+    nobody can act on.
+    """
+    if admin_containers is None:
+        return {"success": True}
+    if not isinstance(admin_containers, dict):
+        return {"success": False, "error": "admin_containers must be an object"}
+
+    try:
+        from services.config.server_config_service import get_server_config_service
+        known = {str(server.get("docker_name")) for server in
+                 get_server_config_service().get_all_servers()
+                 if isinstance(server, dict) and server.get("docker_name")}
+    except (AttributeError, IOError, OSError, RuntimeError, TypeError, ValueError) as e:
+        # A list of containers that cannot be read is not a reason to wave an
+        # assignment through: it would be written with names nobody checked.
+        return {"success": False,
+                "error": f"The configured containers could not be read: {e}"}
+
+    for user_id, containers in admin_containers.items():
+        if str(user_id) not in {str(u) for u in admin_users}:
+            return {"success": False,
+                    "error": f"{user_id} is not on the admin list"}
+        if not isinstance(containers, list):
+            return {"success": False,
+                    "error": f"The assignment for {user_id} is not a list"}
+        for name in containers:
+            if str(name) not in known:
+                return {"success": False,
+                        "error": f"No container is called '{name}'"}
+    return {"success": True}
+
+
 def register_routes(app: Flask) -> None:
     """Attach the admin management and health routes."""
 
@@ -37,24 +81,72 @@ def register_routes(app: Flask) -> None:
     def admin_users():
         admin_service = get_admin_service()
 
+        # The read had no guard at all, and the save caught only RuntimeError -
+        # while a full disk, a permission problem or a corrupt admins.json raise
+        # OSError or json.JSONDecodeError. The route then ended as an unhandled
+        # 500 instead of the {"success": false, ...} it was written to return.
+        # health_check() twenty lines below already catches the wider set; the
+        # two handlers in one file did not agree on what can go wrong (review C21).
+        _STORAGE_ERRORS = (IOError, OSError, PermissionError, RuntimeError,
+                           TypeError, ValueError, json.JSONDecodeError)
+
         if request.method == "GET":
-            admin_data = admin_service.get_admin_data()
-            return jsonify(admin_data)
+            try:
+                data = admin_service.get_admin_data()
+                # The names the panel may offer, from the SAME source the save
+                # validates against, so a form cannot offer what the save then
+                # refuses. An extra, not the point of this route: if the
+                # container config cannot be read the admin list still goes out
+                # and the choices are simply empty (review F5).
+                try:
+                    from services.config.server_config_service import get_server_config_service
+                    data["available_containers"] = sorted(
+                        {str(server.get("docker_name")) for server in
+                         get_server_config_service().get_all_servers()
+                         if isinstance(server, dict) and server.get("docker_name")})
+                except _STORAGE_ERRORS as e:
+                    app.logger.error("Container list for the admin panel could not be "
+                                     "read: %s", e, exc_info=True)
+                    data["available_containers"] = []
+                return jsonify(data)
+            except _STORAGE_ERRORS as e:
+                app.logger.error("Error reading admin data: %s", e, exc_info=True)
+                # 500, not the default 200 (review E22). fetch() does not reject
+                # on an HTTP error, and it certainly does not reject on a 200, so
+                # the panel ran its SUCCESS path over this error body: an empty
+                # admin list, the modal opened saying "no users configured", and
+                # the next Save wrote that empty list over the file that could
+                # not be read. A read error must not be able to become a write
+                # that erases what it failed to read.
+                #
+                # The body keeps its explanation (review C21) - a status code
+                # says a request failed, not why.
+                return jsonify({"success": False,
+                                "error": "An internal error occurred while reading admin data"}), 500
 
         try:
             data = request.json or {}
             admin_users = data.get("discord_admin_users", [])
             admin_notes = data.get("admin_notes", {})
+            # None, not {}: left out it means "leave the assignment on disk
+            # alone". An empty mapping would DELETE every assignment, and every
+            # caller that predates this feature passes nothing (review F5).
+            admin_containers = data.get("admin_containers")
 
             validation = _validate_admin_users(admin_users)
             if not validation.get("success"):
                 return jsonify(validation)
 
-            success = admin_service.save_admin_data(admin_users, admin_notes)
+            validation = _validate_admin_containers(admin_containers, admin_users)
+            if not validation.get("success"):
+                return jsonify(validation)
+
+            success = admin_service.save_admin_data(admin_users, admin_notes,
+                                                    admin_containers=admin_containers)
             if success:
                 return jsonify({"success": True})
             return jsonify({"success": False, "error": "Failed to save admin data"})
-        except (RuntimeError) as e:
+        except _STORAGE_ERRORS as e:
             # Security: Log detailed error server-side only, return generic message
             app.logger.error("Error saving admin data: %s", e, exc_info=True)
             return jsonify({"success": False, "error": "An internal error occurred while saving admin data"})
@@ -66,7 +158,8 @@ def register_routes(app: Flask) -> None:
                 "status": "healthy",
                 "service": "DockerDiscordControl",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "version": "v1.1.3",
+                # DDC_VERSION is set by the Dockerfile (single source for the version)
+                "version": f"v{os.environ['DDC_VERSION']}" if os.environ.get("DDC_VERSION") else "unknown",
             }
 
             try:

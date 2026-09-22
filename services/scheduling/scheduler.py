@@ -7,13 +7,15 @@
 # ============================================================================ #
 
 import asyncio
+import copy
 import uuid
 import os
+import threading
 import logging  # Added for logging.DEBUG constants
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple, Union
 import calendar
-from functools import lru_cache  # Import for caching
+from functools import lru_cache, wraps  # Import for caching
 
 # Use central import utilities
 from utils.import_utils import import_ujson, import_uvloop, import_croniter, log_performance_status
@@ -30,6 +32,7 @@ datetime, timedelta, timezone, time = get_datetime_imports()
 # Import time class from datetime module as datetime_time to avoid conflict
 from datetime import time as datetime_time
 import pytz
+from utils.atomic_io import atomic_write_json, atomic_write_text
 
 json, _using_ujson = import_ujson()
 uvloop, _using_uvloop = import_uvloop()
@@ -82,8 +85,63 @@ SYSTEM_ACTIONS = ["donation_message", "system_maintenance", "cleanup"]
 SYSTEM_TASK_PREFIX = "SYSTEM_"
 DONATION_TASK_ID = f"{SYSTEM_TASK_PREFIX}DONATION_MESSAGE"
 
+# created_by of tasks created in the Web UI (admin); Discord tasks store the user name
+WEB_UI_CREATOR = "Web UI"
+
+# Actions that must not be sent twice after a timeout: the first stop/restart may
+# still be in progress (long StopTimeout), a second one would interrupt it again
+NON_REPEATABLE_ACTIONS = ("stop", "restart", "recreate")
+# Time on top of a container's StopTimeout before a stop/restart counts as timed out
+STOP_TIMEOUT_MARGIN_SECONDS = 30
+
 # Constants for weekdays
 DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+def normalize_weekday(value: Any) -> Optional[str]:
+    """Return the canonical weekday name ("monday".."sunday") or None if invalid.
+
+    Accepts full names and abbreviations of at least 3 letters in any case
+    ("Mon" from the Web UI form) and 0-6 indexes (Monday=0) as used by
+    weekday_val. "7" is read as Sunday so older stored data stays valid.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return DAYS_OF_WEEK[value] if 0 <= value <= 6 else None
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip().lower()
+    if cleaned.isdigit():
+        index = 6 if int(cleaned) == 7 else int(cleaned)
+        return DAYS_OF_WEEK[index] if 0 <= index <= 6 else None
+    if len(cleaned) >= 3:
+        for day_name in DAYS_OF_WEEK:
+            if day_name.startswith(cleaned):
+                return day_name
+    return None
+
+def _localize(tz, naive_dt: datetime) -> datetime:
+    """Attach tz to a naive local datetime using the UTC offset valid on that date.
+
+    now.replace(...) + timedelta would keep the offset of "now", which is wrong
+    across DST changes; pytz zones need localize().
+    """
+    if hasattr(tz, 'localize'):
+        return tz.normalize(tz.localize(naive_dt))
+    return naive_dt.replace(tzinfo=tz)
+
+# Serializes read-modify-write cycles on tasks.json between the scheduler (bot
+# loop) and the Web UI thread. Reentrant: add/update/delete call load_tasks(),
+# which may save on its own.
+_TASKS_LOCK = threading.RLock()
+
+def _with_tasks_lock(func):
+    """Run func while holding the tasks.json lock."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        with _TASKS_LOCK:
+            return func(*args, **kwargs)
+    return wrapper
 
 # Scheduler file path
 TASKS_FILE_PATH = _runtime.tasks_file_path
@@ -111,7 +169,11 @@ class ScheduledTask:
         'task_id', 'container_name', 'action', 'cycle', 'status', 'is_active',
         'cron_string', 'time_str', 'year_val', 'month_val', 'day_val', 'weekday_val',
         'last_run_success', 'last_run_error', 'description', 'created_by',
-        'timezone_str', 'created_at_dt', 'created_at_ts', 'last_run_ts', 'next_run_ts'
+        'timezone_str', 'created_at_dt', 'created_at_ts', 'last_run_ts', 'next_run_ts',
+        # Whether the LAST is_valid() fell over rather than deciding. In slots
+        # because this class has no __dict__ - setting it without declaring it
+        # here raises inside __init__, which calls is_valid() (review E5).
+        'validation_errored'
     ]
 
     def __init__(self,
@@ -172,6 +234,15 @@ class ScheduledTask:
             self.month_val = month
             self.day_val = day # For Discord, day is always day of month
             self.weekday_val = weekday # For Discord: 0-6
+
+        # Weekly: keep the weekday canonical ("monday".."sunday") in day_val so
+        # to_dict() persists it, with weekday_val as the matching 0-6 index.
+        # Accepts "Mon" (Web UI) and a Discord 0-6 weekday, also next to schedule_details.
+        if self.cycle == CYCLE_WEEKLY:
+            weekday_name = normalize_weekday(self.day_val) or normalize_weekday(weekday)
+            if weekday_name is not None:
+                self.day_val = weekday_name
+                self.weekday_val = DAYS_OF_WEEK.index(weekday_name)
 
         self.description = description
         self.created_by = created_by
@@ -236,7 +307,14 @@ class ScheduledTask:
         return True
 
     def is_valid(self) -> bool:
-        """Check if the task is valid."""
+        """Check if the task is valid.
+
+        Sets ``validation_errored`` when the check itself fell over. Callers
+        that REFUSE on a False may ignore that - nothing is lost by refusing.
+        The cleanup in load_tasks() DELETES on a False and must not, because a
+        check that could not be made is not a verdict (review E5).
+        """
+        self.validation_errored = False
         try:
             # Check for system tasks first
             if self.is_system_task():
@@ -297,8 +375,12 @@ class ScheduledTask:
                 return False
 
         except (ValueError, TypeError, AttributeError) as e:
-            # Data errors (cycle validation, method calls)
+            # Data errors (cycle validation, method calls). Still False, because
+            # every caller that REFUSES on a False is right to refuse - but the
+            # reason is recorded, because the one caller that DELETES on a False
+            # must not act on this (review E5).
             logger.error(f"Data error validating task {self.task_id}: {e}", exc_info=True)
+            self.validation_errored = True
             return False
 
     def _validate_once_or_yearly(self) -> bool:
@@ -322,22 +404,9 @@ class ScheduledTask:
 
     def _validate_weekly(self) -> bool:
         """Validate WEEKLY task type"""
-        # First try day_val as weekday string or int
-        if self.day_val is not None:
-            if isinstance(self.day_val, str) and self.day_val.strip().lower() in DAYS_OF_WEEK:
-                return True
-
-            if isinstance(self.day_val, int) and 0 <= self.day_val <= 6:
-                return True
-
-            # Try parsing day_val if it's a string containing a number
-            if isinstance(self.day_val, str) and self.day_val.strip().isdigit():
-                day_int = int(self.day_val.strip())
-                if 0 <= day_int <= 6 or 1 <= day_int <= 7:
-                    return True
-
-        # Then try weekday_val (Discord format)
-        if self.weekday_val is not None and 0 <= self.weekday_val <= 6:
+        # day_val holds the weekday name ("monday"; "Mon" from the Web UI is accepted),
+        # weekday_val the 0-6 index (Discord format)
+        if normalize_weekday(self.day_val) is not None or normalize_weekday(self.weekday_val) is not None:
             return True
 
         logger.warning(f"Task {self.task_id}: No valid weekday found for cycle 'weekly'")
@@ -423,8 +492,12 @@ class ScheduledTask:
 
         if self.time_str: # For all except potentially cron
              details["time"] = self.time_str
-        if self.day_val:
-            details["day"] = self.day_val
+        day_out = self.day_val
+        if self.cycle == CYCLE_WEEKLY:
+            # Always persist the weekday (a weekday_val alone used to be lost on save)
+            day_out = normalize_weekday(self.day_val) or normalize_weekday(self.weekday_val) or self.day_val
+        if day_out:
+            details["day"] = day_out
         if self.month_val:
             details["month"] = self.month_val
         if self.year_val:
@@ -526,11 +599,15 @@ class ScheduledTask:
             logger.error(f"Error creating date for ONCE task {self.task_id}: {e}")
             return None
 
-    def _calculate_daily_next_run(self, now, task_hour, task_minute) -> datetime:
+    def _calculate_daily_next_run(self, now, task_hour, task_minute, tz=None) -> datetime:
         """Calculate next run for DAILY cycle."""
-        next_run_dt = now.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0)
+        # Build the wall-clock time for the date and localize it, so the UTC
+        # offset is the one valid on that day (DST changes)
+        tz = tz or now.tzinfo
+        run_time = datetime_time(task_hour, task_minute)
+        next_run_dt = _localize(tz, datetime.combine(now.date(), run_time))
         if next_run_dt <= now:
-            next_run_dt += timedelta(days=1)
+            next_run_dt = _localize(tz, datetime.combine(now.date() + timedelta(days=1), run_time))
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Task {self.task_id} - DAILY - Time today already passed, using tomorrow: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         if logger.isEnabledFor(logging.DEBUG):
@@ -539,37 +616,24 @@ class ScheduledTask:
 
     def _calculate_weekly_next_run(self, tz, now, task_hour, task_minute) -> Optional[datetime]:
         """Calculate next run for WEEKLY cycle."""
-        target_weekday = -1
-        if isinstance(self.day_val, str):
-            try:
-                target_weekday = DAYS_OF_WEEK.index(self.day_val.lower())
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Task {self.task_id} - WEEKLY - Weekday from string '{self.day_val}': {target_weekday}")
-            except ValueError:
-                return None
-        elif isinstance(self.weekday_val, int) and 0 <= self.weekday_val <= 6:
-            target_weekday = self.weekday_val
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Task {self.task_id} - WEEKLY - Weekday from weekday_val: {target_weekday}")
-        else:
+        weekday_name = normalize_weekday(self.day_val) or normalize_weekday(self.weekday_val)
+        if weekday_name is None:
             return None
+        target_weekday = DAYS_OF_WEEK.index(weekday_name)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Task {self.task_id} - WEEKLY - Target weekday: {weekday_name} ({target_weekday})")
 
-        if self.last_run_ts:
-            # Calculate from last execution + 7 days
-            last_run_dt = datetime.fromtimestamp(self.last_run_ts, tz)
-            next_run_dt = last_run_dt.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0) + timedelta(days=7)
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Task {self.task_id} - WEEKLY - Calculated from last run: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        else:
-            # First time calculation
-            days_ahead = target_weekday - now.weekday()
-            if days_ahead < 0:
-                days_ahead += 7
-            elif days_ahead == 0 and now.time() >= datetime_time(task_hour, task_minute):
-                days_ahead += 7
-            next_run_dt = now.replace(hour=task_hour, minute=task_minute, second=0, microsecond=0) + timedelta(days=days_ahead)
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Task {self.task_id} - WEEKLY - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')} (Days ahead: {days_ahead})")
+        # Next occurrence of the weekday after now, localized for DST. Deliberately
+        # not based on last_run: that kept the old weekday after an edit and
+        # drifted after a late run.
+        run_time = datetime_time(task_hour, task_minute)
+        days_ahead = (target_weekday - now.weekday()) % 7
+        next_run_dt = _localize(tz, datetime.combine(now.date() + timedelta(days=days_ahead), run_time))
+        if next_run_dt <= now:
+            days_ahead += 7
+            next_run_dt = _localize(tz, datetime.combine(now.date() + timedelta(days=days_ahead), run_time))
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Task {self.task_id} - WEEKLY - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')} (Days ahead: {days_ahead})")
         return next_run_dt
 
     def _calculate_monthly_next_run(self, tz, now, task_hour, task_minute) -> Optional[datetime]:
@@ -608,45 +672,37 @@ class ScheduledTask:
         if not (self.month_val and self.day_val):
             return None
         try:
-            month_int = int(self.month_val) if isinstance(self.month_val, str) and self.month_val.isdigit() else self.month_val
-            day_int = int(self.day_val) if isinstance(self.day_val, str) and self.day_val.isdigit() else self.day_val
-            target_year = int(self.year_val) if self.year_val else now.year
+            month_int = int(self.month_val)
+            day_int = int(self.day_val)
+            if not (1 <= month_int <= 12 and 1 <= day_int <= 31):
+                logger.error(f"Task {self.task_id} - YEARLY - Invalid date: {month_int}-{day_int}")
+                return None
 
-            try:
-                naive_dt = datetime(target_year, month_int, day_int, task_hour, task_minute)
-                next_run_dt = tz.localize(naive_dt)
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Task {self.task_id} - YEARLY - Initial date: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-            except ValueError:
-                # Handle Feb 29 in non-leap years
-                if month_int == 2 and day_int == 29 and not calendar.isleap(target_year):
-                    naive_dt = datetime(target_year, 2, 28, task_hour, task_minute)
-                    next_run_dt = tz.localize(naive_dt)
-                    logger.info(f"Task {self.task_id} - YEARLY - Using Feb 28 instead of Feb 29 in non-leap year {target_year}")
-                else:
-                    logger.error(f"Task {self.task_id} - YEARLY - Invalid date: {target_year}-{month_int}-{day_int}")
-                    return None
-
-            # If date is in the past, use next occurrence
-            if next_run_dt < now:
-                if self.cycle == CYCLE_ONCE and self.year_val and int(self.year_val) < now.year:
+            # A stored past year (e.g. the creation year from the Web UI form) must
+            # not push a recurring task past the current year; a future year is the
+            # first year it runs in.
+            first_year = now.year
+            if self.year_val:
+                stored_year = int(self.year_val)
+                if self.cycle == CYCLE_ONCE and stored_year < now.year:
                     if logger.isEnabledFor(logging.DEBUG):
                         logger.debug(f"Task {self.task_id} - ONCE - Year in the past, task expired")
                     return None
+                first_year = max(first_year, stored_year)
 
-                try:
-                    next_year = now.year + 1
-                    next_run_dt = next_run_dt.replace(year=next_year)
+            for target_year in (first_year, first_year + 1):
+                # Clamp the stored day per year (Feb 29 -> Feb 28 in non-leap years)
+                # without changing the stored day, so leap years get Feb 29 again
+                day_in_year = min(day_int, calendar.monthrange(target_year, month_int)[1])
+                if day_in_year != day_int:
+                    logger.info(f"Task {self.task_id} - YEARLY - Using {target_year}-{month_int:02d}-{day_in_year:02d} "
+                                f"instead of day {day_int} (not in that month)")
+                next_run_dt = _localize(tz, datetime(target_year, month_int, day_in_year, task_hour, task_minute))
+                if next_run_dt > now:
                     if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - YEARLY - Date already passed, using next year: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                except ValueError:
-                    if month_int == 2 and day_int == 29 and not calendar.isleap(next_year):
-                        next_run_dt = next_run_dt.replace(year=next_year, day=28)
-                        logger.info(f"Task {self.task_id} - YEARLY - Using Feb 28 instead of Feb 29 in non-leap year {next_year}")
-                    else:
-                        logger.error(f"Task {self.task_id} - YEARLY - Error adjusting to next year")
-                        return None
-            return next_run_dt
+                        logger.debug(f"Task {self.task_id} - YEARLY - Calculated time: {next_run_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                    return next_run_dt
+            return None
         except (ValueError, TypeError) as e:
             logger.error(f"Error creating date for YEARLY task {self.task_id}: {e}")
             return None
@@ -681,7 +737,7 @@ class ScheduledTask:
             if self.cycle == CYCLE_ONCE:
                 next_run_dt = self._calculate_once_next_run(tz, now, task_hour, task_minute)
             elif self.cycle == CYCLE_DAILY:
-                next_run_dt = self._calculate_daily_next_run(now, task_hour, task_minute)
+                next_run_dt = self._calculate_daily_next_run(now, task_hour, task_minute, tz)
             elif self.cycle == CYCLE_WEEKLY:
                 next_run_dt = self._calculate_weekly_next_run(tz, now, task_hour, task_minute)
             elif self.cycle == CYCLE_MONTHLY:
@@ -881,9 +937,21 @@ def create_donation_system_task() -> ScheduledTask:
         task.is_active = not donations_disabled  # Active only if donations NOT disabled
         task.status = "active" if not donations_disabled else "disabled"
 
+        # System tasks are rebuilt on every load_tasks(); restore their run state
+        # so next_run stays stable until the task has run (it used to be
+        # recalculated to the next month at the due time and never became due)
+        state = _runtime.get_system_task_state(DONATION_TASK_ID)
+        task.last_run_ts = state.get("last_run_ts")
+        task.last_run_success = state.get("last_run_success")
+        task.last_run_error = state.get("last_run_error")
+
         # Use our special donation calculation (only if active)
         if task.is_active:
-            task._calculate_next_donation_run()
+            if state.get("next_run_ts"):
+                task.next_run_ts = state["next_run_ts"]
+            else:
+                task._calculate_next_donation_run()
+                _store_system_task_state(task)
         else:
             # Set next_run to None if inactive to prevent scheduling
             task.next_run_ts = None
@@ -1015,41 +1083,30 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
             # Create directory if needed
             _runtime.ensure_layout()
 
-            # Use a proper atomic write pattern for more resilience on network file systems
-            import tempfile
+            # The shared helper, not a fourth hand-rolled temp-and-rename. This
+            # one was written before utils/atomic_io.py existed and never moved
+            # onto it, and it differed in three ways that matter (review E1):
+            #
+            #   - mkstemp creates its file 0600, and the rename then made THAT
+            #     the mode of tasks.json. The file is written by two processes,
+            #     the bot and the web panel, and every save re-stamped it.
+            #   - the cleanup sat under (json.JSONDecodeError, ValueError,
+            #     TypeError, UnicodeEncodeError), so a full disk during the dump
+            #     or the fsync left the temp file behind - and the retry loop
+            #     below then made three of them per save, on every save.
+            #   - the non-posix branch used shutil.move onto an existing file,
+            #     which is a copy and not a replace. atomic_io uses os.replace,
+            #     which is atomic on both.
+            #
+            # indent=4 and ensure_ascii=False keep the file byte-for-byte the
+            # shape it had, which the unchanged-check above compares against.
+            atomic_write_json(TASKS_FILE_PATH, tasks_data, indent=4)
 
-            # Create temporary file in the same directory
-            temp_dir = str(TASKS_FILE_PATH.parent)
-            fd, temp_path = tempfile.mkstemp(dir=temp_dir, text=True)
-
-            try:
-                with os.fdopen(fd, 'w', encoding='utf-8') as f:
-                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
-                    f.flush()
-                    os.fsync(f.fileno())  # Ensure data is written to disk
-
-                # Perform atomic rename (on Unix systems) or copy+delete (on Windows)
-                if os.name == 'posix':
-                    os.rename(temp_path, TASKS_FILE_PATH)
-                else:
-                    import shutil
-                    shutil.move(temp_path, TASKS_FILE_PATH)
-
-                # Update cache and modified time after successful save
-                _runtime.invalidate_caches()
-                _runtime.record_current_file_state()
-                logger.debug("Tasks successfully saved to %s.", TASKS_FILE_PATH)
-                return True
-
-            except (json.JSONDecodeError, ValueError, TypeError, UnicodeEncodeError) as e:
-                # JSON/data/encoding errors (JSON dump failed, file encoding issues)
-                logger.error(f"Data/encoding error writing tasks file: {e}", exc_info=True)
-                # Clean up the temporary file in case of error
-                try:
-                    os.unlink(temp_path)
-                except (OSError, IOError) as cleanup_error:
-                    logger.debug(f"Failed to cleanup temporary file {temp_path}: {cleanup_error}")
-                raise e
+            # Update cache and modified time after successful save
+            _runtime.invalidate_caches()
+            _runtime.record_current_file_state()
+            logger.debug("Tasks successfully saved to %s.", TASKS_FILE_PATH)
+            return True
 
         except (IOError, OSError) as e:
             if attempt < max_retries - 1:
@@ -1067,8 +1124,21 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
 
 # --- Public Task Management API --- (Now using ScheduledTask objects and TASKS_FILE_PATH)
 
+# Task ids whose cleanup could not be written back (read-only mount, permissions). Kept so the
+# same failing rewrite is not attempted on every scheduler cycle (B5).
+_failed_cleanup_ids: frozenset = frozenset()
+
+# True while the last attempt to read tasks.json failed. Every writer builds its
+# list from load_tasks(), and a failed read gives back an EMPTY one - so saving
+# after it would write the schedule away. Cleared by the next read that works,
+# so a passing glitch heals itself (review E4).
+_last_load_failed: bool = False
+
+
+@_with_tasks_lock
 def load_tasks() -> List[ScheduledTask]:
     """Load all scheduled tasks from storage"""
+    global _last_load_failed
     # Maintain task persistence across restarts
     tasks = []
 
@@ -1078,7 +1148,7 @@ def load_tasks() -> List[ScheduledTask]:
         # Create empty tasks file
         try:
             _runtime.ensure_layout()
-            TASKS_FILE_PATH.write_text("[]", encoding="utf-8")
+            atomic_write_text(TASKS_FILE_PATH, "[]")
             _runtime.record_current_file_state()
             logger.info("Created empty tasks file at %s", TASKS_FILE_PATH)
         except (IOError, OSError, PermissionError) as e:
@@ -1104,18 +1174,51 @@ def load_tasks() -> List[ScheduledTask]:
         # Display successful loading information only on debug level to reduce log spam
         logger.debug(f"Loaded {len(tasks)} scheduled tasks")
 
+        # The read worked: whatever went wrong before is over (review E4).
+        _last_load_failed = False
+
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         # JSON/data errors (malformed JSON, unexpected data types)
         logger.error(f"JSON/data error loading tasks from {TASKS_FILE_PATH}: {e}", exc_info=True)
+        # Remembered, because this function answers with an EMPTY list and the
+        # writers cannot tell that from "there are no tasks" (review E4).
+        _last_load_failed = True
     except (IOError, OSError, UnicodeDecodeError) as e:
         # File I/O errors (cannot read file, encoding issues)
         logger.error(f"File I/O error loading tasks from {TASKS_FILE_PATH}: {e}", exc_info=True)
+        _last_load_failed = True
 
-    # Cleanup any invalid or expired tasks
-    valid_tasks = [task for task in tasks if task.is_valid()]
+    # Cleanup any invalid or expired tasks. The rewrite only happens when it can actually
+    # stick: if saving fails (read-only config mount, wrong permissions), the same cleanup
+    # would otherwise be retried on every load and rewrite tasks.json on every scheduler
+    # cycle (B5). We remember the failing ids and stay quiet until the set changes.
+    global _failed_cleanup_ids
+    # A task is removed only when it is DEFINITELY invalid. is_valid() also
+    # answers False when the check itself raised, and deleting on that would
+    # take a task out of the operator's schedule for good because a validator
+    # met an unexpected value - with no backup and nobody asked (review E5).
+    def _is_definitely_invalid(task: ScheduledTask) -> bool:
+        invalid = not task.is_valid()
+        if invalid and getattr(task, 'validation_errored', False):
+            logger.warning("Keeping task %s: its validation could not be completed, "
+                           "which is not the same as invalid", task.task_id)
+            return False
+        return invalid
+
+    valid_tasks = [task for task in tasks if not _is_definitely_invalid(task)]
     if len(valid_tasks) != len(tasks):
-        logger.info(f"Removed {len(tasks) - len(valid_tasks)} invalid tasks")
-        save_tasks(valid_tasks)
+        removed_ids = frozenset(task.task_id for task in tasks if _is_definitely_invalid(task))
+        if removed_ids == _failed_cleanup_ids:
+            logger.debug("Skipping cleanup rewrite: the same %d invalid task(s) could not be "
+                         "removed earlier", len(removed_ids))
+        elif save_tasks(valid_tasks):
+            logger.info(f"Removed {len(tasks) - len(valid_tasks)} invalid tasks")
+            _failed_cleanup_ids = frozenset()
+        else:
+            logger.warning("Could not remove %d invalid task(s): writing %s failed. Not "
+                           "retrying until the set of invalid tasks changes.",
+                           len(removed_ids), TASKS_FILE_PATH)
+            _failed_cleanup_ids = removed_ids
 
     # Cache the valid (user) tasks for faster lookups and drop stale container caches
     _runtime.replace_tasks_cache({task.task_id: task for task in valid_tasks})
@@ -1140,8 +1243,23 @@ def _get_task_grouping_key(task):
     Uses LRU cache to speed up repeated sorting operations."""
     return (task.container_name, task.action)
 
+@_with_tasks_lock
 def save_tasks(tasks: List[ScheduledTask]) -> bool:
     """Save all ScheduledTask objects to tasks.json."""
+
+    # A read that failed must not become a write. Every caller builds its list
+    # from load_tasks(), which answers with an EMPTY list when tasks.json could
+    # not be read or parsed - so adding one task after a bad read wrote a file
+    # with only that task in it, and there is no backup. The file on disk is
+    # the only copy of the schedule there is (review E4).
+    #
+    # Refusing, not guessing: no stale list is written back and no repair is
+    # attempted. The next read that works clears this by itself.
+    if _last_load_failed:
+        logger.error("Refusing to save tasks: the last read of %s failed, so the list to "
+                     "be written may be missing everything. Fix or remove the file; the "
+                     "next successful read lifts this by itself.", TASKS_FILE_PATH)
+        return False
 
     # Filter out system tasks - they should never be saved to file
     user_tasks = [task for task in tasks if not task.is_system_task()]
@@ -1168,9 +1286,12 @@ def find_task_by_id(task_id: str) -> Optional[ScheduledTask]:
 
     tasks_cache = _runtime.tasks_cache
 
-    # Try to get from cache if file hasn't changed
+    # Try to get from cache if file hasn't changed.
+    # Hand out a copy: callers such as the Web UI edit path mutate the task they get back and
+    # then save it explicitly. Returning the cached object let those edits leak into the cache
+    # before (and regardless of whether) the save succeeded (B7).
     if not _is_tasks_file_modified() and task_id in tasks_cache:
-        return tasks_cache[task_id]
+        return copy.deepcopy(tasks_cache[task_id])
 
     # For a single task lookup, try to avoid loading all tasks if possible
     # This optimization is helpful for large task lists
@@ -1231,7 +1352,10 @@ def get_tasks_for_container(container_name: str) -> List[ScheduledTask]:
             and current_time - _runtime.container_cache_timestamp < container_cache_ttl
         )
         if cache_valid:
-            return cached_tasks
+            # Own list, so a caller cannot append to or clear the cached one (B7). The task
+            # objects stay shared on purpose: every caller of this function only reads them,
+            # and this runs in the status loop where deep copies would cost real time.
+            return list(cached_tasks)
 
         # Filter from main cache if available, update container cache
         container_tasks = [task for task in tasks_cache.values() if task.container_name == container_name]
@@ -1268,6 +1392,7 @@ def check_task_time_collision(container_name: str, new_task_next_run_ts: float,
                 return True
     return False
 
+@_with_tasks_lock
 def add_task(task: ScheduledTask) -> bool:
     """Adds a new ScheduledTask, checking for time collisions and existing ID."""
     if not isinstance(task, ScheduledTask):
@@ -1300,7 +1425,13 @@ def add_task(task: ScheduledTask) -> bool:
     logger.info(f"Task {task.task_id} ({task.container_name} - {task.action}) added. Total tasks: {len(tasks)}")
     return save_tasks(tasks)
 
-def update_task(task_to_update: ScheduledTask) -> bool:
+@_with_tasks_lock
+def update_task(task_to_update: ScheduledTask, check_collision: bool = True) -> bool:
+    """Update a stored task.
+
+    check_collision=False skips the 10-minute collision check; used when the
+    scheduler saves a task's own reschedule after (or instead of) a run.
+    """
     # Prevent updating system tasks
     if task_to_update.is_system_task():
         logger.warning(f"Cannot update system task: {task_to_update.task_id}")
@@ -1325,8 +1456,9 @@ def update_task(task_to_update: ScheduledTask) -> bool:
     task_found = False
     for i, t in enumerate(tasks):
         if t.task_id == task_to_update.task_id:
-            # BUGFIX: Check for collisions before update (only for the same container, ignore the task itself)
-            if task_to_update.next_run_ts is not None:
+            # BUGFIX: Check for collisions before update (only for the same container, ignore the task itself).
+            # Skipped for the scheduler's own reschedule (check_collision=False).
+            if check_collision and task_to_update.next_run_ts is not None:
                 # Get only tasks for the same container, excluding the task being updated
                 existing_tasks_for_same_container = [ex_task for ex_task in tasks
                                                    if ex_task.container_name == task_to_update.container_name
@@ -1343,6 +1475,7 @@ def update_task(task_to_update: ScheduledTask) -> bool:
         return False
     return save_tasks(tasks)
 
+@_with_tasks_lock
 def delete_task(task_id: str) -> bool:
     # Prevent deletion of system tasks
     if task_id.startswith(SYSTEM_TASK_PREFIX):
@@ -1356,6 +1489,198 @@ def delete_task(task_id: str) -> bool:
         logger.warning(f"Task with ID {task_id} not found for deletion.")
         return False
     return save_tasks(tasks)
+
+def _store_system_task_state(task: ScheduledTask) -> None:
+    """Remember a system task's run state across load_tasks() calls.
+
+    System tasks are not stored in tasks.json and are rebuilt on every load;
+    their last_run/next_run is kept in the scheduler runtime (per process).
+    """
+    _runtime.store_system_task_state(task.task_id, {
+        "last_run_ts": task.last_run_ts,
+        "next_run_ts": task.next_run_ts,
+        "last_run_success": task.last_run_success,
+        "last_run_error": task.last_run_error,
+    })
+
+def _persist_executed_task(task: ScheduledTask) -> bool:
+    """Save the result and reschedule of an executed (or missed) task.
+
+    No collision check: the new next_run comes from the task's own schedule, and
+    a refused update would keep the old next_run (double execution, then stuck).
+    """
+    if task.is_system_task():
+        _store_system_task_state(task)
+        return True
+    return update_task(task, check_collision=False)
+
+def _format_task_time(task: ScheduledTask, timestamp: Optional[float]) -> str:
+    """Format a timestamp in the task's timezone for log and error messages."""
+    try:
+        return datetime.fromtimestamp(timestamp, _get_timezone(task.timezone_str)).strftime('%Y-%m-%d %H:%M %Z')
+    except (ValueError, TypeError, AttributeError, OSError):
+        return str(timestamp)
+
+def reschedule_missed_task(task: ScheduledTask) -> bool:
+    """Handle a task whose scheduled time passed longer ago than the grace period.
+
+    Missed runs (host down, scheduler delayed) are not executed retroactively.
+    Recurring tasks move to their next future occurrence; one-time tasks are
+    deactivated with an explanatory error instead of staying active forever.
+    """
+    missed_at = _format_task_time(task, task.next_run_ts)
+    if task.cycle == CYCLE_ONCE:
+        task.is_active = False
+        task.last_run_success = False
+        task.last_run_error = f"Missed scheduled time {missed_at} (scheduler not running); not executed"
+        logger.warning(f"One-time task {task.task_id} ({task.container_name} {task.action}) missed its time {missed_at}; deactivated")
+    else:
+        if task.is_donation_task():
+            task._calculate_next_donation_run()
+        else:
+            task.calculate_next_run()
+        logger.warning(f"Task {task.task_id} ({task.container_name} {task.action}) missed its run at {missed_at}; "
+                       f"rescheduled to {_format_task_time(task, task.next_run_ts)}")
+    return _persist_executed_task(task)
+
+# --- One-time upgrade pass for long-dead tasks (audit R1-1) ---
+#
+# Older versions never ran a recurring task again once a run was missed by more
+# than ~90 s (while still showing it as active). The missed-run handling now
+# reschedules such tasks, which would revive tasks that were dead for months (and
+# run them next to replacements users created meanwhile). Once per install, tasks
+# that are overdue by more than about two cycles are paused with a note instead.
+
+UPGRADE_PAUSE_NOTE_PREFIX = "Paused after upgrade"
+UPGRADE_STATE_FILENAME = "tasks_upgrade_state.json"
+_DEAD_TASK_PASS_KEY = "paused_long_dead_tasks"
+_DAY_SECONDS = 24 * 60 * 60
+_DEAD_TASK_THRESHOLDS = {
+    CYCLE_DAILY: 2 * _DAY_SECONDS,
+    CYCLE_WEEKLY: 14 * _DAY_SECONDS,
+    CYCLE_MONTHLY: 62 * _DAY_SECONDS,
+    CYCLE_YEARLY: 400 * _DAY_SECONDS,
+}
+_DEAD_TASK_DEFAULT_THRESHOLD = 2 * _DAY_SECONDS
+# Frequent cron schedules: an update's own downtime must not pause them
+_DEAD_TASK_MIN_THRESHOLD = 60 * 60
+
+def _cron_interval_seconds(task: ScheduledTask) -> Optional[float]:
+    """Interval between two runs of a cron task after its next_run, or None if unknown."""
+    try:
+        from croniter import croniter
+        start = datetime.fromtimestamp(task.next_run_ts, _get_timezone(task.timezone_str))
+        cron_iter = croniter(task.cron_string, start)
+        first = cron_iter.get_next(float)
+        second = cron_iter.get_next(float)
+        return second - first if second > first else None
+    except (ImportError, ValueError, TypeError, KeyError, AttributeError, OSError):
+        return None
+
+def _dead_task_threshold_seconds(task: ScheduledTask) -> float:
+    """How far in the past a task's next run may lie before it counts as long dead."""
+    if task.cycle == CYCLE_CRON:
+        interval = _cron_interval_seconds(task)
+        if interval:
+            return max(2 * interval, _DEAD_TASK_MIN_THRESHOLD)
+        return _DEAD_TASK_DEFAULT_THRESHOLD
+    return _DEAD_TASK_THRESHOLDS.get(task.cycle, _DEAD_TASK_DEFAULT_THRESHOLD)
+
+def is_upgrade_pause_note(note: Any) -> bool:
+    """True if note is the explanation written by pause_long_dead_tasks_once()."""
+    return isinstance(note, str) and note.startswith(UPGRADE_PAUSE_NOTE_PREFIX)
+
+@_with_tasks_lock
+def pause_long_dead_tasks_once(now_ts: Optional[float] = None) -> int:
+    """Pause recurring tasks that were dead long before this version (runs once per install).
+
+    Active recurring tasks whose next run lies more than about two cycles in the
+    past are deactivated with an explanatory last_run_error. Shorter misses are
+    left to the normal missed-run handling (rescheduled). A marker in the config
+    directory keeps the pass from running again. Returns the number of paused tasks.
+    """
+    state_path = _runtime.config_dir / UPGRADE_STATE_FILENAME
+    state: Dict[str, Any] = {}
+    try:
+        if state_path.exists():
+            loaded = json.loads(state_path.read_text(encoding='utf-8') or '{}')
+            if isinstance(loaded, dict):
+                if _DEAD_TASK_PASS_KEY in loaded:
+                    return 0
+                state = loaded
+    except (OSError, ValueError, TypeError) as e:
+        # Unreadable marker: better skip than risk pausing tasks on every start
+        logger.warning(f"Could not read {state_path}: {e}; skipping the one-time check for long-dead tasks")
+        return 0
+
+    now_ts = time.time() if now_ts is None else now_ts
+    tasks = load_tasks()
+    paused = []
+    for task in tasks:
+        if task.is_system_task() or not task.is_active or task.cycle == CYCLE_ONCE or not task.next_run_ts:
+            continue
+        if now_ts - task.next_run_ts <= _dead_task_threshold_seconds(task):
+            continue
+        # Last run if known, otherwise the run that was missed first
+        since_ts = task.last_run_ts if task.last_run_ts and task.last_run_ts < task.next_run_ts else task.next_run_ts
+        task.is_active = False
+        task.last_run_error = (f"{UPGRADE_PAUSE_NOTE_PREFIX}: had not run since {_format_task_time(task, since_ts)}; "
+                               f"re-enable if still wanted")
+        paused.append(task)
+
+    if paused and not save_tasks(tasks):
+        logger.error(f"Could not save {len(paused)} long-dead task(s) as paused; retrying at the next start")
+        return 0
+
+    state[_DEAD_TASK_PASS_KEY] = {
+        "done_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "paused": [task.task_id for task in paused],
+    }
+    try:
+        _runtime.ensure_layout()
+        atomic_write_text(state_path, json.dumps(state, indent=4))
+    except (OSError, TypeError, ValueError) as e:
+        logger.warning(f"Could not write {state_path}: {e}; the check for long-dead tasks runs again at the next start")
+
+    if paused:
+        summary = ", ".join(f"{task.container_name} {task.action} ({task.cycle}, {task.task_id})" for task in paused)
+        logger.warning(f"Upgrade check: paused {len(paused)} scheduled task(s) that had not run for more than "
+                       f"two cycles; re-enable them in the Web UI if still wanted: {summary}")
+    else:
+        logger.info("Upgrade check: no long-dead scheduled tasks found")
+    return len(paused)
+
+async def _get_container_stop_timeout(container_name: str) -> Optional[int]:
+    """Return the container's configured StopTimeout in seconds, or None if unset or unknown."""
+    try:
+        import docker
+        from services.docker_service.docker_client_pool import get_docker_client_async
+        from services.docker_service.docker_action_service import get_stop_timeout_kwargs
+        from services.exceptions import DockerServiceError
+    except ImportError as e:
+        logger.debug(f"StopTimeout lookup unavailable: {e}")
+        return None
+
+    async def _lookup() -> Optional[int]:
+        async with get_docker_client_async(timeout=10, operation='info', container_name=container_name) as client:
+            container = await asyncio.to_thread(client.containers.get, container_name)
+            return get_stop_timeout_kwargs(container).get('timeout')
+
+    try:
+        return await asyncio.wait_for(_lookup(), timeout=15)
+    except (asyncio.TimeoutError, docker.errors.DockerException, DockerServiceError,
+            OSError, RuntimeError, AttributeError, TypeError, ValueError) as e:
+        logger.debug(f"Could not read StopTimeout of '{container_name}': {e}")
+        return None
+
+async def _get_action_timeout(task: ScheduledTask, timeout: float) -> float:
+    """Timeout for a task's Docker action: at least StopTimeout + margin for stop/restart."""
+    if task.action not in NON_REPEATABLE_ACTIONS:
+        return timeout
+    stop_timeout = await _get_container_stop_timeout(task.container_name)
+    if stop_timeout is None:
+        return timeout
+    return max(timeout, stop_timeout + STOP_TIMEOUT_MARGIN_SECONDS)
 
 def get_tasks_in_timeframe(start_time: float, end_time: float) -> List[ScheduledTask]:
     """Get all tasks scheduled within a specific timeframe, using cache when possible."""
@@ -1382,6 +1707,54 @@ def get_next_week_tasks() -> List[ScheduledTask]:
     week_later = now + (7 * 24 * 60 * 60)
     return get_tasks_in_timeframe(now, week_later)
 
+def _is_discord_created(task: ScheduledTask) -> bool:
+    """True for tasks created in Discord (not by the Web UI admin or the system).
+
+    A task without a creator marker predates the marker (older installs) and must NOT be
+    treated as Discord-created: combined with the ['status'] default for container configs
+    that lack allowed_actions, it would be skipped on every run, forever (V2 review B4).
+    """
+    if not task.created_by:
+        return False
+    return task.created_by not in (WEB_UI_CREATOR, "SYSTEM")
+
+def _get_disallowed_action_reason(container_name: str, action: str) -> Optional[str]:
+    """Return why a scheduled action may no longer run, or None if it may run.
+
+    Only a configured container whose allowed_actions lack the action blocks the
+    run. If the container config cannot be read or the container is not
+    configured, the task runs as before (logged).
+    """
+    try:
+        from services.config.server_config_service import get_server_config_service
+        servers = get_server_config_service().get_all_servers()
+    except (ImportError, AttributeError, RuntimeError, OSError, ValueError) as e:
+        # REFUSES, where this used to return None and let the action through.
+        # None means "may run" here, so an unreadable config was granting a
+        # permission it could not check - and SPEC.md Z5 says start, stop and
+        # restart happen only if the container allows the action, on every path
+        # including this one. It is also the answer this programme gave the same
+        # question elsewhere: D36 for the admin list, D32 for the container
+        # assignment, E5 for the validity check. A permission that cannot be
+        # read is not a permission granted (review E6).
+        #
+        # Since E3 a skipped run is written on the task, so this does not
+        # vanish into the log the way it would have before.
+        logger.error(f"Could not check allowed actions for '{container_name}': {e}", exc_info=True)
+        return (f"The container configuration could not be read, so it is not known whether "
+                f"'{action}' is still allowed for '{container_name}'")
+
+    for server in servers:
+        if isinstance(server, dict) and server.get('docker_name') == container_name:
+            allowed_actions = server.get('allowed_actions') or []
+            if action in allowed_actions:
+                return None
+            return (f"Action '{action}' is no longer allowed for container '{container_name}' "
+                    f"(allowed: {', '.join(allowed_actions) or 'none'})")
+
+    logger.warning(f"Container '{container_name}' of a scheduled task is not in the container config; running it anyway")
+    return None
+
 async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
     """
     Execute a scheduled task with timeout handling and robust error management.
@@ -1405,7 +1778,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             task.last_run_success = True
             task.last_run_error = None
             task.update_after_execution()
-            update_task(task)
+            _persist_executed_task(task)
             return True  # Return true so it reschedules normally
 
         # Execute donation message task
@@ -1449,7 +1822,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
                 )
 
             task.update_after_execution()
-            update_task(task)
+            _persist_executed_task(task)
             return result
 
         except (ImportError, AttributeError, RuntimeError) as e:
@@ -1469,16 +1842,43 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             )
 
             task.update_after_execution()
-            update_task(task)
+            _persist_executed_task(task)
             return False
 
+    # Re-check the container's allowed actions at execution time for tasks created
+    # in Discord: the config may have changed since the task was created. Disallowed
+    # runs are skipped and recorded as failed (audit A10). Web UI tasks are admin
+    # tasks and always run (R4-1).
+    disallowed_reason = None
+    if _is_discord_created(task):
+        disallowed_reason = _get_disallowed_action_reason(task.container_name, task.action)
+    if disallowed_reason:
+        logger.warning(f"Skipping task {task.task_id}: {disallowed_reason}")
+        task.last_run_success = False
+        task.last_run_error = disallowed_reason
+        log_user_action(
+            action=f"{task.action.upper()}_SKIPPED",
+            target=task.container_name,
+            user="Scheduled Task",
+            source="Scheduled Task",
+            details=f"Task ID: {task.task_id}, Cycle: {task.cycle}, Error: {disallowed_reason}"
+        )
+        task.update_after_execution()
+        _persist_executed_task(task)
+        return False
+
     try:
-        # Create a timeout for the docker action
+        # Stop/restart get at least the container's StopTimeout + margin and are
+        # never sent a second time after a timeout (the first may still be running,
+        # R5-1). Idempotent actions (start) are retried once with a longer timeout.
+        action_timeout = await _get_action_timeout(task, timeout)
+        if task.action in NON_REPEATABLE_ACTIONS:
+            attempt_timeouts = [action_timeout]
+        else:
+            attempt_timeouts = [action_timeout, action_timeout * 1.5]
         try:
-            # Try to execute with increasing timeouts if needed
-            for retry_count, current_timeout in enumerate([timeout, timeout * 1.5]):
+            for retry_count, current_timeout in enumerate(attempt_timeouts):
                 try:
-                    # Only retry once and with increased timeout
                     if retry_count > 0:
                         logger.warning(f"Retrying task {task.task_id} with increased timeout {current_timeout}s")
 
@@ -1490,16 +1890,17 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
                     # If successful, no need to retry
                     break
                 except asyncio.TimeoutError:
-                    if retry_count == 0:
-                        # First timeout, will retry with increased timeout
+                    if retry_count + 1 < len(attempt_timeouts):
                         logger.warning(f"Task {task.task_id} timed out after {current_timeout}s, retrying with increased timeout")
                         continue
-                    else:
-                        # Final timeout
-                        raise
+                    raise
 
         except asyncio.TimeoutError:
-            error_msg = f"Docker action timed out after {timeout * 1.5} seconds"
+            if task.action in NON_REPEATABLE_ACTIONS:
+                error_msg = (f"Docker {task.action} timed out after {attempt_timeouts[-1]:g} seconds; "
+                             f"it may still be in progress and was not sent again")
+            else:
+                error_msg = f"Docker action timed out after {attempt_timeouts[-1]:g} seconds"
             logger.error(f"Task {task.task_id} - {error_msg}")
             task.last_run_success = False
             task.last_run_error = error_msg
@@ -1511,7 +1912,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
                 details=f"Task ID: {task.task_id}, Cycle: {task.cycle}, Error: {error_msg}"
             )
             task.update_after_execution()
-            update_task(task)
+            _persist_executed_task(task)
             return False
 
         if result:
@@ -1531,7 +1932,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             )
 
             task.update_after_execution()
-            update_task(task)
+            _persist_executed_task(task)
             return True
         else:
             logger.error(f"Execution failed for task {task.task_id}.")
@@ -1549,7 +1950,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             )
 
             task.update_after_execution()
-            update_task(task)
+            _persist_executed_task(task)
             return False
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (docker service unavailable, action execution failures)
@@ -1571,7 +1972,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
         )
 
         task.update_after_execution()
-        update_task(task)
+        _persist_executed_task(task)
         return False
     except (ValueError, TypeError, KeyError) as e:
         # Data errors (invalid task parameters, type mismatches, missing attributes)
@@ -1593,7 +1994,45 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
         )
 
         task.update_after_execution()
-        update_task(task)
+        _persist_executed_task(task)
+        return False
+    except asyncio.CancelledError:
+        # The scheduler is going down; this is not the task's failure.
+        raise
+    except BaseException as e:
+        # Deliberately not a type list, and it belongs here rather than in a
+        # wider tuple above: the one error a scheduled container action really
+        # fails with is a DDC exception, and DDCBaseException descends from
+        # Exception and from nothing the four handlers above name. The chain is
+        # execute_task -> docker_action_service_first -> execute_docker_action
+        # -> get_docker_client_async -> raise DockerConnectionError, and not
+        # one link catches it.
+        #
+        # It escaped all the way to the scheduler service's broad handler,
+        # which logs it - C6 saw to that. What it did NOT do was write anything
+        # on the TASK, so the panel kept showing the previous run, quite
+        # possibly a success, while the nightly restart was not happening. The
+        # log had it; the operator did not (review E3).
+        execution_time = time.time() - execution_start
+        error_msg = f"Error executing task {task.task_id}: {e}"
+        logger.error(error_msg, exc_info=True)
+
+        task.last_run_success = False
+        task.last_run_error = str(e)
+
+        log_user_action(
+            action=f"{task.action.upper()}_ERROR",
+            target=task.container_name,
+            user="Scheduled Task",
+            source="Scheduled Task",
+            details=f"Task ID: {task.task_id}, Cycle: {task.cycle}, Duration: {execution_time:.2f}s, Error: {str(e)}"
+        )
+
+        # Moved on to its next run like every other failure here. A connection
+        # error is not more retryable than "Docker action failed", and that one
+        # has never been retried on the next cycle either.
+        task.update_after_execution()
+        _persist_executed_task(task)
         return False
 
 # --- Validation & Parsing Functions (Maintain and adjust if needed) ---
@@ -1783,23 +2222,18 @@ def parse_weekday_string(weekday_str: str) -> Optional[int]:
     Parse a weekday string to an integer (0=Monday, 6=Sunday).
 
     Args:
-        weekday_str: String representation of a weekday (e.g., 'monday', 'mon', '0', etc.)
+        weekday_str: String representation of a weekday (e.g., 'monday', 'mon', or '1'-'7' with Monday=1)
 
     Returns:
         Integer representation of the weekday (0-6) or None if invalid
     """
     weekday_str = weekday_str.strip().lower()
 
-    # Direct numeric input (0-6)
+    # Numeric input uses 1-7 with Monday=1 (as the command help documents);
+    # anything else, including 0, is invalid
     if weekday_str.isdigit():
         weekday = int(weekday_str)
-        if 0 <= weekday <= 6:
-            return weekday
-        # For 1-7 format (Monday=1), convert to 0-6
-        elif 1 <= weekday <= 7:
-            # Modulo for the case 7->0 instead of 7->6
-            result = (weekday - 1) % 7
-            return result
+        return weekday - 1 if 1 <= weekday <= 7 else None
 
     # Text input (weekday names)
     weekday_map = {

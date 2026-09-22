@@ -1,0 +1,257 @@
+{
+  "section": "24",
+  "verdicts": [
+    {
+      "name": "services/mech/progress_service.py:119 load_config",
+      "verdict": "finding",
+      "finding": "F5"
+    },
+    {
+      "name": "services/mech/progress_service.py:138 Snapshot",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:157 Snapshot.to_json",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:161 Snapshot.from_json",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:174 Event",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:181 Event.to_json",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:186 ProgressState",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:207 now_utc_iso",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:211 today_local_str",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:215 read_events",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:242 append_event",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:257 next_seq",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:274 snapshot_path",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:279 load_snapshot",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "services/mech/progress_service.py:341 persist_snapshot",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:385 current_bin",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:394 requirement_for_bin",
+      "verdict": "finding",
+      "finding": "F6"
+    },
+    {
+      "name": "services/mech/progress_service.py:399 requirement_for_level_and_bin",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:555 get_decay_config_data",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:582 decay_per_day",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:591 bin_to_tier_name",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:607 apply_decay_on_demand",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:618 set_new_goal_for_next_level",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:673 member_count_for_goal",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:747 current_power_cents",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:766 settle_power_decay",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:777 compute_ui_state",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:813 deterministic_gift_1_3",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:823 apply_donation_units",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:930 add_system_power",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:957 apply_power_event",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:989 ProgressService",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:996 ProgressService.get_state",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:1016 ProgressService.add_donation",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "services/mech/progress_service.py:1084 ProgressService.add_system_donation",
+      "verdict": "finding",
+      "finding": "F1"
+    },
+    {
+      "name": "services/mech/progress_service.py:1237 ProgressService.update_member_count",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:1256 ProgressService.tick_decay",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/progress_service.py:1264 ProgressService.power_gift",
+      "verdict": "finding",
+      "finding": "F2"
+    },
+    {
+      "name": "services/mech/progress_service.py:1307 ProgressService.rebuild_from_events",
+      "verdict": "finding",
+      "finding": "F3"
+    },
+    {
+      "name": "services/mech/progress_service.py:1461 ProgressService.delete_donation",
+      "verdict": "finding",
+      "finding": "F4"
+    },
+    {
+      "name": "services/mech/progress_service.py:1544 get_progress_service",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/speed_levels.py:221 get_speed_info",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/speed_levels.py:252 get_speed_emoji",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/speed_levels.py:259 get_translated_speed_description",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/speed_levels.py:295 get_speed_level_for_state",
+      "verdict": "checked"
+    },
+    {
+      "name": "services/mech/speed_levels.py:313 get_combined_mech_status",
+      "verdict": "checked"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/mech/progress_service.py",
+      "line": 1079,
+      "trigger": "In add_donation, append_event(evt) at line 1059 durably writes the DonationAdded event to events.jsonl before persist_snapshot(snap) is attempted at line 1079 (add_system_donation has the identical shape: append_event at 1207, persist_snapshot inside a try at 1224). If persist_snapshot then raises (disk full, permission error, a hiccup on a network-mounted data dir), the exception propagates out of add_donation/add_system_donation uncaught - so the immediate call is honestly reported as failed, in line with Z3. But the event is now permanently in the log with no matching snapshot update. On any retry with the same idempotency_key (the natural client reaction to a failed call), the check at lines 1032-1039 finds the already-appended event and returns compute_ui_state(load_snapshot(...)) at once - a perfectly normal ProgressState, no error - without ever applying that donation's power/evolution effect. The donor's money is safe in the ledger (Z1 holds), but the mech's displayed progress permanently omits it, and retrying - the one thing a user would do - is exactly what the idempotency check turns into a silent no-op that looks like success.",
+      "suggestion": "On a persist_snapshot failure after append_event, either roll the snapshot forward via rebuild_from_events() before re-raising, or make the idempotency short-circuit compare against snap.last_event_seq so an event that is newer than the persisted snapshot is reprocessed instead of treated as already-applied.",
+      "severity": "critical",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "services/mech/progress_service.py",
+      "line": 1273,
+      "trigger": "power_gift() calls persist_snapshot(snap) on both of its early-return 'nothing to do' paths - power already > 0 (line 1271-1274) and campaign_id already used (line 1280-1284) - even though nothing on snap changed. This is exactly the pattern the comment on get_state() (around line 1001) documents as having been fixed and describes as harmful: repeated needless temp-file+fsync+rename writes for a read, and 'a read also had no business failing on a PermissionError'. Unlike tick_decay(), which that same comment explicitly excuses because it has no production caller, power_gift() is a live, user-facing check (whether the mech deserves a monthly gift) that a transient disk error would now turn into a hard failure instead of just returning the current, unchanged state.",
+      "suggestion": "Only call persist_snapshot() in power_gift() on the path that actually grants a gift, mirroring the conditional-write fix already applied to get_state().",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "services/mech/progress_service.py",
+      "line": 1338,
+      "trigger": "When a snapshot fails to decode, load_snapshot() (line 287) calls _recover_corrupt_snapshot(), which moves the corrupt file aside to '<name>.corrupt-<timestamp>' (line 320) and then calls rebuild_from_events() purely for the side effect described in its own comment: 'rebuild_from_events persists a fresh snapshot (replacing the corrupt file)' (line 326). That assumption breaks if the event log also has damaged/unreadable lines: rebuild_from_events then takes its 'refuse to rebuild, keep the existing snapshot' branch (lines 1327-1348), which does NOT call persist_snapshot at all - and since the snapshot file was just moved away, path.exists() (line 1340) is False, so it silently returns an in-memory, blank Level-1/$0 Snapshot without writing anything. Back in _recover_corrupt_snapshot, the subsequent read-back of the (still-missing) file fails too, so it falls through to its own blank-Snapshot fallback (lines 336-338) and returns that - still unpersisted. This blank snapshot then flows up to whatever caller invoked load_snapshot, e.g. get_state() (line 996): its last_decay_day check (line 1010-1013) sees a change from '' to today's date and DOES call persist_snapshot - permanently writing the reset, blank mech state to disk. The mech's entire donation history/level/power is silently replaced with a fresh Level 1 / $0 state; only ERROR-level log lines mark what happened, and the only trace of the real prior state is the timestamped '.corrupt-*' backup and the still-damaged event log, which nothing prompts anyone to inspect.",
+      "suggestion": "In the damaged-log branch of rebuild_from_events, don't assume snapshot_path() still holds the file being replaced; or have _recover_corrupt_snapshot refuse to return a value (propagate an error) instead of falling back to a fresh blank Snapshot when both the snapshot and the event log are unusable, so a caller like get_state() cannot unknowingly persist a reset.",
+      "severity": "critical",
+      "certainty": "sure"
+    },
+    {
+      "id": "F4",
+      "file": "services/mech/progress_service.py",
+      "line": 1535,
+      "trigger": "delete_donation() acquires the module-global LOCK at line 1478, appends a DonationDeleted event, and then calls self.rebuild_from_events() at line 1535 - which itself immediately does 'with LOCK:' again at line 1322 on the same lock object (LOCK = runtime.lock, a module-level singleton shared by get_state, add_donation, tick_decay, power_gift and every other method). The same nested-with-LOCK shape also occurs inside load_snapshot's own decay-anchor migration writes (lines 292-293 and 303-304) and inside _recover_corrupt_snapshot's call to rebuild_from_events (line 327) - both reached from functions (load_snapshot) that are themselves always invoked under 'with LOCK:' by every caller in this file. If runtime.lock is a plain, non-reentrant threading.Lock, any of these paths self-deadlocks the calling thread - and because the lock is shared process-wide, every subsequent donation, status read, or Discord/web action touching this mech hangs behind it too.",
+      "suggestion": "Confirm runtime.lock (services/mech/progress.py) is a reentrant RLock; if it is not, refactor the inner persist/rebuild calls in load_snapshot and _recover_corrupt_snapshot to lock-free helpers so nested acquisition is impossible by construction.",
+      "severity": "critical",
+      "certainty": "unsure",
+      "unsure_why": "Whether services/mech/progress.py defines runtime.lock as a plain Lock or a reentrant RLock cannot be determined from the files given for this review; if it is an RLock, none of the described paths actually deadlock."
+    },
+    {
+      "id": "F5",
+      "file": "services/mech/progress_service.py",
+      "line": 125,
+      "trigger": "CFG = load_config() (line 125) runs once at module import and is never reassigned anywhere else in this file (no other 'CFG =' and no 'refresh=True' call exist in it). current_bin() (line 387), requirement_for_level_and_bin() (lines 450, 482-483) and set_new_goal_for_next_level() (lines 633-634) all read this same import-time CFG dict for difficulty bins, base costs and dynamic costs. If an admin edits these values in the mech config while the process keeps running, every subsequent level-up keeps pricing against the old numbers until the process restarts, with no error and no indication that the change did not take effect. This is a visible inconsistency within the same file: get_decay_config_data() (line 556) deliberately re-reads decay.json every 10 seconds specifically so decay-rate edits take effect promptly, while the arguably more important, money-facing level-cost config has no equivalent refresh here.",
+      "suggestion": "If live config edits are meant to take effect without a restart, refresh CFG the same way get_decay_config_data() refreshes the decay config; otherwise document that a restart is required after editing level costs or difficulty bins.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "Whether services/mech/progress.py's runtime.load_config() returns a dict that some other, unseen caller mutates in place (making the module-level CFG binding effectively live) cannot be determined from the files given for this review."
+    },
+    {
+      "id": "F6",
+      "file": "services/mech/progress_service.py",
+      "line": 397,
+      "trigger": "requirement_for_bin(b) returns int(CFG.get('bin_to_requirement', {}).get(str(b), 0)) - but 'bin_to_requirement' is not a key anywhere in DEFAULT_CONFIG (only difficulty_bins, level_base_costs, bin_to_dynamic_cost and mech_power_decay_per_day are), so on a default installation this function always returns 0 for every bin. It is marked 'DEPRECATED: Use requirement_for_level_and_bin instead' yet remains an exported public function. If anything outside this review's material still calls it instead of requirement_for_level_and_bin, every level-up it prices would silently require $0.00.",
+      "suggestion": "If no caller remains, remove requirement_for_bin; if one does, make it delegate to requirement_for_level_and_bin instead of reading a config key that no longer exists.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether requirement_for_bin still has a live caller is outside this review's material (only progress_service.py and speed_levels.py were provided); within these two files it is unused."
+    }
+  ],
+  "notes": "Several functions depend on modules not included in this review's material and could not be fully checked: services/mech/progress.py (defines get_progress_runtime(), runtime.lock, runtime.load_config() - referenced by F4 and F5), services/mech/mech_defaults.py (resolve_mech_file, backing get_decay_config_data and the speed-translations loader in speed_levels.py), services/mech/mech_evolutions.py (get_evolution_level, get_evolution_level_info, get_evolution_info - backing most of speed_levels.py's evolution/speed math), and services/config/config_service.py (evolution-mode / language lookups used by requirement_for_level_and_bin and get_combined_mech_status). None of these were guessed at; where a finding's certainty depends on them it is marked unsure. Separately noted but not raised as findings: (1) add_system_power (line ~933-939) silently resets a corrupted negative power_acc/cumulative_donations_cents to 0 after only an ERROR log line, rather than routing through the existing corrupt-snapshot recovery path - a real but currently unreachable-in-normal-operation defensive branch. (2) get_combined_mech_status's 'evolution_level is None' fallback path explicitly guesses the mech level from lifetime donations rather than using the real level, which its own comment already documents as wrong once level costs are dynamic - this looks like a known, self-documented legacy limitation rather than a new finding, but it was not possible to tell whether any current caller still exercises that fallback path."
+}

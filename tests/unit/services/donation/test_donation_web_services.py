@@ -407,18 +407,16 @@ class TestDonationTrackingService:
         assert result.success is True
 
     def test_record_donation_click_invalid_type(self):
-        # Validation builds a ``DonationClickResult`` without the required
-        # ``message`` arg which raises a TypeError.  The outer ``except``
-        # handler tries to build the same result and raises again -- the
-        # current production code therefore propagates the TypeError.
-        # Document that behaviour so the test fails loudly if the bug is
-        # ever fixed (which would require updating this assertion).
+        # ``DonationClickResult.message`` now has a default, so validation
+        # returns a failure result instead of raising a TypeError.
         req = DonationClickRequest(
             donation_type="bitcoin",
             request_object=self._flask_request(),
         )
-        with pytest.raises(TypeError):
-            self.service.record_donation_click(req)
+        result = self.service.record_donation_click(req)
+        assert result.success is False
+        assert result.error == "Invalid donation type"
+        assert result.message == ""
 
     def test_get_user_identifier_falls_back_to_ip(self):
         # Force the auth import to raise so the IP fallback is used.
@@ -455,14 +453,21 @@ class TestDonationTrackingService:
 # =========================================================================== #
 
 class TestDonationMessageService:
-    """Scheduled monthly donation appeal task."""
+    """Scheduled monthly donation appeal task.
 
-    def _state(self, power=5.0, level=2, level_name="X", evolution=10.0):
+    The channel configurations below carry ``commands.serverstatus``. They used
+    to be empty dicts, which was enough while the task sent its appeal to every
+    entry in channel_permissions - including control-only and download-only
+    channels (review C74). "All channels" in these test names means all STATUS
+    channels, and the fixtures now say so.
+    """
+
+    def _state(self, power=5.0, level=2, evolution=10):
+        # Fields of services.mech.progress_service.ProgressState
         return SimpleNamespace(
-            power_dollars=power,
+            power_current=power,
             level=level,
-            level_name=level_name,
-            evolution_progress=evolution,
+            evo_percent=evolution,
         )
 
     def _bot_with_channels(self, channel_ids):
@@ -486,7 +491,7 @@ class TestDonationMessageService:
             return_value=progress_service,
         ), patch(
             "services.config.config_service.load_config",
-            return_value={"channel_permissions": {"1001": {}, "1002": {}}},
+            return_value={"channel_permissions": {"1001": {"commands": {"serverstatus": True}}, "1002": {"commands": {"serverstatus": True}}}},
         ), patch(
             "cogs.translation_manager._",
             side_effect=lambda s: s,
@@ -515,7 +520,7 @@ class TestDonationMessageService:
             return_value=progress_service,
         ), patch(
             "services.config.config_service.load_config",
-            return_value={"channel_permissions": {"1001": {}}},
+            return_value={"channel_permissions": {"1001": {"commands": {"serverstatus": True}}}},
         ), patch(
             "cogs.translation_manager._",
             side_effect=lambda s: s,
@@ -542,7 +547,7 @@ class TestDonationMessageService:
             return_value=progress_service,
         ), patch(
             "services.config.config_service.load_config",
-            return_value={"channel_permissions": {"7777": {}}},
+            return_value={"channel_permissions": {"7777": {"commands": {"serverstatus": True}}}},
         ), patch(
             "cogs.translation_manager._",
             side_effect=lambda s: s,
@@ -584,24 +589,26 @@ class TestDonationMessageService:
 
         assert ok is True
 
-    def test_set_and_get_bot_instance(self):
+    def test_set_and_get_bot_instance(self, monkeypatch):
+        monkeypatch.setattr(dms, "_bot_instance", None)
         bot = object()
         dms.set_bot_instance(bot)
-        # Note: there are two ``get_bot_instance`` definitions in the
-        # module – the *second* one replaces the first at import time and
-        # tries to import ``bot``.  We simply assert the setter wired up
-        # the module-level state.
+        # The registered instance (bot.py calls set_bot_instance) is returned
+        # first; the duplicate getter that ignored it was removed (audit A7).
         assert dms._bot_instance is bot
+        assert dms.get_bot_instance() is bot
 
-    def test_get_bot_instance_module_lookup(self):
-        # The second ``get_bot_instance`` (currently the live one) tries
-        # to import the top-level ``bot`` module.  Stub it out so the
-        # function returns the stub's ``bot`` attribute.
+    def test_get_bot_instance_module_lookup(self, monkeypatch):
+        # Without a registered instance the getter falls back to the
+        # top-level ``bot`` module.  Stub it out so the function returns the
+        # stub's ``bot`` attribute.
+        monkeypatch.setattr(dms, "_bot_instance", None)
         fake_bot_module = SimpleNamespace(bot="REAL-BOT")
         with patch.dict("sys.modules", {"bot": fake_bot_module}):
             assert dms.get_bot_instance() == "REAL-BOT"
 
-    def test_get_bot_instance_returns_none_when_module_missing(self):
+    def test_get_bot_instance_returns_none_when_module_missing(self, monkeypatch):
+        monkeypatch.setattr(dms, "_bot_instance", None)
         with patch.dict("sys.modules", {"bot": None}):
             # ``None`` here causes the ``import bot`` call to raise
             # ImportError – the function should swallow it and return None.

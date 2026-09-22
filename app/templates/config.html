@@ -45,7 +45,11 @@
                                 <span class="visually-hidden">{{ _t('web.common.loading') }}</span>
                             </div>
                         </div>
-                        <div id="powerConsumptionOverlay" class="power-consumption-overlay">-$0.00003472</div>
+                        <!-- Filled from the server's decay_per_day (see updateConsumptionOverlay).
+                             It used to carry the fixed literal -$0.00003472, which matched no
+                             configured rate at all - that value is ~3 $/day, while the real rate is
+                             level-dependent (1.50 $/day on level 6) - and nothing ever recomputed it. -->
+                        <div id="powerConsumptionOverlay" class="power-consumption-overlay"></div>
                         <div id="speedStatusOverlay" class="speed-status-overlay">{{ _t('web.config.mech_offline') }}</div>
                     </div>
                 </div>
@@ -985,6 +989,16 @@
                 PowerState.serverPower = data.current_Power_raw || data.current_Power || 0;
                 PowerState.serverTime = Date.now();
                 PowerState.serverData = data;
+
+                // Take the level-specific decay rate straight away. Until v2.4.1 only
+                // syncWithServer() did this, and that first runs after SERVER_SYNC_INTERVAL
+                // (60 s) - so for the first minute the display counted down with the default
+                // of 1 $/day instead of the real rate (1.50 $/day on level 6), which made the
+                // power appear to drain more slowly than it does.
+                if (data.decay_per_day !== undefined) {
+                    POWER_CONFIG.DECAY_RATE = data.decay_per_day / 86400;
+                    updateConsumptionOverlay(data.decay_per_day);
+                }
                 
                 console.log(`[POWER v3.0] Initial load: $${PowerState.serverPower.toFixed(2)}`);
                 updatePowerDisplay(PowerState.serverPower);
@@ -1035,6 +1049,7 @@
                 // Update decay rate from server (level-specific)
                 if (data.decay_per_day !== undefined) {
                     POWER_CONFIG.DECAY_RATE = data.decay_per_day / 86400;  // Convert per-day to per-second
+                    updateConsumptionOverlay(data.decay_per_day);
                     console.log(`[POWER v3.0] Decay rate updated: ${data.decay_per_day}/day (${POWER_CONFIG.DECAY_RATE.toFixed(8)}/s)`);
                 }
 
@@ -1120,15 +1135,13 @@
                         nextEvolutionName.textContent = "MAX EVOLUTION REACHED";
                         nextEvolutionAmount.textContent = "🌟 OMEGA MECH ACHIEVED";
                     } else {
-                        // Get next evolution name based on current level
-                        const evolutionNames = [
-                            "SCRAP MECH", "REPAIRED MECH", "STANDARD MECH", "ENHANCED MECH",
-                            "ADVANCED MECH", "ELITE MECH", "CYBER MECH", "PLASMA MECH",
-                            "QUANTUM MECH", "DIVINE MECH", "OMEGA MECH"
-                        ];
-
-                        if (currentLevel < evolutionNames.length) {
-                            nextEvolutionName.textContent = evolutionNames[currentLevel]; // Next level name
+                        // The next evolution's name comes from the server, which reads the same
+                        // configured list Discord uses. This used to be a hardcoded array here
+                        // ("STANDARD MECH", ...) that had drifted from the configured names
+                        // ("The Corewalker Standard", ...), so the panel and Discord disagreed
+                        // about the same level.
+                        if (data.next_level_name) {
+                            nextEvolutionName.textContent = data.next_level_name;
                         }
 
                         // Update amount needed
@@ -1212,51 +1225,21 @@
             }
         }
         
-        // Consume Power every 3 seconds (backend only, no Next Bar animation)
-        function consumePower() {
-            const powerAmount = document.getElementById('powerAmount');
-            
-            if (powerAmount) {
-                // Parse current Power amount
-                const currentPower = parseFloat(powerAmount.textContent.replace('$', ''));
-                
-                // Only consume Power if we have Power
-                if (currentPower > 0) {
-                    // Actually consume Power on server
-                    fetch('/api/donation/consume-Power', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            amount: 0.00003472  // Exact amount for 1$ per day
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update display with new amount
-                            powerAmount.textContent = '$' + data.new_Power.toFixed(2);
-                            
-                            // If Power hits 0, refresh mech animation
-                            if (data.new_Power <= 0) {
-                                setTimeout(() => {
-                                    // Use new efficient Power system instead
-                            syncWithServer();
-                                }, 1500);
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error consuming Power:', error);
-                    });
-                }
+        // Show the ACTUAL consumption per second, derived from the server's level-specific
+        // decay rate. This element used to carry the fixed literal -$0.00003472 (about 3 $/day),
+        // which matched no configured rate - the real one is 1.50 $/day on level 6 - and nothing
+        // ever recomputed it.
+        function updateConsumptionOverlay(decayPerDay) {
+            const overlay = document.getElementById('powerConsumptionOverlay');
+            if (!overlay) return;
+            const perDay = Number(decayPerDay);
+            if (!isFinite(perDay) || perDay <= 0) {
+                overlay.textContent = '';   // level 11 never decays - show nothing rather than a zero
+                return;
             }
+            overlay.textContent = `-$${(perDay / 86400).toFixed(8)}`;
         }
-        
-        // OLD: Power consumption moved to efficient client-side system above
-        // setInterval(consumePower, 3000); // DISABLED - using client-side calculation
-        
+
         // Flash consumption overlay with fade animation every 3 seconds (only if Power > 0)
         function flashConsumptionOverlay() {
             const overlay = document.getElementById('powerConsumptionOverlay');
@@ -1373,12 +1356,26 @@
                 }
             }
             
+            // One-shot token per submission. It is created on the first submit and
+            // only retired after a confirmed booking, so a retry after the 30s
+            // timeout carries the SAME token and books once. crypto.randomUUID
+            // exists only in a secure context; DDC deliberately runs plain HTTP on
+            // the LAN (SPEC.md B3), hence the fallback - without it no token would
+            // be generated at all and the submission would go out unprotected.
+            // See SPEC.md Z4.
+            if (!window.__ddcDonationToken) {
+                window.__ddcDonationToken = (window.crypto && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : 'web-' + Date.now().toString(16) + '-' + Math.random().toString(16).slice(2);
+            }
+
             // Prepare donation data
             const donationData = {
                 amount: parseFloat(amount),
                 donor_name: donorName,
                 publish_to_discord: publishToDiscord,
-                source: 'web_ui_manual'
+                source: 'web_ui_manual',
+                idempotency_key: window.__ddcDonationToken
             };
             
             // Debug: Log what we're sending
@@ -1406,6 +1403,10 @@
             })
             .then(data => {
                 if (data.success) {
+                    // Booking confirmed - retire the token so the next donation gets
+                    // a fresh one. A page reload is a genuinely new donation.
+                    window.__ddcDonationToken = null;
+
                     // Reset button first
                     resetSubmitButton();
                     
@@ -1798,36 +1799,6 @@
             `;
         }
         
-        function simulateDonationBroadcast() {
-            const donorName = document.getElementById('test-donor-name').value;
-            const amount = document.getElementById('test-amount').value;
-            const totalDonations = document.getElementById('test-total-donations').value;
-            
-            if (confirm(`This will send a test donation broadcast to Discord.\n\nDonor: ${donorName}\nAmount: ${amount}\n\nContinue?`)) {
-                fetch('/api/simulate-donation-broadcast', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        donor_name: donorName,
-                        amount: amount,
-                        total_donations: parseInt(totalDonations)
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification('Test broadcast sent successfully!', 'success');
-                    } else {
-                        showNotification('Error: ' + data.message, 'danger');
-                    }
-                })
-                .catch(error => {
-                    showNotification('Error sending broadcast: ' + error, 'danger');
-                });
-            }
-        }
     </script>
 
     <p class="text-center" style="color:#ffc107;"><strong>{{ _t('web.config.important_label') }}</strong> {{ _t('web.config.restart_warning') }}</p>
@@ -1899,13 +1870,14 @@
         {# NEW: Auth Settings #}
         {% include '_auth_settings.html' %}
 
+        {# Heartbeat (Status Watchdog) - must stay inside the form: saveConfigAjax() only
+           collects #config-form fields, outside it every save wrote heartbeat.enabled=False #}
+        {% include '_heartbeat_section.html' %}
+
         {# Save Button #}
         {% include '_save_button.html' %}
 
     </form> {# --- End of form --- #}
-
-    {# Heartbeat Section - MOVED OUTSIDE FORM #}
-    {% include '_heartbeat_section.html' %}
 
     <div id="save-notification"></div>
 

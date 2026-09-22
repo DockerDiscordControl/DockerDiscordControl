@@ -14,6 +14,8 @@ import asyncio
 import logging
 import time
 import docker
+
+from services.exceptions import DockerServiceError
 from dataclasses import dataclass
 from typing import Optional
 from utils.logging_utils import get_module_logger
@@ -49,6 +51,36 @@ class DockerActionResult:
     error_type: Optional[str] = None  # 'not_found', 'invalid_action', 'validation_failed', 'docker_error'
 
 
+def get_stop_timeout_kwargs(container) -> dict:
+    """
+    Timeout kwargs for container.stop()/restart() that honour the container's own StopTimeout.
+
+    docker-py's restart() defaults to timeout=10, which overrides a configured StopTimeout
+    (e.g. game servers that need longer to save). stop() lets the daemon use StopTimeout,
+    but docker-py then only extends its HTTP read timeout by 10s - passing the value
+    explicitly keeps both in sync. Returns {} when no StopTimeout is set (docker-py defaults).
+    """
+    try:
+        stop_timeout = (container.attrs.get('Config') or {}).get('StopTimeout')
+    except (AttributeError, TypeError) as e:
+        # `{}` here means something completely different from the `{}` below,
+        # and the caller cannot tell them apart: down there no StopTimeout is
+        # configured, up here the container could not be read at all. Both make
+        # restart() fall back to docker-py's timeout=10, which is what a game
+        # server that writes its world on shutdown does not survive - and this
+        # function is on every stop and restart there is. It has to say so
+        # (review E50).
+        logger.warning(
+            "Could not read the stop timeout of '%s' (%s) - falling back to "
+            "docker-py's ten-second default. A container that needs longer to "
+            "save may be killed mid-write.",
+            getattr(container, 'name', '<unknown container>'), e)
+        return {}
+    if isinstance(stop_timeout, int) and not isinstance(stop_timeout, bool) and stop_timeout >= 0:
+        return {'timeout': stop_timeout}
+    return {}
+
+
 # ============================================================================ #
 # DOCKER ACTION SERVICE                                                         #
 # ============================================================================ #
@@ -71,8 +103,8 @@ class DockerActionService:
         # Valid actions mapping
         self._valid_actions = {
             'start': lambda c: c.start(),
-            'stop': lambda c: c.stop(),
-            'restart': lambda c: c.restart(),
+            'stop': lambda c: c.stop(**get_stop_timeout_kwargs(c)),
+            'restart': lambda c: c.restart(**get_stop_timeout_kwargs(c)),
         }
 
         self.logger.info("Docker Action Service initialized (SERVICE FIRST)")
@@ -184,7 +216,14 @@ class DockerActionService:
                     execution_time_ms=execution_time_ms
                 )
 
-        except (RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        # OSError covers requests' ReadTimeout/ConnectionError (e.g. a stop() that outlasts
+        # the HTTP read timeout) so the caller gets a clean failure instead of an exception
+        # DockerServiceError first, because it is the one the comment above was
+        # already promising to turn into a clean failure and did not: the
+        # `async with get_docker_client_async(...)` above raises
+        # DockerConnectionError when the daemon cannot be reached at all
+        # (review E45).
+        except (DockerServiceError, RuntimeError, OSError, docker.errors.APIError, docker.errors.DockerException) as e:
             execution_time_ms = (time.time() - start_time) * 1000
 
             self.logger.error(

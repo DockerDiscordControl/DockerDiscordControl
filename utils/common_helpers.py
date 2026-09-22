@@ -17,6 +17,7 @@ from utils.logging_utils import get_module_logger
 from utils.time_utils import get_datetime_imports, format_duration
 
 import requests
+import copy
 import socket
 
 # Central datetime imports
@@ -159,6 +160,13 @@ def truncate_string(text: str, max_length: int = 100, suffix: str = "...") -> st
     if len(text) <= max_length:
         return text
 
+    # A limit smaller than the suffix made the slice index negative:
+    # truncate_string("hello world", 2) computed text[:-1], kept almost the
+    # whole string and then appended the suffix - twelve characters for a limit
+    # of two, longer than the text it was asked to shorten (review C15).
+    if max_length <= len(suffix):
+        return suffix[:max_length]
+
     return text[:max_length - len(suffix)] + suffix
 
 def validate_container_name(name: str) -> bool:
@@ -241,11 +249,26 @@ def sanitize_log_message(message: str) -> str:
     # Remove potential sensitive patterns
     import re
 
-    # Remove tokens, passwords, keys
-    message = re.sub(r'(token|password|key|secret)[:=]\s*[^\s]+', r'\1=***', message, flags=re.IGNORECASE)
+    # A label and its value. The separator may be ':', '=' or plain whitespace -
+    # "failed with token NzI3..." used to go through untouched because only the
+    # first two were accepted. The value must be six characters or more, so
+    # "the key to a fast startup" stays readable (review C30).
+    message = re.sub(
+        r'\b(api[_-]?key|apikey|authorization|bearer|password|passwd|secret|token|key)\b'
+        r'\s*[:=]?\s*'
+        r'(\S{6,})',
+        r'\1=***', message, flags=re.IGNORECASE)
 
-    # Remove potential API keys
+    # One unbroken run of 32+ alphanumerics - the original catch-all, unchanged.
     message = re.sub(r'\b[A-Za-z0-9]{32,}\b', '***', message)
+
+    # The same length, but with '.', '-' or '_' in it: the shape of a Discord
+    # bot token and of most bearer and session tokens, which the run above
+    # cannot see because the separators break it up. At least one letter AND one
+    # digit are required, which is what keeps dotted module paths, file paths
+    # and plain words out of it (review C30).
+    message = re.sub(
+        r'\b(?=[\w.\-]*[A-Za-z])(?=[\w.\-]*\d)[\w.\-]{32,}\b', '***', message)
 
     return message
 
@@ -339,13 +362,16 @@ def deep_merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, 
     Returns:
         Merged dictionary
     """
-    result = dict1.copy()
+    # deepcopy, not .copy(): a shallow copy leaves every untouched branch of the
+    # result pointing at the CALLER's own object, so writing into the merged
+    # dictionary wrote into the defaults it was merged from (review C39).
+    result = copy.deepcopy(dict1)
 
     for key, value in dict2.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = deep_merge_dicts(result[key], value)
         else:
-            result[key] = value
+            result[key] = copy.deepcopy(value)
 
     return result
 

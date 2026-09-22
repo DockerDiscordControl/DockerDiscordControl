@@ -1012,43 +1012,20 @@ class TestAdminServiceFileIO:
     """Cover _load_admin_users / get_admin_data / save_admin_data via file mocking."""
 
     def _patch_admins_path(self, monkeypatch, tmp_path):
-        """Make admin_service look at tmp_path/config/admins.json instead of
-        the real project root.
+        """Make admin_service look at tmp_path/config/admins.json.
 
-        We can't rewrite Path(__file__).parents[2] cleanly, so we patch the
-        Path class used within the module: redirect any reference to
-        '.../config/admins.json' through a tmp dir.
-
-        Strategy: monkey-patch `Path` inside admin_service module so the
-        constructor with __file__ produces a stub object whose
-        `parents[2] / 'config' / 'admins.json'` resolves into tmp_path.
+        Via DDC_CONFIG_DIR, the documented override. This used to replace
+        ``Path`` inside the module with a stub, because admin_service derived
+        the file from Path(__file__).parents[2]; it now reads
+        utils.config_paths.get_config_dir(). When that stub stopped matching,
+        seven tests of this class stayed GREEN without testing anything - the
+        missing/empty/invalid-file cases expect an empty result, and got one
+        from the wrong directory too.
         """
         config_dir = tmp_path / "config"
         config_dir.mkdir(parents=True, exist_ok=True)
-        admins_file = config_dir / "admins.json"
-
-        real_path = admin_mod.Path
-
-        class _FakePath(type(real_path("/"))):
-            # We want only the call `Path(__file__)` to be redirected.
-            def __new__(cls, *args, **kwargs):
-                # Accept anything but always rebuild from real Path
-                return real_path.__new__(real_path, *args, **kwargs)
-
-        # Simpler: just patch admin_mod.Path with a callable that returns a
-        # stub for the __file__ argument, otherwise the real Path.
-        def _fake_path_ctor(arg=None, *args, **kwargs):
-            if arg is not None and isinstance(arg, str) and arg.endswith("admin_service.py"):
-                # Return an object whose `.parents[2]` is tmp_path
-                anchor = real_path(arg)
-                # Build a substitute parents list: [parent0, parent1, tmp_path]
-                stub = MagicMock()
-                stub.parents = [anchor.parent, anchor.parent.parent, tmp_path]
-                return stub
-            return real_path(arg, *args, **kwargs) if arg is not None else real_path(*args, **kwargs)
-
-        monkeypatch.setattr(admin_mod, "Path", _fake_path_ctor)
-        return admins_file
+        monkeypatch.setenv("DDC_CONFIG_DIR", str(config_dir))
+        return config_dir / "admins.json"
 
     def test_load_admin_users_missing_file_returns_empty(self, monkeypatch, tmp_path):
         admins_file = self._patch_admins_path(monkeypatch, tmp_path)
@@ -1102,7 +1079,11 @@ class TestAdminServiceFileIO:
         self._patch_admins_path(monkeypatch, tmp_path)
         svc = AdminService()
         data = svc.get_admin_data()
-        assert data == {"discord_admin_users": [], "admin_notes": {}}
+        # admin_containers came with the per-admin container assignment: a
+        # user with no entry keeps every container, so an empty mapping
+        # is the same default this test always meant (review F1).
+        assert data == {"discord_admin_users": [], "admin_notes": {},
+                        "admin_containers": {}}
 
     def test_get_admin_data_returns_full_payload(self, monkeypatch, tmp_path):
         admins_file = self._patch_admins_path(monkeypatch, tmp_path)
@@ -1125,7 +1106,11 @@ class TestAdminServiceFileIO:
         admins_file.write_text("{nope", encoding="utf-8")
         svc = AdminService()
         data = svc.get_admin_data()
-        assert data == {"discord_admin_users": [], "admin_notes": {}}
+        # admin_containers came with the per-admin container assignment: a
+        # user with no entry keeps every container, so an empty mapping
+        # is the same default this test always meant (review F1).
+        assert data == {"discord_admin_users": [], "admin_notes": {},
+                        "admin_containers": {}}
 
     def test_save_admin_data_writes_file(self, monkeypatch, tmp_path):
         admins_file = self._patch_admins_path(monkeypatch, tmp_path)

@@ -263,6 +263,7 @@ class TaskManagementService:
 
             # Step 2: Validate activation request for expired tasks
             if request.is_active:
+                self._prepare_task_activation(task)
                 if self._is_task_expired(task):
                     return UpdateTaskStatusResult(
                         success=False,
@@ -499,7 +500,7 @@ class TaskManagementService:
     def _create_scheduled_task(self, request: AddTaskRequest, timezone_str: str):
         """Create ScheduledTask object from request data."""
         try:
-            from services.scheduling.scheduler import ScheduledTask
+            from services.scheduling.scheduler import ScheduledTask, WEB_UI_CREATOR
 
             description = request.description or f"Task for {request.container} via Web UI"
 
@@ -510,7 +511,8 @@ class TaskManagementService:
                 schedule_details=request.schedule_details,
                 status=request.status,
                 description=description,
-                created_by="Web UI",
+                # Marks admin tasks: they skip the Discord allowed_actions check at run time
+                created_by=WEB_UI_CREATOR,
                 timezone_str=timezone_str,
                 is_active=True
             )
@@ -680,6 +682,10 @@ class TaskManagementService:
         # Calculate frontend status and handle expired tasks
         frontend_status, needs_update = self._calculate_frontend_status(task, current_time)
         task_dict["frontend_status"] = frontend_status
+        # AFTER the status calculation: it switches an expired task off, and the copy
+        # taken above still said "active" - the row showed the switch as on for a task
+        # that had just been switched off (review A13).
+        task_dict["is_active"] = task.is_active
         task_dict["is_in_past"] = task.next_run_ts and task.next_run_ts < current_time
 
         if needs_update:
@@ -716,8 +722,20 @@ class TaskManagementService:
                 self.logger.info(f"Task {task.task_id} is marked as expired (time in past) and deactivated")
 
         elif task.next_run_ts is None:
-            frontend_status = "deactivated" if not task.is_active else "expired"
+            # Switched off, like the one-time case above. This branch only
+            # logged and answered "expired" while leaving is_active True, so a
+            # weekly, monthly or cron task whose schedule could not be resolved
+            # stayed alive with nothing to run: it never fired, the panel called
+            # it expired on every refresh forever, and nothing was written back
+            # (review D22). Not a loss - re-enabling goes through
+            # _prepare_task_activation, which computes a fresh next run first.
+            frontend_status = "expired" if task.is_active else "deactivated"
             self.logger.warning(f"Task {task.task_id} ({task.cycle}) has no next_run_ts")
+            if task.is_active:
+                task.is_active = False
+                needs_update = True
+                self.logger.info(f"Task {task.task_id} ({task.cycle}) has no next run and "
+                                 f"was deactivated - re-enable it to have one computed")
 
         elif not task.is_active:
             frontend_status = "deactivated"
@@ -774,10 +792,40 @@ class TaskManagementService:
             self.logger.error(f"Data error finding task by ID {task_id}: {e}", exc_info=True)
             return None
 
+    def _prepare_task_activation(self, task) -> None:
+        """Give a recurring task a fresh future next run when it is re-enabled.
+
+        A paused or long inactive task keeps its old next run; without this the
+        scheduler would first treat it as missed. Also drops the note written when
+        the task was paused after an upgrade.
+        """
+        from services.scheduling.scheduler import CYCLE_ONCE, is_upgrade_pause_note
+
+        if task.cycle != CYCLE_ONCE and not task.is_system_task():
+            if task.next_run_ts is None or task.next_run_ts <= time.time():
+                task.calculate_next_run()
+        if is_upgrade_pause_note(getattr(task, 'last_run_error', None)):
+            task.last_run_error = None
+
     def _is_task_expired(self, task) -> bool:
-        """Check if task is expired and cannot be activated."""
+        """Check if task is expired and cannot be activated.
+
+        The third condition is the one the refusal message has always claimed -
+        "this task's execution time is in the past" - and the one this method
+        did not test. `_calculate_frontend_status` marks exactly that case as
+        expired and switches the task off, so the operator could switch it back
+        on and watch the next refresh switch it off again (review D11).
+
+        Only for one-time tasks: for a recurring one a past next_run_ts is
+        ordinary, and `_prepare_task_activation` above has already given it a
+        fresh future run by the time this is asked.
+        """
         from services.scheduling.scheduler import CYCLE_ONCE
-        return task.next_run_ts is None or (task.cycle == CYCLE_ONCE and task.status == "completed")
+        if task.next_run_ts is None:
+            return True
+        if task.cycle != CYCLE_ONCE:
+            return False
+        return task.status == "completed" or task.next_run_ts < time.time()
 
     def _update_task_via_scheduler(self, task) -> bool:
         """Update task using scheduler service."""
@@ -895,10 +943,13 @@ class TaskManagementService:
             task.calculate_next_run()
 
             # Check if task should be deactivated (once tasks in the past)
-            from services.scheduling.scheduler import CYCLE_ONCE
+            from services.scheduling.scheduler import CYCLE_ONCE, is_upgrade_pause_note
             if task.cycle == CYCLE_ONCE and task.next_run_ts and task.next_run_ts < time.time():
                 task.is_active = False
                 self.logger.info(f"Task {task.task_id} was automatically deactivated because the execution time is in the past.")
+            # Re-enabled while editing: the upgrade pause note no longer applies
+            if task.is_active and is_upgrade_pause_note(getattr(task, 'last_run_error', None)):
+                task.last_run_error = None
 
             # Save updated task
             if self._update_task_via_scheduler(task):
@@ -964,9 +1015,13 @@ class TaskManagementService:
 
             if 'day' in schedule_details:
                 if task.cycle == 'weekly':
-                    # For weekly tasks, day is a weekday string
-                    weekday_map = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6}
-                    task.weekday_val = weekday_map.get(schedule_details['day'])
+                    # For weekly tasks, day is a weekday name ("Mon" from the form or
+                    # "monday"). Keep the canonical name in day_val so it gets saved.
+                    from services.scheduling.scheduler import normalize_weekday, DAYS_OF_WEEK
+                    weekday_name = normalize_weekday(schedule_details['day'])
+                    if weekday_name is not None:
+                        task.day_val = weekday_name
+                        task.weekday_val = DAYS_OF_WEEK.index(weekday_name)
                 else:
                     # For other cycles, day is a number
                     try:

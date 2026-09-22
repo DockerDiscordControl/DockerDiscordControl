@@ -45,7 +45,17 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        # One version instead of three (2026-09-17). Since the suite really runs
+        # group by group, every matrix entry costs a full suite run; before, every
+        # run died within seconds at collection and cost nothing. Three entries
+        # plus code-quality.yml made four full runs per push - too much for the
+        # minutes quota. Now two.
+        # The image version, not the older one used until 2026-09-19: the image
+        # runs alpine:3.24, and a green run on another Python does not prove the
+        # shipped one - seven spec tests failed on the old version only. Every
+        # workflow uses the image Python;
+        # tests/spec/test_ci_python_is_the_shipped_python.py keeps it that way.
+        python-version: ['3.14']
       fail-fast: false
 
     steps:
@@ -69,21 +79,29 @@ jobs:
           echo "## Unit Tests - Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Run tests with coverage
-          python -m pytest tests/unit/ \
-            --cov=services \
-            --cov=app \
-            --cov=utils \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-report=html \
-            -v || true
+          # One group per invocation - the reason is in tests/GROUPS.txt.
+          # Until 2026-09-17 this was a single "pytest tests/unit/" with a
+          # "|| true" at the end. That call aborted with 79 collection errors, not
+          # a single test ran, and the "|| true" still made the step look green -
+          # including the message below that the tests had passed. See SPEC.md Z10.
+          #
+          # The integration tests have their own job further down.
+          rm -f .coverage
+          grep -v '^tests/integration' tests/GROUPS.txt | while read -r gruppe; do
+            case "$gruppe" in ''|'#'*) continue ;; esac
+            echo "::group::$gruppe"
+            python -m pytest "$gruppe" \
+              --cov=services --cov=app --cov=utils --cov-append -q
+            echo "::endgroup::"
+          done
+          coverage xml
+          coverage html
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Unit tests completed" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload coverage reports
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.14'
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage.xml
@@ -92,7 +110,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage HTML
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.14'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-html
@@ -108,10 +126,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.14'
           cache: 'pip'
 
       - name: Install dependencies
@@ -124,11 +142,12 @@ jobs:
           echo "## Integration Tests" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          python -m pytest tests/integration/ -v || true
+          # No "|| true" and no continue-on-error any more: a red integration
+          # test must turn the job red. See SPEC.md Z10.
+          python -m pytest tests/integration/ -v
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
-        continue-on-error: true
 
   test-summary:
     name: Test Summary

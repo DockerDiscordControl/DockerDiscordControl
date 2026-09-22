@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import gc
 import logging
-import os
 from types import SimpleNamespace
 
 import pytest
@@ -36,7 +35,6 @@ def test_apply_runtime_tweaks_adjusts_thresholds(monkeypatch, logger: DummyLogge
     recorded = SimpleNamespace(set_args=None, froze=False)
 
     monkeypatch.setattr(gc, "get_threshold", lambda: (700, 10, 11))
-    monkeypatch.delenv("MALLOC_TRIM_THRESHOLD_", raising=False)
 
     def fake_set_threshold(*args):
         recorded.set_args = args
@@ -51,8 +49,12 @@ def test_apply_runtime_tweaks_adjusts_thresholds(monkeypatch, logger: DummyLogge
 
     assert recorded.set_args == (700, 10, 10)
     assert recorded.froze is True
-    assert os.environ["MALLOC_TRIM_THRESHOLD_"] == "131072"
-    monkeypatch.delenv("MALLOC_TRIM_THRESHOLD_", raising=False)
+    # The MALLOC_TRIM_THRESHOLD_ assertion was dropped together with the code that set it:
+    # it only checked that an environment variable was assigned, never that it had any effect.
+    # glibc reads that variable when the allocator initialises - long before this runs - and the
+    # production image is Alpine (musl), whose allocator ignores it entirely. To be precise about
+    # the evidence: that is established behaviour of those allocators, not something measured in
+    # this project, which is exactly why a test asserting the assignment proved nothing.
 
 
 def test_apply_runtime_tweaks_respects_freeze_override(monkeypatch, logger: DummyLogger) -> None:

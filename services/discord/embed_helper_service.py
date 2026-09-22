@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from typing import Dict
 
-from cogs.translation_manager import _
+from cogs.translation_manager import _, translation_manager
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('embed_helper_service')
@@ -74,15 +74,25 @@ class EmbedHelperService:
         cache_key = f"translations_{lang}"
 
         if cache_key not in self._cached_translations:
+            # translate(text, lang), not _(text). The module-level _ asks
+            # translation_manager.get_current_language() - the ambient bot
+            # language - so `lang` decided the cache KEY and nothing else. The
+            # two sides even disagree about the default: status_handlers reads
+            # config.get('language', 'de') while get_current_language() reads
+            # config.get('language', 'en') and answers 'en' whenever
+            # load_config raises. On an installation with no `language` key the
+            # English strings were cached under "translations_de" and stayed
+            # there (review D15). translate() has the same fallback chain.
+            translate = translation_manager.translate
             self._cached_translations[cache_key] = {
-                'online_text': _("**Online**"),
-                'offline_text': _("**Offline**"),
-                'cpu_text': _("CPU"),
-                'ram_text': _("RAM"),
-                'uptime_text': _("Uptime"),
-                'detail_denied_text': _("Detailed status not allowed."),
-                'last_update_text': _("Last update"),
-                'players_text': _("Players")
+                'online_text': translate("**Online**", lang),
+                'offline_text': translate("**Offline**", lang),
+                'cpu_text': translate("CPU", lang),
+                'ram_text': translate("RAM", lang),
+                'uptime_text': translate("Uptime", lang),
+                'detail_denied_text': translate("Detailed status not allowed.", lang),
+                'last_update_text': translate("Last update", lang),
+                'players_text': translate("Players", lang)
             }
             logger.debug(f"Cached translations for language: {lang}")
 

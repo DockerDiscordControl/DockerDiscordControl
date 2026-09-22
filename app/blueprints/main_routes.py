@@ -17,6 +17,7 @@ import re
 # Import auth from app.auth
 from app.auth import auth
 from services.config.config_service import load_config, save_config, update_config_fields
+from services.exceptions import ConfigServiceError
 from services.infrastructure.action_logger import log_user_action
 from services.infrastructure.spam_protection_service import get_spam_protection_service
 
@@ -209,6 +210,14 @@ def save_config_api():
             'message': "Data error: Invalid configuration data provided."
         }
         flash("Data error: Invalid configuration data.", 'danger')
+    except ConfigServiceError as e:
+        # Config persistence errors (disk full, permission denied) that escaped the save service
+        logger.error(f"Config service error in save_config_api: {e}", exc_info=True)
+        result = {
+            'success': False,
+            'message': f"Error saving configuration: {e.message}"
+        }
+        flash("Error saving configuration.", 'danger')
 
     # Check if it's an AJAX request (has the X-Requested-With header)
     is_ajax_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -429,8 +438,17 @@ def get_spam_protection():
     try:
         spam_service = get_spam_protection_service()
         result = spam_service.get_config()
-        settings = result.data.to_dict() if result.success else {}
-        return jsonify(settings)
+        if not result.success:
+            # Not an empty object with HTTP 200. The panel draws its
+            # spam-protection form from whatever this returns, so `{}` made it
+            # show its own HTML start values and the operator read them as the
+            # settings in force. The POST sibling below has always answered
+            # with a reason and a status; the two halves of one form disagreed
+            # about what a failure looks like (review D9).
+            current_app.logger.error(f"Spam protection settings could not be read: "
+                                     f"{result.error}")
+            return jsonify({'error': 'Unable to read the spam protection settings'}), 500
+        return jsonify(result.data.to_dict())
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (spam protection service unavailable)
         current_app.logger.error(f"Service dependency error getting spam protection settings: {e}", exc_info=True)
@@ -545,150 +563,6 @@ def record_donation_click():
         return jsonify({'success': False, 'error': 'Data error: Invalid click data'}), 400
 
 
-@main_bp.route('/api/donation/add-power', methods=['POST'])
-@auth.login_required
-def add_test_power():
-    """Add or remove Power for testing (requires auth) - USING NEW MECH SERVICE."""
-    try:
-        data = request.get_json()
-        amount = data.get('amount', 0)
-        donation_type = data.get('type', 'test')
-        user = data.get('user', 'Test')
-
-        # Validate amount is numeric
-        try:
-            amount = int(amount) if not isinstance(amount, int) else amount
-        except (ValueError, TypeError):
-            return jsonify({'error': f'Invalid amount: {amount} - must be numeric'}), 400
-
-        # UNIFIED DONATION SERVICE: Centralized processing with guaranteed events
-        from services.donation.unified_donation_service import process_test_donation
-
-        if amount != 0:
-            # Add donation (positive only - negative testing requires special handling)
-            if amount > 0:
-                # Use unified service for positive donations with automatic events
-                donation_result = process_test_donation(user, amount)
-
-                if not donation_result.success:
-                    raise Exception(f"Test donation failed: {donation_result.error_message}")
-
-                result_state = donation_result.new_state
-                current_app.logger.info(f"UNIFIED SERVICE: Added ${amount} Power, new total: ${result_state.Power}")
-            else:
-                # For negative amounts, we need to work around the limitation
-                # MechService only accepts positive integers, so we add a negative donation
-                # by manipulating the state directly (testing only!)
-                # PERFORMANCE OPTIMIZATION: Use cached mech state
-                current_state = _get_cached_mech_state(include_decimals=False)
-                if not current_state:
-                    current_app.logger.error("Failed to get mech state for negative donation")
-                    return jsonify({'error': 'Failed to get mech state'}), 500
-
-                # Calculate new power (ensure it doesn't go below 0)
-                new_power = max(0, current_state.Power + amount)
-
-                # Since we can't directly set power, we add a donation that results in the desired power
-                # This is a workaround for testing purposes
-                if new_power < current_state.Power:
-                    # We want to reduce power, but can't do it directly
-                    # Return the current state with a message
-                    current_app.logger.info(f"NEW SERVICE: Power reduction not directly supported, current: ${current_state.Power}")
-                    return jsonify({
-                        'success': True,
-                        'Power': current_state.Power,
-                        'level': current_state.level,
-                        'level_name': current_state.level_name,
-                        'total_donated': current_state.total_donated,
-                        'message': f'Power reduction not supported (would be ${new_power})'
-                    })
-
-                result_state = current_state
-                current_app.logger.info(f"NEW SERVICE: Attempted to reduce Power by ${abs(amount)}, but not supported")
-
-            return jsonify({
-                'success': True,
-                'Power': result_state.Power,
-                'level': result_state.level,
-                'level_name': result_state.level_name,
-                'total_donated': result_state.total_donated
-            })
-        else:
-            return jsonify({'success': False, 'error': 'Amount must be non-zero'}), 400
-
-    except (ImportError, AttributeError, RuntimeError) as e:
-        # Service dependency errors (unified donation service unavailable)
-        current_app.logger.error(f"Service dependency error adding test Power: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Service error: Unable to process test donation'}), 500
-    except (ValueError, TypeError) as e:
-        # Data processing errors (amount validation, state calculations)
-        current_app.logger.error(f"Data error adding test Power: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Data error: Invalid donation amount'}), 400
-
-@main_bp.route('/api/donation/reset-power', methods=['POST'])
-@auth.login_required
-def reset_power():
-    """Reset Power to 0 for testing (requires auth) - USING NEW MECH SERVICE."""
-    try:
-        # UNIFIED DONATION SERVICE: Reset with automatic event emission
-        from services.donation.unified_donation_service import reset_all_donations
-
-        reset_result = reset_all_donations(source='admin_reset')
-
-        if not reset_result.success:
-            # Log detailed error but return generic message to user
-            current_app.logger.error(f"Failed to reset donations: {reset_result.error_message}")
-            return jsonify({'success': False, 'error': 'Failed to reset donations'})
-
-        # Get new state (should be Level 1, 0 Power) using CACHE FOR PERFORMANCE
-        # PERFORMANCE OPTIMIZATION: Use cached mech state (will be fresh since we just reset)
-        reset_state = _get_cached_mech_state(include_decimals=False)
-        if not reset_state:
-            current_app.logger.error("Failed to get reset state")
-            return jsonify({'success': False, 'error': 'Failed to get reset state'})
-
-        current_app.logger.info(f"NEW SERVICE: Power reset - Level {reset_state.level}, Power ${reset_state.Power}")
-
-        return jsonify({
-            'success': True,
-            'message': 'Power reset to 0 using new MechService',
-            'level': reset_state.level,
-            'level_name': reset_state.level_name,
-            'Power': reset_state.Power,
-            'total_donated': reset_state.total_donated
-        })
-    except (ImportError, AttributeError, RuntimeError) as e:
-        # Service dependency errors (unified donation service unavailable)
-        current_app.logger.error(f"Service dependency error resetting Power: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Service error: Unable to reset donations'}), 500
-
-@main_bp.route('/api/donation/consume-power', methods=['POST'])
-@auth.login_required
-def consume_Power():
-    """Get current Power state - USES CACHE FOR PERFORMANCE."""
-    try:
-        # PERFORMANCE OPTIMIZATION: Use cached mech state
-        current_state = _get_cached_mech_state(include_decimals=False)
-        if not current_state:
-            return jsonify({'success': False, 'error': 'Failed to get current state'})
-
-        # Removed frequent Power consumption log to reduce noise in DEBUG mode
-        # current_app.logger.debug(f"NEW SERVICE: Power consumption check - current Power: ${current_state.Power}")
-
-        return jsonify({
-            'success': True,
-            'new_Power': max(0, current_state.Power),
-            'level': current_state.level,
-            'level_name': current_state.level_name,
-            'message': 'Power decay calculated automatically by new service'
-        })
-
-    except (RuntimeError, AttributeError) as e:
-        # Service/cache errors (mech state retrieval failures)
-        current_app.logger.error(f"Service error consuming Power: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Service error: Unable to get Power state'}), 500
-
-
 @main_bp.route('/api/donation/submit', methods=['POST'])
 @auth.login_required
 def submit_donation():
@@ -707,7 +581,8 @@ def submit_donation():
             amount=data.get('amount', 0),
             donor_name=data.get('donor_name', 'Anonymous'),
             publish_to_discord=data.get('publish_to_discord', True),
-            source=data.get('source', 'web_ui_manual')
+            source=data.get('source', 'web_ui_manual'),
+            idempotency_key=data.get('idempotency_key'),
         )
 
         # Process donation through service
@@ -720,6 +595,9 @@ def submit_donation():
                 'donation_info': result.donation_info
             })
         else:
+            if getattr(result, 'status_code', None) == 400:
+                # Validation error: the service message is user-safe (e.g. "Invalid donation amount")
+                return jsonify({'success': False, 'error': result.message or 'Invalid donation data'}), 400
             # Log detailed error server-side, return generic message to user
             current_app.logger.error(f"Donation processing failed: {result.error}", exc_info=True)
             return jsonify({'success': False, 'error': 'Failed to process donation'}), 500
@@ -781,17 +659,36 @@ def game_query_retest():
         from services.infrastructure import game_query_support_service as support
         support.set_testing(container_name, True)
 
-        # Use any configured manual host/port override for this container
-        host, port = '', 0
+        # From here on the flag is set, and the ONLY thing that ever clears it
+        # is the worker's own finally block. So everything between here and a
+        # started worker has to take the flag back itself if it falls over -
+        # otherwise the container keeps its spinner for good: the flag lives in
+        # the verdicts file, survives a restart and is read again when the
+        # configuration page is rendered. "can't start new thread" is the
+        # realistic way in, and it is a RuntimeError, which the handler below
+        # does not list (review D24).
         try:
-            from services.config.server_config_service import get_server_config_service
-            srv = get_server_config_service().get_server_by_docker_name(container_name) or {}
-            host, port = srv.get('query_host', ''), srv.get('query_port', 0)
-        except (ImportError, RuntimeError, AttributeError, KeyError) as e:
-            current_app.logger.debug(f"[GAME_QUERY] retest config lookup failed for {container_name}: {e}")
+            # Use any configured manual host/port override for this container
+            host, port = '', 0
+            try:
+                from services.config.server_config_service import get_server_config_service
+                srv = get_server_config_service().get_server_by_docker_name(container_name) or {}
+                host, port = srv.get('query_host', ''), srv.get('query_port', 0)
+            except (ImportError, RuntimeError, AttributeError, KeyError) as e:
+                current_app.logger.debug(f"[GAME_QUERY] retest config lookup failed for {container_name}: {e}")
 
-        import threading
-        threading.Thread(target=_run_game_query_retest, args=(container_name, host, port), daemon=True).start()
+            import threading
+            threading.Thread(target=_run_game_query_retest, args=(container_name, host, port), daemon=True).start()
+        except BaseException:
+            # Not "except Exception": a worker that never started must not keep
+            # the spinner alive even when the request is being torn down.
+            try:
+                support.set_testing(container_name, False)
+            except Exception as clear_error:  # noqa: BLE001
+                current_app.logger.error(
+                    f"[GAME_QUERY] retest for {container_name} could not be started AND the "
+                    f"testing flag could not be cleared: {clear_error}", exc_info=True)
+            raise
         return jsonify({'success': True, 'status': 'testing'})
     except (ValueError, TypeError, KeyError) as e:
         current_app.logger.error(f"[GAME_QUERY] retest request error: {e}", exc_info=True)
@@ -896,21 +793,6 @@ def test_mech_animation():
         # Data processing errors (request parsing, animation generation)
         current_app.logger.error(f"Data error in test_mech_animation route: {e}", exc_info=True)
         return jsonify({'error': 'Data error: Invalid test animation parameters'}), 400
-
-@main_bp.route('/api/simulate-donation-broadcast', methods=['POST'])
-@auth.login_required
-def simulate_donation_broadcast():
-    """Simulate a donation broadcast for testing purposes."""
-    try:
-        current_app.logger.info("Simulating donation broadcast...")
-        return jsonify({
-            'success': True,
-            'message': 'Donation broadcast simulation not yet implemented'
-        })
-    except RuntimeError as e:
-        # Runtime errors (simulation failures)
-        current_app.logger.error(f"Runtime error simulating donation broadcast: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Runtime error in simulation'}), 500
 
 @main_bp.route('/api/mech-speed-config', methods=['POST'])
 @auth.login_required
@@ -1124,9 +1006,9 @@ def donations_api():
             'error': 'Data error: Failed to process donation data'
         })
 
-@main_bp.route('/api/donations/delete/<int:index>', methods=['POST'])
+@main_bp.route('/api/donations/delete/<int:seq>', methods=['POST'])
 @auth.login_required
-def delete_donation(index):
+def delete_donation(seq):
     """
     Delete a donation OR restore a deleted donation using Event Sourcing compensation events.
 
@@ -1141,16 +1023,18 @@ def delete_donation(index):
         from services.donation.donation_management_service import get_donation_management_service
 
         service = get_donation_management_service()
-        result = service.delete_donation(index)
+        # seq = stable event seq of the clicked history row (not a list index)
+        result = service.delete_donation(seq)
 
         if result.success:
             action = result.data.get('action', 'Deleted')
             event_type = result.data.get('type', 'Unknown')
-            seq = result.data.get('deleted_seq', 'Unknown')
+            clicked_seq = result.data.get('deleted_seq', seq)
+            target_seq = result.data.get('target_seq', clicked_seq)
 
-            current_app.logger.info(f"{action} event at index {index} (seq {seq}, type {event_type})")
+            current_app.logger.info(f"{action} event seq {clicked_seq} (target seq {target_seq}, type {event_type})")
 
-            message = f"Event {action.lower()} successfully (seq #{seq})"
+            message = f"Event {action.lower()} successfully (seq #{clicked_seq})"
             return jsonify({
                 'success': True,
                 'message': message
@@ -1312,6 +1196,19 @@ def setup_save():
         return jsonify({
             'success': False,
             'error': 'Setup failed: Unable to save configuration'
+        })
+    except ConfigServiceError as e:
+        # What a failed config write ACTUALLY raises. ConfigService.save_config
+        # turns IOError/OSError/PermissionError into ConfigSaveError, which
+        # descends from DDCBaseException and is therefore not an OSError - so
+        # the handler above never saw it. save_config_api catches it by name
+        # for exactly this reason; this route did not, and a first-time setup
+        # on a read-only config mount answered with a 500 HTML page that
+        # setup.html then parsed as JSON, leaving the page blank (review D25).
+        current_app.logger.error(f"Config service error in setup: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'Setup failed: Unable to save configuration ({e.message})'
         })
 
 # ========================================
@@ -1492,13 +1389,18 @@ def get_mech_display_info():
                 except ValueError:
                     continue
 
+        # No 'cache_directory' here. This route carries no login on purpose -
+        # its sibling /api/mech/display/<level>/<type> serves the pre-rendered
+        # images straight to Discord, which fetches them without credentials -
+        # so the absolute filesystem path of the server's cache directory went
+        # to any caller on the open internet. Nothing in the project ever read
+        # the field (review D8).
         return jsonify({
             'success': True,
             'available_levels': list(range(1, 12)),
             'available_types': ['shadow', 'unlocked'],
             'cached_images': available_images,
-            'total_cached': len(cache_files),
-            'cache_directory': str(display_cache_service.cache_dir)
+            'total_cached': len(cache_files)
         })
 
     except (ImportError, AttributeError, RuntimeError) as e:
@@ -1523,120 +1425,6 @@ def get_mech_display_info():
             'error': 'Data error: Failed to process cache information'
         }), 500
 
-@main_bp.route('/api/mech/reset', methods=['POST'])
-@auth.login_required
-def reset_mech_to_level_1():
-    """Reset Mech system to Level 1 for testing/development."""
-    try:
-        from services.mech.mech_reset_service import get_mech_reset_service
-
-        # Get reset service
-        reset_service = get_mech_reset_service()
-
-        # Get current status before reset
-        current_status = reset_service.get_current_status()
-
-        # Perform full reset
-        result = reset_service.full_reset()
-
-        # Log the action
-        try:
-            from services.infrastructure.action_logger import log_user_action
-            log_user_action(
-                action="MECH_RESET",
-                target="Mech System",
-                user=session.get('username', 'Unknown'),
-                source="Web UI",
-                details=f"Reset to Level 1 - Previous: Level {current_status.get('current_level', 'Unknown')}"
-            )
-        except (ImportError, AttributeError, RuntimeError) as log_error:
-            # Non-critical: Action logger errors (logging service unavailable)
-            current_app.logger.warning(f"Failed to log mech reset action: {log_error}")
-
-        # Return result
-        if result.success:
-            # Success: Construct clean response (defense-in-depth against potential data leaks)
-            # Note: Success messages are safe, but we sanitize to satisfy CodeQL data flow analysis
-            safe_message = "Mech system reset to Level 1 completed successfully"
-
-            response_data = {
-                'success': True,
-                'message': safe_message,
-                'previous_status': {
-                    'current_level': current_status.get('current_level', 1),
-                    'donations_count': current_status.get('donations_count', 0),
-                    'total_donated': current_status.get('total_donated', 0)
-                },
-                'timestamp': result.details.get('timestamp') if result.details else None
-            }
-
-            # Include operation details using strict allowlist (security: prevent exception exposure)
-            # Define expected safe operation messages (allowlist approach for CodeQL compliance)
-            SAFE_OPERATION_ALLOWLIST = {
-                "Donations: All donations cleared",
-                "Mech State: Mech state reset to Level 1",
-                "Mech State: Reset to Level 1",
-                "Evolution Mode: Evolution mode reset to defaults",
-                "Evolution Mode: Reset to defaults",
-                "Cleanup: Deprecated files cleaned up",
-                "Cleanup: Files cleaned up successfully",
-                "Config: Mech configuration updated",
-                "Status: Mech system reset completed"
-            }
-
-            def _validate_operation_message(op):
-                """Validate and return safe operation message - CodeQL taint barrier.
-
-                Returns the allowlist string (not the input) if valid, breaking taint chain.
-                """
-                if not isinstance(op, str):
-                    return None
-                # Return the ALLOWLIST string (new object), not the input string
-                # This breaks taint tracking by returning a known-safe constant
-                if op in SAFE_OPERATION_ALLOWLIST:
-                    # Find and return the matching allowlist string (creates new reference)
-                    for safe_msg in SAFE_OPERATION_ALLOWLIST:
-                        if op == safe_msg:
-                            return safe_msg  # Return allowlist string, not input
-                return None
-
-            if result.details and 'operations' in result.details:
-                # Validate each operation through barrier function
-                safe_operations = []
-                for op in result.details.get('operations', []):
-                    validated = _validate_operation_message(op)
-                    if validated is not None:
-                        safe_operations.append(validated)  # Append allowlist string, not input
-
-                if safe_operations:  # Only add if we have safe operations
-                    response_data['operations'] = safe_operations
-
-            current_app.logger.info(f"Mech reset to Level 1 completed by user: {session.get('username', 'Unknown')}")
-            return jsonify(response_data)
-        else:
-            # Failure: Log detailed error server-side, return generic message to user
-            current_app.logger.error(f"Mech reset failed: {result.message}", exc_info=True)
-            return jsonify({
-                'success': False,
-                'error': 'Failed to reset mech system'
-            }), 500
-
-    except (ImportError, AttributeError, RuntimeError) as e:
-        # Service dependency errors (mech reset service unavailable)
-        # Security: Log exception details server-side only, no intermediate variables
-        current_app.logger.error("Service dependency error during mech reset: %s", e, exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': 'Service error: Unable to reset mech system'
-        }), 500
-    except (ValueError, TypeError, KeyError) as e:
-        # Data processing errors (status parsing, result formatting)
-        # Security: Log exception details server-side only, no intermediate variables
-        current_app.logger.error("Data error during mech reset: %s", e, exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': 'Data error: Failed to process reset operation'
-        }), 500
 
 @main_bp.route('/api/mech/status', methods=['GET'])
 @auth.login_required

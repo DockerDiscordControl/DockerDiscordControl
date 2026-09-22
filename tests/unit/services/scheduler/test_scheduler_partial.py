@@ -64,9 +64,6 @@ from services.scheduling.scheduler import (
 )
 from services.scheduling.schedule_helpers import (
     ScheduleValidationError,
-    check_schedule_permissions,
-    create_task_success_message,
-    parse_and_validate_time,
     validate_task_before_creation,
 )
 
@@ -507,12 +504,14 @@ class TestParsers:
         assert parse_weekday_string("Sun") == 6
         assert parse_weekday_string("WED") == 2
 
-    def test_parse_weekday_string_numeric_zero_based(self):
-        assert parse_weekday_string("0") == 0
-        assert parse_weekday_string("6") == 6
+    def test_parse_weekday_string_numeric_zero_is_invalid(self):
+        # Numeric input is 1-7 (Monday=1) as documented; 0 is out of range.
+        assert parse_weekday_string("0") is None
 
     def test_parse_weekday_string_numeric_one_based(self):
-        # 7 is converted via (n-1) % 7 = 6 (Sunday).
+        # 1 = Monday ... 7 = Sunday, mapped to the internal 0-6 index.
+        assert parse_weekday_string("1") == 0
+        assert parse_weekday_string("6") == 5
         assert parse_weekday_string("7") == 6
 
 
@@ -891,166 +890,6 @@ class TestModuleConstants:
 # ---------------------------------------------------------------------------
 
 
-class TestScheduleHelpers:
-    def test_parse_and_validate_time_ok(self):
-        assert parse_and_validate_time("14:30") == (14, 30)
-
-    def test_parse_and_validate_time_invalid_returns_none(self):
-        # parse_time_string returns (None, None) for unparseable input rather
-        # than raising — parse_and_validate_time only re-wraps a ValueError,
-        # so the contract here is the (None, None) passthrough.
-        assert parse_and_validate_time("not-a-time") == (None, None)
-
-    def test_parse_and_validate_time_wraps_value_error(self, monkeypatch):
-        # If the underlying parser ever raises ValueError, the helper should
-        # wrap it as ScheduleValidationError. We patch the parser to force
-        # the failure path (covers the except branch).
-        from services.scheduling import schedule_helpers as _sh
-
-        def _boom(_arg):
-            raise ValueError("boom")
-
-        monkeypatch.setattr(_sh, "parse_time_string", _boom)
-        with pytest.raises(ScheduleValidationError):
-            _sh.parse_and_validate_time("anything")
-
-    def test_create_task_success_message_once(self):
-        task = ScheduledTask(
-            container_name="myc",
-            action="start",
-            cycle=CYCLE_ONCE,
-            hour=10,
-            minute=0,
-            year=2099,
-            month=1,
-            day=1,
-            timezone_str="UTC",
-        )
-        msg = create_task_success_message(task, "2099-01-01 10:00 UTC+0000")
-        assert "myc" in msg
-        assert "2099-01-01 10:00 UTC+0000" in msg
-
-    def test_create_task_success_message_daily(self):
-        task = _make_daily_task(container_name="dailyc", hour=4, minute=15)
-        msg = create_task_success_message(task, "irrelevant")
-        assert "dailyc" in msg
-        assert "04:15" in msg
-
-    def test_create_task_success_message_weekly_with_day_val(self):
-        task = ScheduledTask(
-            container_name="weekc",
-            action="start",
-            cycle=CYCLE_WEEKLY,
-            hour=3,
-            minute=0,
-            schedule_details={"time": "03:00", "day": "tuesday"},
-            timezone_str="UTC",
-        )
-        msg = create_task_success_message(task, "ignored")
-        assert "weekc" in msg
-        assert "tuesday" in msg.lower()
-
-    def test_create_task_success_message_weekly_with_weekday_val(self):
-        task = ScheduledTask(
-            container_name="weekc",
-            action="start",
-            cycle=CYCLE_WEEKLY,
-            hour=3,
-            minute=0,
-            weekday=2,  # Wednesday
-            timezone_str="UTC",
-        )
-        msg = create_task_success_message(task, "ignored")
-        assert "weekc" in msg
-        assert "wednesday" in msg.lower()
-
-    def test_create_task_success_message_monthly(self):
-        task = ScheduledTask(
-            container_name="monc",
-            action="start",
-            cycle=CYCLE_MONTHLY,
-            hour=2,
-            minute=0,
-            day=15,
-            timezone_str="UTC",
-        )
-        msg = create_task_success_message(task, "ignored")
-        assert "monc" in msg
-        assert "15" in msg
-
-    def test_create_task_success_message_yearly(self):
-        task = ScheduledTask(
-            container_name="yearc",
-            action="start",
-            cycle=CYCLE_YEARLY,
-            hour=0,
-            minute=0,
-            month=6,
-            day=21,
-            timezone_str="UTC",
-        )
-        msg = create_task_success_message(task, "ignored")
-        assert "yearc" in msg
-        assert "6" in msg
-        assert "21" in msg
-
-    def test_create_task_success_message_unknown_cycle(self):
-        task = _make_daily_task(container_name="genc")
-        # Mutate to an unknown cycle to exercise the fallback branch.
-        task.cycle = "magic"
-        msg = create_task_success_message(task, "ignored")
-        assert "genc" in msg
-
-    def test_create_task_success_message_daily_fallback_when_time_str_broken(self):
-        # Force the int(...) parse to fail → exercises the AttributeError /
-        # ValueError fallback branch in the daily path.
-        task = _make_daily_task(container_name="dailyc", hour=4, minute=15)
-        task.time_str = None  # split() raises AttributeError → fallback.
-        msg = create_task_success_message(task, "ignored")
-        assert "dailyc" in msg
-
-    def test_create_task_success_message_weekly_fallback(self):
-        task = ScheduledTask(
-            container_name="weekc",
-            action="start",
-            cycle=CYCLE_WEEKLY,
-            hour=3,
-            minute=0,
-            weekday=2,
-            timezone_str="UTC",
-        )
-        task.time_str = None
-        msg = create_task_success_message(task, "ignored")
-        assert "weekc" in msg
-
-    def test_create_task_success_message_monthly_fallback(self):
-        task = ScheduledTask(
-            container_name="monc",
-            action="start",
-            cycle=CYCLE_MONTHLY,
-            hour=2,
-            minute=0,
-            day=15,
-            timezone_str="UTC",
-        )
-        task.time_str = None
-        msg = create_task_success_message(task, "ignored")
-        assert "monc" in msg
-
-    def test_create_task_success_message_yearly_fallback(self):
-        task = ScheduledTask(
-            container_name="yearc",
-            action="start",
-            cycle=CYCLE_YEARLY,
-            hour=0,
-            minute=0,
-            month=6,
-            day=21,
-            timezone_str="UTC",
-        )
-        task.time_str = None
-        msg = create_task_success_message(task, "ignored")
-        assert "yearc" in msg
 
 
 class TestValidateTaskBeforeCreation:
@@ -1087,58 +926,3 @@ class TestValidateTaskBeforeCreation:
         assert "collide" in str(ei.value) or "conflict" in str(ei.value).lower()
 
 
-class TestCheckSchedulePermissions:
-    def test_container_not_found(self, monkeypatch):
-        # Patch the load_config and server_config_service used by the helper
-        # to return a known empty server list. We don't need a real Discord
-        # ctx because the helper only uses servers config / container name.
-        from services.scheduling import schedule_helpers as _sh
-
-        monkeypatch.setattr(_sh, "load_config", lambda: {})
-
-        class _FakeSCS:
-            def get_all_servers(self):
-                return []
-
-        monkeypatch.setattr(_sh, "get_server_config_service", lambda: _FakeSCS())
-
-        ctx = object()  # not actually accessed for this branch.
-        ok, err, server = check_schedule_permissions(ctx, "missing-container", "start")
-        assert ok is False
-        assert err is not None
-        assert "missing-container" in err
-        assert server is None
-
-    def test_action_not_allowed(self, monkeypatch):
-        from services.scheduling import schedule_helpers as _sh
-
-        monkeypatch.setattr(_sh, "load_config", lambda: {})
-
-        class _FakeSCS:
-            def get_all_servers(self):
-                return [{"docker_name": "myc", "allowed_actions": ["start"]}]
-
-        monkeypatch.setattr(_sh, "get_server_config_service", lambda: _FakeSCS())
-
-        ok, err, server = check_schedule_permissions(object(), "myc", "stop")
-        assert ok is False
-        assert err is not None
-        assert server == {"docker_name": "myc", "allowed_actions": ["start"]}
-
-    def test_action_allowed(self, monkeypatch):
-        from services.scheduling import schedule_helpers as _sh
-
-        monkeypatch.setattr(_sh, "load_config", lambda: {})
-
-        class _FakeSCS:
-            def get_all_servers(self):
-                return [
-                    {"docker_name": "myc", "allowed_actions": ["start", "stop"]},
-                ]
-
-        monkeypatch.setattr(_sh, "get_server_config_service", lambda: _FakeSCS())
-
-        ok, err, server = check_schedule_permissions(object(), "myc", "start")
-        assert ok is True
-        assert err is None
-        assert server is not None

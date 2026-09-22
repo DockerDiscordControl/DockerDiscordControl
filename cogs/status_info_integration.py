@@ -14,7 +14,6 @@ Provides read-only info display for channels with only /ss permission.
 import discord
 from services.config.config_service import load_config
 from discord.ui import View, Button
-import os
 from typing import Dict, Any, Optional, List
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service
@@ -27,10 +26,56 @@ from .translation_manager import _
 import asyncio
 import aiohttp
 from services.automation import get_auto_action_config_service
+from .ddc_ui import DDCView
 
 logger = get_module_logger('status_info_integration')
 
-class ContainerInfoAdminView(discord.ui.View):
+async def container_logs_text(container_name: str) -> str:
+    """Get the last N log lines for a container, ready for a Discord embed.
+
+    Stood twice, character for character, as a method on LiveLogView and on
+    DebugLogsButton. Both used nothing but ``self.container_name``, so the copy
+    had no reason beyond convenience - and a copy is a correction that only ever
+    lands in one place. See docs/quality/STAGE0_INVENTORY.md section 7.
+    """
+    try:
+        import docker
+        import asyncio
+        from utils.common_helpers import validate_container_name
+        from utils.settings import get_setting
+
+        # Validate container name for security
+        if not validate_container_name(container_name):
+            return f"Invalid container name format: {container_name}"
+
+        # Use synchronous Docker client for stable log retrieval
+        def get_logs_sync():
+            client = docker.from_env()
+            try:
+                container = client.containers.get(container_name)
+                tail_lines = get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50)
+                logs_bytes = container.logs(tail=tail_lines, timestamps=True)
+                return logs_bytes.decode('utf-8', errors='replace')
+            finally:
+                client.close()
+
+        # Run synchronous operation in thread pool to avoid blocking
+        logs = await asyncio.get_event_loop().run_in_executor(None, get_logs_sync)
+
+        # Limit log output to prevent Discord message limits
+        if len(logs) > 1800:  # Leave room for embed formatting
+            logs = logs[-1800:]
+            logs = "...\n" + logs
+
+        return logs.strip() or "No logs available for this container."
+
+    except docker.errors.NotFound:
+        return f"Container '{container_name}' not found."
+    except (docker.errors.DockerException, RuntimeError, OSError) as e:
+        logger.debug(f"Error getting logs for {container_name}: {e}")
+        return f"Error retrieving logs: {str(e)[:100]}"
+
+class ContainerInfoAdminView(DDCView):
     """
     Admin view for container info with Edit and Debug buttons (control channels only).
     """
@@ -117,28 +162,41 @@ class ProtectedInfoEditButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Through the service instead of past it. Before, the timestamp lived
+        # under button_protected_edit_<user> in self.cog._button_cooldowns, and
+        # only the DURATION came from the service. The per-minute limit from the
+        # panel therefore had no effect here - it counts in add_user_cooldown,
+        # and this path never got there. Own key with value 3 (the former
+        # "info"), so that today's separate buckets STAY separate: a shared
+        # "info" would merge three locks into one.
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("info")
-            current_time = time.time()
-            cooldown_key = f"button_protected_edit_{interaction.user.id}"
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "protected_info_edit"):
+                    remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "protected_info_edit")
+                    await interaction.response.send_message(
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "protected_info_edit")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for protected info edit button: {e}", exc_info=True)
 
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                                remaining=remaining
-                            ),
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
+        # This button carried NO check of its own - only the one that builds the
+        # view around it, and that one does not know about container
+        # assignments. The modal it opens is pre-filled with the protected
+        # content AND the password, both in clear text, so opening it is
+        # reading them. An assigned admin must not do that for somebody else's
+        # container (review F3).
+        from .control_helpers import _channel_has_permission, _admin_may_control
+        from services.config.config_service import load_config as _load_config
+        if not (_channel_has_permission(interaction.channel_id, 'control', _load_config())
+                or _admin_may_control(interaction.user.id, self.container_name)):
+            await interaction.response.send_message(
+                f"❌ {_('This action is not allowed in this channel.')}", ephemeral=True)
+            return
 
         try:
             # Import modal from enhanced_info_modal_simple
@@ -163,7 +221,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
                     _("❌ Could not open protected info edit modal. Please try again later."),
                     ephemeral=True
                 )
-            except:
+            except Exception:
                 pass
 
 class EditInfoButton(discord.ui.Button):
@@ -187,28 +245,23 @@ class EditInfoButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Through the service instead of past it - same reason as in
+        # ProtectedInfoEditButton. Own key "edit_info" with value 3, so the
+        # formerly separate bucket stays separate.
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("info")
-            current_time = time.time()
-            cooldown_key = f"button_info_{interaction.user.id}"
-
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                                remaining=remaining
-                            ),
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "edit_info"):
+                    remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "edit_info")
+                    await interaction.response.send_message(
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "edit_info")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for edit info button: {e}", exc_info=True)
 
         try:
             # Import modal from enhanced_info_modal_simple
@@ -233,17 +286,18 @@ class EditInfoButton(discord.ui.Button):
                     _("❌ Could not open edit modal. Please try again later."),
                     ephemeral=True
                 )
-            except:
+            except Exception:
                 pass
 
-class LiveLogView(discord.ui.View):
+class LiveLogView(DDCView):
     """View for live-updating debug logs with refresh controls."""
 
     def __init__(self, container_name: str, auto_refresh: bool = False):
         # Get configuration from environment variables
-        timeout_seconds = int(os.getenv('DDC_LIVE_LOGS_TIMEOUT', '120'))
-        self.refresh_interval = int(os.getenv('DDC_LIVE_LOGS_REFRESH_INTERVAL', '5'))
-        self.max_refreshes = int(os.getenv('DDC_LIVE_LOGS_MAX_REFRESHES', '12'))
+        from utils.settings import get_setting
+        timeout_seconds = get_setting('DDC_LIVE_LOGS_TIMEOUT', 120)
+        self.refresh_interval = get_setting('DDC_LIVE_LOGS_REFRESH_INTERVAL', 5)
+        self.max_refreshes = get_setting('DDC_LIVE_LOGS_MAX_REFRESHES', 12)
 
         # Set timeout to 5 minutes, but auto-recreate before timeout
         super().__init__(timeout=300)
@@ -325,7 +379,7 @@ class LiveLogView(discord.ui.View):
             logger.info(f"Auto-recreating Live Logs view for container {self.container_name}")
 
             # Get current logs
-            logs = await self._get_container_logs()
+            logs = await container_logs_text(self.container_name)
 
             # Create new view with same state
             new_view = LiveLogView(self.container_name, self.auto_refresh_enabled)
@@ -342,7 +396,8 @@ class LiveLogView(discord.ui.View):
                     color=0x00ff00,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
+                embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
+                    seconds=self.refresh_interval, remaining=remaining))
             else:
                 # Auto-refresh is not running
                 embed = discord.Embed(
@@ -351,7 +406,7 @@ class LiveLogView(discord.ui.View):
                     color=0x0099ff,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text="📄 Static logs • Click ▶️ to start live updates")
+                embed.set_footer(text=_("📄 Static logs • Click ▶️ to start live updates"))
 
             # Edit the message with new view
             await self.message_ref.edit(embed=embed, view=new_view)
@@ -398,7 +453,7 @@ class LiveLogView(discord.ui.View):
                 self.refresh_count += 1
 
                 # Get updated logs
-                logs = await self._get_container_logs()
+                logs = await container_logs_text(self.container_name)
 
                 if logs and self.message_ref:
                     # Update embed
@@ -412,9 +467,10 @@ class LiveLogView(discord.ui.View):
                     remaining = self.max_refreshes - self.refresh_count
 
                     if remaining > 0:
-                        embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
+                        embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
+                    seconds=self.refresh_interval, remaining=remaining))
                     else:
-                        embed.set_footer(text="✅ Auto-refresh completed • Click ▶️ to restart live updates")
+                        embed.set_footer(text=_("✅ Auto-refresh completed • Click ▶️ to restart live updates"))
                         embed.color = 0x808080  # Change to gray when done
                         self.auto_refresh_enabled = False
                         self.auto_refresh_task = None  # Clear task reference
@@ -452,34 +508,38 @@ class LiveLogView(discord.ui.View):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Through the service instead of on the view. Before, the timestamp
+        # lived under button_refresh_<user> in self._button_cooldowns - a
+        # dictionary the view created for itself. Two consequences: the
+        # per-minute LIMIT from the panel had no effect (it counts in
+        # add_user_cooldown, and this path never got there), and the lock died
+        # with the VIEW. That weighed especially here, because the live-log view
+        # renews itself (_start_auto_recreation rebuilds it 30 seconds before the
+        # timeout) - whoever waited that long lost every cooldown, without any
+        # of it being visible. The message was also untranslated; the existing
+        # catalog entry is used now. Refused via send_message, because nothing
+        # has been acknowledged at this point.
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("live_refresh")
-            current_time = time.time()
-            cooldown_key = f"button_refresh_{interaction.user.id}"
-
-            # Simple cooldown tracking on the view
-            if not hasattr(self, '_button_cooldowns'):
-                self._button_cooldowns = {}
-
-            if cooldown_key in self._button_cooldowns:
-                last_use = self._button_cooldowns[cooldown_key]
-                if current_time - last_use < cooldown_seconds:
-                    remaining = cooldown_seconds - (current_time - last_use)
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "live_refresh"):
+                    remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "live_refresh")
                     await interaction.response.send_message(
-                        f"⏰ Please wait {remaining:.1f} more seconds before refreshing again.",
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining
+                        ),
                         ephemeral=True
                     )
                     return
-
-            # Record button use
-            self._button_cooldowns[cooldown_key] = current_time
+                spam_manager.add_user_cooldown(interaction.user.id, "live_refresh")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for live log refresh button: {e}", exc_info=True)
 
         try:
             # Immediately send response to avoid timeout
             await interaction.response.send_message(_("🔄 Refreshing logs..."), ephemeral=True, delete_after=1)
 
             # Get updated logs
-            logs = await self._get_container_logs()
+            logs = await container_logs_text(self.container_name)
 
             if logs and self.message_ref:
                 # Update the existing message for public messages
@@ -489,7 +549,7 @@ class LiveLogView(discord.ui.View):
                     color=0x0099ff,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text="🔄 Manually refreshed • Click again to update")
+                embed.set_footer(text=_("🔄 Manually refreshed • Click again to update"))
 
                 try:
                     await self.message_ref.edit(embed=embed, view=self)
@@ -519,14 +579,14 @@ class LiveLogView(discord.ui.View):
 
                 # Update embed
                 if self.message_ref:
-                    logs = await self._get_container_logs()
+                    logs = await container_logs_text(self.container_name)
                     embed = discord.Embed(
                         title=f"⏹️ Debug Logs - {self.container_name}",
                         description=f"```\n{logs}\n```",
                         color=0xff6600,
                         timestamp=datetime.now(timezone.utc)
                     )
-                    embed.set_footer(text="⏹️ Auto-refresh stopped • Click Start to restart")
+                    embed.set_footer(text=_("⏹️ Auto-refresh stopped • Click Start to restart"))
 
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
@@ -545,14 +605,15 @@ class LiveLogView(discord.ui.View):
 
                 # Update embed and restart auto-refresh
                 if self.message_ref:
-                    logs = await self._get_container_logs()
+                    logs = await container_logs_text(self.container_name)
                     embed = discord.Embed(
                         title=f"▶️ Live Logs - {self.container_name}",
                         description=f"```\n{logs}\n```",
                         color=0x00ff00,
                         timestamp=datetime.now(timezone.utc)
                     )
-                    embed.set_footer(text=f"▶️ Auto-refresh restarted • Updating every {self.refresh_interval} seconds")
+                    embed.set_footer(text=_("▶️ Auto-refresh restarted • Updating every {seconds} seconds").format(
+                        seconds=self.refresh_interval))
 
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
@@ -596,7 +657,7 @@ class LiveLogView(discord.ui.View):
                     # Get current embed and update it
                     current_embed = self.message_ref.embeds[0] if self.message_ref.embeds else None
                     if current_embed:
-                        current_embed.set_footer(text="⏰ Live Logs view timed out • Use /info command to create new Live Logs")
+                        current_embed.set_footer(text=_("⏰ Live Logs view timed out • Use /info command to create new Live Logs"))
                         current_embed.color = 0x808080  # Gray color
                         await self.message_ref.edit(embed=current_embed, view=self)
                     logger.info(f"Live Logs view timed out for container {self.container_name}")
@@ -604,44 +665,6 @@ class LiveLogView(discord.ui.View):
                     logger.debug(f"Failed to update message on timeout: {e}")
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in on_timeout: {e}", exc_info=True)
-
-    async def _get_container_logs(self) -> str:
-        """Get the last 50 log lines for the container."""
-        try:
-            import docker
-            import asyncio
-            from utils.common_helpers import validate_container_name
-
-            # Validate container name for security
-            if not validate_container_name(self.container_name):
-                return f"Invalid container name format: {self.container_name}"
-
-            # Use synchronous Docker client for stable log retrieval
-            def get_logs_sync():
-                client = docker.from_env()
-                try:
-                    container = client.containers.get(self.container_name)
-                    tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
-                    logs_bytes = container.logs(tail=tail_lines, timestamps=True)
-                    return logs_bytes.decode('utf-8', errors='replace')
-                finally:
-                    client.close()
-
-            # Run synchronous operation in thread pool to avoid blocking
-            logs = await asyncio.get_event_loop().run_in_executor(None, get_logs_sync)
-
-            # Limit log output to prevent Discord message limits
-            if len(logs) > 1800:  # Leave room for embed formatting
-                logs = logs[-1800:]
-                logs = "...\n" + logs
-
-            return logs.strip() or "No logs available for this container."
-
-        except docker.errors.NotFound:
-            return f"Container '{self.container_name}' not found."
-        except (docker.errors.DockerException, RuntimeError, OSError) as e:
-            logger.debug(f"Error getting logs for {self.container_name}: {e}")
-            return f"Error retrieving logs: {str(e)[:100]}"
 
 class DebugLogsButton(discord.ui.Button):
     """Debug logs button for container info admin view with live updates."""
@@ -674,31 +697,35 @@ class DebugLogsButton(discord.ui.Button):
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_manager = get_spam_protection_service()
 
+            # Through the service instead of past it. Before, this place kept
+            # its own books: timestamp under button_logs_<user> in
+            # self.cog._button_cooldowns, while only the DURATION came from the
+            # service. As a result the per-minute LIMIT from the panel had no
+            # effect here - it counts in add_user_cooldown, and this path never
+            # got there. The cooldown worked, the per-minute limit did not;
+            # exactly the mix nobody notices.
+            # Key, duration and bucket stay unchanged ("logs", 10 s, not used as
+            # a lock anywhere else). New is only that the press is recorded and
+            # so counts towards the per-minute limit.
+            # Refused via followup, because it was acknowledged above.
             if spam_manager.is_enabled():
-                cooldown_seconds = spam_manager.get_button_cooldown("logs")  # Use logs cooldown
-                current_time = time.time()
-                cooldown_key = f"button_logs_{interaction.user.id}"
-
-                if hasattr(self.cog, '_button_cooldowns'):
-                    if cooldown_key in self.cog._button_cooldowns:
-                        last_use = self.cog._button_cooldowns[cooldown_key]
-                        if current_time - last_use < cooldown_seconds:
-                            remaining = cooldown_seconds - (current_time - last_use)
-                            await interaction.followup.send(
-                                _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                                    remaining=remaining
-                                ),
-                                ephemeral=True
-                            )
-                            return
-                else:
-                    self.cog._button_cooldowns = {}
-
-                # Record button use
-                self.cog._button_cooldowns[cooldown_key] = current_time
+                try:
+                    if spam_manager.is_on_cooldown(interaction.user.id, "logs"):
+                        remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "logs")
+                        await interaction.followup.send(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_manager.add_user_cooldown(interaction.user.id, "logs")
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for debug logs button: {e}", exc_info=True)
 
             # Check if Live Logs feature is enabled
-            live_logs_enabled = os.getenv('DDC_LIVE_LOGS_ENABLED', 'true').lower() in ['true', '1', 'on', 'yes']
+            from utils.settings import get_setting
+            live_logs_enabled = get_setting('DDC_LIVE_LOGS_ENABLED', True, bool)
 
             if not live_logs_enabled:
                 # Live Logs feature is disabled - show error message
@@ -711,10 +738,10 @@ class DebugLogsButton(discord.ui.Button):
             logger.info(f"Live debug logs (ephemeral) requested for container: {self.container_name}")
 
             # Check if auto-start is enabled via environment variable
-            auto_start_enabled = os.getenv('DDC_LIVE_LOGS_AUTO_START', 'false').lower() in ['true', '1', 'on', 'yes']
+            auto_start_enabled = get_setting('DDC_LIVE_LOGS_AUTO_START', False, bool)
 
             # Get initial logs
-            log_lines = await self._get_container_logs()
+            log_lines = await container_logs_text(self.container_name)
 
             if log_lines:
                 # Create live log view - auto-refresh based on setting
@@ -754,7 +781,7 @@ class DebugLogsButton(discord.ui.Button):
                 logger.info(f"Debug logs displayed for {self.container_name} for user {interaction.user.id} (auto-start: {auto_start_enabled})")
             else:
                 await interaction.followup.send(
-                    "❌ Could not retrieve debug logs for this container.",
+                    _("❌ Could not retrieve debug logs for this container."),
                     ephemeral=True
                 )
 
@@ -763,56 +790,18 @@ class DebugLogsButton(discord.ui.Button):
             try:
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error retrieving debug logs. Please try again later.",
+                        _("❌ Error retrieving debug logs. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error retrieving debug logs. Please try again later.",
+                        _("❌ Error retrieving debug logs. Please try again later."),
                         ephemeral=True
                     )
-            except:
+            except Exception:
                 pass
 
-    async def _get_container_logs(self) -> str:
-        """Get the last 50 log lines for the container."""
-        try:
-            import docker
-            import asyncio
-            from utils.common_helpers import validate_container_name
-
-            # Validate container name for security
-            if not validate_container_name(self.container_name):
-                return f"Invalid container name format: {self.container_name}"
-
-            # Use synchronous Docker client for stable log retrieval
-            def get_logs_sync():
-                client = docker.from_env()
-                try:
-                    container = client.containers.get(self.container_name)
-                    tail_lines = int(os.getenv('DDC_LIVE_LOGS_TAIL_LINES', '50'))
-                    logs_bytes = container.logs(tail=tail_lines, timestamps=True)
-                    return logs_bytes.decode('utf-8', errors='replace')
-                finally:
-                    client.close()
-
-            # Run synchronous operation in thread pool to avoid blocking
-            logs = await asyncio.get_event_loop().run_in_executor(None, get_logs_sync)
-
-            # Limit log output to prevent Discord message limits
-            if len(logs) > 1800:  # Leave room for embed formatting
-                logs = logs[-1800:]
-                logs = "...\n" + logs
-
-            return logs.strip() or "No logs available for this container."
-
-        except docker.errors.NotFound:
-            return f"Container '{self.container_name}' not found."
-        except (docker.errors.DockerException, RuntimeError, OSError) as e:
-            logger.debug(f"Error getting logs for {self.container_name}: {e}")
-            return f"Error retrieving logs: {str(e)[:100]}"
-
-class StatusInfoView(discord.ui.View):
+class StatusInfoView(DDCView):
     """
     View for status-only channels that provides info display without control buttons.
     Only shows info button when container has info enabled.
@@ -838,7 +827,7 @@ class StatusInfoView(discord.ui.View):
         if self.info_config.get('protected_enabled', False):
             self.add_item(ProtectedInfoButton(cog_instance, server_config, self.info_config))
 
-class ProtectedInfoOnlyView(discord.ui.View):
+class ProtectedInfoOnlyView(DDCView):
     """
     View for /info command in status channels that only shows protected info button.
     """
@@ -924,7 +913,7 @@ class StatusInfoButton(discord.ui.Button):
                     color=discord.Color.red()
                 )
                 await interaction.followup.send(embed=error_embed, ephemeral=True)
-            except:
+            except Exception:
                 pass  # Ignore errors in error handling
 
     async def _generate_info_embed(self, include_protected: bool = False) -> discord.Embed:
@@ -943,7 +932,7 @@ class StatusInfoButton(discord.ui.Button):
 
         # Create embed with container branding
         embed = discord.Embed(
-            title=f"📋 {display_name} - Container Info",
+            title=_("📋 {name} - Container Info").format(name=display_name),
             color=0x3498db
         )
 
@@ -961,8 +950,19 @@ class StatusInfoButton(discord.ui.Button):
             if ip_info:
                 description_parts.append(ip_info)
 
-        # Add protected information if in control channel and enabled
-        if include_protected and fresh_info_config.get('protected_enabled', False):
+        # Add protected information if in control channel and enabled.
+        #
+        # A SET PASSWORD WINS over control permission (operator's decision,
+        # review F3). This used to hand the content out on control permission
+        # alone, while the dropdown path two files over asks for the password
+        # in EVERY channel - measured with a password set: the secret went
+        # straight into the embed. A password that protects on one path and not
+        # on the other protects nothing. Without a password "protected" is
+        # protected by nothing anyway, and a control channel has always shown
+        # it; that half is unchanged.
+        has_password = bool(str(fresh_info_config.get('protected_password') or '').strip())
+        if include_protected and fresh_info_config.get('protected_enabled', False) \
+                and not has_password:
             protected_content = fresh_info_config.get('protected_content', '').strip()
             if protected_content:
                 description_parts.append("\n**🔐 Protected Information:**")
@@ -984,13 +984,17 @@ class StatusInfoButton(discord.ui.Button):
         """Get IP information for the container."""
         custom_ip = info_config.get('custom_ip', '').strip()
         custom_port = info_config.get('custom_port', '').strip()
+        # At method level, not inside the branch below: the WAN branch appends
+        # the same port and is only reached when custom_ip is empty, so an
+        # import inside the custom_ip branch would never have run for it.
+        from .control_helpers import validate_custom_address, validate_custom_port
 
         if custom_ip:
             # Validate custom IP/hostname format for security
-            if self._validate_custom_address(custom_ip):
+            if validate_custom_address(custom_ip):
                 # Add port if provided
                 address = custom_ip
-                if custom_port and custom_port.isdigit():
+                if validate_custom_port(custom_port):
                     address = f"{custom_ip}:{custom_port}"
                 return f"🔗 **Custom Address:** {address}"
             else:
@@ -1004,7 +1008,7 @@ class StatusInfoButton(discord.ui.Button):
             if wan_ip:
                 # Add port if provided
                 address = wan_ip
-                if custom_port and custom_port.isdigit():
+                if validate_custom_port(custom_port):
                     address = f"{wan_ip}:{custom_port}"
                 return f"**Public IP:** {address}"
         except (OSError, RuntimeError, ValueError) as e:
@@ -1012,34 +1016,6 @@ class StatusInfoButton(discord.ui.Button):
 
         return "**IP:** Auto-detection failed"
 
-
-    def _validate_custom_address(self, address: str) -> bool:
-        """Validate custom IP/hostname format for security."""
-        import re
-
-        # Limit length to prevent abuse
-        if len(address) > 255:
-            return False
-
-        # Allow IPs
-        ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-        if re.match(ip_pattern, address):
-            # Validate IP octets
-            octets = address.split('.')
-            for octet in octets:
-                if int(octet) > 255:
-                    return False
-            return True
-
-        # Allow hostnames with ports
-        hostname_pattern = r'^[a-zA-Z0-9.-]+(\:[0-9]{1,5})?$'
-        if re.match(hostname_pattern, address):
-            # Additional validation: no double dots, no leading/trailing dots
-            if '..' in address or address.startswith('.') or address.endswith('.'):
-                return False
-            return True
-
-        return False
 
     def _get_status_info(self) -> Optional[str]:
         """Get current container status information."""
@@ -1070,28 +1046,23 @@ class ProtectedInfoButton(discord.ui.Button):
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
+        # Through the service instead of past it - same reason as in
+        # ProtectedInfoEditButton. Own key "protected_info" with value 3, so the
+        # formerly separate bucket stays separate.
         if spam_manager.is_enabled():
-            cooldown_seconds = spam_manager.get_button_cooldown("info")
-            current_time = time.time()
-            cooldown_key = f"button_protected_{interaction.user.id}"
-
-            if hasattr(self.cog, '_button_cooldowns'):
-                if cooldown_key in self.cog._button_cooldowns:
-                    last_use = self.cog._button_cooldowns[cooldown_key]
-                    if current_time - last_use < cooldown_seconds:
-                        remaining = cooldown_seconds - (current_time - last_use)
-                        await interaction.response.send_message(
-                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                                remaining=remaining
-                            ),
-                            ephemeral=True
-                        )
-                        return
-            else:
-                self.cog._button_cooldowns = {}
-
-            # Record button use
-            self.cog._button_cooldowns[cooldown_key] = current_time
+            try:
+                if spam_manager.is_on_cooldown(interaction.user.id, "protected_info"):
+                    remaining = spam_manager.get_remaining_cooldown(interaction.user.id, "protected_info")
+                    await interaction.response.send_message(
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=remaining
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                spam_manager.add_user_cooldown(interaction.user.id, "protected_info")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for protected info button: {e}", exc_info=True)
 
         try:
             # Import password validation modal from enhanced_info_modal_simple
@@ -1117,7 +1088,7 @@ class ProtectedInfoButton(discord.ui.Button):
                     _("❌ Could not open protected info modal. Please try again later."),
                     ephemeral=True
                 )
-            except:
+            except Exception:
                 pass
 
 def create_enhanced_status_embed(
@@ -1243,19 +1214,24 @@ class TaskManagementButton(discord.ui.Button):
             # Check spam protection after deferring
             from services.infrastructure.spam_protection_service import get_spam_protection_service
             spam_service = get_spam_protection_service()
+            # Through the service instead of an attribute on the button - same
+            # reason as in InfoDropdownButton in control_ui.py. The lock lived on
+            # the object and vanished with it; the per-minute limit from the
+            # panel had no effect here, and the message was untranslated.
             if spam_service.is_enabled():
-                cooldown = spam_service.get_button_cooldown("tasks")
-                import time
-                current_time = time.time()
-                user_id = str(interaction.user.id)
-                last_click = getattr(self, f'_last_click_{user_id}', 0)
-                if current_time - last_click < cooldown:
-                    await interaction.followup.send(
-                        f"⏰ Please wait {cooldown - (current_time - last_click):.1f} seconds.",
-                        ephemeral=True
-                    )
-                    return
-                setattr(self, f'_last_click_{user_id}', current_time)
+                try:
+                    if spam_service.is_on_cooldown(interaction.user.id, "tasks"):
+                        remaining = spam_service.get_remaining_cooldown(interaction.user.id, "tasks")
+                        await interaction.followup.send(
+                            _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                                remaining=remaining
+                            ),
+                            ephemeral=True
+                        )
+                        return
+                    spam_service.add_user_cooldown(interaction.user.id, "tasks")
+                except (RuntimeError, AttributeError, KeyError) as e:
+                    logger.error(f"Spam protection error for task management button: {e}", exc_info=True)
 
             # Show task list directly
             await self._show_task_list(interaction)
@@ -1263,8 +1239,8 @@ class TaskManagementButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in task management button: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error opening task management.", ephemeral=True)
-            except:
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+            except Exception:
                 pass
 
     async def _show_task_list(self, interaction: discord.Interaction):
@@ -1280,7 +1256,7 @@ class TaskManagementButton(discord.ui.Button):
             if not tasks:
                 embed = discord.Embed(
                     title=f"⏰ No Tasks for {self.container_name}",
-                    description="No scheduled tasks found for this container.",
+                    description=_("No scheduled tasks found for this container."),
                     color=discord.Color.orange()
                 )
                 view = TaskManagementView(self.cog, self.container_name)
@@ -1330,11 +1306,11 @@ class TaskManagementButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing task list: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
-            except:
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+            except Exception:
                 pass  # Interaction might have expired
 
-class TaskManagementView(discord.ui.View):
+class TaskManagementView(DDCView):
     """View with buttons for task management (Add Task, Delete Tasks, Auto-Action)."""
 
     def __init__(self, cog_instance, container_name: str):
@@ -1368,8 +1344,19 @@ class AddTaskButton(discord.ui.Button):
         try:
             logger.info(f"AddTaskButton clicked for container: {self.container_name}")
 
+            # Acknowledge first: the allowed-actions lookup reads all container
+            # configs and could outlast Discord's 3 s limit (10062 Unknown interaction)
+            await interaction.response.defer(ephemeral=True)
+            allowed_actions = await asyncio.to_thread(_get_allowed_task_actions, self.container_name)
+
             # Create dropdown-based task creation
-            view = TaskCreationView(self.cog, self.container_name)
+            view = TaskCreationView(self.cog, self.container_name, allowed_actions=allowed_actions)
+            if not view.allowed_actions:
+                await interaction.followup.send(
+                    f"❌ {_('No schedulable actions (start/stop/restart) are allowed for {container}.').format(container=self.container_name)}",
+                    ephemeral=True
+                )
+                return
 
             embed = discord.Embed(
                 title=f"⏰ {_('Create Task: {container}').format(container=self.container_name)}",
@@ -1383,7 +1370,7 @@ class AddTaskButton(discord.ui.Button):
                 inline=False
             )
 
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 embed=embed,
                 view=view,
                 ephemeral=True
@@ -1391,7 +1378,10 @@ class AddTaskButton(discord.ui.Button):
 
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in add task button: {e}", exc_info=True)
-            await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True)
+            if interaction.response.is_done():
+                await interaction.followup.send(f"❌ {_('Error showing task help.')}", ephemeral=True)
+            else:
+                await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True)
 
 class DeleteTasksButton(discord.ui.Button):
     """Button to open task delete panel."""
@@ -1418,7 +1408,7 @@ class DeleteTasksButton(discord.ui.Button):
 
             if not tasks:
                 await interaction.followup.send(
-                    f"⏰ No tasks found for {self.container_name} to delete.",
+                    _("⏰ No tasks found for {name} to delete.").format(name=self.container_name),
                     ephemeral=True
                 )
                 return
@@ -1543,13 +1533,33 @@ class AutoActionButton(discord.ui.Button):
             await interaction.followup.send(f"❌ {_('Error loading Auto-Actions.')}", ephemeral=True)
 
 
-class TaskCreationView(discord.ui.View):
+# Actions that can be scheduled as tasks (services.scheduling.scheduler.VALID_ACTIONS)
+_TASK_ACTIONS = ("start", "stop", "restart")
+
+
+def _get_allowed_task_actions(container_name: str) -> List[str]:
+    """Return the schedulable actions allowed for a container (its allowed_actions)."""
+    try:
+        from services.config.server_config_service import get_server_config_service
+        for server in get_server_config_service().get_all_servers():
+            if server.get('docker_name') == container_name:
+                allowed = server.get('allowed_actions') or []
+                return [action for action in _TASK_ACTIONS if action in allowed]
+    except (ImportError, AttributeError, RuntimeError, OSError, ValueError) as e:
+        logger.error(f"Error loading allowed actions for {container_name}: {e}", exc_info=True)
+    return []
+
+
+class TaskCreationView(DDCView):
     """View for task creation using sequential dropdowns."""
 
-    def __init__(self, cog_instance, container_name: str):
+    def __init__(self, cog_instance, container_name: str, allowed_actions: Optional[List[str]] = None):
         super().__init__(timeout=300)
         self.cog = cog_instance
         self.container_name = container_name
+        # Only actions the container allows may be scheduled (looked up if not given)
+        self.allowed_actions = (allowed_actions if allowed_actions is not None
+                                else _get_allowed_task_actions(container_name))
 
         # Task configuration state
         self.selected_cycle = None
@@ -1648,13 +1658,13 @@ class CycleDropdown(discord.ui.Select):
         self.view.selected_time = None
 
         # Add action dropdown
-        action_dropdown = ActionDropdown()
+        action_dropdown = ActionDropdown(self.view.allowed_actions)
         action_dropdown.row = self.view.get_next_available_row()
         self.view.add_item(action_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.values[0].title()}\n\nNow choose the action...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.values[0].title()}\n\n{_('Now choose the action...')}",
             color=discord.Color.blue()
         )
 
@@ -1663,12 +1673,15 @@ class CycleDropdown(discord.ui.Select):
 class ActionDropdown(discord.ui.Select):
     """Dropdown for selecting task action."""
 
-    def __init__(self):
+    def __init__(self, allowed_actions: Optional[List[str]] = None):
         options = [
             discord.SelectOption(label=_("Start"), description=_("Start the container"), emoji="▶️", value="start"),
             discord.SelectOption(label=_("Stop"), description=_("Stop the container"), emoji="⏹️", value="stop"),
             discord.SelectOption(label=_("Restart"), description=_("Restart the container"), emoji="🔄", value="restart")
         ]
+        # Only offer actions the container's config allows
+        if allowed_actions is not None:
+            options = [option for option in options if option.value in allowed_actions]
 
         super().__init__(placeholder=_("Choose action..."), options=options, row=1)
 
@@ -1713,31 +1726,62 @@ class ActionDropdown(discord.ui.Select):
             self.view.add_item(day_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.values[0].title()}\n\nContinue with the next selection...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.values[0].title()}\n\n{_('Continue with the next selection...')}",
             color=discord.Color.blue()
         )
 
         await interaction.response.edit_message(embed=embed, view=self.view)
 
-class SimpleMonthdayDropdown(discord.ui.Select):
-    """Simple dropdown for selecting day of month (1-31 excluding some days)."""
+FIRST_PAGE_LAST_DAY = 24   # 24 days plus the option that turns the page = 25
+LATER_DAYS = "later_days"
+EARLIER_DAYS = "earlier_days"
 
-    def __init__(self):
-        # Days to include (excluding 5,6,11,17,18,26,29)
-        days = [1,2,3,4,7,8,9,10,12,13,14,15,16,19,20,21,22,23,24,25,27,28,30,31]
-        options = []
-        for day in days:
-            options.append(discord.SelectOption(
-                label=f"{day:02d}",
-                value=str(day)
-            ))
+
+class SimpleMonthdayDropdown(discord.ui.Select):
+    """Day of the month, 1-31, in two pages.
+
+    Discord shows at most 25 options in one select, and a month has 31 days.
+    The list used to hold 24 hand-picked days and simply left out the 5th, 6th,
+    11th, 17th, 18th, 26th and 29th - no hint, no reason, and for the 29th and
+    31st no way at all to schedule a task at the end of the month (review B21).
+    Now the first page carries the days 1-24 and a last option that turns to
+    25-31, which in turn offers the way back.
+    """
+
+    def __init__(self, page: int = 1):
+        self.page = page
+        if page == 1:
+            options = [discord.SelectOption(label=f"{day:02d}", value=str(day))
+                       for day in range(1, FIRST_PAGE_LAST_DAY + 1)]
+            # Numbers and an arrow, deliberately without _(): the label carries no
+            # words, so it needs no entry in the 41 catalogs and reads the same in
+            # every language.
+            options.append(discord.SelectOption(label="25 - 31  →", value=LATER_DAYS))
+        else:
+            options = [discord.SelectOption(label="←  1 - 24", value=EARLIER_DAYS)]
+            options += [discord.SelectOption(label=f"{day:02d}", value=str(day))
+                        for day in range(FIRST_PAGE_LAST_DAY + 1, 32)]
 
         # Dynamic row assignment to avoid conflicts
-        super().__init__(placeholder=_("Choose day..."), options=options[:25])
+        super().__init__(placeholder=_("Choose day..."), options=options)
+
+    async def _turn_page(self, interaction: discord.Interaction) -> None:
+        """Swap this dropdown for the other page, in the same row."""
+        row = getattr(self, 'row', None)
+        self.view.remove_item(self)
+        other_page = SimpleMonthdayDropdown(page=2 if self.values[0] == LATER_DAYS else 1)
+        if row is not None:
+            other_page.row = row
+        self.view.add_item(other_page)
+        await interaction.response.edit_message(view=self.view)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle day selection."""
+        if self.values[0] in (LATER_DAYS, EARLIER_DAYS):
+            await self._turn_page(interaction)
+            return
+
         self.view.selected_day = self.values[0]
 
         # Clear any existing dropdowns after this one
@@ -1764,8 +1808,8 @@ class SimpleMonthdayDropdown(discord.ui.Select):
             self.view.add_item(month_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.values[0]}\n\nContinue...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Day')}:** {self.values[0]}\n\n{_('Continue...')}",
             color=discord.Color.blue()
         )
 
@@ -1827,8 +1871,8 @@ class MonthDropdown(discord.ui.Select):
             self.view.add_item(year_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.values[0]}\n\nContinue...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Day')}:** {self.view.selected_day}\n✅ **{_('Month')}:** {self.values[0]}\n\n{_('Continue...')}",
             color=discord.Color.blue()
         )
 
@@ -1869,8 +1913,8 @@ class YearDropdown(discord.ui.Select):
         self.view.add_item(time_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.view.selected_month}\n✅ **Year:** {self.values[0]}\n\nNow choose the time...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Day')}:** {self.view.selected_day}\n✅ **{_('Month')}:** {self.view.selected_month}\n✅ **{_('Year')}:** {self.values[0]}\n\n{_('Now choose the time...')}",
             color=discord.Color.blue()
         )
 
@@ -1957,298 +2001,21 @@ class WeekdayDropdown(discord.ui.Select):
         self.view.add_item(time_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Weekday:** {self.values[0].title()}\n\nNow choose the time...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Weekday')}:** {self.values[0].title()}\n\n{_('Now choose the time...')}",
             color=discord.Color.blue()
         )
 
         await interaction.response.edit_message(embed=embed, view=self.view)
 
-class MonthdayDropdown(discord.ui.Select):
-    """Dropdown for selecting day of month."""
-
-    def __init__(self):
-        options = []
-        for day in range(1, 32):  # 1-31
-            suffix = "st" if day in [1, 21, 31] else "nd" if day in [2, 22] else "rd" if day in [3, 23] else "th"
-            options.append(discord.SelectOption(label=f"{day}{suffix} of month", value=str(day)))
-
-        super().__init__(placeholder="📅 Choose day of month...", options=options[:25], row=3)  # Max 25
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Handle monthday selection."""
-        self.view.selected_day = self.values[0]
-        self.view.check_ready()
-
-        embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Day:** {self.values[0]}",
-            color=discord.Color.green()
-        )
-
-        await interaction.response.edit_message(embed=embed, view=self.view)
-
-class YeardayDropdown(discord.ui.Select):
-    """Dropdown for selecting date input method for yearly tasks."""
-
-    def __init__(self):
-        options = [
-            discord.SelectOption(
-                label="Manual Date Entry",
-                description="Enter custom DD.MM date",
-                emoji="✏️",
-                value="manual"
-            ),
-            discord.SelectOption(
-                label="01.01 - New Year's Day",
-                description="January 1st",
-                emoji="🎊",
-                value="01.01"
-            ),
-            discord.SelectOption(
-                label="14.02 - Valentine's Day",
-                description="February 14th",
-                emoji="💝",
-                value="14.02"
-            ),
-            discord.SelectOption(
-                label="01.04 - April 1st",
-                description="April Fools Day",
-                emoji="🃏",
-                value="01.04"
-            ),
-            discord.SelectOption(
-                label="01.05 - May Day",
-                description="May 1st",
-                emoji="🌸",
-                value="01.05"
-            ),
-            discord.SelectOption(
-                label="31.10 - Halloween",
-                description="October 31st",
-                emoji="🎃",
-                value="31.10"
-            ),
-            discord.SelectOption(
-                label="24.12 - Christmas Eve",
-                description="December 24th",
-                emoji="🎄",
-                value="24.12"
-            ),
-            discord.SelectOption(
-                label="25.12 - Christmas Day",
-                description="December 25th",
-                emoji="🎁",
-                value="25.12"
-            ),
-            discord.SelectOption(
-                label="31.12 - New Year's Eve",
-                description="December 31st",
-                emoji="🎆",
-                value="31.12"
-            )
-        ]
-
-        super().__init__(placeholder="📅 Choose yearly date or manual entry...", options=options[:25], row=3)
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Handle yearly date selection or show manual input."""
-        if self.values[0] == "manual":
-            # Use a message with instructions
-            embed = discord.Embed(
-                title="📅 Manual Date Entry",
-                description="Please enter the date in **DD.MM** format",
-                color=discord.Color.blue()
-            )
-
-            embed.add_field(
-                name="📝 Instructions",
-                value="Type your date below in this format:\n`25.12` for December 25th\n`01.01` for January 1st\n`15.06` for June 15th",
-                inline=False
-            )
-
-            embed.add_field(
-                name="⚠️ Important",
-                value="After typing your date, click the button below to confirm.",
-                inline=False
-            )
-
-            # Create a view with a text select for manual date input
-            manual_view = ManualDateView(self.view)
-
-            await interaction.response.send_message(
-                embed=embed,
-                view=manual_view,
-                ephemeral=True
-            )
-        else:
-            # Use predefined date
-            self.view.selected_day = self.values[0]
-            self.view.check_ready()
-
-            embed = discord.Embed(
-                title=f"⏰ Create Task: {self.view.container_name}",
-                description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Date:** {self.values[0]}",
-                color=discord.Color.green()
-            )
-
-            await interaction.response.edit_message(embed=embed, view=self.view)
-
-class ManualDateView(discord.ui.View):
-    """View for manual date entry using dropdowns instead of modal."""
-
-    def __init__(self, task_view):
-        super().__init__(timeout=300)
-        self.task_view = task_view
-
-        # Add day dropdown (1-31)
-        self.add_item(DaySelectDropdown())
-
-        # Add month dropdown (1-12)
-        self.add_item(MonthSelectDropdown())
-
-        # Add confirm button
-        self.add_item(ConfirmDateButton())
-
-class DaySelectDropdown(discord.ui.Select):
-    """Dropdown for selecting day of month."""
-
-    def __init__(self):
-        options = []
-        for day in range(1, 32):
-            options.append(discord.SelectOption(
-                label=f"{day:02d}",
-                value=str(day)
-            ))
-
-        super().__init__(placeholder="📅 Select Day (1-31)...", options=options[:25], row=0)
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Handle day selection."""
-        self.view.selected_day_part = self.values[0].zfill(2)
-
-        # Check if both parts are selected
-        if hasattr(self.view, 'selected_month_part'):
-            self.view.children[-1].disabled = False  # Enable confirm button
-
-        await interaction.response.edit_message(view=self.view)
-
-class MonthSelectDropdown(discord.ui.Select):
-    """Dropdown for selecting month."""
-
-    def __init__(self):
-        months = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ]
-
-        options = []
-        for i, month in enumerate(months, 1):
-            options.append(discord.SelectOption(
-                label=f"{i:02d} - {month}",
-                value=str(i)
-            ))
-
-        super().__init__(placeholder="📅 Select Month...", options=options, row=1)
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Handle month selection."""
-        self.view.selected_month_part = self.values[0].zfill(2)
-
-        # Check if both parts are selected
-        if hasattr(self.view, 'selected_day_part'):
-            self.view.children[-1].disabled = False  # Enable confirm button
-
-        await interaction.response.edit_message(view=self.view)
-
-class ConfirmDateButton(discord.ui.Button):
-    """Button to confirm the manual date entry."""
-
-    def __init__(self):
-        super().__init__(
-            style=discord.ButtonStyle.primary,
-            label="Confirm Date",
-            emoji="✅",
-            disabled=True,
-            row=2
-        )
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Confirm the date and update task view."""
-        # Combine day and month
-        date_str = f"{self.view.selected_day_part}.{self.view.selected_month_part}"
-
-        # Validate the date
-        try:
-            day = int(self.view.selected_day_part)
-            month = int(self.view.selected_month_part)
-
-            import calendar
-            if day > calendar.monthrange(2025, month)[1]:
-                await interaction.response.send_message(
-                    f"❌ Invalid date: Day {day} doesn't exist in month {month}",
-                    ephemeral=True
-                )
-                return
-        except (ValueError, TypeError, AttributeError) as e:
-            await interaction.response.send_message(
-                f"❌ Invalid date: {str(e)}",
-                ephemeral=True
-            )
-            return
-
-        # Update the task view
-        self.view.task_view.selected_day = date_str
-        self.view.task_view.check_ready()
-
-        embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.task_view.container_name}",
-            description=f"✅ Date configured: **{date_str}**\n\n**Cycle:** {self.view.task_view.selected_cycle.title()}\n**Action:** {self.view.task_view.selected_action.title()}\n**Time:** {self.view.task_view.selected_time}\n**Date:** {date_str}",
-            color=discord.Color.green()
-        )
-
-        await interaction.response.send_message(
-            embed=embed,
-            view=self.view.task_view,
-            ephemeral=True
-        )
-
-class DateDropdown(discord.ui.Select):
-    """Dropdown for selecting specific date for once tasks."""
-
-    def __init__(self):
-        from datetime import datetime, timedelta
-
-        # Generate dates for next few months
-        today = datetime.now()
-        options = []
-
-        for days_ahead in range(1, 61):  # Next 60 days
-            date = today + timedelta(days=days_ahead)
-            date_str = date.strftime("%d.%m.%Y")
-            day_name = date.strftime("%A")
-            options.append(discord.SelectOption(
-                label=f"{date_str} ({day_name})",
-                value=date_str
-            ))
-
-            if len(options) >= 25:  # Discord limit
-                break
-
-        super().__init__(placeholder="📅 Choose specific date...", options=options, row=3)
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """Handle specific date selection."""
-        self.view.selected_day = self.values[0]
-        self.view.check_ready()
-
-        embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ All settings configured!\n\n**Cycle:** {self.view.selected_cycle.title()}\n**Action:** {self.view.selected_action.title()}\n**Time:** {self.view.selected_time}\n**Date:** {self.values[0]}",
-            color=discord.Color.green()
-        )
-
-        await interaction.response.edit_message(embed=embed, view=self.view)
+# Seven classes stood here (1979-2264): MonthdayDropdown, YeardayDropdown,
+# ManualDateView, DaySelectDropdown, MonthSelectDropdown, ConfirmDateButton and
+# DateDropdown - a second, older way to pick a date that nothing ever built. It
+# stored a date as one "DD.MM" string, which CreateTaskButton below reads with
+# int(), and its day list cut 1-31 down to the first 25 with options[:25]. Both
+# would have been real defects on a path a user can reach; here they were a trap
+# for whoever reads the file (review B22). The live way asks for day and month
+# separately: SimpleMonthdayDropdown + MonthDropdown.
 
 class CreateTaskButton(discord.ui.Button):
     """Button to directly create the task."""
@@ -2280,8 +2047,36 @@ class CreateTaskButton(discord.ui.Button):
             await interaction.response.send_message(f"❌ {_('Please select: {missing}').format(missing=', '.join(missing))}", ephemeral=True)
             return
 
+        # Imported before try so the except clause below can reference it
+        from services.scheduling.schedule_helpers import ScheduleValidationError
+
         try:
             await interaction.response.defer(ephemeral=True)
+
+            # The channel's CURRENT 'schedule' permission, or a registered admin
+            # (SPEC.md B2) - the same rule as the twin that DELETES a task
+            # (ContainerTaskDeleteButton). Creating one was checked nowhere: neither
+            # at the click nor here, so the same thing needed a permission on one path
+            # and none on the other, and a view still open after a revocation kept
+            # creating tasks for up to ~890 s (SPEC.md Z5, review B3).
+            # An assigned admin may only make tasks for their own containers
+            # (review F2); the channel branch in front of it is untouched.
+            from .control_helpers import _channel_has_permission, _admin_may_control
+            if not (_channel_has_permission(interaction.channel_id, 'schedule', load_config())
+                    or _admin_may_control(interaction.user.id, self.container_name)):
+                await interaction.followup.send(
+                    f"❌ {_('This action is not allowed in this channel.')}",
+                    ephemeral=True
+                )
+                return
+
+            # Re-check allowed actions at creation time (config may have changed)
+            if self.view.selected_action not in _get_allowed_task_actions(self.container_name):
+                error_msg = _("You don't have permission to perform '{action}' on '{container}'.").format(
+                    action=self.view.selected_action, container=self.container_name
+                )
+                await interaction.followup.send(f"❌ {error_msg}", ephemeral=True)
+                return
 
             # Import required modules
             from services.scheduling.scheduler import ScheduledTask, add_task, parse_time_string, parse_weekday_string
@@ -2327,7 +2122,8 @@ class CreateTaskButton(discord.ui.Button):
                 year=year_val if self.view.selected_cycle == 'once' else None,
                 created_by=str(interaction.user),
                 created_at=time.time(),
-                timezone_str="Europe/Berlin"
+                # Configured timezone, like the slash commands
+                timezone_str=load_config().get('timezone', 'Europe/Berlin')
             )
 
             # Calculate next run time
@@ -2362,12 +2158,10 @@ class CreateTaskButton(discord.ui.Button):
                     inline=False
                 )
 
-                # Format next run time
-                if task.next_run_ts:
-                    from datetime import datetime
-                    import pytz
-                    tz = pytz.timezone("Europe/Berlin")
-                    next_run = datetime.fromtimestamp(task.next_run_ts, tz).strftime('%Y-%m-%d %H:%M %Z')
+                # Format next run time (in the task's timezone, i.e. the configured one)
+                next_run_dt = task.get_next_run_datetime()
+                if next_run_dt:
+                    next_run = next_run_dt.strftime('%Y-%m-%d %H:%M %Z')
                     embed.add_field(
                         name=f"⏰ {_('Next Run')}",
                         value=f"`{next_run}`",
@@ -2388,6 +2182,10 @@ class CreateTaskButton(discord.ui.Button):
                     ephemeral=True
                 )
 
+        except ScheduleValidationError as e:
+            # Validation messages are user-facing (e.g. time conflict, time in the past)
+            logger.info(f"Task creation for {self.container_name} rejected: {e}")
+            await interaction.followup.send(f"❌ **{_('Error')}**: {str(e)[:200]}", ephemeral=True)
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error creating task: {e}", exc_info=True)
             error_msg = str(e)
@@ -2428,7 +2226,7 @@ def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) 
     # The StatusInfoView will be used only for status-only channels, control channels use ControlView
     return True
 
-class ContainerTaskDeleteView(discord.ui.View):
+class ContainerTaskDeleteView(DDCView):
     """View for deleting tasks specific to a container."""
 
     def __init__(self, cog_instance, tasks: list, container_name: str):
@@ -2459,14 +2257,11 @@ class ContainerTaskDeleteView(discord.ui.View):
             }
             action_emoji = action_emojis.get(action, '⚙️')
 
-            # Build detailed time and date info
+            # Build detailed time and date info in the task's own timezone (older
+            # tasks may use another zone than the configured one), with a marker
             time_info = ""
-            if hasattr(task, 'next_run_ts') and task.next_run_ts:
-                from datetime import datetime
-                import pytz
-                tz = pytz.timezone("Europe/Berlin")
-                next_run = datetime.fromtimestamp(task.next_run_ts, tz)
-
+            next_run = task.get_next_run_datetime() if getattr(task, 'next_run_ts', None) else None
+            if next_run:
                 if task.cycle == 'once':
                     # For once: show full date and time "O:13.08.27 14h"
                     time_info = f":{next_run.strftime('%d.%m.%y %Hh')}"
@@ -2486,6 +2281,9 @@ class ContainerTaskDeleteView(discord.ui.View):
                 else:
                     # Fallback: just show time
                     time_info = f":{next_run.strftime('%Hh')}"
+                tz_marker = next_run.strftime('%Z')
+                if tz_marker:
+                    time_info += f" {tz_marker}"
             elif hasattr(task, 'time_str') and task.time_str:
                 # Fallback to time_str if available
                 time_info = f":{task.time_str}"
@@ -2520,6 +2318,26 @@ class ContainerTaskDeleteButton(discord.ui.Button):
 
             from services.scheduling.scheduler import delete_task, find_task_by_id
             from services.infrastructure.action_logger import log_user_action
+            from .control_helpers import _channel_has_permission, _admin_may_control_task
+
+            # Deleting a scheduled task needs the 'schedule' permission of the
+            # CURRENT channel. The twin button in control_ui.py:1276 checks it;
+            # this path did not, so whoever held 'control' but deliberately not
+            # 'schedule' could still delete tasks here. Same action, same right.
+            # See SPEC.md Z5 - the assurance holds on EVERY path or not at all.
+            # A registered admin may delete as well (SPEC.md B2): this is the
+            # button of the admin info view, which admins open in status
+            # channels. Added 2026-09-19 after the operator was refused there.
+            config = load_config()
+            # Via the task's container - same rule as its twin in control_ui
+            # (review F2).
+            if not (_channel_has_permission(interaction.channel_id, 'schedule', config)
+                    or _admin_may_control_task(interaction.user.id, self.task_id)):
+                await interaction.followup.send(
+                    f"❌ {_('You do not have permission to delete tasks in this channel.')}",
+                    ephemeral=True
+                )
+                return
 
             # Find the task first to get info for logging
             task = find_task_by_id(self.task_id)
@@ -2564,7 +2382,7 @@ class ContainerTaskDeleteButton(discord.ui.Button):
                 # Update the original message to remove the deleted task button
                 try:
                     await interaction.edit_original_response(view=self.view)
-                except:
+                except Exception:
                     # If editing fails, it's not critical
                     pass
 
