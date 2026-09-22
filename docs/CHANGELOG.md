@@ -89,6 +89,27 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   browser hint only; a longer text made the Info button answer with an error. It is cut at the
   save (and in the embed, for files written by hand).
 - **The Web UI password fields line up again** when a label needs two lines (German and others).
+- **Your update interval is kept again.** The overview was edited every minute whatever interval
+  was configured: a rate limit ("may we repost yet?") was read as a reason ("must we?"), which
+  also meant the inactivity rule never got a look in.
+- **Live Logs survive a recovered overview.** When DDC recreated an overview a moderator had
+  deleted, it swept the channel without the filter that keeps Live Log and auto-action messages -
+  and in a channel with both overviews it swept the other one away, which brought it back a
+  minute later and swept the first out: one delete and one post per minute.
+- **`/control` replaces its admin overview** instead of leaving the old one behind as a second,
+  frozen panel with working buttons.
+- **A channel switched between status and control mode** is rebuilt at once instead of keeping
+  its old panel until the next restart.
+- **Honest numbers in the overviews:** data older than one and a half refresh cycles says how old
+  it is (that hint could never appear before), a container Docker says does not exist is no
+  longer counted as "offline", containers whose details you switched off say so instead of
+  showing "—%", and a missing mech animation is explained instead of leaving a broken image.
+- **The panel says when a save did not work.** A container file it could not write (usually one
+  left behind by a `docker exec` without `-u ddc`) was reported as saved; a mistyped channel ID
+  silently deleted that channel's permissions; a heartbeat URL without `https://` disappeared
+  without a word; and the info of containers the page did not show - custom text, protected
+  content and password - was cleared on every save.
+- **A changed language or timezone takes effect at once** again, instead of at the next restart.
 
 ### Other
 
