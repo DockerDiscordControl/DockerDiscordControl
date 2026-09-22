@@ -32,6 +32,23 @@ from .translation_manager import _
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
+def power_consumption_line(decay_per_day) -> str:
+    """The mech's power consumption, or that it is not known.
+
+    The rate comes from the evolution table; a level outside it - or a table
+    that could not be read - used to fall back to 1.0, printed exactly like a
+    rate somebody had looked up.
+    """
+    from .translation_manager import _ as translate
+
+    label = translate("Power Consumption")
+    if decay_per_day is None:
+        return f"{label}: 🔻 ?"
+    if decay_per_day == 0:
+        return f"{label}: ⚡ {translate('No decay')}"
+    return f"{label}: 🔻 {decay_per_day}{translate('per_day_suffix')}"
+
+
 def with_website_footer(embed) -> None:
     """The website line in the footer, keeping whatever was put there first.
 
@@ -376,14 +393,9 @@ class OverviewEmbedsMixin:
                 # Get level-specific decay rate (SERVICE FIRST: unified evolution system)
                 from services.mech.mech_evolutions import get_evolution_level_info
                 evolution_info = get_evolution_level_info(mech_cache_result.level)
-                decay_per_day = evolution_info.decay_per_day if evolution_info else 1.0
+                decay_per_day = evolution_info.decay_per_day if evolution_info else None
 
-                Power_consumption_text = translate("Power Consumption")
-                if decay_per_day == 0:
-                    mech_status += f"{Power_consumption_text}: ⚡ {translate('No decay')}\n\n"
-                else:
-                    per_day_suffix = translate("per_day_suffix")
-                    mech_status += f"{Power_consumption_text}: 🔻 {decay_per_day}{per_day_suffix}\n\n"
+                mech_status += power_consumption_line(decay_per_day) + "\n\n"
 
                 if evolution.get('next_name'):
                     next_evolution_name = translate(evolution['next_name'])

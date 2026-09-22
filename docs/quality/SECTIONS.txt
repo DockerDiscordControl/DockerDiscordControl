@@ -42,7 +42,7 @@ cogs/loop_safety.py:1-90
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:864-883
-cogs/overview_embeds.py:1-945
+cogs/overview_embeds.py:1-957
 cogs/slash_commands.py:1-793
 
 ## Section 06  (1635 lines, 3 pieces)

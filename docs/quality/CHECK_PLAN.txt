@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1576 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1577 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -119,9 +119,10 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
 [ ] cogs/loop_safety.py:79 _register_loop_error_handlers.make_handler.handler
 
-## Section 05  (1758 lines, 11 public names)
-[ ] cogs/overview_embeds.py:35 with_website_footer
-[ ] cogs/overview_embeds.py:48 OverviewEmbedsMixin
+## Section 05  (1770 lines, 12 public names)
+[ ] cogs/overview_embeds.py:35 power_consumption_line
+[ ] cogs/overview_embeds.py:52 with_website_footer
+[ ] cogs/overview_embeds.py:65 OverviewEmbedsMixin
 [ ] cogs/slash_commands.py:41 SlashCommandsMixin
 [ ] cogs/slash_commands.py:87 SlashCommandsMixin.serverstatus
 [ ] cogs/slash_commands.py:262 SlashCommandsMixin.ss
