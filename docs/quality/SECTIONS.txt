@@ -73,7 +73,7 @@ services/automation/auto_action_config_service.py:1-813
 ## Section 11  (1987 lines, 7 pieces)
 services/automation/auto_action_state_service.py:1-364
 services/automation/automation_service.py:1-672
-services/automation/container_watch.py:1-151
+services/automation/container_watch.py:1-157
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576
 services/config/channel_roles.py:1-38

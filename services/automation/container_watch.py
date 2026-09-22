@@ -108,7 +108,7 @@ RESOURCE_KINDS = {"cpu": HIGH_CPU, "memory": HIGH_MEMORY}
 class ResourceWatcher:
     """CPU or memory above a threshold for a while - once, with hysteresis (Phase 4b).
 
-    A container is reported when its value stays above ``threshold_percent``
+    A container is reported when its value stays at or above ``threshold_percent``
     for ``minutes``. It is then not reported again until the value has fallen
     below the threshold minus ``hysteresis_percent`` - a value hovering at the
     line would otherwise report every poll. A missing measurement (None: the
@@ -121,7 +121,10 @@ class ResourceWatcher:
         self.kind = RESOURCE_KINDS[metric]
         self.threshold = threshold_percent
         self.minutes = minutes
-        self.hysteresis = hysteresis_percent
+        # Never more than half the threshold: with the panel's lowest setting (10)
+        # a fixed margin of 10 asked for a value below zero, and the watcher stayed
+        # latched for the life of the process.
+        self.hysteresis = min(hysteresis_percent, threshold_percent / 2)
         self._high_since: Dict[str, float] = {}
         self._alerted: set = set()
 
@@ -137,14 +140,17 @@ class ResourceWatcher:
                     self._alerted.discard(name)
                     self._high_since.pop(name, None)
                 continue
-            if value > self.threshold:
+            # "at or above": a container pinned at exactly the threshold is what
+            # the panel's highest setting (100 percent) is for, and > never saw it
+            if value >= self.threshold:
                 since = self._high_since.setdefault(name, now)
                 if now - since >= self.minutes * 60:
                     self._alerted.add(name)
                     label = "CPU" if self.metric == "cpu" else "Memory"
                     events.append(WatchEvent(
                         name, self.kind,
-                        f"{label} of '{name}' above {self.threshold:g}% for {self.minutes} min (now {value:.0f}%).",
+                        f"{label} of '{name}' at or above {self.threshold:g}% for "
+                        f"{self.minutes} min (now {value:.0f}%).",
                         threshold=int(self.threshold), window_minutes=self.minutes))
             else:
                 self._high_since.pop(name, None)
