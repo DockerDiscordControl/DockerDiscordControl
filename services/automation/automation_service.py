@@ -538,15 +538,6 @@ class AutomationService:
         channel_id = rule.action.notification_channel_id or control_channel_id
         protected = [p.lower() for p in settings.get('protected_containers', [])]
 
-        if action_type != 'NOTIFY' and container.lower() in protected:
-            logger.warning(f"AAS: Blocked {action_type} on protected container '{container}' (watchdog)")
-            self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED",
-                                              "Protected container")
-            if bot and channel_id:
-                await self._send_feedback(bot, channel_id,
-                                          f"🚨 {event.reason} — *{rule.name}* (protected: no `{action_type}`)")
-            return False
-
         can_execute, reason, _blocked = self.state_service.acquire_execution_locks(
             rule.id, [container], global_cooldown, rule.cooldown_minutes, rule.cooldown_scope)
         if not can_execute:
@@ -554,12 +545,25 @@ class AutomationService:
             self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED", reason)
             return False
 
+        # After the cooldowns, not before: this used to be the one message in the
+        # engine with no rate limit, so a protected container flapping healthy ->
+        # unhealthy -> healthy posted once per poll.
+        if action_type != 'NOTIFY' and container.lower() in protected:
+            logger.warning(f"AAS: Blocked {action_type} on protected container '{container}' (watchdog)")
+            self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED",
+                                              "Protected container")
+            if bot and channel_id and not rule.action.silent:
+                await self._send_feedback(bot, channel_id,
+                                          f"🚨 {event.reason} — *{rule.name}* (protected: no `{action_type}`)")
+            return False
+
         if not channel_id:
             logger.warning(f"AAS: watchdog rule '{rule.name}' has no channel to report to "
                            f"(no notification channel and no control channel): {event.reason}")
         try:
             if action_type == 'NOTIFY':
-                if bot and channel_id:
+                # silent, like every other branch: the rule's own setting decides
+                if bot and channel_id and not rule.action.silent:
                     await self._send_feedback(bot, channel_id, f"🚨 {event.reason} — *{rule.name}*")
                 result = True
             else:

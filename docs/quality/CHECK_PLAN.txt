@@ -256,7 +256,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/automation/auto_action_config_service.py:780 AutoActionConfigService.increment_trigger_count
 [ ] services/automation/auto_action_config_service.py:808 get_auto_action_config_service
 
-## Section 11  (2000 lines, 42 public names)
+## Section 11  (2004 lines, 42 public names)
 [ ] services/automation/auto_action_state_service.py:24 TriggerEvent
 [ ] services/automation/auto_action_state_service.py:34 TriggerEvent.to_dict
 [ ] services/automation/auto_action_state_service.py:37 AutoActionStateService
@@ -274,7 +274,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/automation/automation_service.py:73 AutomationService
 [ ] services/automation/automation_service.py:81 AutomationService.process_message
 [ ] services/automation/automation_service.py:481 AutomationService.process_container_events
-[ ] services/automation/automation_service.py:668 get_automation_service
+[ ] services/automation/automation_service.py:672 get_automation_service
 [ ] services/automation/container_watch.py:35 ContainerState
 [ ] services/automation/container_watch.py:42 WatchEvent
 [ ] services/automation/container_watch.py:52 ContainerWatcher
