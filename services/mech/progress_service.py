@@ -588,8 +588,7 @@ def requirement_for_level_and_bin(level: int, b: int, member_count: int = None) 
     return total
 
 
-# Cache for decay config to prevent disk I/O spam during event replay
-_decay_config_cache = {"data": None, "last_load": 0}
+_decay_config_cache = {"data": None, "last_load": 0}  # keeps event replay off the disk
 
 def get_decay_config_data() -> dict:
     """Load decay config with simple caching (10s TTL)."""
@@ -645,8 +644,7 @@ def bin_to_tier_name(b: int) -> str:
 
 def apply_decay_on_demand(snap: Snapshot) -> None:
     """DEPRECATED: decay is continuous (current_power_cents); this only fills last_decay_day."""
-    if not snap.last_decay_day:
-        snap.last_decay_day = today_local_str()
+    snap.last_decay_day = snap.last_decay_day or today_local_str()
 
 
 def set_new_goal_for_next_level(snap: Snapshot, user_count: int) -> None:
@@ -805,10 +803,10 @@ def current_power_cents(snap: Snapshot, now: Optional[datetime] = None) -> int:
 
 
 def settle_power_decay(snap: Snapshot, now: Optional[datetime] = None) -> None:
-    """Fold the decay accrued until ``now`` into power_acc (clamped at 0) and restart the decay clock.
+    """Fold the decay accrued until ``now`` into power_acc (clamped at 0), restart the clock.
 
-    Called before every power change, so a donation adds to the power the user currently
-    sees instead of first paying off decay that kept accruing while power was at $0.
+    Runs before every power change, so a donation adds to the power the user sees instead
+    of first paying off decay that kept accruing while power was at $0.
     """
     now = now or datetime.now(ZoneInfo("UTC"))
     snap.power_acc = current_power_cents(snap, now)
@@ -1035,14 +1033,17 @@ def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event
                       ) -> Tuple[List[Event], Optional[Event]]:
     """Apply one power-changing event; used by the live path AND rebuild_from_events.
 
-    Decay is settled up to the event time first (the event adds to the power shown at that
-    moment), and afterwards power_acc is the power as of the event, also after a level-up.
-    Sharing this function keeps a rebuild identical to the live state.
-    Returns the LevelUpCommitted events and the ExactHitBonusGranted event (or None).
+    Decay is settled up to the event time first (the event adds to the power shown then),
+    and afterwards power_acc is the power as of the event, also after a level-up - so a
+    rebuild matches the live state. Returns LevelUpCommitted events and the bonus event.
     """
     at = _event_time(evt.ts)
-    if at is not None:
-        settle_power_decay(snap, at)
+    if at is None:
+        # Unreadable event time: settle at "now". Skipping it left the anchor
+        # weeks back, and the donation was eaten by consumption already shown
+        # as zero (measured: $5 -> 600 cents in the file, 0 shown).
+        at = datetime.now(ZoneInfo("UTC"))
+    settle_power_decay(snap, at)
     payload = evt.payload or {}
     lvl_events: List[Event] = []
     bonus_evt: Optional[Event] = None
@@ -1055,9 +1056,8 @@ def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event
         add_system_power(snap, int(payload.get("power_units", 0) or 0))
     elif evt.type == "PowerGiftGranted":
         snap.power_acc += int(payload.get("power_units", 0) or 0)
-    if at is not None:
-        # A level-up restarted the clock at "now"; the new power_acc is as of the event
-        snap.goal_started_at = at.isoformat()
+    # A level-up restarted the clock at "now"; the new power_acc is as of the event
+    snap.goal_started_at = at.isoformat()
     return lvl_events, bonus_evt
 
 
