@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import docker
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List
@@ -56,8 +57,13 @@ def _validate_admin_containers(admin_containers: Any,
     except (AttributeError, IOError, OSError, RuntimeError, TypeError, ValueError) as e:
         # A list of containers that cannot be read is not a reason to wave an
         # assignment through: it would be written with names nobody checked.
+        # The details go to the log only; they can name host paths (CodeQL #64).
+        logging.getLogger(__name__).error(
+            "Configured containers could not be read for the admin assignment: %s",
+            e, exc_info=True)
         return {"success": False,
-                "error": f"The configured containers could not be read: {e}"}
+                "error": "The configured containers could not be read. "
+                         "See the log for details."}
 
     for user_id, containers in admin_containers.items():
         if str(user_id) not in {str(u) for u in admin_users}:

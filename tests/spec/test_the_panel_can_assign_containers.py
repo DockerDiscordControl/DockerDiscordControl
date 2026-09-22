@@ -162,3 +162,25 @@ def test_containers_that_cannot_be_read_do_not_break_the_page(client, monkeypatc
 
     assert payload["discord_admin_users"] == ["1"]
     assert payload["available_containers"] == []
+
+
+def test_an_unreadable_container_list_refuses_without_its_details(client, monkeypatch, caplog):
+    """CodeQL #64 (py/stack-trace-exposure): the refusal carried the exception
+    text into the HTTP answer. An OSError names paths on the host; that belongs
+    in the log. The answer still refuses, and still says why in plain words."""
+    import logging
+    monkeypatch.setattr(
+        "services.config.server_config_service.get_server_config_service",
+        lambda: (_ for _ in ()).throw(OSError("/app/config/channels_config.json: Permission denied")))
+    http, saved = client
+
+    with caplog.at_level(logging.DEBUG):
+        payload = _post(http, {"discord_admin_users": ["1"],
+                               "admin_containers": {"1": ["valheim"]}}).get_json()
+
+    assert payload.get("success") is False, payload
+    assert "could not be read" in payload.get("error", ""), payload
+    assert "/app/config" not in payload.get("error", ""), payload
+    assert saved == {}, "it was saved anyway"
+    assert any("/app/config/channels_config.json" in r.getMessage() for r in caplog.records), \
+        "the details must still reach the log"
