@@ -59,8 +59,6 @@ KNOWN_SITES = {
         ({"DockerClient", "from_env"}, False),
     ("services/docker_service/docker_client_pool.py", "get_docker_client_async"):
         ({"DockerClient", "from_env"}, False),
-    ("services/docker_service/docker_utils.py", "get_docker_client"):
-        ({"DockerClient", "from_env"}, True),
     ("services/docker_service/docker_utils.py", "get_docker_client_async.individual_client"):
         ({"from_env"}, False),
 }

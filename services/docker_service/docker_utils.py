@@ -468,16 +468,11 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
 
 def get_docker_client():
     """
-    Get Docker client with immediate fallback and connection caching.
+    Get a cached synchronous Docker client, built through the client factory.
 
-    NEW: Uses connection pool if available for better performance.
-    Falls back to legacy single client implementation.
-
-    Returns None if all methods fail.
+    The connection pool has no synchronous acquire, so this keeps one client
+    cached for _CLIENT_TIMEOUT seconds. Returns None if Docker cannot be reached.
     """
-    # NOTE: Connection pool doesn't have a sync _acquire_client method
-    # Use legacy implementation for backward compatibility
-    # LEGACY: Single client implementation (kept for compatibility)
     global _docker_client, _client_last_used
 
     current_time = time.time()
@@ -488,40 +483,23 @@ def get_docker_client():
         _client_last_used = current_time
         return _docker_client
 
-    # Create new client with immediate fallback
-    logger.info("Creating Docker client with immediate fallback system...")
+    # Through the one client factory (follows DOCKER_HOST, the v3.0 proxy).
+    # This used to fall back to a hard-coded unix:///var/run/docker.sock when
+    # from_env failed - a second way that walks past the proxy exactly when
+    # DOCKER_HOST points at it and the proxy is down. No fallback now: an
+    # unreachable Docker is reported and answered with None.
+    from .client_factory import build_docker_client
 
     try:
-        # Method 1: Standard socket (non-blocking)
-        logger.info("Trying docker.from_env() for immediate connection...")
-        _docker_client = docker.from_env(timeout=int(_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')))
-
-        # Quick ping test
+        _docker_client = build_docker_client(timeout=int(_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')))
         _docker_client.ping()
-        logger.info("✅ Docker client created successfully with docker.from_env()")
-
+        logger.info("Docker client created through the client factory")
         _client_last_used = current_time
         return _docker_client
-
-    except (docker.errors.DockerException, OSError, RuntimeError) as e1:
-        logger.warning(f"docker.from_env() failed: {e1}")
-
-        try:
-            # Method 2: Direct socket path
-            logger.info("Trying direct socket path...")
-            _docker_client = docker.DockerClient(base_url='unix:///var/run/docker.sock', timeout=int(_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')))
-
-            # Quick ping test
-            _docker_client.ping()
-            logger.info("✅ Docker client created successfully with direct socket")
-
-            _client_last_used = current_time
-            return _docker_client
-
-        except (docker.errors.DockerException, OSError, RuntimeError) as e2:
-            logger.error(f"All Docker client methods failed: docker.from_env()={e1}, direct_socket={e2}")
-            _docker_client = None
-            return None
+    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+        logger.error(f"Docker client could not be created: {e}")
+        _docker_client = None
+        return None
 
 def release_docker_client(client=None):
     """

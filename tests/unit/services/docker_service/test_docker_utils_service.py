@@ -423,55 +423,46 @@ class TestLoadCustomTimeoutConfig:
 # ---------------------------------------------------------------------------
 
 
+FACTORY = "services.docker_service.client_factory.build_docker_client"
+
+
 class TestGetDockerClient:
-    def test_returns_cached_client_when_recent(self, monkeypatch):
+    """Rewritten 2026-09-22 with the move onto the client factory. The old
+    tests pinned from_env first and a hard-coded socket as fallback - the
+    second way past the v3.0 proxy that the move removes."""
+
+    def test_returns_cached_client_when_recent(self):
         cached = MagicMock(name="cached-client")
         docker_utils._docker_client = cached
         docker_utils._client_last_used = time.time()
-        # from_env must NOT be called.  Patch the ``docker`` reference bound
-        # inside the production module rather than the global module name —
-        # other tests in the suite may have replaced ``sys.modules['docker']``
-        # which decouples the global name from the module object docker_utils
-        # captured at import time.
-        with patch.object(docker_utils.docker, "from_env") as from_env_mock:
+        with patch(FACTORY) as factory:
             result = docker_utils.get_docker_client()
         assert result is cached
-        from_env_mock.assert_not_called()
+        factory.assert_not_called()
 
-    def test_creates_client_via_from_env(self, monkeypatch):
+    def test_creates_client_through_the_factory_with_the_list_timeout(self):
+        docker_utils._docker_client = None
         new_client = MagicMock(name="new-client")
-        new_client.ping.return_value = True
-        with patch.object(
-            docker_utils.docker, "from_env", return_value=new_client
-        ) as from_env_mock:
+        with patch(FACTORY, return_value=new_client) as factory:
             result = docker_utils.get_docker_client()
         assert result is new_client
-        from_env_mock.assert_called_once()
+        factory.assert_called_once_with(
+            timeout=int(docker_utils._timeout("DEFAULT_CONTAINER_LIST_TIMEOUT"))
+        )
 
-    def test_falls_back_to_direct_socket_when_from_env_fails(self):
-        socket_client = MagicMock(name="socket-client")
-        socket_client.ping.return_value = True
-        with patch.object(
-            docker_utils.docker,
-            "from_env",
-            side_effect=docker_utils.docker.errors.DockerException("boom"),
-        ), patch.object(
-            docker_utils.docker, "DockerClient", return_value=socket_client
-        ) as docker_client_mock:
+    def test_no_second_way_past_the_factory(self):
+        docker_utils._docker_client = None
+        with patch(FACTORY, side_effect=docker_utils.docker.errors.DockerException("down")), \
+                patch.object(docker_utils.docker, "DockerClient") as direct:
             result = docker_utils.get_docker_client()
-        assert result is socket_client
-        docker_client_mock.assert_called_once()
+        assert result is None
+        direct.assert_not_called()
 
-    def test_returns_none_when_all_methods_fail(self):
-        with patch.object(
-            docker_utils.docker,
-            "from_env",
-            side_effect=docker_utils.docker.errors.DockerException("boom1"),
-        ), patch.object(
-            docker_utils.docker,
-            "DockerClient",
-            side_effect=docker_utils.docker.errors.DockerException("boom2"),
-        ):
+    def test_returns_none_when_the_ping_fails(self):
+        docker_utils._docker_client = None
+        client = MagicMock(name="client")
+        client.ping.side_effect = docker_utils.docker.errors.DockerException("no answer")
+        with patch(FACTORY, return_value=client):
             result = docker_utils.get_docker_client()
         assert result is None
         assert docker_utils._docker_client is None
