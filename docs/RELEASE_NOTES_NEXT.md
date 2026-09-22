@@ -7,7 +7,7 @@
 
 This release comes out of a complete audit of DDC: every subsystem was reviewed, then a second
 review pass looked specifically at what changes for **existing installations** on upgrade.
-**186 findings were fixed** and the test suite now stands at **5,705 tests**.
+**188 findings were fixed** and the test suite now stands at **5,715 tests**.
 
 Every source file in the project carries written evidence that it was read — 184 of 184. That
 includes `cogs/docker_control.py`, the largest file in DDC at 5,400 lines, which no earlier
@@ -37,6 +37,11 @@ review package had ever covered.
 - **Rotate your Discord bot token** if you care: older versions kept a decrypted copy in
   `config.json` (and `config.json.bak`). That is fixed, and the leftovers are cleaned up on the
   next save, but the token was on disk in plaintext before.
+- **If you ever pressed "Encrypt token": press it again after upgrading.** On v2 installations
+  that button reported "encrypted successfully" and changed nothing — your token is still
+  stored in plaintext in `config.json`. It now really encrypts, and the security panel shows the
+  token's actual state. Nothing is encrypted automatically on upgrade: the token stays exactly
+  as it is until you press the button yourself.
 - **Downgrading to v2.3.1:** the mech keeps working — the snapshot format is unchanged and the
   interim decay field is migrated out on load. **But** if your installation was migrated from v1
   (it still has `bot_config.json` / `docker_config.json` / `web_config.json` in `config/`), the
@@ -55,6 +60,11 @@ review package had ever covered.
   "No such image", and that one error emptied the whole container list in the web panel and
   made running servers look like they didn't exist in Discord. DDC now reads the image name
   from data Docker already provides with each container, so this lookup can no longer fail.
+- **"Encrypt token" really encrypts now.** On v2 installations the button said "encrypted
+  successfully" and left the token in plaintext. It now encrypts it — and only after checking the
+  bot can still decrypt it — and the security panel tells you what is actually stored.
+- **Saving no longer scrambles your server order.** Every save in the web panel quietly reset the
+  order of the admin overview and the container dropdowns. The order you arrange is now kept.
 - **A button that fails now tells you so.** py-cord's default handler for a view or modal error
   prints to the log and never replies, so a failed press left the "thinking..." state spinning
   until Discord timed it out. Every one of the 25 views and 5 modals now logs the failure and
@@ -195,11 +205,13 @@ review package had ever covered.
 | CPU% in status | now current load, not an average since boot |
 | New passwords | minimum 12 characters |
 | Image name shown for a container | the reference the container was created with (e.g. `ich777/steamcmd:valheim`) instead of the image's first tag - usually identical; a container created without a tag now shows it without one |
+| "Encrypt token" button | really encrypts the token in `config.json`; before, it reported success and changed nothing. Still only on request - nothing is encrypted at startup |
+| Container order after saving | kept as arranged, instead of every container falling back to 999 |
 
 ## Under the hood
 
-- **186 findings** fixed across bot, scheduler, web panel, config, mech and deployment.
-- **5,705 tests**, all green in the production image (Python 3.14), lint clean. Each finding has
+- **188 findings** fixed across bot, scheduler, web panel, config, mech and deployment.
+- **5,715 tests**, all green in the production image (Python 3.14), lint clean. Each finding has
   a test that failed before its fix and a probe afterwards proving the test can still fail.
 - **184 of 184 source files** carry written evidence of having been read.
 - Two mechanical scans were written and run over the whole project rather than a sample. The

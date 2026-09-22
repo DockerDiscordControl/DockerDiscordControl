@@ -10,8 +10,8 @@ Audit release. Every subsystem was reviewed, then a second pass looked specifica
 changes for **existing installations** on upgrade. 141 findings were fixed, with 564 new
 regression tests across 32 test modules.
 
-A second wave (reviews E12-E53) added another 45 fixes and 33 more test modules before release.
-The suite is now **5,705 tests**, and every source file in the project carries written evidence
+A second wave (reviews E12-E55) added another 47 fixes and 35 more test modules before release.
+The suite is now **5,715 tests**, and every source file in the project carries written evidence
 that it was read - 184 of 184, up from the 22 the first wave had covered.
 
 ### ⚠️ Upgrade notes
@@ -33,6 +33,10 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
   Without this, a password or bot token could have been lost.
 - **Rotate your Discord bot token** if you care: older versions kept a decrypted copy in
   `config.json` (and `config.json.bak`). Fixed, and leftovers are cleaned up on the next save.
+- **If you ever pressed "Encrypt token": press it again.** On v2 installations that button
+  reported success and changed nothing - the token stayed in plaintext in `config.json`.
+  It now really encrypts, and the security panel shows the token's actual state. Nothing is
+  encrypted automatically on upgrade; the token stays as it is until you press the button.
 - **Downgrading to v2.3.1:** the mech keeps working (snapshot format unchanged, the interim decay
   field is migrated out on load). But on installations migrated from v1, the one-time fold makes
   `config.json` authoritative while v2.3.1 reads only the old split files — changed credentials or
@@ -159,7 +163,7 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
   **71.3%** over 28880 statements with 4388 tests; `docker_control.py` and `control_ui.py` remain
   the weak spot at about 19%.
 
-### Second wave (reviews E12-E53)
+### Second wave (reviews E12-E55)
 
 Two mechanical scans were written and run over all 183 source files, rather than over the 22 the
 first wave had reached. Both were worked to the end.
@@ -197,6 +201,16 @@ first wave had reached. Both were worked to the end.
 
 **In the web panel**
 
+- **The server order you arrange survives saving.** The save read each container's position
+  from a form field no template has ever rendered, so every save set every container to
+  `order: 999`. The status messages kept their order (they read `server_order.json`); the admin
+  overview and both container dropdowns lost it. The order now comes from `server_order`, which
+  the page has always sent.
+- **"Encrypt token" encrypts.** It looked for the token in the v1 files `bot_config.json` and
+  `web_config.json`, which no v2 installation has, and reported success without doing anything.
+  It now encrypts the token in `config.json` - checking first that it decrypts back to the same
+  token, so the bot can still log in - and the security panel reports what is really stored.
+  Encryption happens only when the button is pressed, never on its own at startup.
 - **The log tabs answer with text instead of Flask's HTML error page** when Docker is unreachable
   and the log files are missing - which is the moment you open a log tab to find out why.
 - **A changed protected-info password takes effect at once.**
@@ -246,6 +260,8 @@ Both tools are in the repository - `scripts/review/audit_assertion_strength.py` 
 | CPU% in status | now current load, not an average since boot |
 | New passwords | minimum 12 characters |
 | Image name shown for a container | the reference the container was created with (e.g. `ich777/steamcmd:valheim`) instead of the image's first tag - usually identical; a container created without a tag now shows it without one |
+| "Encrypt token" button | really encrypts the token in `config.json`; before, it reported success and changed nothing. Still only on request - nothing is encrypted at startup |
+| Container order after saving | kept as arranged, instead of every container falling back to 999 |
 
 ---
 
