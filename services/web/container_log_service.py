@@ -211,9 +211,11 @@ class ContainerLogService:
         """Get container logs using synchronous Docker SDK (avoids asyncio/gevent conflicts)."""
         try:
             import docker as _docker
-            client = _docker.DockerClient(
-                base_url='unix:///var/run/docker.sock', timeout=30
-            )
+            # Through the one client factory, so the log viewer follows
+            # DOCKER_HOST (the v3.0 proxy). It used to hard-code
+            # unix:///var/run/docker.sock and would have walked past the proxy.
+            from services.docker_service.client_factory import build_docker_client
+            client = build_docker_client(timeout=30)
             try:
                 container = client.containers.get(container_name)
                 logs = container.logs(tail=max_lines, stdout=True, stderr=True)

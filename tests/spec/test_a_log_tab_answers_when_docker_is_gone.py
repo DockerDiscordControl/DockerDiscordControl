@@ -70,6 +70,15 @@ def _install_fake_docker(monkeypatch, failure):
     module = types.ModuleType("docker")
     module.errors = types.SimpleNamespace(NotFound=_NotFound, APIError=_APIError)
     module.DockerClient = lambda **kwargs: _Client()
+    # The client comes from the factory since v3.0; hand it the fake's client.
+    # Patched BEFORE the fake module goes in: importing the factory imports the
+    # real docker package.
+    # Without this the failure cases here stayed green for the wrong reason -
+    # the real factory finds no Docker in the test container and fails too.
+    monkeypatch.setattr(
+        "services.docker_service.client_factory.build_docker_client",
+        lambda **kwargs: module.DockerClient(**kwargs),
+    )
     monkeypatch.setitem(sys.modules, "docker", module)
 
 

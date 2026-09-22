@@ -194,7 +194,7 @@ services/translation/translation_service.py	762	pass1:s28:1-741  [21 of 762 line
 services/web/__init__.py	12	pass1:s28:1-12
 services/web/configuration_page_service.py	554	pass1:s28:1-554
 services/web/configuration_save_service.py	565	pass1:s28:1-531  [34 of 565 lines never in a package]
-services/web/container_log_service.py	430	pass1:s29:1-439  [31 of 470 lines never in a package]
+services/web/container_log_service.py	432	pass1:s29:1-439  [31 of 470 lines never in a package]
 services/web/container_refresh_service.py	207	pass1:s29:1-201  [6 of 207 lines never in a package]
 services/web/diagnostics_service.py	263	pass1:s29:1-263
 services/web/donation_service.py	314	pass1:s29:1-290  [24 of 314 lines never in a package]

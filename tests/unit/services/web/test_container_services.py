@@ -242,6 +242,14 @@ class TestGetContainerLogs:
 from services.exceptions import ContainerLogError  # noqa: E402
 
 
+def _factory_gives(fake_docker):
+    """The client comes from the factory since v3.0; hand it the fake's client."""
+    return patch(
+        "services.docker_service.client_factory.build_docker_client",
+        lambda **kwargs: fake_docker.DockerClient(**kwargs),
+    )
+
+
 class TestGetContainerLogsSync:
     """Cover ``_get_container_logs_sync`` and surrounding error handling."""
 
@@ -264,7 +272,7 @@ class TestGetContainerLogsSync:
     def test_returns_decoded_log_text(self):
         service = ContainerLogService()
         fake_docker, client = self._make_mock_docker(container_logs=b"line A\nline B\n")
-        with patch.dict("sys.modules", {"docker": fake_docker}):
+        with _factory_gives(fake_docker), patch.dict("sys.modules", {"docker": fake_docker}):
             out = service._get_container_logs_sync("ddc", 100)
         assert out == "line A\nline B\n"
         client.close.assert_called_once()
@@ -273,7 +281,7 @@ class TestGetContainerLogsSync:
         service = ContainerLogService()
         fake_docker, client = self._make_mock_docker(
             raise_get=docker.errors.NotFound("missing"))
-        with patch.dict("sys.modules", {"docker": fake_docker}):
+        with _factory_gives(fake_docker), patch.dict("sys.modules", {"docker": fake_docker}):
             assert service._get_container_logs_sync("ghost", 50) is None
         client.close.assert_called_once()
 
@@ -284,7 +292,7 @@ class TestGetContainerLogsSync:
         service = ContainerLogService()
         fake_docker, client = self._make_mock_docker(
             raise_get=docker.errors.APIError("boom"))
-        with patch.dict("sys.modules", {"docker": fake_docker}):
+        with _factory_gives(fake_docker), patch.dict("sys.modules", {"docker": fake_docker}):
             with pytest.raises(ContainerLogError):
                 service._get_container_logs_sync("ddc", 50)
         client.close.assert_called_once()
@@ -296,7 +304,7 @@ class TestGetContainerLogsSync:
         fake_docker = MagicMock()
         fake_docker.errors = docker.errors
         fake_docker.DockerClient.side_effect = RuntimeError("can't connect")
-        with patch.dict("sys.modules", {"docker": fake_docker}):
+        with _factory_gives(fake_docker), patch.dict("sys.modules", {"docker": fake_docker}):
             with pytest.raises(ContainerLogError):
                 service._get_container_logs_sync("ddc", 50)
 
