@@ -46,8 +46,15 @@ CONSTRUCTORS = {"from_env", "DockerClient", "APIClient"}
 NOT_APP_CODE = {".git", "tests", "config", "logs", "node_modules", "__pycache__", ".pytest_cache"}
 DEFAULT_SOCKET = "unix:///var/run/docker.sock"
 
+# The one place that may build a client (v3.0 step 6). It follows DOCKER_HOST
+# and passes version= on purpose: the version it negotiated once.
+FACTORY = ("services/docker_service/client_factory.py", "build_docker_client")
+
 # (file, enclosing function) -> (constructors used, hard-codes the default socket)
+# Every row except the factory is a site still to be moved onto the factory;
+# the table only shrinks.
 KNOWN_SITES = {
+    FACTORY: ({"from_env"}, False),
     ("services/docker_service/docker_client_pool.py", "DockerClientService._create_new_client_async"):
         ({"DockerClient", "from_env"}, False),
     ("services/docker_service/docker_client_pool.py", "get_docker_client_async"):
@@ -162,13 +169,12 @@ def test_each_site_resolves_the_socket_as_recorded():
     assert not changed, f"Client sites changed how they build the client: {changed}"
 
 
-def test_no_site_pins_the_api_version():
+def test_only_the_factory_passes_a_version():
+    """Changed on purpose on 2026-09-22 with the factory: it passes the version
+    it negotiated once. Any other site passing version= would bypass that."""
     pinned = [
         f"{file}:{call.lineno} {qualname}"
         for file, qualname, _, call in _all_calls()
-        if any(kw.arg == "version" for kw in call.keywords)
+        if any(kw.arg == "version" for kw in call.keywords) and (file, qualname) != FACTORY
     ]
-    assert not pinned, (
-        "A site passes version= - docker-py then skips GET /version. Update this "
-        f"test and the proxy allowlist on purpose: {pinned}"
-    )
+    assert not pinned, f"Only the factory may pass version=: {pinned}"

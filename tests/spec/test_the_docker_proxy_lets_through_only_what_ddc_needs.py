@@ -30,89 +30,25 @@ the stand-in daemon rejected it, not the proxy. The test now demands the
 proxy's own refusal, and removing the request-line check turns it red.
 """
 
-import http.server
-import json
-import os
-import shutil
-import socketserver
-import struct
-import tempfile
 import threading
 
 import pytest
 
 from services.docker_proxy.allowlist_proxy import is_allowed, serve
-
-
-class _FakeDaemon(http.server.BaseHTTPRequestHandler):
-    """Answers like dockerd, records every request line it gets."""
-
-    protocol_version = "HTTP/1.1"
-    seen = []
-
-    def log_message(self, *args):
-        pass
-
-    def address_string(self):  # unix sockets have no client address
-        return "fake"
-
-    def _send(self, status, body=b"", content_type="application/json"):
-        self.send_response(status)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Api-Version", "1.44")
-        self.end_headers()
-        self.wfile.write(body)
-
-    def _route(self):
-        self.seen.append((self.command, self.path))
-        path = self.path.split("?", 1)[0]
-        if path.endswith("/_ping"):
-            return self._send(200, b"OK", "text/plain")
-        if path.endswith("/version"):
-            return self._send(200, json.dumps({"ApiVersion": "1.44", "MinAPIVersion": "1.24", "Version": "27.0.0"}).encode())
-        if path.endswith("/containers/json"):
-            return self._send(200, json.dumps([{"Id": "abc123", "Names": ["/web"], "State": "running"}]).encode())
-        if path.endswith("/logs"):
-            payload = b"hello from web\n"
-            frame = struct.pack(">BxxxL", 1, len(payload)) + payload
-            return self._send(200, frame, "application/vnd.docker.raw-stream")
-        if path.endswith("/stats"):
-            return self._send(200, json.dumps({"cpu_stats": {}, "memory_stats": {}}).encode())
-        if path.endswith("/json"):
-            return self._send(200, json.dumps({
-                "Id": "abc123", "Name": "/web", "Image": "sha256:0",
-                "State": {"Running": True, "Status": "running"},
-                "Config": {"Tty": False, "Image": "nginx"},
-            }).encode())
-        if self.command == "POST":
-            return self._send(204)
-        return self._send(200, b"{}")
-
-    do_GET = do_POST = do_HEAD = do_DELETE = do_PUT = _route
-
-
-class _UnixHTTPServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
-    daemon_threads = True
+from tests.spec.fake_dockerd import running_fake_dockerd
 
 
 @pytest.fixture
 def proxied():
     """(proxy socket path, list of requests the daemon saw)."""
-    workdir = tempfile.mkdtemp(prefix="ddcpx", dir="/tmp")  # AF_UNIX paths are short
-    daemon_path = os.path.join(workdir, "d.sock")
-    proxy_path = os.path.join(workdir, "p.sock")
-    handler = type("Daemon", (_FakeDaemon,), {"seen": []})
-    daemon = _UnixHTTPServer(daemon_path, handler)
-    proxy = serve(proxy_path, daemon_path)
-    threads = [threading.Thread(target=s.serve_forever, daemon=True) for s in (daemon, proxy)]
-    for thread in threads:
-        thread.start()
-    yield proxy_path, handler.seen
-    for server in (proxy, daemon):
-        server.shutdown()
-        server.server_close()
-    shutil.rmtree(workdir, ignore_errors=True)
+    with running_fake_dockerd() as (workdir, daemon_path, seen):
+        proxy = serve(f"{workdir}/p.sock", daemon_path)
+        threading.Thread(target=proxy.serve_forever, daemon=True).start()
+        try:
+            yield f"{workdir}/p.sock", seen
+        finally:
+            proxy.shutdown()
+            proxy.server_close()
 
 
 def test_a_real_docker_client_works_through_the_proxy(proxied):

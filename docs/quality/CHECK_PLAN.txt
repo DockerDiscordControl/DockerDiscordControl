@@ -442,7 +442,8 @@
 [ ] services/docker_service/docker_action_service.py:263 get_docker_action_service
 [ ] services/docker_service/docker_action_service.py:275 docker_action_service_first
 
-## Section 15  (771 lines, 14 public names)
+## Section 15  (866 lines, 15 public names)
+[ ] services/docker_service/client_factory.py:74 build_docker_client
 [ ] services/docker_service/docker_client_pool.py:36 DockerClientRequest
 [ ] services/docker_service/docker_client_pool.py:44 DockerClientResult
 [ ] services/docker_service/docker_client_pool.py:62 DockerPoolStatsRequest
