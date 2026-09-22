@@ -1252,7 +1252,23 @@ class TestBotEvents:
                 asyncio.run(
                     bot._events["on_error"]("on_message", "extra")
                 )
-        # No assertion needed beyond no-raise: handler must swallow.
+
+        # `caplog` was set up here and never read, under the comment "No
+        # assertion needed beyond no-raise: handler must swallow" - in a test
+        # named `logs_traceback`. A handler that swallowed the error and logged
+        # NOTHING passed, which is the shape review E14 found elsewhere in this
+        # very file: a handler installed on an event that never fires, with a
+        # test that called the function directly and never asked whether
+        # anything reached the log (review E52).
+        logged = " ".join(r.getMessage() for r in caplog.records
+                          if r.levelno >= logging.ERROR)
+        assert logged, "on_error swallowed the failure without a word"
+        assert "on_message" in logged, (
+            f"the log line does not name the event that failed: {logged!r}"
+        )
+        assert "RuntimeError" in logged and "boom" in logged, (
+            f"the traceback is missing from the log line: {logged!r}"
+        )
 
     def test_on_command_error_skips_donate_commands(self, fake_runtime):
         bot = _FakeBot()

@@ -857,11 +857,58 @@ class TestSchedulerGaps:
         assert ok is True
 
     def test_get_tasks_in_timeframe_filters_correctly(self, scheduler_isolated):
+        """It filters, and the name has always said so.
+
+        This asked for the timeframe 0 to 9999999999 with NO tasks saved and
+        asserted `isinstance(result, list)`, with the comment "Just verify it
+        doesn't crash and returns a list". A get_tasks_in_timeframe that
+        ignored both bounds and returned everything kept it green (review
+        E52). It now puts three tasks on either side of a window and checks
+        which ones come back.
+        """
         scheduler_mod = scheduler_isolated
-        # Empty case: no tasks
-        result = scheduler_mod.get_tasks_in_timeframe(0.0, 9999999999.0)
-        # Just verify it doesn't crash and returns a list
-        assert isinstance(result, list)
+
+        def _task(task_id, ts):
+            task = scheduler_mod.ScheduledTask(
+                task_id=task_id,
+                container_name="nginx",
+                action="restart",
+                cycle=scheduler_mod.CYCLE_DAILY,
+                schedule_details={"time": "10:00"},
+            )
+            task.next_run_ts = ts
+            return task
+
+        # A window from 2000 to 3000, and one task before, inside and after.
+        scheduler_mod.save_tasks([_task("early", 1000.0),
+                                  _task("inside", 2500.0),
+                                  _task("late", 4000.0)])
+
+        result = scheduler_mod.get_tasks_in_timeframe(2000.0, 3000.0)
+
+        assert [t.task_id for t in result] == ["inside"], (
+            f"the window 2000-3000 returned {[t.task_id for t in result]}"
+        )
+
+    def test_the_timeframe_is_sorted_by_when_it_runs(self, scheduler_isolated):
+        """The docstring promises "sorted by execution time for better
+        usability". Nothing checked it."""
+        scheduler_mod = scheduler_isolated
+
+        def _task(task_id, ts):
+            task = scheduler_mod.ScheduledTask(
+                task_id=task_id, container_name="nginx", action="restart",
+                cycle=scheduler_mod.CYCLE_DAILY, schedule_details={"time": "10:00"})
+            task.next_run_ts = ts
+            return task
+
+        scheduler_mod.save_tasks([_task("third", 2900.0),
+                                  _task("first", 2100.0),
+                                  _task("second", 2500.0)])
+
+        result = scheduler_mod.get_tasks_in_timeframe(2000.0, 3000.0)
+
+        assert [t.task_id for t in result] == ["first", "second", "third"]
 
     def test_get_next_week_tasks_returns_list(self, scheduler_isolated):
         scheduler_mod = scheduler_isolated
@@ -1232,8 +1279,18 @@ class TestSchedulerGaps:
             return_value=False,
         ):
             tasks = scheduler_mod.load_tasks()
-        # Returns at least the system donation task
-        assert isinstance(tasks, list)
+
+        # "Returns at least the system donation task" is what the comment here
+        # said, above `assert isinstance(tasks, list)` - which an empty list
+        # satisfies, and so does a load_tasks that gave up on the corrupted
+        # file and returned nothing (review E52).
+        assert tasks, "a corrupted tasks file returned no tasks at all"
+        system = [t for t in tasks
+                  if t.task_id.startswith(scheduler_mod.SYSTEM_TASK_PREFIX)]
+        assert system, (
+            f"no system task survived the corrupted file: "
+            f"{[t.task_id for t in tasks]}"
+        )
 
     def test_load_tasks_invalid_task_data_skipped(
         self, scheduler_isolated, tmp_path
