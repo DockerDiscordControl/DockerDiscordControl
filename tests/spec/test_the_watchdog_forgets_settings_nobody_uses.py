@@ -47,7 +47,9 @@ def world(monkeypatch):
     engine = SimpleNamespace(process_container_events=AsyncMock(return_value=[]))
     monkeypatch.setattr("services.automation.automation_service.get_automation_service", lambda: engine)
     clock = {"t": 0.0}
-    monkeypatch.setattr(loops.time, "time", lambda: clock["t"])
+    # The loop measures durations with time.monotonic() now (a wall-clock
+    # correction must not delay or fake a report), so the stand-in clock is that one.
+    monkeypatch.setattr(loops.time, "monotonic", lambda: clock["t"])
     return SimpleNamespace(cog=cog, rules=rules, engine=engine, clock=clock)
 
 

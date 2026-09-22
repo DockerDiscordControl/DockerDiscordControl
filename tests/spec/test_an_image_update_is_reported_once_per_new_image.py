@@ -81,7 +81,9 @@ async def test_the_status_loop_starts_one_check_per_interval(monkeypatch):
     monkeypatch.setattr("services.automation.automation_service.get_automation_service",
                         lambda: SimpleNamespace(process_container_events=AsyncMock(return_value=[])))
     now = {"t": 0}
-    monkeypatch.setattr(loops.time, "time", lambda: now["t"])
+    # The loop measures durations with time.monotonic() now (a wall-clock
+    # correction must not delay or fake a report), so the stand-in clock is that one.
+    monkeypatch.setattr(loops.time, "monotonic", lambda: now["t"])
     results = {"web": SimpleNamespace(success=True, not_found=False, is_running=True, health=None,
                                       restart_count=0, cpu_percent=1.0, memory_percent=1.0)}
     for t in (0, 60, 7 * 3600):  # a check, too soon for another, then due again

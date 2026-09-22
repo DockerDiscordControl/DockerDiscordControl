@@ -43,12 +43,14 @@ def note_own_action(container: str, action: str, now: Optional[float] = None) ->
     if not container or (action or "").lower() not in _WATCHED:
         return
     with _lock:
-        _recent[container] = time.time() if now is None else now
+        # monotonic: the status loop compares these with time.monotonic(), and a
+        # wall-clock correction must not make a note look hours old
+        _recent[container] = time.monotonic() if now is None else now
 
 
 def expected_stops(now: Optional[float] = None) -> Set[str]:
     """The containers whose stop DDC ordered recently; older entries are dropped."""
-    moment = time.time() if now is None else now
+    moment = time.monotonic() if now is None else now
     with _lock:
         for name in [n for n, when in _recent.items() if moment - when > WINDOW_SECONDS]:
             del _recent[name]

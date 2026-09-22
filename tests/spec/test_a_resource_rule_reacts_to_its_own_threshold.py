@@ -71,8 +71,14 @@ async def test_the_status_loop_turns_sustained_cpu_into_one_event(monkeypatch):
                         lambda: SimpleNamespace(get_rules=lambda: rules))
     engine = SimpleNamespace(process_container_events=AsyncMock(return_value=[]))
     monkeypatch.setattr("services.automation.automation_service.get_automation_service", lambda: engine)
-    clock = iter([0, 30, 61, 90])
-    monkeypatch.setattr(loops.time, "time", lambda: next(clock))
+    ticks = [0, 30, 61, 90]
+
+    def clock():
+        return ticks.pop(0) if len(ticks) > 1 else ticks[0]
+
+    # The loop measures durations with time.monotonic() now (a wall-clock
+    # correction must not delay or fake a report), so the stand-in clock is that one.
+    monkeypatch.setattr(loops.time, "monotonic", clock)
 
     def hot(cpu):
         return {"web": SimpleNamespace(success=True, not_found=False, is_running=True, health=None,

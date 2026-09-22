@@ -223,7 +223,10 @@ class BackgroundLoopsMixin:
         # pending_actions holds only the single-container button's action, and
         # only for a second or two; own_actions holds every stop or restart DDC
         # carried out, long enough for the next poll to see the new state.
-        now = time.time()
+        # monotonic, not the wall clock: an NTP correction used to delay a report
+        # (a step back makes "how long has it been hot" negative) or to satisfy
+        # "for five minutes" on a single sample (a step forward).
+        now = time.monotonic()
         expected = set(getattr(self, 'pending_actions', {}) or {}) | expected_stops(now)
         base = watchers.setdefault('base', ContainerWatcher())
         events = [e for e in base.observe(snapshot, now, expected) if e.kind != RESTART_LOOP]
@@ -270,7 +273,7 @@ class BackgroundLoopsMixin:
         tracked background task - asking registries must not delay the status loop."""
         from services.automation.image_updates import CHECK_INTERVAL_SECONDS
 
-        now = time.time()
+        now = time.monotonic()  # a duration, so the same steady clock
         last = self.__dict__.get('_last_image_check')
         if last is not None and now - last < CHECK_INTERVAL_SECONDS:
             return
