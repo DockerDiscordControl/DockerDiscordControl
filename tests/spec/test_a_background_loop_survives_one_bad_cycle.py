@@ -85,8 +85,15 @@ async def test_a_raising_config_does_not_end_the_loop(loop_name, cog, monkeypatc
         # Must return, not raise. py-cord ends the loop on anything it raises.
         await _loop(loop_name).coro(cog)
 
-    assert any(r.levelno >= logging.ERROR for r in caplog.records), (
-        f"{loop_name} swallowed a failed cycle without a word"
+    # The ERROR must be about THIS failure. Until 2026-09-22 any ERROR passed, and
+    # the fixture's cog is incomplete: every cycle already failed on an
+    # AttributeError (cache_ttl_seconds, initial_messages_sent) before or without
+    # reaching load_config - so this test was green whether or not the config
+    # failure was survived. Found during the Phase 3 cog split, when a moved
+    # loop stopped seeing the patch below and nothing turned red.
+    assert any(r.levelno >= logging.ERROR and "config.json is unreadable" in r.getMessage()
+               for r in caplog.records), (
+        f"{loop_name} did not report the failed config read"
     )
 
 
