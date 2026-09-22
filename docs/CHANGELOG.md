@@ -4,6 +4,52 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v3.0 - unreleased (work in progress on branch roadmap-v3-phase1)
+
+DDC's code can no longer reach anything but the Docker endpoints it needs. What this does and
+does not protect is in `docs/SECURITY.md`. Read "What changes for you" before upgrading.
+
+### What changes for you
+
+- **Behind a reverse proxy:** set `DDC_TRUSTED_PROXIES` to your proxy's address or range. Until
+  you do, the action log shows the proxy's address instead of the client's (DDC no longer
+  believes `X-Forwarded-*` from anyone).
+- **`docker_socket_path` is no longer used.** Every Docker client follows `DOCKER_HOST`. A
+  non-default value is reported once in the log.
+- **Started with `--user`?** Then no proxy can run; DDC falls back to the raw socket and warns.
+  Start without `--user` and use `PUID`/`PGID`.
+- **The panel offers two-factor authentication** (a dialog with "Later", then a notice while it
+  is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`.
+- **Going back to v2.4.1 is safe:** measured with `scripts/check_upgrade_downgrade.sh` - 2FA and
+  the TLS certificate survive a downgrade and a second upgrade.
+
+### 🔒 Security
+
+- **Allowlist proxy in front of the Docker socket.** Inside the one container, a separate user
+  `ddcproxy` holds the socket and passes only ping, version, container list/inspect/logs/stats,
+  start/stop/restart and a reserved read-only image inspect. `create`, `exec`, `/info` and
+  everything else get 403. DDC's user `ddc` is not in the socket's group.
+- **DDC cannot rewrite its own start.** Code, entrypoint and proxy are root-owned and read-only
+  for `ddc`; `scripts/check_image_boundary.sh` proves it against a running container.
+- **One Docker client factory** instead of eight separate constructions, three of which
+  hard-coded the socket and would have walked past the proxy.
+- **Forwarded headers only from trusted proxies.** Before, a client reaching port 9374 directly
+  rotated `X-Forwarded-For` and was never braked by the login and setup rate limits.
+- **TLS modes:** `DDC_TLS_MODE=off` (default), `proxy`, or `self-signed` (DDC serves HTTPS with a
+  certificate in `config/tls/`, fingerprint in the log).
+- **Two-factor authentication** for the web panel: TOTP, recovery codes, host break-glass
+  (`scripts/disable_2fa.py`). Offered, never forced.
+
+### Other
+
+- One source repository: the same build is pushed as `dockerdiscordcontrol/dockerdiscordcontrol`,
+  `-linux`, `-mac` and `-windows`. The old platform tags (`:mac`, `:apple-silicon`, `:linux`,
+  `:windows`) are discontinued since v2.4.
+- `/health` reports whether the proxy or Docker itself is unreachable.
+- The "Security Guide" button in the token modal opened a 404; it opens the guide now.
+
+---
+
 ## v2.4.1 - 2026-09-22
 
 Security patch. After the v2.4.0 release, GitHub's code scanner (CodeQL) flagged ten places.

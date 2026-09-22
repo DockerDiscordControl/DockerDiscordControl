@@ -1,6 +1,13 @@
 # DDC v3.0 — Security-by-Design architecture plan
 
-**Status: not started. Nothing in this document is implemented.**
+**Status 2026-09-22: steps 1-11 of §7 implemented on branch `roadmap-v3-phase1`,
+not released.** Measured on the operator's server: `scripts/check_image_boundary.sh`
+holds against the rebuilt container, and `scripts/check_upgrade_downgrade.sh` holds
+between v2.4.1 and v3. Two deviations, both measured: the client factory negotiates
+the API version once and caches it instead of pinning it (§7 step 6 - docker-py 7.1.0
+defaults to API 1.44, which Docker older than 25 refuses), and there were eight client
+sites, not seven (§6). The sections below are the plan as decided; where the result
+differs, the commit messages say why.
 v2.4 is finalised first; v2.5 is skipped. Written 2026-09-22, revised the same
 day after an independent review that measured the v2.4.1 tree, the running
 container and docker-py 7.1.0 itself. Corrections are marked **(revised)**.
