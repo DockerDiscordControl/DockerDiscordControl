@@ -2,6 +2,14 @@
 <div id="server-selection" class="mb-3 card p-3">
     <h4>{{ _t('web.server.title') }}</h4>
     <p class="form-text">{{ _t('web.server.description') }}</p>
+    {# Offered only when a container is in a Compose stack (app/static/js/stack_order.js) #}
+    {% if all_containers and all_containers|selectattr('compose_project')|list %}
+    <div class="mb-2">
+        <button type="button" class="btn btn-sm btn-outline-info" id="sort-by-stack-btn" title="{{ _t('web.server.sort_by_stack_tooltip') }}">
+            <i class="bi bi-stack"></i> {{ _t('web.server.sort_by_stack') }}
+        </button>
+    </div>
+    {% endif %}
     {# "New" annotation in the free space above the table, pointing down at the Spieler column #}
     <div class="d-none d-lg-flex justify-content-end" style="padding-right: 6%; margin-bottom: 4px; position: relative; z-index: 2;">
         <span class="handwritten-note" style="font-size: 1.15em;">{{ _t('web.server.new_query_hint') }}</span>
@@ -35,7 +43,7 @@
                         {% set guessed_proto = 'satisfactory' if 'satisfactory' in _nameimg else ('palworld' if 'palworld' in _nameimg else ('minecraft' if 'minecraft' in _nameimg else '')) %}
                         {% set _cfg_proto = server_config.get('query_protocol', 'source') %}
                         {% set effective_proto = _cfg_proto if (_cfg_proto and _cfg_proto != 'source') else guessed_proto %}
-                        <tr data-container-id="{{ container.id }}" data-container-name="{{ container.name }}">
+                        <tr data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" data-compose-project="{{ container.compose_project or '' }}">
                             <td class="text-center align-middle">
                                 <span class="order-number me-1"></span>
                                 <button type="button" class="btn btn-sm btn-outline-secondary move-up-btn" data-immediate-effect="true" title="{{ _t('web.server.move_up') }}" {% if loop.first %}disabled{% endif %}>
@@ -53,7 +61,7 @@
                             </td>
                             <td>
                                 <code class="text-info">{{ container.name }}</code><br>
-                                <small class="text-light">{{ _t('web.server.status_label') }}: {{ container.status }}<br>{{ _t('web.server.image_label') }}: {{ container.image }}</small>
+                                <small class="text-light">{{ _t('web.server.status_label') }}: {{ container.status }}<br>{{ _t('web.server.image_label') }}: {{ container.image }}{% if container.compose_project %}<br>{{ _t('web.server.stack_label') }}: {{ container.compose_project }}{% endif %}</small>
                             </td>
                             <td>
                                 <input type="text" class="form-control form-control-sm display-name-input"
