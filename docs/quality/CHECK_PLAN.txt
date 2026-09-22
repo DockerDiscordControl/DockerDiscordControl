@@ -119,7 +119,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
 [ ] cogs/loop_safety.py:79 _register_loop_error_handlers.make_handler.handler
 
-## Section 05  (1734 lines, 10 public names)
+## Section 05  (1740 lines, 10 public names)
 [ ] cogs/overview_embeds.py:35 OverviewEmbedsMixin
 [ ] cogs/slash_commands.py:41 SlashCommandsMixin
 [ ] cogs/slash_commands.py:87 SlashCommandsMixin.serverstatus
@@ -1244,7 +1244,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/auth.py:121 SimpleRateLimiter.cleanup_old_entries
 [ ] app/auth.py:145 init_limiter
 [ ] app/auth.py:148 init_limiter.check_auth_rate_limit
-[ ] app/auth.py:175 setup_is_closed
+[ ] app/auth.py:174 setup_is_closed
 [ ] app/auth.py:191 verify_password
 [ ] app/auth.py:243 auth_error
 [ ] app/blueprints/action_log_routes.py:30 rate_limit

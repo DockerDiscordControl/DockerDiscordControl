@@ -558,11 +558,14 @@ class OverviewEmbedsMixin:
                 else:
                     status_emoji = "🟢" if is_running else "🔴"
 
-                # Count online/offline
+                # Count online/offline. A container Docker says does not EXIST
+                # renders as "❓ ... not found" and is neither: counted as offline
+                # it promised the operator a stopped container they could start
+                # (SPEC.md Z3, one state further).
                 if is_running:
                     has_running_containers = True
                     online_count += 1
-                else:
+                elif not getattr(status_result, 'not_found', False):
                     offline_count += 1
 
                 # Truncate name to max 12 characters (shorter for single-line format)
@@ -648,7 +651,10 @@ class OverviewEmbedsMixin:
                 container_lines[index] = f"**{discord.utils.escape_markdown(stack)}**\n" + container_lines[index]
             previous_stack = stack
 
-        # Format the counts in the header line
+        # The lines that were actually built, not the configured entries: the loop
+        # above skips an entry without a display name or docker name, and the
+        # header used to promise more containers than it showed.
+        total_containers = len(container_lines)
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with consistent spacing between container lines
