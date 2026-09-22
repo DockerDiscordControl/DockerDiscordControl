@@ -1,0 +1,512 @@
+# -*- coding: utf-8 -*-
+# ============================================================================ #
+# DockerDiscordControl (DDC)                                                  #
+# https://ddc.bot                                                              #
+# Copyright (c) 2025 MAX                                                       #
+# Licensed under the MIT License                                               #
+# ============================================================================ #
+"""The periodic background loops of DockerControlCog.
+
+Moved out of cogs/docker_control.py unchanged on 2026-09-22 (roadmap Phase 3,
+the cog split): heartbeat, status cache refresh, mech cache start, animation
+cache warmup, inactivity check and performance cache clearing, each with its
+before_loop hook. The status message edit loop stays with the message code.
+_register_loop_error_handlers walks the cog class with dir(), which includes
+these inherited loops.
+"""
+
+import asyncio
+import logging
+import time
+from datetime import datetime, timedelta, timezone
+
+import discord
+from discord.ext import tasks
+
+from services.config.config_service import load_config
+from services.config.server_config_service import get_server_config_service
+from utils.logging_utils import setup_logger
+
+from .control_helpers import _channel_has_permission
+from .loop_safety import survives_one_bad_cycle
+
+# Same logger name as the cog: log lines and log-based tests read as before the move.
+logger = setup_logger('ddc.docker_control', level=logging.INFO)
+
+
+class BackgroundLoopsMixin:
+    """Periodic loops, mixed into DockerControlCog."""
+
+
+    # --- Status Watchdog (Heartbeat) Loop ---
+    @tasks.loop(minutes=5)
+    async def heartbeat_send_loop(self):
+        """
+        Status Watchdog: Pings an external monitoring URL periodically.
+
+        This implements a "Dead Man's Switch" pattern - if DDC stops running,
+        the monitoring service (e.g., Healthchecks.io, Uptime Kuma) will detect
+        the missing ping and send an alert.
+
+        Security: Only outbound HTTPS requests, no tokens or data shared.
+        """
+        try:
+            import aiohttp
+
+            # Load heartbeat configuration
+            current_config = load_config() or self.config or {}
+            heartbeat_config = current_config.get('heartbeat', {})
+
+            if not isinstance(heartbeat_config, dict):
+                return
+
+            # Check if enabled
+            if not heartbeat_config.get('enabled', False):
+                return
+
+            # Get ping URL
+            ping_url = heartbeat_config.get('ping_url', '').strip()
+            if not ping_url:
+                return
+
+            # Security: Only allow HTTPS
+            if not ping_url.startswith('https://'):
+                logger.warning("[Watchdog] Monitoring URL must use HTTPS - skipping ping")
+                return
+
+            # Get interval and update loop if needed
+            try:
+                interval_minutes = int(heartbeat_config.get('interval', 5))
+                interval_minutes = max(1, min(60, interval_minutes))  # Clamp 1-60
+            except (ValueError, TypeError):
+                interval_minutes = 5
+
+            if self.heartbeat_send_loop.minutes != interval_minutes:
+                try:
+                    self.heartbeat_send_loop.change_interval(minutes=interval_minutes)
+                    logger.info(f"[Watchdog] Interval updated to {interval_minutes} minutes")
+                except Exception as e:
+                    logger.warning(f"[Watchdog] Failed to update interval: {e}")
+
+            # Ping the monitoring URL
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(ping_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                        if resp.status == 200:
+                            logger.debug(f"[Watchdog] Ping successful")
+                        else:
+                            logger.warning(f"[Watchdog] Ping returned status {resp.status}")
+            except aiohttp.ClientError as e:
+                logger.warning(f"[Watchdog] Ping failed: {e}")
+            except Exception as e:
+                logger.error(f"[Watchdog] Unexpected error during ping: {e}")
+
+        except Exception as e:
+            logger.error(f"[Watchdog] Error in heartbeat loop: {e}", exc_info=True)
+
+    @heartbeat_send_loop.before_loop
+    async def before_heartbeat_loop(self):
+        """Wait until the bot is ready before starting the watchdog loop."""
+        await self.bot.wait_until_ready()
+        logger.info("[Watchdog] Status monitoring loop ready")
+
+    # --- Status Cache Update Loop ---
+    @tasks.loop(seconds=30)
+    @survives_one_bad_cycle
+    async def status_update_loop(self):
+        """Periodically updates the cache with the latest container statuses."""
+        # Load configuration first
+        config = load_config()
+        if not config:
+            logger.error("Status Update Loop: Could not load configuration. Skipping cycle.")
+            return
+
+        # Get cache duration from environment
+        from utils.settings import get_setting
+        cache_duration = get_setting('DDC_DOCKER_CACHE_DURATION', 30)
+
+        # Update cache TTL based on current interval
+        calculated_ttl = int(cache_duration * 2.5)
+        if self.cache_ttl_seconds != calculated_ttl:
+            self.cache_ttl_seconds = calculated_ttl
+            logger.info(f"[STATUS_LOOP] Cache TTL updated to {calculated_ttl} seconds (interval: {cache_duration}s)")
+        # Keep the published interval in sync when the setting changes at runtime.
+        self.status_refresh_interval_seconds = cache_duration
+
+        # Dynamically change the loop interval if needed
+        if self.status_update_loop.seconds != cache_duration:
+            try:
+                self.status_update_loop.change_interval(seconds=cache_duration)
+                logger.info(f"[STATUS_LOOP] Cache update interval changed to {cache_duration} seconds")
+            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
+                logger.error(f"[STATUS_LOOP] Failed to change interval: {e}", exc_info=True)
+
+        # Configuration already loaded and validated above
+        # SERVICE FIRST: Use ServerConfigService instead of direct config access
+        server_config_service = get_server_config_service()
+        servers = server_config_service.get_all_servers()
+        if not servers:
+            return # No servers to update
+
+        container_names = [s.get('docker_name') for s in servers if s.get('docker_name')]
+
+        logger.info(f"[STATUS_LOOP] Bulk updating cache for {len(container_names)} containers")
+        start_time = time.time()
+
+        try:
+            # RACE CONDITION PROTECTION: Use semaphore to prevent concurrent status updates
+            if not hasattr(self, '_status_update_semaphore'):
+                self._status_update_semaphore = asyncio.Semaphore(1)
+
+            async with self._status_update_semaphore:
+                # Bulk fetch returns ContainerStatusResult objects
+                results = await self.bulk_fetch_container_status(container_names)
+
+                success_count = 0
+                error_count = 0
+                failed_names = set()
+
+                # Process ContainerStatusResult objects
+                for name, result in results.items():
+                    if result.success:
+                        # Cache ContainerStatusResult directly
+                        self.status_cache_service.set(name, result, datetime.now(timezone.utc))
+                        success_count += 1
+                    else:
+                        logger.warning(f"[STATUS_LOOP] Failed to fetch status for {name}. Error: {result.error_message}")
+                        error_count += 1
+                        failed_names.add(name)
+
+                # Missing from the results (fetch raised) = failed, see _background_cache_population
+                failed_names.update(n for n in container_names if n not in results)
+                self._mark_status_cache_refreshed(failed_names)
+                duration_ms = (time.time() - start_time) * 1000
+                logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
+
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"[STATUS_LOOP] Unexpected error during status update loop: {e}", exc_info=True)
+
+    @status_update_loop.before_loop
+    async def before_status_update_loop(self):
+        """Wait until the bot is ready before starting the loop."""
+        await self.bot.wait_until_ready()
+
+    # --- Mech Status Cache Startup ---
+    @tasks.loop(count=1)  # Only run once to start the background loop
+    async def start_mech_cache_loop(self):
+        """Start the MechStatusCacheService background loop."""
+        try:
+            logger.info("Starting MechStatusCacheService background loop...")
+            await self.mech_status_cache_service.start_background_loop()
+            logger.info("MechStatusCacheService background loop started successfully")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Failed to start MechStatusCacheService background loop: {e}", exc_info=True)
+
+    @start_mech_cache_loop.before_loop
+    async def before_start_mech_cache_loop(self):
+        """Wait until the bot is ready before starting the mech cache."""
+        await self.bot.wait_until_ready()
+
+    # --- Initial Animation Cache Warmup (NON-BLOCKING OPTIMIZATION) ---
+    @tasks.loop(count=1)  # Only run once to perform initial cache warmup
+    async def initial_animation_cache_warmup(self):
+        """Perform initial animation cache warmup in background after startup completes."""
+        try:
+            # PERFORMANCE OPTIMIZATION: Let startup complete first, then cache in background
+            logger.info("Scheduling animation cache warmup in background (startup optimization)")
+
+            # Wait for bot to be fully ready and operational
+            await self.bot.wait_until_ready()
+
+            # Additional delay to ensure Discord channels are loaded and bot is responsive
+            await asyncio.sleep(15)  # Let all startup processes complete first
+
+            logger.info("Starting background animation cache warmup...")
+
+            from services.mech.animation_cache_service import get_animation_cache_service
+            animation_cache = get_animation_cache_service()
+
+            # Run cache warmup with parallel optimization
+            await self._perform_optimized_cache_warmup(animation_cache)
+
+            logger.info("Background animation cache warmup completed successfully")
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
+            logger.error(f"Failed to perform background animation cache warmup: {e}", exc_info=True)
+
+    async def _perform_optimized_cache_warmup(self, animation_cache):
+        """Perform cache warmup with parallel processing for better performance."""
+        try:
+            # Get current mech status for cache warmup
+            from services.mech.mech_status_cache_service import get_mech_status_cache_service, MechStatusCacheRequest
+            from services.mech.speed_levels import get_combined_mech_status
+
+            cache_service = get_mech_status_cache_service()
+            cache_request = MechStatusCacheRequest(include_decimals=True)
+            mech_result = cache_service.get_cached_status(cache_request)
+
+            if not mech_result.success:
+                logger.warning("Could not get mech status for optimized warmup - using fallback")
+                # Use fallback: cache current level animation
+                await animation_cache.perform_initial_cache_warmup()
+                return
+
+            current_level = mech_result.level
+            current_power = mech_result.power
+
+            # Calculate current speed level
+            if current_level >= 11:
+                current_speed_level = 100  # Level 11 always has maximum speed
+            else:
+                # Real level + its power bar maximum (not a level guessed from the power amount)
+                speed_status = get_combined_mech_status(
+                    current_power, evolution_level=current_level,
+                    power_max=getattr(getattr(mech_result, 'bars', None), 'Power_max_for_level', None))
+                current_speed_level = speed_status['speed']['level']
+
+            logger.info(f"Optimized cache warmup: Level {current_level}, Power {current_power:.2f}, Speed {current_speed_level}")
+
+            # PARALLEL OPTIMIZATION: Generate small and big animations simultaneously
+            small_task = asyncio.create_task(
+                self._cache_small_animation_async(animation_cache, current_level, current_speed_level, current_power)
+            )
+            big_task = asyncio.create_task(
+                self._cache_big_animation_async(animation_cache, current_level, current_speed_level, current_power)
+            )
+
+            # Wait for both to complete in parallel (much faster than serial)
+            await asyncio.gather(small_task, big_task, return_exceptions=True)
+
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in optimized cache warmup: {e}", exc_info=True)
+            # Fallback to original implementation
+            await animation_cache.perform_initial_cache_warmup()
+
+    async def _cache_small_animation_async(self, animation_cache, level, speed_level, power):
+        """Cache small animation asynchronously."""
+        try:
+            logger.debug(f"Parallel caching: Small animation Level {level}, Speed {speed_level}")
+            # Run in thread pool to avoid blocking the event loop
+            await asyncio.to_thread(
+                animation_cache.get_animation_with_speed_and_power, level, speed_level, power
+            )
+            logger.debug(f"Completed: Small animation Level {level}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.warning(f"Failed to cache small animation: {e}")
+
+    async def _cache_big_animation_async(self, animation_cache, level, speed_level, power):
+        """Cache big animation asynchronously."""
+        try:
+            logger.debug(f"Parallel caching: Big animation Level {level}, Speed {speed_level}")
+            # Run in thread pool to avoid blocking the event loop
+            await asyncio.to_thread(
+                animation_cache.get_animation_with_speed_and_power_big, level, speed_level, power
+            )
+            logger.debug(f"Completed: Big animation Level {level}")
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.warning(f"Failed to cache big animation: {e}")
+
+    @initial_animation_cache_warmup.before_loop
+    async def before_initial_animation_cache_warmup(self):
+        """Minimal delay before starting background cache warmup."""
+        # No additional wait needed - the loop itself handles timing
+        pass
+
+    # --- Inactivity Check Loop ---
+    @tasks.loop(seconds=30)
+    @survives_one_bad_cycle
+    async def inactivity_check_loop(self):
+        """Checks for channel inactivity and regenerates messages if needed."""
+        config = load_config()
+        if not config:
+            logger.error("Inactivity Check Loop: Could not load configuration. Skipping cycle.")
+            return
+
+        now_utc = datetime.now(timezone.utc)
+        channel_permissions = config.get('channel_permissions', {})
+
+        try:
+            if not self.initial_messages_sent:
+                logger.info("Inactivity check loop: Initial messages not sent yet, skipping.")
+                return
+
+            logger.info("Inactivity check loop running")
+
+            # Log tracked channels for debugging
+            logger.info(f"Currently tracking {len(self.last_channel_activity)} channels for activity: {list(self.last_channel_activity.keys())}")
+
+            # Check each channel we've previously registered activity for
+            for channel_id, last_activity_time in list(self.last_channel_activity.items()):
+                channel_config = channel_permissions.get(str(channel_id))
+
+                logger.debug(f"Checking channel {channel_id}")
+
+                # Skip channels with no config
+                if not channel_config:
+                    logger.debug(f"Channel {channel_id} has no specific config, skipping")
+                    continue
+
+                recreate_enabled = channel_config.get('recreate_messages_on_inactivity', True)
+                timeout_minutes = channel_config.get('inactivity_timeout_minutes', 10)
+
+                logger.debug(f"Channel {channel_id} - recreate_enabled={recreate_enabled}, timeout_minutes={timeout_minutes}")
+
+                if not recreate_enabled or timeout_minutes <= 0:
+                    logger.debug(f"Channel {channel_id} - Recreate disabled or timeout <= 0, skipping")
+                    continue
+
+                # Calculate time since last activity
+                time_since_last_activity = now_utc - last_activity_time
+                inactivity_threshold = timedelta(minutes=timeout_minutes)
+
+                logger.debug(f"Channel {channel_id} - Time since last activity: {time_since_last_activity}, threshold: {inactivity_threshold}")
+
+                # Check if we've passed the inactivity threshold
+                if time_since_last_activity >= inactivity_threshold:
+                    logger.info(f"Channel {channel_id} has been inactive for {time_since_last_activity}, attempting regeneration")
+
+                    try:
+                        # Fetch the Discord channel
+                        channel = await self.bot.fetch_channel(channel_id)
+
+                        if not isinstance(channel, discord.TextChannel):
+                            logger.warning(f"Channel {channel_id} is not a text channel, removing from activity tracking")
+                            del self.last_channel_activity[channel_id]
+                            continue
+
+                        logger.debug(f"Successfully fetched channel {channel.name} ({channel_id})")
+
+                        # Check the last message to confirm inactivity
+                        history = await channel.history(limit=3).flatten()
+
+                        logger.debug(f"Found {len(history)} messages in recent history for channel {channel.name}")
+
+                        # If there are no messages at all, regenerate
+                        if not history:
+                            logger.info(f"No messages found in channel {channel.name} ({channel_id}). Regenerating")
+                            # Determine the mode: control or status
+                            has_control_permission = _channel_has_permission(channel_id, 'control', config)
+                            regeneration_mode = 'control' if has_control_permission else 'status'
+                            logger.debug(f"Regeneration mode for empty channel: {regeneration_mode}")
+                            await self._regenerate_channel(channel, regeneration_mode, config)
+                            self.last_channel_activity[channel_id] = now_utc
+                            continue
+
+                        # Check if the last message is from our bot
+                        # Safety check: ensure bot.user is available
+                        if self.bot.user is None:
+                            logger.warning(f"Bot user is None, cannot check message author. Skipping channel {channel_id}")
+                            continue
+
+                        last_msg = history[0]
+                        bot_user_id = self.bot.user.id
+
+                        # Log detailed info for debugging recreation issues
+                        logger.debug(f"Channel {channel.name}: Last message author={last_msg.author.id} ({last_msg.author.name}), bot_id={bot_user_id}")
+
+                        # Check if last message is from our bot (by user ID or application ID)
+                        bot_app_id = getattr(self.bot, 'application_id', None)
+                        is_from_bot = (last_msg.author.id == bot_user_id or
+                                      (hasattr(last_msg, 'application_id') and bot_app_id and last_msg.application_id == bot_app_id))
+
+                        if is_from_bot:
+                            # FIX A: Distinguish our OWN managed overview/admin-overview (already at
+                            # the bottom -> nothing to do) from a STRAY bot message such as a
+                            # restart/update notification that has buried our overview.
+                            if not self._overview_buried_by_stray(channel_id, last_msg.id):
+                                self.last_channel_activity[channel_id] = now_utc
+                                logger.debug(f"Last message in channel {channel.name} ({channel_id}) is our managed overview (or no tracking) - resetting inactivity timer, no regeneration")
+                                continue
+
+                            # Our overview is buried under a stray bot message -> move it to the bottom
+                            logger.info(f"Channel {channel.name} ({channel_id}): own overview buried under stray bot message {last_msg.id} - will regenerate to move it to the bottom")
+                        else:
+                            # The last message is from a user (foreign), regenerate as before
+                            logger.info(f"Last message in channel {channel.name} is NOT from our bot (author_id={last_msg.author.id}, bot_id={bot_user_id}). Will regenerate")
+
+                        # Determine the mode: control or status
+                        has_control_permission = _channel_has_permission(channel_id, 'control', config)
+                        has_status_permission = _channel_has_permission(channel_id, 'serverstatus', config)
+
+                        logger.debug(f"Channel permissions - control: {has_control_permission}, status: {has_status_permission}")
+
+                        regeneration_mode = 'control' if has_control_permission else 'status'
+
+                        # Force the mode to be valid
+                        if not has_control_permission and not has_status_permission:
+                            logger.warning(f"Channel {channel.name} has neither control nor status permissions. Cannot regenerate")
+                            continue
+
+                        logger.debug(f"Will regenerate with mode: {regeneration_mode}")
+
+                        # FIX A: Don't regenerate while a user is mid-interaction (e.g. expanding the
+                        # mech) - deleting the message they are interacting with would no-op their
+                        # click. Skip this cycle; the loop retries in 30s.
+                        if await self._is_channel_interacting(channel_id):
+                            logger.debug(f"Channel {channel_id} has an active interaction - deferring regeneration to next cycle")
+                            continue
+
+                        # Attempt channel regeneration with improved error handling
+                        try:
+                            logger.info(f"Starting inactivity regeneration for {channel.name} ({channel_id}) in mode '{regeneration_mode}'")
+                            await self._regenerate_channel(channel, regeneration_mode, config)
+
+                            # Reset activity timer only on successful regeneration
+                            self.last_channel_activity[channel_id] = now_utc
+                            logger.info(f"✅ Channel {channel.name} ({channel_id}) successfully regenerated due to inactivity. Mode: {regeneration_mode}")
+
+                        except (discord.errors.DiscordException, RuntimeError, OSError) as regen_error:
+                            logger.error(f"❌ Failed to regenerate channel {channel.name} ({channel_id}) due to inactivity: {regen_error}", exc_info=True)
+                            # Don't reset activity timer on failure - try again next cycle
+                            # But prevent infinite retries by adding a small delay
+                            error_delay = timedelta(minutes=2)
+                            self.last_channel_activity[channel_id] = now_utc - inactivity_threshold + error_delay
+                            logger.warning(f"Delaying next regeneration attempt for {channel.name} by {error_delay}")
+
+                    except discord.NotFound:
+                        logger.warning(f"Channel {channel_id} not found. Removing from activity tracking")
+                        del self.last_channel_activity[channel_id]
+                    except discord.Forbidden:
+                        logger.error(f"Cannot access channel {channel_id} (forbidden). Continuing tracking but regeneration not possible")
+                    except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+                        logger.error(f"Error during inactivity check for channel {channel_id}: {e}", exc_info=True)
+                else:
+                    logger.debug(f"Channel {channel_id} - Inactivity threshold not reached yet")
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in inactivity_check_loop: {e}", exc_info=True)
+
+    @inactivity_check_loop.before_loop
+    async def before_inactivity_check_loop(self):
+        """Wait until the bot is ready before starting the loop."""
+        await self.bot.wait_until_ready()
+
+    # --- Performance Cache Clear Loop ---
+    @tasks.loop(minutes=5)
+    async def performance_cache_clear_loop(self):
+        """Clears performance caches every 5 minutes to prevent memory buildup."""
+        try:
+            logger.debug("Running performance cache clear loop")
+
+            # Import and clear the control UI performance caches
+            from .control_ui import _clear_caches
+            _clear_caches()
+
+            # Clear any other performance-critical caches
+            if hasattr(self, '_embed_cache'):
+                # Clear embed cache if it's getting too large (>100 entries)
+                if len(self._embed_cache.get('translated_terms', {})) > 100:
+                    self._embed_cache['translated_terms'].clear()
+                    logger.debug("Cleared embed translation cache due to size")
+
+                if len(self._embed_cache.get('box_elements', {})) > 100:
+                    self._embed_cache['box_elements'].clear()
+                    logger.debug("Cleared embed box elements cache due to size")
+
+            logger.debug("Performance cache clear completed")
+
+        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+            logger.error(f"Error in performance_cache_clear_loop: {e}", exc_info=True)
+
+    @performance_cache_clear_loop.before_loop
+    async def before_performance_cache_clear_loop(self):
+        """Wait until the bot is ready before starting the loop."""
+        await self.bot.wait_until_ready()

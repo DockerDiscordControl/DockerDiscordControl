@@ -80,6 +80,10 @@ async def test_a_raising_config_does_not_end_the_loop(loop_name, cog, monkeypatc
         raise ConfigServiceError("config.json is unreadable")
 
     monkeypatch.setattr(docker_control, "load_config", boom)
+    # status_update_loop and inactivity_check_loop live in background_loops.py
+    # since the Phase 3 cog split.
+    import cogs.background_loops as background_loops
+    monkeypatch.setattr(background_loops, "load_config", boom)
 
     with caplog.at_level(logging.DEBUG):
         # Must return, not raise. py-cord ends the loop on anything it raises.

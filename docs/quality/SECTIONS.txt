@@ -28,20 +28,24 @@ cogs/control_ui.py:1-1832
 ## Section 03  (1948 lines, 1 piece)
 cogs/control_ui.py:1833-3780
 
-## Section 04  (1783 lines, 1 piece)
-cogs/docker_control.py:1-1783
+## Section 04  (1811 lines, 2 pieces)
+# Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
+cogs/docker_control.py:1-1721
+cogs/loop_safety.py:1-90
 
 ## Section 05  (1903 lines, 3 pieces)
 # Phase 3 cog split, 2026-09-22: the three overview embed builders (856 lines)
 # moved from this range of docker_control.py into overview_embeds.py, which
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
-cogs/docker_control.py:1784-2001
+cogs/docker_control.py:1722-1939
 cogs/overview_embeds.py:1-894
 cogs/slash_commands.py:1-791
 
-## Section 06  (1839 lines, 1 piece)
-cogs/docker_control.py:2002-3840
+## Section 06  (1879 lines, 2 pieces)
+# Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
+cogs/docker_control.py:1940-3306
+cogs/background_loops.py:1-512
 
 ## Section 07  (694 lines, 1 piece)
 cogs/enhanced_info_modal_simple.py:1-694
