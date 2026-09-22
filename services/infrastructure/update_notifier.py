@@ -168,26 +168,8 @@ class UpdateNotifier:
 
         try:
             config = load_config()
-            control_channels = []
-
-            # Find control channels - check both old and new config formats
-            # New format: channel_permissions
-            channel_permissions = config.get('channel_permissions', {})
-            for channel_id, perms in channel_permissions.items():
-                if perms.get('commands', {}).get('control', False):
-                    try:
-                        control_channels.append(int(channel_id))
-                    except ValueError:
-                        logger.debug(f"Invalid channel ID: {channel_id}")
-
-            # Old format fallback: channels array
-            if not control_channels:
-                for channel_config in config.get('channels', []):
-                    if 'control' in channel_config.get('permissions', []):
-                        try:
-                            control_channels.append(int(channel_config['channel_id']))
-                        except (ValueError, KeyError):
-                            pass
+            from services.config.channel_roles import control_channel_ids
+            control_channels = control_channel_ids(config)
 
             if not control_channels:
                 logger.info("No control channels configured - skipping update notification")

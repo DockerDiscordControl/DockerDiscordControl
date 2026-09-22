@@ -69,12 +69,13 @@ services/admin/admin_service.py:1-379
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-788
 
-## Section 11  (1784 lines, 6 pieces)
+## Section 11  (1822 lines, 7 pieces)
 services/automation/auto_action_state_service.py:1-364
 services/automation/automation_service.py:1-651
 services/automation/container_watch.py:1-95
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576
+services/config/channel_roles.py:1-38
 services/config/config_cache_service.py:1-177
 
 ## Section 12  (1478 lines, 3 pieces)
@@ -144,7 +145,7 @@ services/infrastructure/game_query_service.py:1-553
 ## Section 20  (1546 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-341
 services/infrastructure/spam_protection_service.py:1-553
-services/infrastructure/update_notifier.py:1-235
+services/infrastructure/update_notifier.py:1-217
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-387
 

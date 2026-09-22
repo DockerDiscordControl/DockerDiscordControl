@@ -245,7 +245,7 @@
 [ ] services/automation/auto_action_config_service.py:755 AutoActionConfigService.increment_trigger_count
 [ ] services/automation/auto_action_config_service.py:783 get_auto_action_config_service
 
-## Section 11  (1879 lines, 39 public names)
+## Section 11  (1917 lines, 40 public names)
 [ ] services/automation/auto_action_state_service.py:24 TriggerEvent
 [ ] services/automation/auto_action_state_service.py:34 TriggerEvent.to_dict
 [ ] services/automation/auto_action_state_service.py:37 AutoActionStateService
@@ -277,6 +277,7 @@
 [ ] services/config/channel_config_service.py:525 ChannelConfigService.sync_from_main_config
 [ ] services/config/channel_config_service.py:558 get_channel_config_service
 [ ] services/config/channel_config_service.py:572 reset_channel_config_service
+[ ] services/config/channel_roles.py:16 control_channel_ids
 [ ] services/config/config_cache_service.py:23 ConfigCacheService
 [ ] services/config/config_cache_service.py:44 ConfigCacheService.get_cached_config
 [ ] services/config/config_cache_service.py:72 ConfigCacheService.get_config_dir_mtime
@@ -680,7 +681,7 @@
 [ ] services/infrastructure/game_query_service.py:542 get_game_query_service
 [ ] services/infrastructure/game_query_service.py:550 reset_game_query_service
 
-## Section 20  (1546 lines, 51 public names)
+## Section 20  (1528 lines, 51 public names)
 [ ] services/infrastructure/game_query_support_service.py:80 read_support_verdicts
 [ ] services/infrastructure/game_query_support_service.py:140 set_testing
 [ ] services/infrastructure/game_query_support_service.py:157 record_manual_success
@@ -722,7 +723,7 @@
 [ ] services/infrastructure/update_notifier.py:110 UpdateNotifier.mark_notification_shown
 [ ] services/infrastructure/update_notifier.py:118 UpdateNotifier.create_update_embed
 [ ] services/infrastructure/update_notifier.py:163 UpdateNotifier.send_update_notification
-[ ] services/infrastructure/update_notifier.py:230 get_update_notifier
+[ ] services/infrastructure/update_notifier.py:212 get_update_notifier
 [ ] services/mech/mech_display_cache_service.py:27 MechDisplayCacheRequest
 [ ] services/mech/mech_display_cache_service.py:34 MechDisplayCacheResult
 [ ] services/mech/mech_display_cache_service.py:42 MechDisplayImageRequest
