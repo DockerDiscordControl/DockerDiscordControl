@@ -446,11 +446,17 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
     # Fallback to individual client creation
     from contextlib import asynccontextmanager
 
+    from .client_factory import build_docker_client
+
     @asynccontextmanager
     async def individual_client():
         client = None
         try:
-            client = await asyncio.to_thread(docker.from_env)
+            # Through the one client factory (follows DOCKER_HOST, the v3.0
+            # proxy), with the timeout worked out above. It used to call
+            # docker.from_env() bare, which meant docker-py's 60 s whatever the
+            # operation - the smart timeout was computed and then ignored here.
+            client = await asyncio.to_thread(build_docker_client, timeout=timeout)
             yield client
         finally:
             if client:

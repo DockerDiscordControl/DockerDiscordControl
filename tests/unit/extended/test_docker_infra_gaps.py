@@ -121,9 +121,9 @@ class TestDockerUtilsFallbackClient:
         )
 
         fake_client = _mock_client()
-        # The fallback path uses docker.from_env via asyncio.to_thread.
-        with patch.object(
-            docker_utils.docker, "from_env", return_value=fake_client
+        # The fallback path builds its client through the client factory.
+        with patch(
+            "services.docker_service.client_factory.build_docker_client", return_value=fake_client
         ):
             # The caller's real shape: "async with get_docker_client_async(...)".
             # Until 2026-09-20 this test called the result itself, which is what
@@ -148,7 +148,7 @@ class TestDockerUtilsFallbackClient:
 
         client = _mock_client()
         client.close.side_effect = OSError("close exploded")
-        with patch.object(docker_utils.docker, "from_env", return_value=client):
+        with patch("services.docker_service.client_factory.build_docker_client", return_value=client):
             async with docker_utils.get_docker_client_async() as c:  # see C4 above
                 assert c is client
         # Even though close raised, the cm exited cleanly (line 388 path).

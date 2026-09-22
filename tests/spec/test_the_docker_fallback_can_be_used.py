@@ -44,7 +44,7 @@ async def test_the_fallback_gives_a_context_manager_too():
     client = MagicMock()
 
     with patch.object(docker_utils, "USE_CONNECTION_POOL", False), \
-         patch.object(docker_utils.docker, "from_env", return_value=client):
+         patch("services.docker_service.client_factory.build_docker_client", return_value=client):
         async with docker_utils.get_docker_client_async(operation="test") as entered:
             assert entered is client, "the fallback did not hand out a client"
 
@@ -55,8 +55,24 @@ async def test_the_fallback_closes_the_client_again():
     client = MagicMock()
 
     with patch.object(docker_utils, "USE_CONNECTION_POOL", False), \
-         patch.object(docker_utils.docker, "from_env", return_value=client):
+         patch("services.docker_service.client_factory.build_docker_client", return_value=client):
         async with docker_utils.get_docker_client_async(operation="test"):
             pass
 
     assert client.close.called
+
+
+@pytest.mark.asyncio
+async def test_the_fallback_uses_the_timeout_it_was_given():
+    """Added 2026-09-22 with the move onto the client factory. The fallback
+    used to call docker.from_env() bare - docker-py's 60 s for every operation,
+    while the timeout had just been worked out a few lines above. It also
+    walked around the factory, and so around the v3.0 proxy."""
+    client = MagicMock()
+
+    with patch.object(docker_utils, "USE_CONNECTION_POOL", False), \
+         patch("services.docker_service.client_factory.build_docker_client", return_value=client) as factory:
+        async with docker_utils.get_docker_client_async(timeout=7, operation="test"):
+            pass
+
+    factory.assert_called_once_with(timeout=7)
