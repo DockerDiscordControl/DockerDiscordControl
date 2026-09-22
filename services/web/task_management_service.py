@@ -168,10 +168,15 @@ class TaskManagementService:
             # Step 6: Log user action
             self._log_task_creation(scheduled_task)
 
+            # A one-time task whose time has passed is saved and switched off
+            # in step 4. Saying "added successfully" sent the operator away
+            # believing a restart was scheduled that will never run. SPEC.md Z3.
             return AddTaskResult(
                 success=True,
                 task_data=scheduled_task.to_dict(),
-                message="Task added successfully"
+                message="Task added successfully" if scheduled_task.is_active else
+                        "Task added, but switched off: the time given is in the past, "
+                        "so it will not run. Set a new time to switch it on."
             )
 
         except (ImportError, AttributeError, RuntimeError) as e:

@@ -360,8 +360,11 @@ document.getElementById('createTaskButton').addEventListener('click', function()
     })
     .then(data => {
         if (data.status === 201) {
-            responseMessageDiv.textContent = '{{ _t("web.tasks.task_added_success") }}: ' + JSON.stringify(data.body.task);
-            responseMessageDiv.classList.add('alert', 'alert-success');
+            // Not always green: a one-time task whose time has passed is saved
+            // and switched off in the same call, and the server says so.
+            const notice = taskAddedNotice(data.body, '{{ _t("web.tasks.task_added_success") }}');
+            responseMessageDiv.textContent = notice.text;
+            responseMessageDiv.classList.add('alert', notice.level);
             resetTaskForm();
             // Reload task list
             if (window.taskManager && typeof window.taskManager.fetchTasks === 'function') {
