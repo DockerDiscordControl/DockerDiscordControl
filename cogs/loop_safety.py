@@ -53,6 +53,14 @@ def survives_one_bad_cycle(coro):
     that the cycle failed. It descends from BaseException, so `except Exception`
     would not have caught it anyway - the clause is a signpost, and becomes
     load-bearing the moment somebody widens the handler.
+
+    KNOWN AND ACCEPTED (review 2026-09-22): this also catches the five
+    exceptions py-cord would have retried IMMEDIATELY (OSError, ConnectionClosed,
+    aiohttp.ClientError, asyncio.TimeoutError, GatewayNotFound) - a dropped
+    connection now costs one interval instead of a fast retry. Letting them
+    through would hand py-cord the very shape this guard exists to prevent: the
+    sixth exception ends the loop for the rest of the run. One late cycle is the
+    cheaper failure.
     """
     @functools.wraps(coro)
     async def wrapper(*args, **kwargs):
