@@ -139,7 +139,7 @@ def test_one_missing_image_does_not_empty_the_web_panel_list(monkeypatch):
     the host - all three must be in the list."""
     import app.utils.web_helpers as wh
 
-    monkeypatch.setattr(wh.docker, "from_env", lambda **kw: _Client(_three()))
+    monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **kw: _Client(_three()))
     with wh.cache_lock:
         wh.docker_cache["containers"] = []
         wh.docker_cache["error"] = None

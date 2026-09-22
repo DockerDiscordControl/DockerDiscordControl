@@ -277,8 +277,10 @@ def update_docker_cache(logger):
 
     client = None
     try:
-        # Configure Docker client with timeout directly (thread-safe)
-        client = docker.from_env(timeout=BACKGROUND_REFRESH_TIMEOUT)
+        # Through the one client factory (follows DOCKER_HOST, the v3.0 proxy),
+        # with the Advanced Setting's timeout as before.
+        from services.docker_service.client_factory import build_docker_client
+        client = build_docker_client(timeout=BACKGROUND_REFRESH_TIMEOUT)
 
         try:
             # Direct call without signal-based timeout wrapper

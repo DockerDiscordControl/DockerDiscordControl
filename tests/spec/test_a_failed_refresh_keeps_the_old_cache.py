@@ -104,7 +104,7 @@ def logger():
 
 
 def _refresh(monkeypatch, logger, containers):
-    monkeypatch.setattr(wh.docker, "from_env", lambda **kw: _client_with(containers))
+    monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **kw: _client_with(containers))
     wh.update_docker_cache(logger)
 
 
@@ -144,7 +144,7 @@ def test_the_hashes_still_describe_the_cached_list(monkeypatch, cache, logger):
     _refresh(monkeypatch, logger, _good_three())
     hashes_before = dict(cache['container_hashes'])
 
-    monkeypatch.setattr(wh.docker, "from_env", lambda **kw: _client_with(
+    monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **kw: _client_with(
         [_Container("alpha", status="exited"), _Container("beta", broken=True)]))
     wh.update_docker_cache(logger)
 

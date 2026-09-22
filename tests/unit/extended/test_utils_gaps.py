@@ -78,7 +78,7 @@ class TestUpdateDockerCacheBranches:
             def close(self):
                 pass
 
-        monkeypatch.setattr(wh.docker, "from_env", lambda **k: _FakeClient())
+        monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **k: _FakeClient())
 
         logger = MagicMock()
         # Should NOT raise - the timeout path swallows the error
@@ -105,7 +105,7 @@ class TestUpdateDockerCacheBranches:
             def close(self):
                 pass
 
-        monkeypatch.setattr(wh.docker, "from_env", lambda **k: _FakeClient())
+        monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **k: _FakeClient())
         logger = MagicMock()
         # ValueError is in the (ValueError, TypeError, KeyError, AttributeError)
         # except block, so it's caught and stored in cache['error']

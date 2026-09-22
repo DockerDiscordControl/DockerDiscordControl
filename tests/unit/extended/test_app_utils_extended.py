@@ -221,7 +221,7 @@ class TestUpdateDockerCache:
             self._build_fake_container("alpha"),
         ]
         client.close = MagicMock()
-        monkeypatch.setattr("app.utils.web_helpers.docker.from_env", lambda **kw: client)
+        monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **kw: client)
 
         # Reset cache state
         with wh.cache_lock:
@@ -261,8 +261,8 @@ class TestUpdateDockerCache:
             def _raise(**kw):
                 raise docker_mod.errors.DockerException("daemon down")
 
-            # Patch via the live module attribute (not via dotted string).
-            monkeypatch.setattr(wh.docker, "from_env", _raise)
+            # Patch the client factory; web_helpers looks it up at call time.
+            monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", _raise)
 
             # Reset cache state so we deterministically observe the error
             # written by this exception path.
@@ -289,7 +289,7 @@ class TestUpdateDockerCache:
             "Read timed out after 30 seconds"
         )
         client.close = MagicMock()
-        monkeypatch.setattr("app.utils.web_helpers.docker.from_env", lambda **kw: client)
+        monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **kw: client)
 
         with wh.cache_lock:
             wh.docker_cache["containers"] = []
@@ -318,7 +318,7 @@ class TestUpdateDockerCache:
         client = MagicMock()
         client.containers.list.return_value = [c]
         client.close = MagicMock()
-        monkeypatch.setattr("app.utils.web_helpers.docker.from_env", lambda **kw: client)
+        monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **kw: client)
 
         with wh.cache_lock:
             wh.docker_cache["containers"] = []
