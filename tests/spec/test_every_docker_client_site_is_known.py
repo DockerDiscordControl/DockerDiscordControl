@@ -65,8 +65,6 @@ KNOWN_SITES = {
         ({"from_env"}, False),
     ("services/web/container_log_service.py", "ContainerLogService._get_container_logs_sync"):
         ({"DockerClient"}, True),
-    ("cogs/status_info_integration.py", "container_logs_text.get_logs_sync"):
-        ({"from_env"}, False),
 }
 
 

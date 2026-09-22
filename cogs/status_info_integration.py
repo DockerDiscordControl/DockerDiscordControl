@@ -50,7 +50,10 @@ async def container_logs_text(container_name: str) -> str:
 
         # Use synchronous Docker client for stable log retrieval
         def get_logs_sync():
-            client = docker.from_env()
+            # Through the one client factory (follows DOCKER_HOST, the v3.0
+            # proxy). 60 s is docker-py's default, which this site used before.
+            from services.docker_service.client_factory import build_docker_client
+            client = build_docker_client(timeout=60)
             try:
                 container = client.containers.get(container_name)
                 tail_lines = get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50)
