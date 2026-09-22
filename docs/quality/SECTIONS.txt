@@ -120,7 +120,7 @@ services/docker_status/models.py:1-397
 services/docker_status/performance_service.py:1-234
 services/donation/__init__.py:1-24
 services/donation/donation_config.py:1-50
-services/donation/donation_management_service.py:1-446
+services/donation/donation_management_service.py:1-452
 services/donation/donation_utils.py:1-62
 services/donation/notification_service.py:1-98
 services/donation/unified/__init__.py:1-30

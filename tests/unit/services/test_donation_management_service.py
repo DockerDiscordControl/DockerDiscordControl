@@ -202,10 +202,11 @@ class TestDonationManagementService:
 
         assert result.success is True
         donations = result.data["donations"]
-        # Production returns ALL donations newest-first; the ``limit`` is
-        # currently informational and not applied.  We only assert ordering.
-        assert donations[0]["donor_name"] == "User9"
-        assert donations[-1]["donor_name"] == "User0"
+        # Newest first, and the limit is a limit: the five newest of the ten.
+        # It used to be informational and not applied, see
+        # tests/spec/test_the_history_limit_is_a_limit.py.
+        assert [d["donor_name"] for d in donations] == [
+            "User9", "User8", "User7", "User6", "User5"]
 
     def test_delete_donation_success(
         self, patch_mech_service, patch_progress_paths, event_log_path

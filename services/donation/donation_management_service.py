@@ -197,9 +197,15 @@ class DonationManagementService:
                     donations_map[deleted_seq]['is_deleted'] = len(deletion_events) % 2 == 1
                     donations_map[deleted_seq]['deletion_events'] = deletion_events
 
-            # Convert to flat list for display (newest first, with nested deletions)
+            # Convert to flat list for display (newest first, with nested deletions).
+            # `limit` is what the caller asked for and is applied here: the panel
+            # (main_routes.py:971) asks for 100 and used to be handed every
+            # donation ever booked. A limit of 0 or less means the whole ledger.
+            newest_first = sorted(donations_map.keys(), reverse=True)
+            if limit and limit > 0:
+                newest_first = newest_first[:limit]
             donations = []
-            for seq in reversed(sorted(donations_map.keys())):  # Newest first
+            for seq in newest_first:
                 donation = donations_map[seq]
                 donations.append(donation)
                 # Add deletion events right after the donation (indented)
