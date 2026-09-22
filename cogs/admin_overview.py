@@ -127,6 +127,29 @@ async def _restart_running_servers(servers, action):
             "unknown": unknown_count, "not_allowed": not_allowed_count}
 
 
+async def answer_or_post(interaction, cog, channel_id: int, embed) -> None:
+    """The result of a bulk action, to the presser - or to the channel.
+
+    A bulk run may take longer than the 15 minutes Discord keeps an
+    interaction's follow-up token alive; the summary must not be lost with it.
+    """
+    try:
+        await interaction.followup.send(embed=embed, ephemeral=True)
+        return
+    except (discord.errors.NotFound, discord.errors.HTTPException) as error:
+        logger.warning(f"Bulk action: the presser could not be answered ({error}) - "
+                       f"posting the summary in channel {channel_id}")
+    channel = getattr(getattr(cog, 'bot', None), 'get_channel', lambda _cid: None)(channel_id)
+    if channel is None:
+        logger.error(f"Bulk action: channel {channel_id} not reachable - the summary is only in this "
+                     f"log: {embed.description}")
+        return
+    try:
+        await channel.send(embed=embed)
+    except (discord.errors.DiscordException, RuntimeError, OSError) as error:
+        logger.error(f"Bulk action: the summary could not be posted either ({error}): {embed.description}")
+
+
 def _restart_summary(counts) -> str:
     """The result text of a bulk restart."""
     description = _("Successfully restarted: **{count}** containers").format(count=counts["restarted"])
@@ -671,7 +694,7 @@ class ConfirmRestartAllButton(Button):
                 description=description,
                 color=discord.Color.green() if failed_count == 0 else discord.Color.orange()
             )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await answer_or_post(interaction, self.cog, self.channel_id, embed)
 
             # Update admin overview after a delay (but don't wait for it)
             asyncio.create_task(self._delayed_overview_update())
@@ -892,7 +915,7 @@ class ConfirmStopAllButton(Button):
                 description=description,
                 color=discord.Color.green() if failed_count == 0 else discord.Color.orange()
             )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await answer_or_post(interaction, self.cog, self.channel_id, embed)
 
             # Update admin overview after a delay (but don't wait for it)
             asyncio.create_task(self._delayed_overview_update())

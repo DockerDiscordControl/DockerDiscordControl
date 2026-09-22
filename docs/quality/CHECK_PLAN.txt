@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1570 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1571 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -8,26 +8,27 @@ review/check_plan.py from SECTIONS.txt and the code -
 # docs/quality/reviews/, one report per section and pass; the coverage of a
 # report against this plan is computed by scripts/review/coverage.py.
 
-## Section 01  (1505 lines, 35 public names)
-[ ] cogs/admin_overview.py:144 AdminOverviewView
-[ ] cogs/admin_overview.py:160 AdminOverviewAdminButton
-[ ] cogs/admin_overview.py:175 AdminOverviewAdminButton.callback
-[ ] cogs/admin_overview.py:263 AdminOverviewRestartAllButton
-[ ] cogs/admin_overview.py:279 AdminOverviewRestartAllButton.callback
-[ ] cogs/admin_overview.py:345 AdminOverviewStopAllButton
-[ ] cogs/admin_overview.py:361 AdminOverviewStopAllButton.callback
-[ ] cogs/admin_overview.py:427 AdminOverviewRestartStackButton
-[ ] cogs/admin_overview.py:443 AdminOverviewRestartStackButton.callback
-[ ] cogs/admin_overview.py:452 AdminOverviewDonateButton
-[ ] cogs/admin_overview.py:467 AdminOverviewDonateButton.callback
-[ ] cogs/admin_overview.py:544 RestartAllConfirmationView
-[ ] cogs/admin_overview.py:556 StopAllConfirmationView
-[ ] cogs/admin_overview.py:568 ConfirmRestartAllButton
-[ ] cogs/admin_overview.py:581 ConfirmRestartAllButton.callback
-[ ] cogs/admin_overview.py:707 ConfirmStopAllButton
-[ ] cogs/admin_overview.py:720 ConfirmStopAllButton.callback
-[ ] cogs/admin_overview.py:928 CancelBulkActionButton
-[ ] cogs/admin_overview.py:938 CancelBulkActionButton.callback
+## Section 01  (1528 lines, 36 public names)
+[ ] cogs/admin_overview.py:130 answer_or_post
+[ ] cogs/admin_overview.py:167 AdminOverviewView
+[ ] cogs/admin_overview.py:183 AdminOverviewAdminButton
+[ ] cogs/admin_overview.py:198 AdminOverviewAdminButton.callback
+[ ] cogs/admin_overview.py:286 AdminOverviewRestartAllButton
+[ ] cogs/admin_overview.py:302 AdminOverviewRestartAllButton.callback
+[ ] cogs/admin_overview.py:368 AdminOverviewStopAllButton
+[ ] cogs/admin_overview.py:384 AdminOverviewStopAllButton.callback
+[ ] cogs/admin_overview.py:450 AdminOverviewRestartStackButton
+[ ] cogs/admin_overview.py:466 AdminOverviewRestartStackButton.callback
+[ ] cogs/admin_overview.py:475 AdminOverviewDonateButton
+[ ] cogs/admin_overview.py:490 AdminOverviewDonateButton.callback
+[ ] cogs/admin_overview.py:567 RestartAllConfirmationView
+[ ] cogs/admin_overview.py:579 StopAllConfirmationView
+[ ] cogs/admin_overview.py:591 ConfirmRestartAllButton
+[ ] cogs/admin_overview.py:604 ConfirmRestartAllButton.callback
+[ ] cogs/admin_overview.py:730 ConfirmStopAllButton
+[ ] cogs/admin_overview.py:743 ConfirmStopAllButton.callback
+[ ] cogs/admin_overview.py:951 CancelBulkActionButton
+[ ] cogs/admin_overview.py:961 CancelBulkActionButton.callback
 [ ] cogs/stack_restart.py:49 stacks_of
 [ ] cogs/stack_restart.py:62 current_stacks
 [ ] cogs/stack_restart.py:75 offer_stacks
@@ -256,7 +257,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/automation/auto_action_config_service.py:780 AutoActionConfigService.increment_trigger_count
 [ ] services/automation/auto_action_config_service.py:808 get_auto_action_config_service
 
-## Section 11  (2004 lines, 42 public names)
+## Section 11  (1966 lines, 41 public names)
 [ ] services/automation/auto_action_state_service.py:24 TriggerEvent
 [ ] services/automation/auto_action_state_service.py:34 TriggerEvent.to_dict
 [ ] services/automation/auto_action_state_service.py:37 AutoActionStateService
@@ -290,7 +291,6 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/channel_config_service.py:525 ChannelConfigService.sync_from_main_config
 [ ] services/config/channel_config_service.py:558 get_channel_config_service
 [ ] services/config/channel_config_service.py:572 reset_channel_config_service
-[ ] services/config/channel_roles.py:16 control_channel_ids
 [ ] services/config/config_cache_service.py:23 ConfigCacheService
 [ ] services/config/config_cache_service.py:44 ConfigCacheService.get_cached_config
 [ ] services/config/config_cache_service.py:72 ConfigCacheService.get_config_dir_mtime
@@ -300,7 +300,8 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/config_cache_service.py:156 ConfigCacheService.set_cached_token
 [ ] services/config/config_cache_service.py:172 ConfigCacheService.clear_token_cache
 
-## Section 12  (1546 lines, 38 public names)
+## Section 12  (1584 lines, 39 public names)
+[ ] services/config/channel_roles.py:16 control_channel_ids
 [ ] services/automation/own_actions.py:41 note_own_action
 [ ] services/automation/own_actions.py:49 expected_stops
 [ ] services/automation/own_actions.py:58 forget

@@ -90,7 +90,7 @@ app/web/tls.py	216	NONE
 app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
-cogs/admin_overview.py	949	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/admin_overview.py	972	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	643	NONE
 cogs/channel_lifecycle.py	582	NONE

@@ -10,7 +10,7 @@
 
 ## Section 01  (1266 lines, 4 pieces)
 cogs/__init__.py:1-7
-cogs/admin_overview.py:1-949
+cogs/admin_overview.py:1-972
 cogs/stack_restart.py:1-191
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-284
@@ -76,12 +76,13 @@ services/automation/automation_service.py:1-676
 services/automation/container_watch.py:1-157
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576
-services/config/channel_roles.py:1-38
 services/config/config_cache_service.py:1-177
 
 ## Section 12  (1478 lines, 3 pieces)
-# own_actions.py sits here, not with the other services/automation files:
-# section 11 is at 1,987 of the 2,000 lines a section may hold.
+services/config/channel_roles.py:1-38
+# channel_roles.py and own_actions.py sit here, not with the rest of their
+# directories:
+# section 11 is at the 2,000 lines a section may hold.
 services/automation/own_actions.py:1-68
 services/config/config_form_parser_service.py:1-531
 services/config/config_loader_service.py:1-481

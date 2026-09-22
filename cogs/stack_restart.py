@@ -178,7 +178,7 @@ class ConfirmRestartStackButton(Button):
                     stack=discord.utils.escape_markdown(self.stack)[:180]),
                 description=ao._restart_summary(counts),
                 color=discord.Color.green() if counts["failed"] == 0 else discord.Color.orange())
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await ao.answer_or_post(interaction, self.cog, self.channel_id, embed)
             asyncio.create_task(self._refresh_overview_later())
         finally:
             self.cog._bulk_operation_in_progress = False
