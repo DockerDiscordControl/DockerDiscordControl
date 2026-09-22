@@ -130,7 +130,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/slash_commands.py:475 SlashCommandsMixin.donate_command
 [ ] cogs/slash_commands.py:542 SlashCommandsMixin.info_command
 
-## Section 06  (1643 lines, 34 public names)
+## Section 06  (1651 lines, 34 public names)
 [ ] cogs/docker_control.py:890 DockerControlCog.control_command
 [ ] cogs/docker_control.py:947 DockerControlCog.cog_unload
 [ ] cogs/docker_control.py:980 DockerControlCog.update_global_status_cache
@@ -147,16 +147,16 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/background_loops.py:43 BackgroundLoopsMixin.heartbeat_send_loop
 [ ] cogs/background_loops.py:108 BackgroundLoopsMixin.before_heartbeat_loop
 [ ] cogs/background_loops.py:116 BackgroundLoopsMixin.status_update_loop
-[ ] cogs/background_loops.py:287 BackgroundLoopsMixin._check_image_updates.read_local
-[ ] cogs/background_loops.py:313 BackgroundLoopsMixin.before_status_update_loop
-[ ] cogs/background_loops.py:319 BackgroundLoopsMixin.start_mech_cache_loop
-[ ] cogs/background_loops.py:329 BackgroundLoopsMixin.before_start_mech_cache_loop
-[ ] cogs/background_loops.py:335 BackgroundLoopsMixin.initial_animation_cache_warmup
-[ ] cogs/background_loops.py:432 BackgroundLoopsMixin.before_initial_animation_cache_warmup
-[ ] cogs/background_loops.py:440 BackgroundLoopsMixin.inactivity_check_loop
-[ ] cogs/background_loops.py:601 BackgroundLoopsMixin.before_inactivity_check_loop
-[ ] cogs/background_loops.py:607 BackgroundLoopsMixin.performance_cache_clear_loop
-[ ] cogs/background_loops.py:633 BackgroundLoopsMixin.before_performance_cache_clear_loop
+[ ] cogs/background_loops.py:295 BackgroundLoopsMixin._check_image_updates.read_local
+[ ] cogs/background_loops.py:321 BackgroundLoopsMixin.before_status_update_loop
+[ ] cogs/background_loops.py:327 BackgroundLoopsMixin.start_mech_cache_loop
+[ ] cogs/background_loops.py:337 BackgroundLoopsMixin.before_start_mech_cache_loop
+[ ] cogs/background_loops.py:343 BackgroundLoopsMixin.initial_animation_cache_warmup
+[ ] cogs/background_loops.py:440 BackgroundLoopsMixin.before_initial_animation_cache_warmup
+[ ] cogs/background_loops.py:448 BackgroundLoopsMixin.inactivity_check_loop
+[ ] cogs/background_loops.py:609 BackgroundLoopsMixin.before_inactivity_check_loop
+[ ] cogs/background_loops.py:615 BackgroundLoopsMixin.performance_cache_clear_loop
+[ ] cogs/background_loops.py:641 BackgroundLoopsMixin.before_performance_cache_clear_loop
 [ ] cogs/donation_ui.py:31 DonationView
 [ ] cogs/donation_ui.py:70 DonationView.on_timeout
 [ ] cogs/donation_ui.py:89 DonationView.start_auto_delete_timer

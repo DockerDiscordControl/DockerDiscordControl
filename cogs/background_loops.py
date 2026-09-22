@@ -249,6 +249,14 @@ class BackgroundLoopsMixin:
                       for name, result in results.items()
                       if result.success and not getattr(result, 'not_found', False)}
             events.extend(watcher.observe(values, now))
+        # A setting no rule uses any more is forgotten, with its per-container
+        # bookkeeping: the dict used to grow by one watcher per threshold the
+        # operator ever typed, and a returning setting came back with its old
+        # "already reported" memory, so a container hot the whole time stayed
+        # unreported.
+        in_use = {'base'} | restart_keys | resource_keys
+        for key in [k for k in watchers if k not in in_use]:
+            del watchers[key]
         if not events:
             return
         try:
