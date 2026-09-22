@@ -769,8 +769,18 @@ class TaskManagementService:
         try:
             from services.scheduling.scheduler import update_task
             for task in tasks_to_update:
-                update_task(task)
-                self.logger.info(f"Task {task.task_id} was marked as expired and deactivated. Changes saved.")
+                # update_task returns False for a refused or failed write (a
+                # system task, an invalid one, a file it could not write). That
+                # was thrown away and every round logged "Changes saved.", while
+                # the task stayed active in the file and came back on the next
+                # page load. SPEC.md Z3.
+                if update_task(task):
+                    self.logger.info(
+                        f"Task {task.task_id} was marked as expired and deactivated. Changes saved.")
+                else:
+                    self.logger.error(
+                        f"Task {task.task_id} was marked as expired, but the change was NOT "
+                        f"saved - it is still active in the task file.")
         except (ImportError, AttributeError, RuntimeError) as e:
             # Service dependency errors (scheduler update_task unavailable)
             self.logger.error(f"Service dependency error saving updated tasks: {e}", exc_info=True)
