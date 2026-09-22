@@ -53,10 +53,16 @@ def parse_image_reference(reference: str) -> Optional[ImageRef]:
     """Normalise like Docker: nginx -> registry-1.docker.io/library/nginx:latest.
 
     A reference pinned to a digest (name@sha256:...) cannot change and is not
-    checked (None).
+    checked (None), and neither is a bare image id.
     """
     reference = (reference or "").strip()
     if not reference or "@" in reference:
+        return None
+    # A container created from a bare image id carries the id in Config.Image.
+    # Normalised like a name it became library/sha256:<id> and DDC asked Docker
+    # Hub about it every six hours, for something that has no tag to follow.
+    bare = reference[len("sha256:"):] if reference.startswith("sha256:") else reference
+    if len(bare) == 64 and all(c in "0123456789abcdef" for c in bare.lower()):
         return None
     first, _, rest = reference.partition("/")
     if rest and ("." in first or ":" in first or first == "localhost"):

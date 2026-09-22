@@ -1654,11 +1654,11 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/task_ui.py:1128 ContainerTaskDeleteButton
 [ ] cogs/task_ui.py:1142 ContainerTaskDeleteButton.callback
 
-## Section 42  (158 lines, 7 public names)
+## Section 42  (164 lines, 7 public names)
 [ ] services/automation/image_updates.py:46 ImageRef
 [ ] services/automation/image_updates.py:52 parse_image_reference
-[ ] services/automation/image_updates.py:78 local_digests
-[ ] services/automation/image_updates.py:89 update_available
-[ ] services/automation/image_updates.py:100 remote_digest
-[ ] services/automation/image_updates.py:139 ImageUpdateChecker
-[ ] services/automation/image_updates.py:145 ImageUpdateChecker.observe
+[ ] services/automation/image_updates.py:84 local_digests
+[ ] services/automation/image_updates.py:95 update_available
+[ ] services/automation/image_updates.py:106 remote_digest
+[ ] services/automation/image_updates.py:145 ImageUpdateChecker
+[ ] services/automation/image_updates.py:151 ImageUpdateChecker.observe

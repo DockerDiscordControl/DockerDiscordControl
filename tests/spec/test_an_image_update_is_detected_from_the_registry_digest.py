@@ -126,3 +126,29 @@ def test_no_digest_header_means_unknown_not_update(registry):
     handler.send_digest = False
     ref = ImageRef(registry=host, repository="library/nginx", tag="latest")
     assert asyncio.run(remote_digest(ref, scheme="http")) is None
+
+
+# --------------------------------------------------------------------------- #
+# A container created from a bare image id
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize("reference", [
+    "sha256:9f3a2b1c" + "0" * 56,
+    "9f3a2b1c" + "0" * 56,                       # what Config.Image holds for an untagged image
+])
+def test_a_bare_image_id_is_not_asked_about(reference):
+    """THE FINDING: an id normalised like a name becomes
+    registry-1.docker.io/library/sha256:<id>, and DDC asked Docker Hub about
+    it every six hours for the life of the container - a question with no
+    answer, for an image whose tag was deleted after it was created.
+
+    COUNTER-CHECK (2026-09-22): red before - parse_image_reference returned
+    ImageRef('registry-1.docker.io', 'library/sha256', '9f3a...')."""
+    assert parse_image_reference(reference) is None
+
+
+def test_a_normal_name_that_starts_with_hex_is_still_asked_about():
+    """Counter-check: "abcdef" is a legal repository name."""
+    ref = parse_image_reference("abcdef/tool:1.2")
+    assert (ref.repository, ref.tag) == ("abcdef/tool", "1.2")

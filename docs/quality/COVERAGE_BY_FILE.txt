@@ -118,7 +118,7 @@ services/automation/auto_action_config_service.py	813	passE:bothscans+E25
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
 services/automation/automation_service.py	676	passE:bothscans+E25
 services/automation/container_watch.py	157	NONE
-services/automation/image_updates.py	158	NONE
+services/automation/image_updates.py	164	NONE
 services/automation/own_actions.py	68	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/channel_config_service.py	576	passE:E28+bothscans:126-300
