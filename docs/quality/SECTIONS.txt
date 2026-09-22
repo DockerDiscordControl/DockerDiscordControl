@@ -99,7 +99,7 @@ services/discord/__init__.py:1-20
 services/discord/channel_cleanup_service.py:1-499
 services/discord/conditional_update_cache_service.py:1-184
 services/discord/embed_helper_service.py:1-209
-services/discord/status_overview_service.py:1-363
+services/discord/status_overview_service.py:1-365
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-298
 

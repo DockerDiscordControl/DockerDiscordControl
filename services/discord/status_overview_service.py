@@ -182,13 +182,15 @@ class StatusOverviewService:
             if not config.recreate_messages_on_inactivity:
                 return False
 
-            # Check if mech state requires recreation
-            from services.mech.mech_state_manager import get_mech_state_manager
-            state_manager = get_mech_state_manager()
-
-            if state_manager.should_force_recreate(str(channel_id)):
-                self.logger.debug(f"Mech state requires recreation for channel {channel_id}")
-                return True
+            # NOT the mech state manager here. should_force_recreate() is a RATE
+            # LIMIT - "more than 30 seconds since the last recreate we marked" -
+            # and the mark is written only when a mech level really changes. Used
+            # as a reason it answered True for ever, so this method returned True
+            # on every poll: the overview was updated every minute whatever
+            # interval the operator had set, and the inactivity check below could
+            # never be reached. The cog asks that rate limit BEHIND its own reason
+            # (a Glvl change or power depletion) and passes the answer in as
+            # force_recreate, which is handled above.
 
             # Check channel inactivity timeout
             if last_channel_activity:

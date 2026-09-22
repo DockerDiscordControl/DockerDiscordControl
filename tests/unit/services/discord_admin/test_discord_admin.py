@@ -737,8 +737,17 @@ class TestStatusOverviewService:
         assert decision.should_update is True
         assert decision.should_recreate is True
 
-    def test_recreate_via_mech_force(self, monkeypatch):
-        # Use a custom stub that forces recreation
+    def test_the_mech_rate_limit_alone_does_not_update(self, monkeypatch):
+        """This test asked the opposite until 2026-09-22.
+
+        should_force_recreate() is a RATE LIMIT ("more than 30 s since the last
+        recreate we marked"), and the mark is written only when a mech level
+        really changes - so as a REASON it answers True for ever and the
+        overview was updated every minute whatever interval the operator set
+        (tests/spec/test_the_update_interval_is_not_overruled_by_a_rate_limit.py).
+        The cog asks the rate limit behind its own reason and passes the answer
+        in as force_recreate; that path is the test below.
+        """
         stub = _StubMechStateManager(force_recreate=True)
         import services.mech.mech_state_manager as msm
 
@@ -758,10 +767,10 @@ class TestStatusOverviewService:
             channel_id=5,
             global_config=global_config,
             last_update_time=last_update,
+            last_channel_activity=datetime.now(timezone.utc),
         )
-        assert decision.should_update is True
-        assert decision.should_recreate is True
-        assert "5" in stub.calls
+        assert decision.should_update is False
+        assert decision.should_recreate is False
 
     def test_force_recreate_short_circuit(self, patched_mech_state_manager):
         # _should_recreate_message returns True immediately when force_recreate

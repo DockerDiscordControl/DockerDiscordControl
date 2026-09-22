@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1574 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1575 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -395,7 +395,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/server_config_service.py:209 ServerConfigService.get_base_directory
 [ ] services/config/server_config_service.py:224 get_server_config_service
 
-## Section 14  (1581 lines, 44 public names)
+## Section 14  (1583 lines, 44 public names)
 [ ] services/discord/channel_cleanup_service.py:33 ChannelCleanupRequest
 [ ] services/discord/channel_cleanup_service.py:59 ChannelCleanupResult
 [ ] services/discord/channel_cleanup_service.py:78 ChannelCleanupService
@@ -429,10 +429,10 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/discord/status_overview_service.py:37 UpdateDecision
 [ ] services/discord/status_overview_service.py:45 StatusOverviewService
 [ ] services/discord/status_overview_service.py:63 StatusOverviewService.make_update_decision
-[ ] services/discord/status_overview_service.py:264 StatusOverviewService.get_channel_config_summary
-[ ] services/discord/status_overview_service.py:292 get_status_overview_service
-[ ] services/discord/status_overview_service.py:303 should_update_channel_overview
-[ ] services/discord/status_overview_service.py:331 log_channel_update_decision
+[ ] services/discord/status_overview_service.py:266 StatusOverviewService.get_channel_config_summary
+[ ] services/discord/status_overview_service.py:294 get_status_overview_service
+[ ] services/discord/status_overview_service.py:305 should_update_channel_overview
+[ ] services/discord/status_overview_service.py:333 log_channel_update_decision
 [ ] services/docker_service/docker_action_service.py:31 DockerActionRequest
 [ ] services/docker_service/docker_action_service.py:40 DockerActionResult
 [ ] services/docker_service/docker_action_service.py:54 get_stop_timeout_kwargs
@@ -1216,7 +1216,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/web/security_service.py:199 SecurityService.get_security_audit
 [ ] services/web/security_service.py:345 get_security_service
 
-## Section 31  (1959 lines, 51 public names)
+## Section 31  (1959 lines, 52 public names)
 [ ] services/web/task_management_service.py:25 AddTaskRequest
 [ ] services/web/task_management_service.py:37 AddTaskResult
 [ ] services/web/task_management_service.py:46 ListTasksRequest
@@ -1244,8 +1244,9 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/auth.py:121 SimpleRateLimiter.cleanup_old_entries
 [ ] app/auth.py:145 init_limiter
 [ ] app/auth.py:148 init_limiter.check_auth_rate_limit
-[ ] app/auth.py:175 verify_password
-[ ] app/auth.py:227 auth_error
+[ ] app/auth.py:175 setup_is_closed
+[ ] app/auth.py:191 verify_password
+[ ] app/auth.py:243 auth_error
 [ ] app/blueprints/action_log_routes.py:30 rate_limit
 [ ] app/blueprints/action_log_routes.py:32 rate_limit.decorated_function
 [ ] app/blueprints/action_log_routes.py:64 get_action_log
@@ -1298,13 +1299,13 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/blueprints/main_routes.py:962 donations_api
 [ ] app/blueprints/main_routes.py:1011 delete_donation
 [ ] app/blueprints/main_routes.py:1070 logout
-[ ] app/blueprints/main_routes.py:1117 setup_page
-[ ] app/blueprints/main_routes.py:1127 setup_save
-[ ] app/blueprints/main_routes.py:1235 get_mech_music_url
-[ ] app/blueprints/main_routes.py:1280 get_mech_music_info
-[ ] app/blueprints/main_routes.py:1313 get_mech_display_image
-[ ] app/blueprints/main_routes.py:1373 get_mech_display_info
-[ ] app/blueprints/main_routes.py:1447 get_mech_status
+[ ] app/blueprints/main_routes.py:1094 setup_page
+[ ] app/blueprints/main_routes.py:1104 setup_save
+[ ] app/blueprints/main_routes.py:1212 get_mech_music_url
+[ ] app/blueprints/main_routes.py:1257 get_mech_music_info
+[ ] app/blueprints/main_routes.py:1290 get_mech_display_image
+[ ] app/blueprints/main_routes.py:1350 get_mech_display_info
+[ ] app/blueprints/main_routes.py:1424 get_mech_status
 [ ] app/blueprints/tasks_bp.py:17 add_task
 [ ] app/blueprints/tasks_bp.py:71 list_tasks
 [ ] app/blueprints/tasks_bp.py:101 show_task_form
