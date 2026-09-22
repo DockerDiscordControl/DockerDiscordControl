@@ -20,6 +20,13 @@
 # reviews/SECTION_26_SCHEDULER.md sit, were in no package at all. Reading only
 # the evidence marks and not the ranges is how I got this wrong twice.
 #
+# v3rev:<range> means the file was handed WHOLE to one of the three independent
+# review passes of 2026-09-22 over the v3.0 code (proxy and Docker client,
+# watchdog and automation, stacks/TLS/2FA). Their findings are worked through:
+# fixed with a test that was red against the old code, or written down as a
+# decision in the progress log. Unlike the older package marks, this is the
+# whole file at that date, not an extract.
+#
 # NONE means no package and no plan names this file. It does NOT mean "never
 # read": pass 1 stage B (sections 03-11 as they were then) ran before packages
 # were kept, so its files carry nothing here even though they were reviewed. It
@@ -44,7 +51,7 @@ app/blueprints/main_routes.py	1514	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 
 app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
 app/blueprints/tasks_bp.py	314	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never in a package]
-app/blueprints/two_factor_routes.py	198	NONE
+app/blueprints/two_factor_routes.py	198	v3rev:1-198
 app/bootstrap/__init__.py	34	pass1:s33:1-34
 app/bootstrap/performance.py	55	pass1:s33:1-55
 app/bootstrap/runtime.py	200	pass1:s33:1-200
@@ -81,18 +88,18 @@ app/web/compat.py	102	pass1:s34:1-102
 app/web/config.py	169	pass1:s35:1-169
 app/web/csrf.py	125	pass1:s35:1-125
 app/web/diagnostics.py	30	pass1:s35:1-30
-app/web/extensions.py	84	pass1:s35:1-26
+app/web/extensions.py	84	pass1:s35:1-26 v3rev:1-84
 app/web/i18n.py	64	pass1:s35:1-54  [10 of 64 lines never in a package]
 app/web/logging.py	60	pass1:s35:1-60
 app/web/routes.py	204	pass1:s35:1-100  [81 of 181 lines never in a package]
 app/web/security.py	86	pass1:s35:1-86
-app/web/tls.py	216	NONE
+app/web/tls.py	216	v3rev:1-216
 app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/admin_overview.py	972	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
-cogs/background_loops.py	652	NONE
+cogs/background_loops.py	652	v3rev:1-652
 cogs/channel_lifecycle.py	582	NONE
 cogs/control_helpers.py	284	pass1:s01:plan pass2:s01:1-205  [79 of 284 lines never in a package]
 cogs/control_ui.py	3780	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
@@ -104,7 +111,7 @@ cogs/loop_safety.py	90	NONE
 cogs/message_updates.py	943	NONE
 cogs/overview_embeds.py	926	NONE
 cogs/slash_commands.py	788	NONE
-cogs/stack_restart.py	196	NONE
+cogs/stack_restart.py	196	v3rev:1-196
 cogs/status_handlers.py	1397	passE:E15,E16:80-200,560-700
 cogs/status_info_integration.py	1252	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203
 cogs/task_ui.py	1228	NONE
@@ -114,11 +121,11 @@ services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	379	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
-services/automation/auto_action_config_service.py	813	passE:bothscans+E25
+services/automation/auto_action_config_service.py	813	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
-services/automation/automation_service.py	676	passE:bothscans+E25
-services/automation/container_watch.py	157	NONE
-services/automation/image_updates.py	164	NONE
+services/automation/automation_service.py	676	passE:bothscans+E25 v3rev:1-676
+services/automation/container_watch.py	157	v3rev:1-157
+services/automation/image_updates.py	164	v3rev:1-164
 services/automation/own_actions.py	70	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/channel_config_service.py	576	passE:E28+bothscans:126-300
@@ -137,13 +144,13 @@ services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s1
 services/discord/embed_helper_service.py	209	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
 services/discord/status_overview_service.py	363	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_proxy/__init__.py	2	NONE
-services/docker_proxy/allowlist_proxy.py	272	NONE
+services/docker_proxy/allowlist_proxy.py	272	v3rev:1-272
 services/docker_service/__init__.py	28	pass2:s14:1-28
-services/docker_service/client_factory.py	105	NONE
+services/docker_service/client_factory.py	105	v3rev:1-105
 services/docker_service/docker_action_service.py	298	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
 services/docker_service/docker_utils.py	1220	pass1:s16:1-1404  [28 of 1432 lines never in a package]
-services/docker_service/reachability.py	87	NONE
+services/docker_service/reachability.py	87	v3rev:1-87
 services/docker_service/server_order.py	111	pass1:s16:1-111
 services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101
 services/docker_status/__init__.py	34	pass1:s16:1-34
@@ -224,7 +231,7 @@ services/web/mech_web_service.py	676	pass1:s30:1-676
 services/web/performance_stats_service.py	181	pass1:s30:1-172  [9 of 181 lines never in a package]
 services/web/security_service.py	350	pass1:s30:1-339  [6 of 345 lines never in a package]
 services/web/task_management_service.py	1087	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
-services/web/two_factor_service.py	224	NONE
+services/web/two_factor_service.py	224	v3rev:1-224
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150
 utils/atomic_io.py	70	pass1:s35:1-70
