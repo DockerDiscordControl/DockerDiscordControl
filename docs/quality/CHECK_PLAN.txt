@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1580 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1581 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -1002,39 +1002,39 @@ review/check_plan.py from SECTIONS.txt and the code -
 ## Section 26  (1745 lines, 28 public names)
 [ ] services/scheduling/scheduler.py:47 initialize_logging
 [ ] services/scheduling/scheduler.py:100 normalize_weekday
-[ ] services/scheduling/scheduler.py:141 _with_tasks_lock.wrapper
-[ ] services/scheduling/scheduler.py:164 ScheduledTask
-[ ] services/scheduling/scheduler.py:288 ScheduledTask.is_system_task
-[ ] services/scheduling/scheduler.py:292 ScheduledTask.is_donation_task
-[ ] services/scheduling/scheduler.py:309 ScheduledTask.is_valid
-[ ] services/scheduling/scheduler.py:466 ScheduledTask.to_dict
-[ ] services/scheduling/scheduler.py:511 ScheduledTask.from_dict
-[ ] services/scheduling/scheduler.py:710 ScheduledTask.calculate_next_run
-[ ] services/scheduling/scheduler.py:789 ScheduledTask.get_next_run_datetime
-[ ] services/scheduling/scheduler.py:806 ScheduledTask.should_run
-[ ] services/scheduling/scheduler.py:810 ScheduledTask.update_after_execution
-[ ] services/scheduling/scheduler.py:841 ScheduledTask._calculate_next_donation_run.get_second_sunday
-[ ] services/scheduling/scheduler.py:903 create_donation_system_task
-[ ] services/scheduling/scheduler.py:1146 load_tasks
-[ ] services/scheduling/scheduler.py:1254 save_tasks
-[ ] services/scheduling/scheduler.py:1291 find_task_by_id
-[ ] services/scheduling/scheduler.py:1343 get_tasks_for_container
-[ ] services/scheduling/scheduler.py:1381 check_task_time_collision
-[ ] services/scheduling/scheduler.py:1403 add_task
-[ ] services/scheduling/scheduler.py:1436 update_task
-[ ] services/scheduling/scheduler.py:1486 delete_task
-[ ] services/scheduling/scheduler.py:1531 reschedule_missed_task
-[ ] services/scheduling/scheduler.py:1596 is_upgrade_pause_note
-[ ] services/scheduling/scheduler.py:1601 pause_long_dead_tasks_once
-[ ] services/scheduling/scheduler.py:1692 get_tasks_in_timeframe
-[ ] services/scheduling/scheduler.py:1712 get_next_week_tasks
+[ ] services/scheduling/scheduler.py:154 _with_tasks_lock.wrapper
+[ ] services/scheduling/scheduler.py:187 ScheduledTask
+[ ] services/scheduling/scheduler.py:311 ScheduledTask.is_system_task
+[ ] services/scheduling/scheduler.py:315 ScheduledTask.is_donation_task
+[ ] services/scheduling/scheduler.py:332 ScheduledTask.is_valid
+[ ] services/scheduling/scheduler.py:489 ScheduledTask.to_dict
+[ ] services/scheduling/scheduler.py:534 ScheduledTask.from_dict
+[ ] services/scheduling/scheduler.py:733 ScheduledTask.calculate_next_run
+[ ] services/scheduling/scheduler.py:812 ScheduledTask.get_next_run_datetime
+[ ] services/scheduling/scheduler.py:829 ScheduledTask.should_run
+[ ] services/scheduling/scheduler.py:833 ScheduledTask.update_after_execution
+[ ] services/scheduling/scheduler.py:864 ScheduledTask._calculate_next_donation_run.get_second_sunday
+[ ] services/scheduling/scheduler.py:926 create_donation_system_task
+[ ] services/scheduling/scheduler.py:1169 load_tasks
+[ ] services/scheduling/scheduler.py:1277 save_tasks
+[ ] services/scheduling/scheduler.py:1314 find_task_by_id
+[ ] services/scheduling/scheduler.py:1366 get_tasks_for_container
+[ ] services/scheduling/scheduler.py:1404 check_task_time_collision
+[ ] services/scheduling/scheduler.py:1426 add_task
+[ ] services/scheduling/scheduler.py:1459 update_task
+[ ] services/scheduling/scheduler.py:1509 delete_task
+[ ] services/scheduling/scheduler.py:1554 reschedule_missed_task
+[ ] services/scheduling/scheduler.py:1619 is_upgrade_pause_note
+[ ] services/scheduling/scheduler.py:1624 pause_long_dead_tasks_once
+[ ] services/scheduling/scheduler.py:1715 get_tasks_in_timeframe
+[ ] services/scheduling/scheduler.py:1735 get_next_week_tasks
 
 ## Section 27  (1979 lines, 53 public names)
-[ ] services/scheduling/scheduler.py:1765 execute_task
-[ ] services/scheduling/scheduler.py:2098 validate_new_task_input
-[ ] services/scheduling/scheduler.py:2147 parse_time_string
-[ ] services/scheduling/scheduler.py:2205 parse_month_string
-[ ] services/scheduling/scheduler.py:2227 parse_weekday_string
+[ ] services/scheduling/scheduler.py:1788 execute_task
+[ ] services/scheduling/scheduler.py:2121 validate_new_task_input
+[ ] services/scheduling/scheduler.py:2170 parse_time_string
+[ ] services/scheduling/scheduler.py:2228 parse_month_string
+[ ] services/scheduling/scheduler.py:2250 parse_weekday_string
 [ ] services/scheduling/scheduler_service.py:63 set_bot_instance
 [ ] services/scheduling/scheduler_service.py:68 get_bot_instance
 [ ] services/scheduling/scheduler_service.py:72 SchedulerService
@@ -1400,7 +1400,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/web/background.py:51 register_background_services
 [ ] app/web/blueprints.py:24 register_blueprints
 
-## Section 35  (1940 lines, 80 public names)
+## Section 35  (1969 lines, 81 public names)
 [ ] app/web/config.py:125 resolve_secret_key
 [ ] app/web/config.py:143 build_config
 [ ] app/web/csrf.py:56 csrf_error_reason
@@ -1437,8 +1437,9 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] utils/app_commands_helper.py:134 get_app_commands
 [ ] utils/app_commands_helper.py:140 get_discord_option
 [ ] utils/app_commands_helper.py:146 is_app_commands_available
-[ ] utils/atomic_io.py:33 atomic_write_text
-[ ] utils/atomic_io.py:63 atomic_write_json
+[ ] utils/atomic_io.py:37 cross_process_lock
+[ ] utils/atomic_io.py:62 atomic_write_text
+[ ] utils/atomic_io.py:92 atomic_write_json
 [ ] utils/common_helpers.py:29 hash_container_data
 [ ] utils/common_helpers.py:48 safe_get_nested
 [ ] utils/common_helpers.py:71 format_uptime

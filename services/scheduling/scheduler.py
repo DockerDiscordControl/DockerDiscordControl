@@ -135,12 +135,35 @@ def _localize(tz, naive_dt: datetime) -> datetime:
 # which may save on its own.
 _TASKS_LOCK = threading.RLock()
 
+# How deep we are inside the file lock. flock is per open file description, so
+# taking it twice in one process would block on itself; the RLock above already
+# serialises this process's threads, so only the outermost call opens it.
+_FILE_LOCK_DEPTH = 0
+
+
 def _with_tasks_lock(func):
-    """Run func while holding the tasks.json lock."""
+    """Run func while holding the tasks.json lock - in this process AND across them.
+
+    The bot and the web UI are two processes (supervisord). A thread lock
+    serialises nothing between them, and an atomic write makes the swap atomic,
+    not the read-modify-write: both read, both write, and the second replaces a
+    file that never saw the first one's change - a deleted task comes back, or a
+    reschedule is undone.
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
+        global _FILE_LOCK_DEPTH
         with _TASKS_LOCK:
-            return func(*args, **kwargs)
+            if _FILE_LOCK_DEPTH:
+                return func(*args, **kwargs)
+            from utils.atomic_io import cross_process_lock
+
+            with cross_process_lock(TASKS_FILE_PATH):
+                _FILE_LOCK_DEPTH += 1
+                try:
+                    return func(*args, **kwargs)
+                finally:
+                    _FILE_LOCK_DEPTH -= 1
     return wrapper
 
 # Scheduler file path

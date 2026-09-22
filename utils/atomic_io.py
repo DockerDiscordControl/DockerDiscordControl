@@ -21,13 +21,42 @@ Windows unlinked the target first, opening a window in which the file did not
 exist at all. This module keeps the safer behaviour of the two. See SPEC.md Z7.
 """
 
+import fcntl
 import json
 import os
 import stat
+from contextlib import contextmanager
 import tempfile
+from pathlib import Path
 from typing import Any, Dict, Union
 
 PathLike = Union[str, "os.PathLike[str]"]
+
+
+@contextmanager
+def cross_process_lock(path: PathLike):
+    """Serialise a read-modify-write on ``path`` ACROSS PROCESSES.
+
+    DDC runs as two processes (supervisord starts the bot and the web UI), and
+    an atomic write makes the SWAP atomic, not the cycle: if both read before
+    either writes, the second write replaces the file with a state that never
+    saw the first one's change - a task the panel deleted comes back, a verdict
+    is lost. The lock lives beside the file as <name>.lock.
+
+    flock blocks the OS thread, which under gevent means the hub; every user of
+    this holds it for one small JSON read and write.
+    """
+    lock_path = Path(str(path) + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
 
 
 def atomic_write_text(path: PathLike, text: str, *, encoding: str = "utf-8") -> None:
