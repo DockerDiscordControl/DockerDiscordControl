@@ -492,6 +492,12 @@ class AutomationService:
                         if r.enabled and r.trigger.type == TRIGGER_CONTAINER_STATE),
                        key=lambda r: r.priority, reverse=True)
         executed = []
+        # The global cooldown is checked ONCE for this poll: its job is to stop a
+        # chatty channel from firing a rule every second, and the events of one
+        # poll are different containers, each with its own cooldown. Checked per
+        # event, a host reboot reported one container and lost the rest - the
+        # watcher has already written the new state, so they never come again.
+        global_cooldown = settings.get('global_cooldown_seconds', 30)
         for event in events:
             for rule in rules:
                 if event.kind not in rule.trigger.states:
@@ -500,8 +506,10 @@ class AutomationService:
                     continue
                 if not self._measured_by_this_rule(event, rule):
                     continue  # measured with another rule's threshold/window
-                if await self._execute_container_rule(rule, event, settings, bot, control_channel_id):
+                if await self._execute_container_rule(rule, event, settings, bot,
+                                                      control_channel_id, global_cooldown):
                     executed.append(rule.name)
+                    global_cooldown = 0  # the poll got through; the rest of it is not held back
         return executed
 
     @staticmethod
@@ -517,7 +525,7 @@ class AutomationService:
         return own is None or (event.threshold, event.window_minutes) == own
 
     async def _execute_container_rule(self, rule: AutoActionRule, event, settings: Dict,
-                                      bot, control_channel_id) -> bool:
+                                      bot, control_channel_id, global_cooldown: int = 30) -> bool:
         """One container-state rule for one event.
 
         Its own path, not _execute_rule: there is no triggering message to link,
@@ -540,8 +548,7 @@ class AutomationService:
             return False
 
         can_execute, reason, _blocked = self.state_service.acquire_execution_locks(
-            rule.id, [container], settings.get('global_cooldown_seconds', 30),
-            rule.cooldown_minutes, rule.cooldown_scope)
+            rule.id, [container], global_cooldown, rule.cooldown_minutes, rule.cooldown_scope)
         if not can_execute:
             logger.info(f"AAS: Skipped watchdog rule '{rule.name}' for '{container}' - {reason}")
             self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED", reason)

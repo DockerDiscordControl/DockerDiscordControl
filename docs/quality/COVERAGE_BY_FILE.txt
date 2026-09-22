@@ -116,7 +116,7 @@ services/admin/admin_service.py	379	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/auto_action_config_service.py	813	passE:bothscans+E25
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
-services/automation/automation_service.py	665	passE:bothscans+E25
+services/automation/automation_service.py	672	passE:bothscans+E25
 services/automation/container_watch.py	151	NONE
 services/automation/image_updates.py	158	NONE
 services/automation/own_actions.py	68	NONE
