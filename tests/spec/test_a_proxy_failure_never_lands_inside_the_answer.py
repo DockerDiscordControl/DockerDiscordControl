@@ -172,3 +172,30 @@ def test_an_unreachable_daemon_still_gets_its_502():
         answer = _talk(proxy_path, REQUEST)
 
     assert answer.startswith(b"HTTP/1.1 502"), answer[:60]
+
+
+def test_a_refused_request_with_a_body_still_reads_its_403():
+    """THE FINDING: the 403 was written and the socket closed with the request
+    body still unread. On Linux that sends RST, and the client reports a
+    connection reset instead of the refusal - a confusing error for an
+    endpoint DDC simply does not allow.
+
+    COUNTER-CHECK (2026-09-22): red before on Linux, where the sender saw
+    BrokenPipeError instead of the answer."""
+    def answers(conn, seen):
+        seen.append(conn.recv(65536))
+        conn.close()
+
+    body = b"x" * 400_000
+    request = (b"POST /v1.44/containers/create HTTP/1.1\r\nHost: d\r\nContent-Length: "
+               + str(len(body)).encode() + b"\r\n\r\n")
+    with _upstream(answers) as (daemon_path, seen), _proxy(daemon_path) as proxy_path:
+        with _connect(proxy_path) as conn:
+            try:
+                conn.sendall(request + body)
+            except OSError as error:
+                pytest.fail(f"the client could not even finish sending: {error}")
+            answer = conn.recv(4096)
+
+    assert answer.startswith(b"HTTP/1.1 403"), answer[:60]
+    assert seen == [], "a refused request reached the daemon"

@@ -1583,7 +1583,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/ddc_ui.py:87 DDCModal
 [ ] cogs/ddc_ui.py:90 DDCModal.on_error
 
-## Section 39  (897 lines, 31 public names)
+## Section 39  (920 lines, 31 public names)
 [ ] app/blueprints/two_factor_routes.py:115 install_two_factor
 [ ] app/blueprints/two_factor_routes.py:125 status
 [ ] app/blueprints/two_factor_routes.py:133 setup
@@ -1597,9 +1597,9 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/web/tls.py:141 ensure_self_signed_certificate
 [ ] app/web/tls.py:203 make_tls_server
 [ ] services/docker_proxy/allowlist_proxy.py:69 is_allowed
-[ ] services/docker_proxy/allowlist_proxy.py:136 _Handler.handle
-[ ] services/docker_proxy/allowlist_proxy.py:226 serve
-[ ] services/docker_proxy/allowlist_proxy.py:236 main
+[ ] services/docker_proxy/allowlist_proxy.py:159 _Handler.handle
+[ ] services/docker_proxy/allowlist_proxy.py:249 serve
+[ ] services/docker_proxy/allowlist_proxy.py:259 main
 [ ] services/web/two_factor_service.py:50 TwoFactorUnreadable
 [ ] services/web/two_factor_service.py:54 totp
 [ ] services/web/two_factor_service.py:63 secret_bytes

@@ -119,6 +119,9 @@ def _parse(head: bytes):
     return method, target, version, headers
 
 
+DRAIN_LIMIT_BYTES = 1 << 20  # what a refusal reads away before it hangs up
+
+
 def _refuse(conn: socket.socket, status: str, message: str) -> None:
     body = ('{"message": "%s (DDC docker proxy)"}' % message).encode()
     conn.sendall(
@@ -128,6 +131,26 @@ def _refuse(conn: socket.socket, status: str, message: str) -> None:
         ).encode()
         + body
     )
+    _drain(conn)
+
+
+def _drain(conn: socket.socket) -> None:
+    """Read away what the client is still sending, so the close is not a reset.
+
+    A socket closed with unread data sends RST on Linux, and the client then
+    reports a connection reset instead of reading the refusal it was given.
+    Bounded: a client that keeps sending is hung up on.
+    """
+    conn.settimeout(1.0)
+    read = 0
+    try:
+        while read < DRAIN_LIMIT_BYTES:
+            chunk = conn.recv(65536)
+            if not chunk:
+                return
+            read += len(chunk)
+    except OSError:
+        return
 
 
 class _Handler(socketserver.BaseRequestHandler):
