@@ -99,10 +99,31 @@ Access: Web UI → Settings → Advanced
 | Session Timeout | Web UI session timeout (seconds) | 3600 |
 | Donation Key | Disable donation system | (optional) |
 | Scheduler Debug | Enable debug logging | false |
-| Docker Socket | Docker socket path | /var/run/docker.sock |
 | Command Cooldown | Cooldown between commands (seconds) | 5 |
 | API Timeout | Docker API timeout (seconds) | 30 |
 | Max Log Lines | Maximum log lines to fetch | 50 |
+
+Since v3.0 there is no "Docker socket path" setting any more: every Docker client
+follows `DOCKER_HOST`, which the image points at DDC's allowlist proxy. A value
+left over in the configuration is ignored and reported once in the log.
+
+### Container Watchdog (v3.0+)
+
+Access: Web UI -> Auto-Actions -> new rule -> trigger type **Container state**
+
+A rule can react when a container
+
+- **stops** on its own (a stop DDC itself carried out is not an alarm),
+- turns **unhealthy** (its health check fails),
+- **restarts** several times within a few minutes (threshold and window are yours),
+- stays above a **CPU or memory threshold** for a number of minutes, or
+- has a **newer image** in the registry (checked every six hours; this one can only
+  notify, because DDC cannot pull).
+
+The action is notify, or start/stop/restart the container the event is about.
+Notices go to the control channel unless the rule names another one. The memory
+threshold is a percentage of the container's memory limit - a container started
+without `--memory` has none, so that is the host's whole RAM.
 
 ## Environment Variables
 
