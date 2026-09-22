@@ -1328,10 +1328,13 @@ class TestSpamProtectionSaveConfigFailure:
         svc = SpamProtectionService(config_dir=str(tmp_path))
         cfg = svc._get_default_config()
 
-        def _bad_open(*_a, **_kw):
+        def _bad_write(*_a, **_kw):
             raise PermissionError("read-only filesystem")
 
-        with patch("builtins.open", _bad_open):
+        # The writer, not builtins.open: save_config writes through
+        # atomic_write_json now (a fixed temp name was shared by two processes).
+        with patch("services.infrastructure.spam_protection_service.atomic_write_json",
+                   _bad_write):
             result = svc.save_config(cfg)
         assert result.success is False
         assert "Error saving" in result.error

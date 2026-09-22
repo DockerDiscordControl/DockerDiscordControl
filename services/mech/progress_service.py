@@ -644,14 +644,9 @@ def bin_to_tier_name(b: int) -> str:
 
 
 def apply_decay_on_demand(snap: Snapshot) -> None:
-    """
-    DEPRECATED: Continuous decay is now calculated in compute_ui_state() based on elapsed time.
-    This function is kept for backwards compatibility but does nothing.
-    """
-    # Set last_decay_day if not set (for backwards compatibility)
+    """DEPRECATED: decay is continuous (current_power_cents); this only fills last_decay_day."""
     if not snap.last_decay_day:
         snap.last_decay_day = today_local_str()
-    # No actual decay application - done in compute_ui_state() instead
 
 
 def set_new_goal_for_next_level(snap: Snapshot, user_count: int) -> None:
@@ -796,7 +791,12 @@ def current_power_cents(snap: Snapshot, now: Optional[datetime] = None) -> int:
     try:
         now = now or datetime.now(ZoneInfo("UTC"))
         elapsed_seconds = max(0.0, (now - _parse_utc(anchor)).total_seconds())
-        decay_amount = (elapsed_seconds / 86400.0) * decay_per_day(snap.level)
+        # The rate this span was measured at, not today's: applying the
+        # configured rate to the WHOLE span since the anchor recomputed the
+        # past, so editing decay.json moved power that had long since decayed.
+        # settle_power_decay takes the new rate over when the span ends.
+        rate = snap.power_decay_per_day or decay_per_day(snap.level)
+        decay_amount = (elapsed_seconds / 86400.0) * rate
         return max(0, snap.power_acc - int(decay_amount))
     except (ValueError, TypeError, KeyError) as e:
         # Data processing errors (datetime parsing, naive timestamps, calculations)
@@ -813,6 +813,8 @@ def settle_power_decay(snap: Snapshot, now: Optional[datetime] = None) -> None:
     now = now or datetime.now(ZoneInfo("UTC"))
     snap.power_acc = current_power_cents(snap, now)
     snap.goal_started_at = now.isoformat()
+    # Span closed: a rate changed meanwhile takes effect from here on.
+    snap.power_decay_per_day = decay_per_day(snap.level)
 
 
 def compute_ui_state(snap: Snapshot) -> ProgressState:
@@ -821,11 +823,9 @@ def compute_ui_state(snap: Snapshot) -> ProgressState:
 
     power_max_cents = snap.goal_requirement + 100 if snap.goal_requirement > 0 else None  # last level: none
     power_percent = 100 if power_max_cents is None else int((power_acc_with_decay * 100) // power_max_cents)
-    # Clamp to 100. The old special case capped levels below 11 at 99 %, so a fully charged mech
-    # could never show a full bar - but nothing ever read this value: Discord computes its own
-    # percentage (docker_control.py) and the web panel does too (config.html). The cap was dead
-    # code with a visible-sounding purpose. The 100 % bound stays: a percentage must not exceed it
-    # (power can be larger than the bar maximum after a big donation carries surplus over).
+    # The old special case capped levels below 11 at 99 %, so a fully charged mech could never
+    # show a full bar - and nothing read it: Discord and the panel compute their own percentage.
+    # The 100 % bound stays; power can exceed the bar maximum when a donation carries surplus.
     power_percent = min(power_percent, 100)
 
     evo_percent = 100 if snap.goal_requirement == 0 else int((snap.evo_acc * 100) // snap.goal_requirement)
