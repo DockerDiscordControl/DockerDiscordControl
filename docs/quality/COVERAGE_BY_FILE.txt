@@ -116,6 +116,7 @@ services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/auto_action_config_service.py	735	passE:bothscans+E25
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
 services/automation/automation_service.py	556	passE:bothscans+E25
+services/automation/container_watch.py	95	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/channel_config_service.py	576	passE:E28+bothscans:126-300
 services/config/config_cache_service.py	177	passE:E29:read-in-full
