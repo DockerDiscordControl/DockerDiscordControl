@@ -91,8 +91,9 @@ def format_uptime(days: int, seconds: int) -> str:
 
 
 def _watch_fields(info: Dict[str, Any]) -> Dict[str, Any]:
-    """What the container watchdog reads from the cache: State.Health.Status and
-    RestartCount (Phase 4a), CPU and memory as percentages (Phase 4b)."""
+    """What the watchdog and the stack view read from the cache: State.Health.Status
+    and RestartCount (Phase 4a), CPU and memory as percentages (Phase 4b), and the
+    Compose stack label (Phase 4c)."""
     computed = info.get('_computed') or {}
     usage, limit = computed.get('memory_usage_mb'), computed.get('memory_limit_mb')
     return {
@@ -100,6 +101,7 @@ def _watch_fields(info: Dict[str, Any]) -> Dict[str, Any]:
         "restart_count": info.get('RestartCount'),
         "cpu_percent": computed.get('cpu_percent'),
         "memory_percent": (usage / limit * 100) if usage is not None and limit else None,
+        "compose_project": ((info.get('Config') or {}).get('Labels') or {}).get('com.docker.compose.project'),
     }
 
 

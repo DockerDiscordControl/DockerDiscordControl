@@ -83,6 +83,8 @@ class ContainerStatusResult:
     # healthcheck) and RestartCount, both read from the inspect answer already fetched.
     health: Optional[str] = None
     restart_count: Optional[int] = None
+    # Compose stack (Phase 4c): the com.docker.compose.project label, None without one.
+    compose_project: Optional[str] = None
 
 @dataclass(frozen=True)
 class ContainerBulkStatusResult:
@@ -451,6 +453,8 @@ class ContainerStatusService:
             # For the container watchdog: no extra API call, same inspect answer.
             health = (container.attrs.get('State', {}).get('Health') or {}).get('Status')
             restart_count = container.attrs.get('RestartCount')
+            compose_project = ((container.attrs.get('Config') or {}).get('Labels') or {}).get(
+                'com.docker.compose.project')
 
         except (AttributeError, KeyError, IndexError) as e:
             # Container not found or data access error
@@ -518,6 +522,7 @@ class ContainerStatusService:
             cache_age_seconds=0.0,
             health=health,
             restart_count=restart_count,
+            compose_project=compose_project,
         )
 
     async def _fetch_container_status(self, request: ContainerStatusRequest) -> ContainerStatusResult:
@@ -781,7 +786,10 @@ async def get_docker_info_dict_service_first(docker_container_name: str, timeout
         'State': state,
         'RestartCount': result.restart_count,
         'Config': {
-            'Image': result.image
+            'Image': result.image,
+            # Only the Compose stack label; the other labels are not carried.
+            'Labels': ({'com.docker.compose.project': result.compose_project}
+                       if result.compose_project else {}),
         },
         'NetworkSettings': {
             'Ports': result.ports or {}

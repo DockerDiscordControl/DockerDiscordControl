@@ -217,6 +217,8 @@ class ContainerStatusResult:
     # when not measured.
     cpu_percent: Optional[float] = None
     memory_percent: Optional[float] = None
+    # Compose stack (Phase 4c): com.docker.compose.project, None without one.
+    compose_project: Optional[str] = None
 
     @property
     def is_online(self) -> bool:
@@ -252,7 +254,8 @@ class ContainerStatusResult:
                       health: Optional[str] = None,
                       restart_count: Optional[int] = None,
                       cpu_percent: Optional[float] = None,
-                      memory_percent: Optional[float] = None) -> 'ContainerStatusResult':
+                      memory_percent: Optional[float] = None,
+                      compose_project: Optional[str] = None) -> 'ContainerStatusResult':
         """Factory method for successful status fetch.
 
         players_online/max_players are optional game-server query results; existing
@@ -273,6 +276,7 @@ class ContainerStatusResult:
             restart_count=restart_count,
             cpu_percent=cpu_percent,
             memory_percent=memory_percent,
+            compose_project=compose_project,
         )
 
     @classmethod
