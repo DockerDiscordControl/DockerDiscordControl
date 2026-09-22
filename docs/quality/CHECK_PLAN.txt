@@ -111,9 +111,9 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/docker_control.py:113 DockerControlCog
 [ ] cogs/docker_control.py:328 DockerControlCog.config
 [ ] cogs/docker_control.py:346 DockerControlCog.on_ready
-[ ] cogs/docker_control.py:531 DockerControlCog._setup_background_loops.send_initial_after_delay
-[ ] cogs/docker_control.py:582 DockerControlCog.trigger_status_refresh
-[ ] cogs/docker_control.py:680 DockerControlCog.on_message
+[ ] cogs/docker_control.py:532 DockerControlCog._setup_background_loops.send_initial_after_delay
+[ ] cogs/docker_control.py:583 DockerControlCog.trigger_status_refresh
+[ ] cogs/docker_control.py:681 DockerControlCog.on_message
 [ ] cogs/loop_safety.py:46 survives_one_bad_cycle
 [ ] cogs/loop_safety.py:58 survives_one_bad_cycle.wrapper
 [ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
@@ -133,19 +133,19 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/slash_commands.py:495 SlashCommandsMixin.donate_command
 [ ] cogs/slash_commands.py:562 SlashCommandsMixin.info_command
 
-## Section 06  (1660 lines, 34 public names)
-[ ] cogs/docker_control.py:890 DockerControlCog.control_command
-[ ] cogs/docker_control.py:947 DockerControlCog.cog_unload
-[ ] cogs/docker_control.py:980 DockerControlCog.update_global_status_cache
-[ ] cogs/docker_control.py:994 DockerControlCog.get_status_cache
-[ ] cogs/docker_control.py:1014 DockerControlCog._register_persistent_mech_views.PersistentMechExpandView
-[ ] cogs/docker_control.py:1019 DockerControlCog._register_persistent_mech_views.PersistentMechCollapseView
-[ ] cogs/docker_control.py:1024 DockerControlCog._register_persistent_mech_views.PersistentMechDonateView
-[ ] cogs/docker_control.py:1029 DockerControlCog._register_persistent_mech_views.PersistentMechHistoryView
-[ ] cogs/docker_control.py:1035 DockerControlCog._register_persistent_mech_views.PersistentMechSelectionView
-[ ] cogs/docker_control.py:1047 DockerControlCog._register_persistent_mech_views.PersistentMechStoryView
-[ ] cogs/docker_control.py:1120 setup
-[ ] cogs/docker_control.py:1137 setup.check_donation_notifications
+## Section 06  (1661 lines, 34 public names)
+[ ] cogs/docker_control.py:891 DockerControlCog.control_command
+[ ] cogs/docker_control.py:948 DockerControlCog.cog_unload
+[ ] cogs/docker_control.py:981 DockerControlCog.update_global_status_cache
+[ ] cogs/docker_control.py:995 DockerControlCog.get_status_cache
+[ ] cogs/docker_control.py:1015 DockerControlCog._register_persistent_mech_views.PersistentMechExpandView
+[ ] cogs/docker_control.py:1020 DockerControlCog._register_persistent_mech_views.PersistentMechCollapseView
+[ ] cogs/docker_control.py:1025 DockerControlCog._register_persistent_mech_views.PersistentMechDonateView
+[ ] cogs/docker_control.py:1030 DockerControlCog._register_persistent_mech_views.PersistentMechHistoryView
+[ ] cogs/docker_control.py:1036 DockerControlCog._register_persistent_mech_views.PersistentMechSelectionView
+[ ] cogs/docker_control.py:1048 DockerControlCog._register_persistent_mech_views.PersistentMechStoryView
+[ ] cogs/docker_control.py:1121 setup
+[ ] cogs/docker_control.py:1138 setup.check_donation_notifications
 [ ] cogs/background_loops.py:37 BackgroundLoopsMixin
 [ ] cogs/background_loops.py:43 BackgroundLoopsMixin.heartbeat_send_loop
 [ ] cogs/background_loops.py:108 BackgroundLoopsMixin.before_heartbeat_loop
@@ -1622,7 +1622,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/web/two_factor_service.py:189 TwoFactorStore.verify
 [ ] services/web/two_factor_service.py:211 TwoFactorStore.disable
 
-## Section 40  (951 lines, 4 public names)
+## Section 40  (786 lines, 4 public names)
 [ ] cogs/message_updates.py:35 in_batches
 [ ] cogs/message_updates.py:40 mech_change
 [ ] cogs/message_updates.py:59 MessageUpdatesMixin
