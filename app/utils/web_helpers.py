@@ -9,7 +9,7 @@ import os
 import logging
 import time
 import docker
-from utils.container_image import image_name_of
+from utils.container_image import compose_project_of, image_name_of
 from threading import Thread
 import threading
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -333,7 +333,9 @@ def update_docker_cache(logger):
                     # From attrs, not container.image: that is a second request,
                     # and a 404 for ONE removed image used to fail the whole
                     # refresh and empty the list (review E53).
-                    'image': image_name_of(container)
+                    'image': image_name_of(container),
+                    # The Compose stack, for sorting the server order by stack
+                    'compose_project': compose_project_of(container)
                 }
 
                 # Calculate a hash for change detection

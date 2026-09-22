@@ -71,7 +71,7 @@ app/utils/__init__.py	7	pass1:s33:1-7
 app/utils/container_info_web_handler.py	275	pass1:s33:1-256  [19 of 275 lines never in a package]
 app/utils/port_diagnostics.py	600	pass1:s34:1-595  [5 of 600 lines never in a package]
 app/utils/shared_data.py	105	pass1:s34:1-97  [8 of 105 lines never in a package]
-app/utils/web_helpers.py	913	pass1:s34:1-862  [43 of 905 lines never in a package]
+app/utils/web_helpers.py	915	pass1:s34:1-862  [43 of 905 lines never in a package]
 app/web/__init__.py	12	pass1:s34:1-12
 app/web/action_logger.py	20	pass1:s34:1-20
 app/web/app_factory.py	68	pass1:s34:1-61
@@ -229,7 +229,7 @@ utils/atomic_io.py	70	pass1:s35:1-70
 utils/common_helpers.py	501	pass1:s35:1-475  [26 of 501 lines never in a package]
 utils/config_cache.py	307	pass1:s35:1-307
 utils/config_paths.py	47	pass1:s35:1-47
-utils/container_image.py	52	passE:written-2026-09-22:E53
+utils/container_image.py	67	passE:written-2026-09-22:E53
 utils/import_utils.py	165	pass1:s35:1-160  [5 of 165 lines never in a package]
 utils/key_crypto.py	84	pass1:s35:1-79  [5 of 84 lines never in a package]
 utils/logging_utils.py	546	pass1:s36:1-467  [79 of 546 lines never in a package]

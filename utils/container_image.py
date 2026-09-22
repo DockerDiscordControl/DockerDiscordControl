@@ -50,3 +50,18 @@ def image_name_of(container) -> str:
     if reference and not reference.startswith(_ID_PREFIX):
         return reference
     return _short(reference or attrs.get("Image") or "")
+
+
+COMPOSE_PROJECT_LABEL = "com.docker.compose.project"
+
+
+def compose_project_of(container):
+    """The Compose stack ``container`` belongs to, or None outside a stack.
+
+    An inspected container carries its labels in ``attrs['Config']['Labels']``,
+    a sparse list result at the top level; both come with the container, no
+    second request. An empty label is no stack.
+    """
+    attrs = getattr(container, "attrs", None) or {}
+    labels = (attrs.get("Config") or {}).get("Labels") or attrs.get("Labels") or {}
+    return labels.get(COMPOSE_PROJECT_LABEL) or None
