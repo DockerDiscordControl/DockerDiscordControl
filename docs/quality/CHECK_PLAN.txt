@@ -93,22 +93,21 @@
 [ ] cogs/control_ui.py:3742 MechPrivateHistoryButton
 [ ] cogs/control_ui.py:3754 MechPrivateHistoryButton.callback
 
-## Section 04  (1811 lines, 13 public names)
-[ ] cogs/docker_control.py:108 DockerControlCog
-[ ] cogs/docker_control.py:323 DockerControlCog.config
-[ ] cogs/docker_control.py:341 DockerControlCog.on_ready
-[ ] cogs/docker_control.py:659 DockerControlCog._setup_background_loops.send_initial_after_delay
-[ ] cogs/docker_control.py:688 DockerControlCog.periodic_message_edit_loop
-[ ] cogs/docker_control.py:1027 DockerControlCog.trigger_status_refresh
-[ ] cogs/docker_control.py:1143 DockerControlCog.on_message
-[ ] cogs/docker_control.py:1374 DockerControlCog.send_initial_status
-[ ] cogs/docker_control.py:1614 DockerControlCog.delete_bot_messages
+## Section 04  (1495 lines, 12 public names)
+[ ] cogs/docker_control.py:109 DockerControlCog
+[ ] cogs/docker_control.py:324 DockerControlCog.config
+[ ] cogs/docker_control.py:342 DockerControlCog.on_ready
+[ ] cogs/docker_control.py:660 DockerControlCog._setup_background_loops.send_initial_after_delay
+[ ] cogs/docker_control.py:711 DockerControlCog.trigger_status_refresh
+[ ] cogs/docker_control.py:827 DockerControlCog.on_message
+[ ] cogs/docker_control.py:1058 DockerControlCog.send_initial_status
+[ ] cogs/docker_control.py:1298 DockerControlCog.delete_bot_messages
 [ ] cogs/loop_safety.py:46 survives_one_bad_cycle
 [ ] cogs/loop_safety.py:58 survives_one_bad_cycle.wrapper
 [ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
 [ ] cogs/loop_safety.py:79 _register_loop_error_handlers.make_handler.handler
 
-## Section 05  (1903 lines, 10 public names)
+## Section 05  (1705 lines, 10 public names)
 [ ] cogs/overview_embeds.py:35 OverviewEmbedsMixin
 [ ] cogs/slash_commands.py:41 SlashCommandsMixin
 [ ] cogs/slash_commands.py:87 SlashCommandsMixin.serverstatus
@@ -120,27 +119,27 @@
 [ ] cogs/slash_commands.py:476 SlashCommandsMixin.donate_command
 [ ] cogs/slash_commands.py:544 SlashCommandsMixin.info_command
 
-## Section 06  (1879 lines, 33 public names)
-[ ] cogs/docker_control.py:1981 DockerControlCog.control_command
-[ ] cogs/docker_control.py:2038 DockerControlCog.cog_unload
-[ ] cogs/docker_control.py:2071 DockerControlCog.update_global_status_cache
-[ ] cogs/docker_control.py:2085 DockerControlCog.get_status_cache
-[ ] cogs/docker_control.py:2459 DockerControlCog._register_persistent_mech_views.PersistentMechExpandView
-[ ] cogs/docker_control.py:2464 DockerControlCog._register_persistent_mech_views.PersistentMechCollapseView
-[ ] cogs/docker_control.py:2469 DockerControlCog._register_persistent_mech_views.PersistentMechDonateView
-[ ] cogs/docker_control.py:2474 DockerControlCog._register_persistent_mech_views.PersistentMechHistoryView
-[ ] cogs/docker_control.py:2480 DockerControlCog._register_persistent_mech_views.PersistentMechSelectionView
-[ ] cogs/docker_control.py:2492 DockerControlCog._register_persistent_mech_views.PersistentMechStoryView
-[ ] cogs/docker_control.py:2532 DonationView
-[ ] cogs/docker_control.py:2571 DonationView.on_timeout
-[ ] cogs/docker_control.py:2590 DonationView.start_auto_delete_timer
-[ ] cogs/docker_control.py:2609 DonationView.broadcast_clicked
-[ ] cogs/docker_control.py:2618 DonationBroadcastModal
-[ ] cogs/docker_control.py:2694 DonationBroadcastModal.callback
-[ ] cogs/docker_control.py:3036 AddAdminModal
-[ ] cogs/docker_control.py:3054 AddAdminModal.callback
-[ ] cogs/docker_control.py:3163 setup
-[ ] cogs/docker_control.py:3180 setup.check_donation_notifications
+## Section 06  (1490 lines, 33 public names)
+[ ] cogs/docker_control.py:1432 DockerControlCog.control_command
+[ ] cogs/docker_control.py:1489 DockerControlCog.cog_unload
+[ ] cogs/docker_control.py:1522 DockerControlCog.update_global_status_cache
+[ ] cogs/docker_control.py:1536 DockerControlCog.get_status_cache
+[ ] cogs/docker_control.py:1556 DockerControlCog._register_persistent_mech_views.PersistentMechExpandView
+[ ] cogs/docker_control.py:1561 DockerControlCog._register_persistent_mech_views.PersistentMechCollapseView
+[ ] cogs/docker_control.py:1566 DockerControlCog._register_persistent_mech_views.PersistentMechDonateView
+[ ] cogs/docker_control.py:1571 DockerControlCog._register_persistent_mech_views.PersistentMechHistoryView
+[ ] cogs/docker_control.py:1577 DockerControlCog._register_persistent_mech_views.PersistentMechSelectionView
+[ ] cogs/docker_control.py:1589 DockerControlCog._register_persistent_mech_views.PersistentMechStoryView
+[ ] cogs/docker_control.py:1629 DonationView
+[ ] cogs/docker_control.py:1668 DonationView.on_timeout
+[ ] cogs/docker_control.py:1687 DonationView.start_auto_delete_timer
+[ ] cogs/docker_control.py:1706 DonationView.broadcast_clicked
+[ ] cogs/docker_control.py:1715 DonationBroadcastModal
+[ ] cogs/docker_control.py:1791 DonationBroadcastModal.callback
+[ ] cogs/docker_control.py:2133 AddAdminModal
+[ ] cogs/docker_control.py:2151 AddAdminModal.callback
+[ ] cogs/docker_control.py:2260 setup
+[ ] cogs/docker_control.py:2277 setup.check_donation_notifications
 [ ] cogs/background_loops.py:37 BackgroundLoopsMixin
 [ ] cogs/background_loops.py:43 BackgroundLoopsMixin.heartbeat_send_loop
 [ ] cogs/background_loops.py:108 BackgroundLoopsMixin.before_heartbeat_loop
@@ -1620,3 +1619,7 @@
 [ ] services/web/two_factor_service.py:148 TwoFactorStore.confirm_setup
 [ ] services/web/two_factor_service.py:189 TwoFactorStore.verify
 [ ] services/web/two_factor_service.py:211 TwoFactorStore.disable
+
+## Section 40  (944 lines, 2 public names)
+[ ] cogs/message_updates.py:36 MessageUpdatesMixin
+[ ] cogs/message_updates.py:43 MessageUpdatesMixin.periodic_message_edit_loop

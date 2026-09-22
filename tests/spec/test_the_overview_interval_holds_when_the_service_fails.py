@@ -42,6 +42,13 @@ def cog_with_a_broken_decision_service(monkeypatch):
             "111": {"enable_auto_refresh": True, "update_interval_minutes": 60},
         }
     })
+    # The edit loop lives in message_updates.py since the Phase 3 split.
+    import cogs.message_updates as message_updates
+    monkeypatch.setattr(message_updates, "load_config", lambda: {
+        "channel_permissions": {
+            "111": {"enable_auto_refresh": True, "update_interval_minutes": 60},
+        }
+    })
 
     import services.discord.status_overview_service as overview_service
 

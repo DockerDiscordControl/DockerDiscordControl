@@ -84,6 +84,9 @@ async def test_a_raising_config_does_not_end_the_loop(loop_name, cog, monkeypatc
     # since the Phase 3 cog split.
     import cogs.background_loops as background_loops
     monkeypatch.setattr(background_loops, "load_config", boom)
+    # periodic_message_edit_loop lives in message_updates.py since the same split.
+    import cogs.message_updates as message_updates
+    monkeypatch.setattr(message_updates, "load_config", boom)
 
     with caplog.at_level(logging.DEBUG):
         # Must return, not raise. py-cord ends the loop on anything it raises.

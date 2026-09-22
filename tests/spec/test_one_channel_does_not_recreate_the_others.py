@@ -70,6 +70,11 @@ def cog(monkeypatch):
     monkeypatch.setattr(docker_control, "load_config", lambda: {"timezone": "UTC"})
     monkeypatch.setattr(docker_control, "get_server_config_service",
                         lambda: SimpleNamespace(get_all_servers=lambda: []))
+    # The overview update code lives in message_updates.py since the Phase 3 split.
+    import cogs.message_updates as message_updates
+    monkeypatch.setattr(message_updates, "load_config", lambda: {"timezone": "UTC"})
+    monkeypatch.setattr(message_updates, "get_server_config_service",
+                        lambda: SimpleNamespace(get_all_servers=lambda: []))
 
     import services.docker_service.server_order as server_order
     monkeypatch.setattr(server_order, "load_server_order", lambda: [])

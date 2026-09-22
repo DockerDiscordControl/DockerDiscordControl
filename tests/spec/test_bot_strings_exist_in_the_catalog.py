@@ -30,8 +30,9 @@ ROOTS = ("cogs", "services", "app", "utils")
 
 # (file, literal) that are known to be missing from en.json. ONLY EVER SHRINK THIS.
 KNOWN_MISSING = {
-    ("cogs/docker_control.py", "Mech power depleted - forcing animation update to show offline state"),
-    ("cogs/docker_control.py", "Upgrading to force_recreate=True due to power depletion (offline mech)"),
+    # These two moved with the message code to message_updates.py (Phase 3 split).
+    ("cogs/message_updates.py", "Mech power depleted - forcing animation update to show offline state"),
+    ("cogs/message_updates.py", "Upgrading to force_recreate=True due to power depletion (offline mech)"),
     ("cogs/docker_control.py", "⚠️ **Donation could not be recorded**"),
     ("cogs/docker_control.py", "Nothing was sent to any channel. Please try again later."),
 }
