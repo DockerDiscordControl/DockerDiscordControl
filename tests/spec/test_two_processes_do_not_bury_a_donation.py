@@ -15,7 +15,10 @@ The same file lock the scheduler and the query-support service use now
 spans these cycles.
 
 COUNTER-CHECK (2026-09-22): red before - the two processes booked $5 each and
-the state held $5.
+the state held $5. The reader here needs its own counter-check: it read a
+snapshot another test in the group had left in the cached path, and passed
+alone while failing in the group. It now clears that cache; see the comment
+below.
 """
 
 import json
@@ -48,12 +51,17 @@ DONOR = textwrap.dedent('''
 
 def _donor(tmp_path, name, delay):
     script = DONOR.format(root=str(ROOT), delay=delay, donor=name)
-    environment = dict(os.environ, DDC_CONFIG_DIR=str(tmp_path))
+    # DDC_PROGRESS_DATA_DIR, not DDC_CONFIG_DIR: a configured progress
+    # directory beats DDC_CONFIG_DIR (progress_paths.py:123-141), and in the
+    # test runtime there IS one - these two processes were booking their $5
+    # into the real mech state, and the check then read that state too.
+    environment = dict(os.environ, DDC_CONFIG_DIR=str(tmp_path),
+                       DDC_PROGRESS_DATA_DIR=str(tmp_path / "progress"))
     return subprocess.Popen([sys.executable, "-c", script], env=environment,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
-def test_both_donations_are_in_the_state(tmp_path):
+def test_both_donations_are_in_the_state(tmp_path, monkeypatch):
     import time
 
     first = _donor(tmp_path, "discord", delay=0.8)
@@ -62,13 +70,13 @@ def test_both_donations_are_in_the_state(tmp_path):
     for process in (first, second):
         assert process.wait(timeout=90) == 0, process.stderr.read()
 
-    sys.path.insert(0, str(ROOT))
-    os.environ["DDC_CONFIG_DIR"] = str(tmp_path)
-    from services.mech import progress_service
+    # Read the file, not the service: the service binds its directories once
+    # per process at import (progress_service.py:110-116, progress_paths.py:171),
+    # so in a group run the reader here kept whatever directory the first test
+    # built and this test then checked another test's snapshot - green alone,
+    # red in the group, both for the wrong reason.
+    state = tmp_path / "progress" / "snapshots" / "main.json"
+    assert state.is_file(), f"no snapshot under {tmp_path}: {list(tmp_path.rglob('*.json'))}"
+    booked = json.loads(state.read_text(encoding="utf-8"))["cumulative_donations_cents"]
 
-    progress_service.get_progress_service.cache_clear() if hasattr(
-        progress_service.get_progress_service, "cache_clear") else None
-    snapshot = progress_service.load_snapshot("main")
-
-    assert snapshot.cumulative_donations_cents == 1000, (
-        f"a donation was buried: {snapshot.cumulative_donations_cents} cents in the state")
+    assert booked == 1000, f"a donation was buried: {booked} cents in the state"
