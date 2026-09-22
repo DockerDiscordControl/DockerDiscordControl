@@ -316,9 +316,15 @@ class BackgroundLoopsMixin:
             if ref is None:
                 continue
             events.extend(checker.observe(name, image_name, await remote_digest(ref), local))
-        if events:
+        if not events:
+            return
+        try:
             await get_automation_service().process_container_events(
                 events, bot=self.bot, control_channel_id=control_channel_id)
+        except Exception as e:  # noqa: BLE001 - a tracked task's failure must not vanish
+            # _track_task catches four types; anything else ended as asyncio's
+            # "exception was never retrieved" with nothing in the DDC log.
+            logger.error(f"[WATCHDOG] Image update notice failed: {e}", exc_info=True)
 
     @status_update_loop.before_loop
     async def before_status_update_loop(self):
