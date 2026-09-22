@@ -1736,6 +1736,7 @@
   "web.aas.state_high_memory": "uses more memory than the threshold",
   "web.aas.cpu_threshold": "CPU threshold (%)",
   "web.aas.memory_threshold": "Memory threshold (%)",
+  "web.aas.memory_threshold_hint": "Percent of the container's memory limit. A container started without --memory has no limit, so Docker reports the host's total RAM and the percentage is of that.",
   "web.aas.resource_minutes": "for at least (minutes)",
   "🔄 Restarts: {count}": "🔄 Restarts: {count}",
   "🩺 Health check: {status}": "🩺 Health check: {status}",

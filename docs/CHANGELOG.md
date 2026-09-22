@@ -52,7 +52,9 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   asked to do is not an alarm. Set it up in the web panel under Auto-Actions -> Trigger.
 - **Resource thresholds:** the same rules can react when a container's CPU or memory stays above a
   threshold for a number of minutes - once per episode, with a margin so a value hovering at the
-  line does not report every poll.
+  line does not report every poll. The memory threshold is a percentage of the container's memory
+  limit (`memory_stats.limit`); a container started without `--memory` has none, so that is the
+  host's whole RAM.
 - **Image updates:** a rule can report when the registry has a newer image for the tag a container
   runs (checked every 6 hours, only while such a rule exists). DDC then asks the image's registry
   (Docker Hub, ghcr.io, lscr.io, ...) over the internet for the tag's digest - a HEAD request, no

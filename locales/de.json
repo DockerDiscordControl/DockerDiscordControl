@@ -1736,6 +1736,7 @@
   "web.aas.state_high_memory": "mehr RAM als die Schwelle nutzt",
   "web.aas.cpu_threshold": "CPU-Schwelle (%)",
   "web.aas.memory_threshold": "RAM-Schwelle (%)",
+  "web.aas.memory_threshold_hint": "Prozent des Speicherlimits des Containers. Ohne --memory hat ein Container kein Limit - Docker meldet dann den gesamten RAM des Hosts, und der Prozentsatz bezieht sich darauf.",
   "web.aas.resource_minutes": "mindestens (Minuten)",
   "🔄 Restarts: {count}": "🔄 Neustarts: {count}",
   "🩺 Health check: {status}": "🩺 Healthcheck: {status}",
