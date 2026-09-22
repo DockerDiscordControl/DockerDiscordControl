@@ -37,6 +37,106 @@ async def _refresh_tracked_admin_overview(cog, channel_id: int) -> bool:
     return await cog._update_overview_message(channel_id, message_id, 'admin_overview')
 
 
+async def _restart_running_servers(servers, action):
+    """Restart the running ones of ``servers`` with ``action``; the counts.
+
+    Shared by "Restart All" and "Restart stack", so both treat a container
+    they may not restart, one that is not running and one without a current
+    status the same way.
+    """
+    restarted_count = 0
+    failed_count = 0
+    skipped_count = 0
+    # Containers the status cache had nothing about. They used to land
+    # in skipped_count, and the operator read "Skipped (not running)"
+    # about a container that was never asked and never touched - a
+    # measurement that was not taken, reported as one that was
+    # (review D14).
+    unknown_count = 0
+    not_allowed_count = 0
+
+    # Process containers with rate limiting
+    for server in servers:
+        if not isinstance(server, dict):
+            continue
+
+        docker_name = server.get('docker_name')
+        if not docker_name or not isinstance(docker_name, str):
+            continue
+
+        # Respect per-container allowed_actions (same check as the single-container button)
+        if 'restart' not in server.get('allowed_actions', []):
+            logger.info(f"Bulk restart: Skipping {docker_name} - 'restart' not in allowed_actions")
+            not_allowed_count += 1
+            continue
+
+        # SERVICE FIRST: Use StatusCacheService to check if container is running
+        # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
+        status_cache_service = get_status_cache_service()
+        cached_entry = status_cache_service.get(docker_name)
+
+        # Extract is_running from cache data (ContainerStatusResult object)
+        is_running = False
+        status_known = bool(cached_entry and cached_entry.get('data'))
+        if status_known:
+            status_result = cached_entry['data']
+            # Modern format: ContainerStatusResult dataclass
+            from services.docker_status.models import ContainerStatusResult
+            if isinstance(status_result, ContainerStatusResult):
+                is_running = status_result.is_running
+            # Backwards compatibility: old tuple format
+            elif isinstance(status_result, tuple) and len(status_result) >= 2:
+                is_running = status_result[1]
+
+        if is_running:
+            # Restart container with timeout protection
+            try:
+                # Add small delay between operations to avoid overloading
+                if restarted_count > 0:
+                    await asyncio.sleep(0.5)
+
+                # Set timeout for docker operation
+                success = await asyncio.wait_for(
+                    action(docker_name, "restart"),
+                    timeout=30.0  # 30 second timeout per container
+                )
+                if success:
+                    restarted_count += 1
+                    logger.info(f"Successfully restarted {docker_name}")
+                else:
+                    failed_count += 1
+                    logger.warning(f"Failed to restart {docker_name}")
+            except asyncio.TimeoutError:
+                logger.error(f"Timeout restarting {docker_name}")
+                failed_count += 1
+            except (RuntimeError, OSError) as e:
+                logger.error(f"Error restarting {docker_name}: {e}", exc_info=True)
+                failed_count += 1
+        elif status_known:
+            skipped_count += 1
+        else:
+            logger.warning(f"No cached status for {docker_name} - not touched, "
+                           f"and reported as unchecked rather than as idle")
+            unknown_count += 1
+
+    return {"restarted": restarted_count, "failed": failed_count, "skipped": skipped_count,
+            "unknown": unknown_count, "not_allowed": not_allowed_count}
+
+
+def _restart_summary(counts) -> str:
+    """The result text of a bulk restart."""
+    description = _("Successfully restarted: **{count}** containers").format(count=counts["restarted"])
+    if counts["failed"] > 0:
+        description += _("\nFailed: **{count}** containers").format(count=counts["failed"])
+    if counts["skipped"] > 0:
+        description += _("\nSkipped (not running): **{count}** containers").format(count=counts["skipped"])
+    if counts["unknown"] > 0:
+        description += _("\nNot checked (no current status): **{count}** containers").format(count=counts["unknown"])
+    if counts["not_allowed"] > 0:
+        description += _("\nSkipped (action not allowed): **{count}** containers").format(count=counts["not_allowed"])
+    return description
+
+
 class AdminOverviewView(DDCView):
     """View for admin overview in control channels with bulk container management."""
 
@@ -521,17 +621,6 @@ class ConfirmRestartAllButton(Button):
 
             logger.info(f"Restart All: Processing {len(servers)} active containers (filtered from {len(all_servers)} total)")
 
-            restarted_count = 0
-            failed_count = 0
-            skipped_count = 0
-            # Containers the status cache had nothing about. They used to land
-            # in skipped_count, and the operator read "Skipped (not running)"
-            # about a container that was never asked and never touched - a
-            # measurement that was not taken, reported as one that was
-            # (review D14).
-            unknown_count = 0
-            not_allowed_count = 0
-
             # Import docker service with error handling
             try:
                 from services.docker_service.docker_action_service import docker_action_service_first
@@ -543,80 +632,9 @@ class ConfirmRestartAllButton(Button):
                 )
                 return
 
-            # Process containers with rate limiting
-            for server in servers:
-                if not isinstance(server, dict):
-                    continue
-
-                docker_name = server.get('docker_name')
-                if not docker_name or not isinstance(docker_name, str):
-                    continue
-
-                # Respect per-container allowed_actions (same check as the single-container button)
-                if 'restart' not in server.get('allowed_actions', []):
-                    logger.info(f"Restart All: Skipping {docker_name} - 'restart' not in allowed_actions")
-                    not_allowed_count += 1
-                    continue
-
-                # SERVICE FIRST: Use StatusCacheService to check if container is running
-                # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
-                status_cache_service = get_status_cache_service()
-                cached_entry = status_cache_service.get(docker_name)
-
-                # Extract is_running from cache data (ContainerStatusResult object)
-                is_running = False
-                status_known = bool(cached_entry and cached_entry.get('data'))
-                if status_known:
-                    status_result = cached_entry['data']
-                    # Modern format: ContainerStatusResult dataclass
-                    from services.docker_status.models import ContainerStatusResult
-                    if isinstance(status_result, ContainerStatusResult):
-                        is_running = status_result.is_running
-                    # Backwards compatibility: old tuple format
-                    elif isinstance(status_result, tuple) and len(status_result) >= 2:
-                        is_running = status_result[1]
-
-                if is_running:
-                                # Restart container with timeout protection
-                                try:
-                                    # Add small delay between operations to avoid overloading
-                                    if restarted_count > 0:
-                                        await asyncio.sleep(0.5)
-
-                                    # Set timeout for docker operation
-                                    success = await asyncio.wait_for(
-                                        docker_action_service_first(docker_name, "restart"),
-                                        timeout=30.0  # 30 second timeout per container
-                                    )
-                                    if success:
-                                        restarted_count += 1
-                                        logger.info(f"Successfully restarted {docker_name}")
-                                    else:
-                                        failed_count += 1
-                                        logger.warning(f"Failed to restart {docker_name}")
-                                except asyncio.TimeoutError:
-                                    logger.error(f"Timeout restarting {docker_name}")
-                                    failed_count += 1
-                                except (RuntimeError, OSError) as e:
-                                    logger.error(f"Error restarting {docker_name}: {e}", exc_info=True)
-                                    failed_count += 1
-                elif status_known:
-                    skipped_count += 1
-                else:
-                    logger.warning(f"No cached status for {docker_name} - not touched, "
-                                   f"and reported as unchecked rather than as idle")
-                    unknown_count += 1
-
-            # Send result message
-            description = _("Successfully restarted: **{count}** containers").format(count=restarted_count)
-            if failed_count > 0:
-                description += _("\nFailed: **{count}** containers").format(count=failed_count)
-            if skipped_count > 0:
-                description += _("\nSkipped (not running): **{count}** containers").format(count=skipped_count)
-            if unknown_count > 0:
-                description += _("\nNot checked (no current status): **{count}** containers").format(count=unknown_count)
-            if not_allowed_count > 0:
-                description += _("\nSkipped (action not allowed): **{count}** containers").format(count=not_allowed_count)
+            counts = await _restart_running_servers(servers, docker_action_service_first)
+            failed_count = counts["failed"]
+            description = _restart_summary(counts)
 
             embed = discord.Embed(
                 title=_("🔄 Restart All Complete"),

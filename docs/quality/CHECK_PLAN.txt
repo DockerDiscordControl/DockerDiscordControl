@@ -8,24 +8,24 @@ review/check_plan.py from SECTIONS.txt and the code -
 # docs/quality/reviews/, one report per section and pass; the coverage of a
 # report against this plan is computed by scripts/review/coverage.py.
 
-## Section 01  (1266 lines, 24 public names)
-[ ] cogs/admin_overview.py:40 AdminOverviewView
-[ ] cogs/admin_overview.py:55 AdminOverviewAdminButton
-[ ] cogs/admin_overview.py:70 AdminOverviewAdminButton.callback
-[ ] cogs/admin_overview.py:158 AdminOverviewRestartAllButton
-[ ] cogs/admin_overview.py:174 AdminOverviewRestartAllButton.callback
-[ ] cogs/admin_overview.py:240 AdminOverviewStopAllButton
-[ ] cogs/admin_overview.py:256 AdminOverviewStopAllButton.callback
-[ ] cogs/admin_overview.py:322 AdminOverviewDonateButton
-[ ] cogs/admin_overview.py:337 AdminOverviewDonateButton.callback
-[ ] cogs/admin_overview.py:414 RestartAllConfirmationView
-[ ] cogs/admin_overview.py:426 StopAllConfirmationView
-[ ] cogs/admin_overview.py:438 ConfirmRestartAllButton
-[ ] cogs/admin_overview.py:451 ConfirmRestartAllButton.callback
-[ ] cogs/admin_overview.py:659 ConfirmStopAllButton
-[ ] cogs/admin_overview.py:672 ConfirmStopAllButton.callback
-[ ] cogs/admin_overview.py:880 CancelBulkActionButton
-[ ] cogs/admin_overview.py:890 CancelBulkActionButton.callback
+## Section 01  (1284 lines, 24 public names)
+[ ] cogs/admin_overview.py:140 AdminOverviewView
+[ ] cogs/admin_overview.py:155 AdminOverviewAdminButton
+[ ] cogs/admin_overview.py:170 AdminOverviewAdminButton.callback
+[ ] cogs/admin_overview.py:258 AdminOverviewRestartAllButton
+[ ] cogs/admin_overview.py:274 AdminOverviewRestartAllButton.callback
+[ ] cogs/admin_overview.py:340 AdminOverviewStopAllButton
+[ ] cogs/admin_overview.py:356 AdminOverviewStopAllButton.callback
+[ ] cogs/admin_overview.py:422 AdminOverviewDonateButton
+[ ] cogs/admin_overview.py:437 AdminOverviewDonateButton.callback
+[ ] cogs/admin_overview.py:514 RestartAllConfirmationView
+[ ] cogs/admin_overview.py:526 StopAllConfirmationView
+[ ] cogs/admin_overview.py:538 ConfirmRestartAllButton
+[ ] cogs/admin_overview.py:551 ConfirmRestartAllButton.callback
+[ ] cogs/admin_overview.py:677 ConfirmStopAllButton
+[ ] cogs/admin_overview.py:690 ConfirmStopAllButton.callback
+[ ] cogs/admin_overview.py:898 CancelBulkActionButton
+[ ] cogs/admin_overview.py:908 CancelBulkActionButton.callback
 [ ] cogs/auto_action_monitor.py:18 AutoActionMonitor
 [ ] cogs/auto_action_monitor.py:27 AutoActionMonitor.on_message
 [ ] cogs/auto_action_monitor.py:73 setup
