@@ -205,7 +205,7 @@ class MessageUpdatesMixin:
 
             # Refresh the status cache at most once per cycle (only if stale) BEFORE the batches,
             # so the per-message updates render from cache and actually run in parallel.
-            await self._ensure_status_cache_fresh()
+            await self._refresh_cache_for_cycle()
 
             # ULTRA-PERFORMANCE: Batched parallelization for message edits
             start_batch_time = datetime.now(timezone.utc)
@@ -322,6 +322,20 @@ class MessageUpdatesMixin:
             logger.info("Direct Cog Periodic message update check: No messages were due for update in any channel.")
 
     # Wrapper for editing, needs to be part of this Cog now if periodic_message_edit_loop uses it.
+    async def _refresh_cache_for_cycle(self):
+        """Refresh the status cache for this cycle; never raise.
+
+        This call used to sit outside the guarded part, after the cycle's edit
+        coroutines had been built: a failure was swallowed by the loop guard,
+        those coroutines were collected without ever being awaited, and nothing
+        in the DDC log said the cycle had been lost.
+        """
+        try:
+            await self._ensure_status_cache_fresh()
+        except Exception as e:  # noqa: BLE001 - the cycle goes on with what the cache holds
+            logger.warning(f"Status cache could not be refreshed this cycle ({e}) - "
+                           f"editing from what the cache holds")
+
     async def _edit_single_message_wrapper(self, channel_id: int, display_name: str, message_id: int, current_config: dict, allow_toggle: bool):
         """
         Handles message editing and updates timestamps.

@@ -1622,7 +1622,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/web/two_factor_service.py:189 TwoFactorStore.verify
 [ ] services/web/two_factor_service.py:211 TwoFactorStore.disable
 
-## Section 40  (974 lines, 3 public names)
+## Section 40  (988 lines, 3 public names)
 [ ] cogs/message_updates.py:35 mech_change
 [ ] cogs/message_updates.py:54 MessageUpdatesMixin
 [ ] cogs/message_updates.py:61 MessageUpdatesMixin.periodic_message_edit_loop
