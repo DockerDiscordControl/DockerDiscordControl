@@ -185,6 +185,13 @@ def register_routes(app: Flask) -> None:
                 health_data["config_loaded"] = False
                 health_data["servers_configured"] = 0
 
+            # Proxy or Docker? Reported, not failed: a container restart does not
+            # bring a dead daemon back (services/docker_service/reachability.py).
+            import services.docker_service.reachability as reachability
+            host = os.environ.get("DOCKER_HOST") or reachability.DEFAULT_HOST
+            health_data["docker"] = reachability.docker_reachability(
+                host, proxied=host == f"unix://{reachability.PROXY_SOCKET}")
+
             return jsonify(health_data), 200
         except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException, json.JSONDecodeError) as e:
             app.logger.error("Health check failed: %s", e, exc_info=True)

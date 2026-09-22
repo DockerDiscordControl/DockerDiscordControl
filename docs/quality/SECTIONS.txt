@@ -83,9 +83,10 @@ services/discord/status_overview_service.py:1-363
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-295
 
-## Section 15  (866 lines, 2 pieces)
+## Section 15  (933 lines, 3 pieces)
 services/docker_service/client_factory.py:1-95
 services/docker_service/docker_client_pool.py:1-738
+services/docker_service/reachability.py:1-67
 
 ## Section 16  (1951 lines, 5 pieces)
 services/docker_service/docker_utils.py:1-1217
@@ -255,7 +256,7 @@ app/web/diagnostics.py:1-30
 app/web/extensions.py:1-83
 app/web/i18n.py:1-64
 app/web/logging.py:1-60
-app/web/routes.py:1-197
+app/web/routes.py:1-204
 app/web/security.py:1-86
 app/web_ui.py:1-36
 utils/__init__.py:1-7

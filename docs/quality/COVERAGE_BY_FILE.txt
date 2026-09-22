@@ -84,7 +84,7 @@ app/web/diagnostics.py	30	pass1:s35:1-30
 app/web/extensions.py	83	pass1:s35:1-26
 app/web/i18n.py	64	pass1:s35:1-54  [10 of 64 lines never in a package]
 app/web/logging.py	60	pass1:s35:1-60
-app/web/routes.py	197	pass1:s35:1-100  [81 of 181 lines never in a package]
+app/web/routes.py	204	pass1:s35:1-100  [81 of 181 lines never in a package]
 app/web/security.py	86	pass1:s35:1-86
 app/web/tls.py	206	NONE
 app/web/two_factor.py	8	NONE
@@ -130,6 +130,7 @@ services/docker_service/client_factory.py	95	NONE
 services/docker_service/docker_action_service.py	295	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
 services/docker_service/docker_utils.py	1217	pass1:s16:1-1404  [28 of 1432 lines never in a package]
+services/docker_service/reachability.py	67	NONE
 services/docker_service/server_order.py	111	pass1:s16:1-111
 services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101
 services/docker_status/__init__.py	34	pass1:s16:1-34
