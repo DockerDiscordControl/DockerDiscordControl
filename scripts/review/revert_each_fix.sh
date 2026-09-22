@@ -1,5 +1,5 @@
 #!/bin/bash
-# "Ein Test, der nicht fehlschlagen kann, ist kein Test."
+# A test that cannot fail is not a test.
 #
 # For each fix commit: reverse-apply ONLY its production-code hunks (test files
 # and docs are left exactly as they are), run the guard group, record whether

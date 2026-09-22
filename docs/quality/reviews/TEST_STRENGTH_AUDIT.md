@@ -1,6 +1,6 @@
 # Can these tests fail? — an audit of all 4,956
 
-> „Ein Test, der nicht fehlschlagen kann, ist kein Test."
+> A test that cannot fail is not a test.
 
 Every finding in this programme got a red-first test and a mutation probe. The
 suite those tests live in never got the same treatment. This is that audit,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Classify every test function by what its assertions can actually constrain.
 
-"Ein Test, der nicht fehlschlagen kann, ist kein Test." This finds the
+"A test that cannot fail is not a test." This finds the
 candidates mechanically, across the whole suite, so the judging can be spent
 on a short list instead of 4,956 functions.
 
