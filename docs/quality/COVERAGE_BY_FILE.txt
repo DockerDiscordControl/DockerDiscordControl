@@ -47,7 +47,7 @@ app/auth.py	254	pass1:s31:plan pass2:s31:1-249
 app/blueprints/action_log_routes.py	91	pass1:s31:plan pass2:s31:1-86  [5 of 91 lines never in a package]
 app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
-app/blueprints/main_routes.py	1514	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package]
+app/blueprints/main_routes.py	1530	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package]
 app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
 app/blueprints/tasks_bp.py	314	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never in a package]

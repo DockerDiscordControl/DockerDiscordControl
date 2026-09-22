@@ -89,7 +89,10 @@ socket.
 ## Door B: the web panel
 
 - **Password:** PBKDF2-SHA256 with 600,000 iterations. Login and setup attempts
-  are rate-limited per client address.
+  are rate-limited per client address. A configuration that cannot be READ looks
+  exactly like a fresh install (no password hash), so both the first-run login
+  and the /setup routes that would write a new password refuse while a read
+  error stands, and say so in the log.
 - **Client address:** `X-Forwarded-For` / `-Proto` are believed only from the
   proxies in `DDC_TRUSTED_PROXIES`; a direct client cannot pick its own
   address to escape the rate limits
