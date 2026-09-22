@@ -242,15 +242,12 @@ class StatusHandlersMixin:
             server_config = servers_by_docker_name.get(docker_name)
 
             if not server_config:
-                # An ANSWER, not a silent gap: the caller builds its list of names
-                # and this method re-reads the configuration, so a container the
-                # panel renamed or deactivated in between has none here. Dropped
-                # from the result, it was cached neither as a status nor as an
-                # error and sat on the loading icon as if nobody had asked.
+                # An ANSWER, not a silent gap: dropped, it was cached neither as
+                # a status nor as an error and stayed on the loading icon
                 logger.warning(f"[INTELLIGENT_BULK_FETCH] No server config found for {docker_name}")
                 status_results[docker_name] = ContainerStatusResult.error_result(
                     docker_name=docker_name, error_type='no_config',
-                    error=RuntimeError("no server configuration for this container any more"))
+                    error=RuntimeError("no server configuration"))
                 failed_fetches += 1
                 continue
 
@@ -921,10 +918,7 @@ class StatusHandlersMixin:
                     f"\n│ {current_emoji} {status_text}"
                 ]
 
-                # The age of data older than one and a half refresh intervals
-                # (_age_hint_threshold_seconds). It used to be hidden behind a
-                # show_cache_age flag that every caller in the tree passed as
-                # False, so a five-minute-old status looked like a fresh one.
+                # Older than 1.5 refresh intervals (a flag hid this before)
                 if 'embed_cache_indicator' in locals() and embed_cache_indicator:
                     description_parts.append(embed_cache_indicator)
 
@@ -1019,7 +1013,7 @@ class StatusHandlersMixin:
                 f"\n│ {current_emoji} {status_text}"
             ]
 
-            # The age, as above: the threshold decides, not a caller's flag
+            # The age, as above
             if 'embed_cache_indicator' in locals() and embed_cache_indicator:
                 description_parts.append(embed_cache_indicator)
 

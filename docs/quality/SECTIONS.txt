@@ -56,7 +56,7 @@ cogs/donation_ui.py:1-628
 cogs/enhanced_info_modal_simple.py:1-694
 
 ## Section 08  (1398 lines, 1 piece)
-cogs/status_handlers.py:1-1406
+cogs/status_handlers.py:1-1400
 
 ## Section 09  (1234 lines, 1 piece)
 cogs/status_info_integration.py:1-1252

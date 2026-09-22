@@ -177,14 +177,14 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/enhanced_info_modal_simple.py:549 PasswordValidationModal
 [ ] cogs/enhanced_info_modal_simple.py:574 PasswordValidationModal.callback
 
-## Section 08  (1406 lines, 7 public names)
+## Section 08  (1400 lines, 7 public names)
 [ ] cogs/status_handlers.py:74 format_uptime
 [ ] cogs/status_handlers.py:108 StatusHandlersMixin
 [ ] cogs/status_handlers.py:114 StatusHandlersMixin.bulk_fetch_container_status
 [ ] cogs/status_handlers.py:184 StatusHandlersMixin.bulk_fetch_container_status.fetch_fast_container
-[ ] cogs/status_handlers.py:516 StatusHandlersMixin.bulk_update_status_cache
-[ ] cogs/status_handlers.py:580 StatusHandlersMixin.get_status
-[ ] cogs/status_handlers.py:1131 StatusHandlersMixin.send_server_status
+[ ] cogs/status_handlers.py:513 StatusHandlersMixin.bulk_update_status_cache
+[ ] cogs/status_handlers.py:577 StatusHandlersMixin.get_status
+[ ] cogs/status_handlers.py:1125 StatusHandlersMixin.send_server_status
 
 ## Section 09  (1252 lines, 24 public names)
 [ ] cogs/status_info_integration.py:58 container_logs_text
