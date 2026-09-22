@@ -15,7 +15,8 @@ import multiprocessing
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 
-from .auto_action_config_service import get_auto_action_config_service, AutoActionRule
+from .auto_action_config_service import (TRIGGER_CONTAINER_STATE, TRIGGER_MESSAGE, AutoActionRule,
+                                         get_auto_action_config_service)
 from .auto_action_state_service import get_auto_action_state_service
 
 # Import Docker Control (we reuse existing utils to ensure consistency)
@@ -160,6 +161,10 @@ class AutomationService:
         candidates = []
         for rule in rules:
             if not rule.enabled:
+                continue
+            # Container-state rules fire on watchdog events, never on a message -
+            # with no channel list they would otherwise pass the channel check below.
+            if rule.trigger.type != TRIGGER_MESSAGE:
                 continue
                 
             # Channel Check
@@ -472,6 +477,96 @@ class AutomationService:
             )
 
         return success_count > 0
+
+    async def process_container_events(self, events, bot=None, control_channel_id=None) -> List[str]:
+        """Run the container-state rules against the watchdog's events.
+
+        The second trigger type of the auto-action system (Phase 4a). The notice
+        goes to the rule's notification channel, or the control channel when the
+        rule names none (operator decision 2026-09-22).
+        """
+        settings = self.config_service.get_global_settings()
+        if not settings.get('enabled', True) or not events:
+            return []
+        rules = sorted((r for r in self.config_service.get_rules()
+                        if r.enabled and r.trigger.type == TRIGGER_CONTAINER_STATE),
+                       key=lambda r: r.priority, reverse=True)
+        executed = []
+        for event in events:
+            for rule in rules:
+                if event.kind not in rule.trigger.states:
+                    continue
+                if rule.trigger.containers and event.container not in rule.trigger.containers:
+                    continue
+                if await self._execute_container_rule(rule, event, settings, bot, control_channel_id):
+                    executed.append(rule.name)
+        return executed
+
+    async def _execute_container_rule(self, rule: AutoActionRule, event, settings: Dict,
+                                      bot, control_channel_id) -> bool:
+        """One container-state rule for one event.
+
+        Its own path, not _execute_rule: there is no triggering message to link,
+        the target is the container the event is about, and only_if_running does
+        not apply - a stopped container is "not running" by definition, and
+        restarting it is what such a rule exists for.
+        """
+        container = event.container
+        action_type = rule.action.type.upper()
+        channel_id = rule.action.notification_channel_id or control_channel_id
+        protected = [p.lower() for p in settings.get('protected_containers', [])]
+
+        if action_type != 'NOTIFY' and container.lower() in protected:
+            logger.warning(f"AAS: Blocked {action_type} on protected container '{container}' (watchdog)")
+            self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED",
+                                              "Protected container")
+            if bot and channel_id:
+                await self._send_feedback(bot, channel_id,
+                                          f"🚨 {event.reason} — *{rule.name}* (protected: no `{action_type}`)")
+            return False
+
+        can_execute, reason, _blocked = self.state_service.acquire_execution_locks(
+            rule.id, [container], settings.get('global_cooldown_seconds', 30),
+            rule.cooldown_minutes, rule.cooldown_scope)
+        if not can_execute:
+            logger.info(f"AAS: Skipped watchdog rule '{rule.name}' for '{container}' - {reason}")
+            self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED", reason)
+            return False
+
+        if not channel_id:
+            logger.warning(f"AAS: watchdog rule '{rule.name}' has no channel to report to "
+                           f"(no notification channel and no control channel): {event.reason}")
+        try:
+            if action_type == 'NOTIFY':
+                if bot and channel_id:
+                    await self._send_feedback(bot, channel_id, f"🚨 {event.reason} — *{rule.name}*")
+                result = True
+            else:
+                if bot and channel_id and not rule.action.silent:
+                    await self._send_feedback(bot, channel_id,
+                                              f"🚨 {event.reason} → `{action_type}` — *{rule.name}*")
+                if rule.action.delay_seconds > 0:
+                    await asyncio.sleep(rule.action.delay_seconds)
+                verb = 'restart' if action_type in ('RESTART', 'RECREATE') else action_type.lower()
+                result = await docker_action(container, verb)
+                if result:
+                    await self._trigger_status_refresh(bot, container)
+                elif bot and channel_id:
+                    await self._send_feedback(bot, channel_id,
+                                              f"⚠️ `{action_type}` **{container}** failed — *{rule.name}*")
+        except BaseException:
+            # The lock was taken above; an error or a cancellation must not leave
+            # the container locked for the whole cooldown.
+            self.state_service.release_execution_lock(rule.id, container, success=False)
+            raise
+
+        self.state_service.record_trigger(rule.id, rule.name, container, action_type,
+                                          "SUCCESS" if result else "FAILED", event.kind)
+        if result:
+            self.config_service.increment_trigger_count(rule.id)
+        else:
+            self.state_service.release_rule_cooldown(rule.id)
+        return bool(result)
 
     @staticmethod
     def _only_if_running_notice(rule_name: str, containers: List[str]) -> str:

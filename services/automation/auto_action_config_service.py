@@ -37,6 +37,16 @@ COOLDOWN_SCOPES = {'container', 'rule'}
 MIN_DELAY_SECONDS = 0
 MAX_DELAY_SECONDS = 3600  # 1 hour
 VALID_ACTION_TYPES = {'RESTART', 'STOP', 'START', 'RECREATE', 'NOTIFY'}
+
+# Trigger types. A rule without "type" is a message rule - every rule written
+# before v3.0. "container_state" rules fire on the container watchdog's events
+# (services/automation/container_watch.py) instead of on Discord messages.
+TRIGGER_MESSAGE = 'message'
+TRIGGER_CONTAINER_STATE = 'container_state'
+TRIGGER_TYPES = (TRIGGER_MESSAGE, TRIGGER_CONTAINER_STATE)
+CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop')
+MIN_RESTART_THRESHOLD, MAX_RESTART_THRESHOLD = 2, 50
+MIN_RESTART_WINDOW_MINUTES, MAX_RESTART_WINDOW_MINUTES = 1, 1440
 VALID_MATCH_MODES = {'any', 'all'}
 
 
@@ -230,10 +240,15 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
 
     # --- Trigger Validation ---
     trigger = rule_data.get('trigger', {})
+    trigger_type = trigger.get('type', TRIGGER_MESSAGE)
+    if trigger_type not in TRIGGER_TYPES:
+        errors.append(f"Invalid trigger type: {trigger_type}. Must be one of: {TRIGGER_TYPES}")
+    elif trigger_type == TRIGGER_CONTAINER_STATE:
+        _validate_container_state_trigger(trigger, errors)
 
-    # Channel IDs
+    # Channel IDs (message rules only - a container-state rule watches containers)
     channel_ids = trigger.get('channel_ids', [])
-    if not channel_ids:
+    if not channel_ids and trigger_type == TRIGGER_MESSAGE:
         errors.append("At least one channel ID is required")
     else:
         for cid in channel_ids:
@@ -244,7 +259,8 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
     # Keywords - need at least one of: required_keywords, keywords, or regex
     keywords = trigger.get('keywords', [])
     required_keywords = trigger.get('required_keywords', [])
-    if not keywords and not required_keywords and not trigger.get('regex_pattern'):
+    if (trigger_type == TRIGGER_MESSAGE and not keywords and not required_keywords
+            and not trigger.get('regex_pattern')):
         errors.append("At least one required keyword, trigger keyword, or regex pattern is required")
     if len(keywords) > MAX_KEYWORDS:
         errors.append(f"Too many keywords (max {MAX_KEYWORDS})")
@@ -282,7 +298,8 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         errors.append(f"Invalid action type: {action_type}. Must be one of: {VALID_ACTION_TYPES}")
 
     containers = action.get('containers', [])
-    if action_type != 'NOTIFY' and not containers:
+    # A container-state rule acts on the container the event is about.
+    if action_type != 'NOTIFY' and not containers and trigger_type == TRIGGER_MESSAGE:
         errors.append("At least one target container is required for this action type")
 
     # Check for protected containers (warning, not error)
@@ -321,6 +338,21 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         return False, "; ".join(errors), warnings
     return True, "", warnings
 
+def _validate_container_state_trigger(trigger: Dict[str, Any], errors: List[str]) -> None:
+    states = trigger.get('states', [])
+    if not states:
+        errors.append("At least one container state (stopped, unhealthy, restart_loop) is required")
+    for state in states:
+        if state not in CONTAINER_STATES:
+            errors.append(f"Invalid container state: {state}. Must be one of: {CONTAINER_STATES}")
+    threshold = trigger.get('restart_threshold', 3)
+    if not isinstance(threshold, int) or not MIN_RESTART_THRESHOLD <= threshold <= MAX_RESTART_THRESHOLD:
+        errors.append(f"Restart threshold must be between {MIN_RESTART_THRESHOLD} and {MAX_RESTART_THRESHOLD}")
+    window = trigger.get('restart_window_minutes', 10)
+    if not isinstance(window, int) or not MIN_RESTART_WINDOW_MINUTES <= window <= MAX_RESTART_WINDOW_MINUTES:
+        errors.append(f"Restart window must be between {MIN_RESTART_WINDOW_MINUTES} and "
+                      f"{MAX_RESTART_WINDOW_MINUTES} minutes")
+
 # --- Data Models ---
 
 @dataclass
@@ -337,10 +369,21 @@ class TriggerConfig:
     allowed_user_ids: List[str] = field(default_factory=list)
     allowed_usernames: List[str] = field(default_factory=list)
     is_webhook: Optional[bool] = None
+    # Container-state trigger (v3.0 watchdog); unused by message rules.
+    type: str = TRIGGER_MESSAGE
+    states: List[str] = field(default_factory=list)
+    containers: List[str] = field(default_factory=list)   # empty = every container
+    restart_threshold: int = 3
+    restart_window_minutes: int = 10
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TriggerConfig':
         return cls(
+            type=data.get('type', TRIGGER_MESSAGE),
+            states=data.get('states', []),
+            containers=data.get('containers', []),
+            restart_threshold=data.get('restart_threshold', 3),
+            restart_window_minutes=data.get('restart_window_minutes', 10),
             channel_ids=data.get('channel_ids', []),
             keywords=data.get('keywords', []),
             required_keywords=data.get('required_keywords', []),
@@ -354,7 +397,7 @@ class TriggerConfig:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        data = {
             "channel_ids": self.channel_ids,
             "keywords": self.keywords,
             "required_keywords": self.required_keywords,
@@ -368,6 +411,16 @@ class TriggerConfig:
                 "is_webhook": self.is_webhook
             }
         }
+        # Message rules keep exactly the shape older versions wrote.
+        if self.type != TRIGGER_MESSAGE:
+            data.update({
+                "type": self.type,
+                "states": self.states,
+                "containers": self.containers,
+                "restart_threshold": self.restart_threshold,
+                "restart_window_minutes": self.restart_window_minutes,
+            })
+        return data
 
 @dataclass
 class ActionConfig:

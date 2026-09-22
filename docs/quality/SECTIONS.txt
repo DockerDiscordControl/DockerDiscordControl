@@ -67,11 +67,11 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-379
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-735
+services/automation/auto_action_config_service.py:1-788
 
 ## Section 11  (1784 lines, 6 pieces)
 services/automation/auto_action_state_service.py:1-364
-services/automation/automation_service.py:1-556
+services/automation/automation_service.py:1-651
 services/automation/container_watch.py:1-95
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576

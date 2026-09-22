@@ -113,9 +113,9 @@ services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	379	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
-services/automation/auto_action_config_service.py	735	passE:bothscans+E25
+services/automation/auto_action_config_service.py	788	passE:bothscans+E25
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
-services/automation/automation_service.py	556	passE:bothscans+E25
+services/automation/automation_service.py	651	passE:bothscans+E25
 services/automation/container_watch.py	95	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/channel_config_service.py	576	passE:E28+bothscans:126-300
