@@ -95,47 +95,52 @@ def test_without_2fa_the_password_is_enough(panel):
     assert app.test_client().get("/__panel", headers=_basic()).status_code == 200
 
 
+# The five tests below speak https: with 2FA switched on DDC answers only over
+# HTTPS now (the session marker IS the passed second factor - see
+# tests/spec/test_the_second_factor_never_travels_in_the_clear.py). They are
+# about the gate, not about the transport, and used the client's default
+# http://localhost before.
 def test_the_password_alone_does_not_open_the_panel(panel):
     app, store = panel
     _enable(store)
     client = app.test_client()
-    page = client.get("/__panel", headers=_basic())
+    page = client.get("/__panel", headers=_basic(), base_url=SECURE)
     assert page.status_code == 302 and "/security/2fa/verify" in page.headers["Location"]
-    api = client.get("/__panel", headers={**_basic(), "Accept": "application/json"})
+    api = client.get("/__panel", headers={**_basic(), "Accept": "application/json"}, base_url=SECURE)
     assert api.status_code == 401
 
 
 def test_a_wrong_password_still_gets_the_plain_401(panel):
     app, store = panel
     _enable(store)
-    assert app.test_client().get("/__panel", headers=_basic(password="wrong")).status_code == 401
+    assert app.test_client().get("/__panel", headers=_basic(password="wrong"), base_url=SECURE).status_code == 401
 
 
 def test_a_current_code_opens_the_panel_for_the_session(panel):
     app, store = panel
     _enable(store)
     client = app.test_client()
-    answer = client.post("/security/2fa/verify", data={"code": _current_code(store)}, headers=_basic())
+    answer = client.post("/security/2fa/verify", data={"code": _current_code(store)}, headers=_basic(), base_url=SECURE)
     assert answer.status_code == 302
-    assert client.get("/__panel", headers=_basic()).status_code == 200
+    assert client.get("/__panel", headers=_basic(), base_url=SECURE).status_code == 200
 
 
 def test_a_recovery_code_opens_it_once(panel):
     app, store = panel
     codes = _enable(store)
     first = app.test_client()
-    first.post("/security/2fa/verify", data={"code": codes[0]}, headers=_basic())
-    assert first.get("/__panel", headers=_basic()).status_code == 200
+    first.post("/security/2fa/verify", data={"code": codes[0]}, headers=_basic(), base_url=SECURE)
+    assert first.get("/__panel", headers=_basic(), base_url=SECURE).status_code == 200
     second = app.test_client()
-    second.post("/security/2fa/verify", data={"code": codes[0]}, headers=_basic())
-    assert second.get("/__panel", headers=_basic()).status_code == 302
+    second.post("/security/2fa/verify", data={"code": codes[0]}, headers=_basic(), base_url=SECURE)
+    assert second.get("/__panel", headers=_basic(), base_url=SECURE).status_code == 302
 
 
 def test_guessing_codes_is_braked(panel):
     app, store = panel
     _enable(store)
     client = app.test_client()
-    statuses = [client.post("/security/2fa/verify", data={"code": "000000"}, headers=_basic()).status_code
+    statuses = [client.post("/security/2fa/verify", data={"code": "000000"}, headers=_basic(), base_url=SECURE).status_code
                 for _ in range(6)]
     assert statuses[-1] == 429, statuses
 

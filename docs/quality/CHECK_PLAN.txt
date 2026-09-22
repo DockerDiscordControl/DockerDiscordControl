@@ -1582,14 +1582,14 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/ddc_ui.py:87 DDCModal
 [ ] cogs/ddc_ui.py:90 DDCModal.on_error
 
-## Section 39  (854 lines, 31 public names)
-[ ] app/blueprints/two_factor_routes.py:98 install_two_factor
-[ ] app/blueprints/two_factor_routes.py:108 status
-[ ] app/blueprints/two_factor_routes.py:116 setup
-[ ] app/blueprints/two_factor_routes.py:134 confirm
-[ ] app/blueprints/two_factor_routes.py:147 verify
-[ ] app/blueprints/two_factor_routes.py:165 disable
-[ ] app/blueprints/two_factor_routes.py:179 dismiss
+## Section 39  (871 lines, 31 public names)
+[ ] app/blueprints/two_factor_routes.py:115 install_two_factor
+[ ] app/blueprints/two_factor_routes.py:125 status
+[ ] app/blueprints/two_factor_routes.py:133 setup
+[ ] app/blueprints/two_factor_routes.py:151 confirm
+[ ] app/blueprints/two_factor_routes.py:164 verify
+[ ] app/blueprints/two_factor_routes.py:182 disable
+[ ] app/blueprints/two_factor_routes.py:196 dismiss
 [ ] app/web/tls.py:57 tls_mode
 [ ] app/web/tls.py:68 apply_tls_mode
 [ ] app/web/tls.py:107 Certificate

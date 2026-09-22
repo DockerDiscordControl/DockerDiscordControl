@@ -9,7 +9,7 @@ written to be checked: every claim here has a test or a script behind it
 | Door | Who comes through it | What closes it |
 |---|---|---|
 | **A. The Docker API** | anything that can reach the Docker socket: DDC's own code, a dependency, an attacker with code execution in the container | the allowlist proxy - DDC's code reaches only the endpoints listed below |
-| **B. The web panel** | whoever has the panel password - reused, leaked or guessed | two-factor authentication, set up over HTTPS |
+| **B. The web panel** | whoever has the panel password - reused, leaked or guessed | two-factor authentication, set up over HTTPS; while it is on the panel answers only over HTTPS |
 | **C. The Discord bot** | whoever has the bot token, or can write in a control channel | the channel permission model: the bot starts, stops and restarts configured containers, nothing else |
 
 **2FA does not protect the Discord bot, and the proxy does not protect the web

@@ -19,7 +19,9 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
 - **Started with `--user`?** Then no proxy can run; DDC falls back to the raw socket and warns.
   Start without `--user` and use `PUID`/`PGID`.
 - **The panel offers two-factor authentication** (a dialog with "Later", then a notice while it
-  is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`.
+  is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`. **While it is on, the
+  panel answers only over HTTPS** - the session marker is the passed second factor, and it must
+  not travel in the clear. Without 2FA nothing changes: plain HTTP works as before.
 - **Going back to v2.4.1 is safe:** measured with `scripts/check_upgrade_downgrade.sh` - 2FA and
   the TLS certificate survive a downgrade and a second upgrade.
 

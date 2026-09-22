@@ -22,7 +22,7 @@ import hashlib
 import logging
 from urllib.parse import quote
 
-from flask import (Blueprint, Flask, Response, jsonify, redirect, render_template,
+from flask import (Blueprint, Flask, Response, current_app, jsonify, redirect, render_template,
                    request, session, url_for)
 
 from app.auth import auth, two_factor_limiter, verify_password
@@ -60,7 +60,30 @@ def _safe_next(target: str) -> str:
     return "/"
 
 
+# Answered in the clear even with 2FA on: the container healthcheck and what a
+# browser needs to render the page that says why.
+ALWAYS_PLAIN = ("/static/", "/health")
+
+
 def _require_second_factor():
+    if request.path.startswith(ALWAYS_PLAIN):
+        return None
+    try:
+        enabled = TwoFactorStore().enabled
+    except TwoFactorUnreadable as error:
+        logger.error(f"SECURITY: {error} - the panel stays closed until the file is fixed or removed")
+        return Response("The two-factor state cannot be read; see the DDC log.\n", status=503,
+                        mimetype="text/plain")
+    if enabled:
+        # The session marker IS the passed second factor. Without this, a panel
+        # behind a TLS-terminating proxy (DDC_TLS_MODE=off, the default) handed
+        # that cookie out over the plain port as well, and took codes there too.
+        current_app.config["SESSION_COOKIE_SECURE"] = True
+        if not request.is_secure:
+            return Response(
+                "Two-factor authentication is on, so DDC answers only over HTTPS.\n"
+                "Open the panel through your reverse proxy, or set DDC_TLS_MODE.\n",
+                status=403, mimetype="text/plain")
     if request.path.startswith(EXEMPT_PREFIXES):
         return None
     credentials = request.authorization
@@ -68,12 +91,6 @@ def _require_second_factor():
         return None  # the route's own login check answers
     if not verify_password(credentials.username, credentials.password):
         return None  # wrong password: the route's own 401
-    try:
-        enabled = TwoFactorStore().enabled
-    except TwoFactorUnreadable as error:
-        logger.error(f"SECURITY: {error} - the panel stays closed until the file is fixed or removed")
-        return Response("The two-factor state cannot be read; see the DDC log.\n", status=503,
-                        mimetype="text/plain")
     if not enabled or session.get(SESSION_KEY) == _binding():
         return None
     if _wants_json():
