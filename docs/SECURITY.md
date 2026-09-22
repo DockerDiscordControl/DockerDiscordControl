@@ -107,6 +107,11 @@ socket.
   state lives in `config/two_factor.json` (mode 0600), a file older DDC
   versions never rewrite. Lost phone and codes: on the host, run
   `docker exec -it -u ddc <container> python3 scripts/disable_2fa.py`.
+  While 2FA is on, the panel answers only over HTTPS - the session marker is
+  the passed second factor and must not travel in the clear.
+  "Each usable once" counts the 30-second step for the whole panel, not per
+  person: DDC has one account, and two browsers logging in inside the same
+  step means the second must wait for the next code.
 
 ## Door C: the Discord bot
 
