@@ -17,6 +17,7 @@ from pathlib import Path
 from dataclasses import dataclass, replace
 from typing import Dict, Any, Optional
 import discord
+from utils.atomic_io import atomic_write_json, cross_process_lock
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('spam_protection_service')
@@ -177,21 +178,25 @@ class SpamProtectionService:
             ServiceResult indicating success or failure
         """
         try:
-            # Load existing channels_config.json
-            if self.config_file.exists():
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    channels_data = json.load(f)
-            else:
-                channels_data = {}
+            # The whole read-modify-write under the file lock: DDC is two
+            # processes and both hold this service (main_routes.py, the cogs).
+            # Without it the later write replaced a file that never saw the
+            # earlier one, and a setting saved in the panel disappeared.
+            with cross_process_lock(self.config_file):
+                # Load existing channels_config.json
+                if self.config_file.exists():
+                    with open(self.config_file, 'r', encoding='utf-8') as f:
+                        channels_data = json.load(f)
+                else:
+                    channels_data = {}
 
-            # Update spam_protection section
-            channels_data['spam_protection'] = config.to_dict()
+                # This service owns one section of the file, not the file.
+                channels_data['spam_protection'] = config.to_dict()
 
-            # Atomic write
-            temp_file = self.config_file.with_suffix('.tmp')
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(channels_data, f, indent=2, ensure_ascii=False)
-            temp_file.replace(self.config_file)
+                # atomic_write_json, not a fixed "channels_config.tmp": two
+                # writers shared that one name, so the target could be replaced
+                # with a mixture of both.
+                atomic_write_json(self.config_file, channels_data, indent=2)
 
             logger.info("Saved spam protection configuration to channels_config.json")
             return ServiceResult(success=True, data=config)
