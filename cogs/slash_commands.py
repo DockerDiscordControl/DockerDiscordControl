@@ -321,6 +321,26 @@ class SlashCommandsMixin:
             # Send the Admin Overview message and track it for updates
             # FIX B: serialize post+track against other overview posters for this channel.
             async with self._get_channel_lock(ctx.channel_id):
+                # Delete the admin overview we track before posting the next one -
+                # what /ss does for its overview. Without it the old message stayed
+                # in the channel, untracked: a second admin panel, frozen at the
+                # moment it was posted, with buttons that still work.
+                tracked_old = (self.channel_server_message_ids.get(ctx.channel_id) or {}).get('admin_overview')
+                if tracked_old:
+                    channel = self.bot.get_channel(ctx.channel_id)
+                    try:
+                        if channel:
+                            await channel.get_partial_message(tracked_old).delete()
+                            logger.debug(f"Deleted old admin overview {tracked_old} in channel {ctx.channel_id}")
+                    except discord.NotFound:
+                        pass
+                    except (discord.Forbidden, discord.HTTPException) as e:
+                        # Remembered so a later regenerate clears it (see
+                        # _delete_tracked_overview_messages)
+                        logger.warning(f"Could not delete old admin overview {tracked_old}: {e}")
+                        self.__dict__.setdefault('_undeleted_messages', {}).setdefault(
+                            ctx.channel_id, set()).add(tracked_old)
+
                 message = await ctx.followup.send(embed=embed, view=view)
 
                 # Track message for automatic updates (like /ss)

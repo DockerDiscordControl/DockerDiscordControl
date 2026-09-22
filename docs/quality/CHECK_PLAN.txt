@@ -119,7 +119,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/loop_safety.py:78 _register_loop_error_handlers.make_handler
 [ ] cogs/loop_safety.py:79 _register_loop_error_handlers.make_handler.handler
 
-## Section 05  (1777 lines, 12 public names)
+## Section 05  (1797 lines, 12 public names)
 [ ] cogs/overview_embeds.py:35 power_consumption_line
 [ ] cogs/overview_embeds.py:52 with_website_footer
 [ ] cogs/overview_embeds.py:65 OverviewEmbedsMixin
@@ -127,11 +127,11 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/slash_commands.py:87 SlashCommandsMixin.serverstatus
 [ ] cogs/slash_commands.py:262 SlashCommandsMixin.ss
 [ ] cogs/slash_commands.py:268 SlashCommandsMixin.control
-[ ] cogs/slash_commands.py:346 SlashCommandsMixin.addadmin
-[ ] cogs/slash_commands.py:408 SlashCommandsMixin.help_command
-[ ] cogs/slash_commands.py:465 SlashCommandsMixin.ping_command
-[ ] cogs/slash_commands.py:475 SlashCommandsMixin.donate_command
-[ ] cogs/slash_commands.py:542 SlashCommandsMixin.info_command
+[ ] cogs/slash_commands.py:366 SlashCommandsMixin.addadmin
+[ ] cogs/slash_commands.py:428 SlashCommandsMixin.help_command
+[ ] cogs/slash_commands.py:485 SlashCommandsMixin.ping_command
+[ ] cogs/slash_commands.py:495 SlashCommandsMixin.donate_command
+[ ] cogs/slash_commands.py:562 SlashCommandsMixin.info_command
 
 ## Section 06  (1660 lines, 34 public names)
 [ ] cogs/docker_control.py:890 DockerControlCog.control_command
