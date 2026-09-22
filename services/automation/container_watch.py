@@ -98,3 +98,54 @@ class ContainerWatcher:
                               f"Container '{name}' restarted {in_window} times within {minutes} min.",
                               threshold=self.restart_threshold, window_minutes=minutes)
         return None
+
+
+HIGH_CPU = "high_cpu"
+HIGH_MEMORY = "high_memory"
+RESOURCE_KINDS = {"cpu": HIGH_CPU, "memory": HIGH_MEMORY}
+
+
+class ResourceWatcher:
+    """CPU or memory above a threshold for a while - once, with hysteresis (Phase 4b).
+
+    A container is reported when its value stays above ``threshold_percent``
+    for ``minutes``. It is then not reported again until the value has fallen
+    below the threshold minus ``hysteresis_percent`` - a value hovering at the
+    line would otherwise report every poll. A missing measurement (None: the
+    container is stopped, or stats were not available) resets the timer.
+    Test: tests/spec/test_a_container_that_runs_hot_is_reported_once.py
+    """
+
+    def __init__(self, metric: str, threshold_percent: float, minutes: int, hysteresis_percent: float = 10):
+        self.metric = metric
+        self.kind = RESOURCE_KINDS[metric]
+        self.threshold = threshold_percent
+        self.minutes = minutes
+        self.hysteresis = hysteresis_percent
+        self._high_since: Dict[str, float] = {}
+        self._alerted: set = set()
+
+    def observe(self, values: Dict[str, Optional[float]], now: float) -> List[WatchEvent]:
+        events: List[WatchEvent] = []
+        for name, value in values.items():
+            if value is None:
+                self._high_since.pop(name, None)
+                self._alerted.discard(name)
+                continue
+            if name in self._alerted:
+                if value < self.threshold - self.hysteresis:
+                    self._alerted.discard(name)
+                    self._high_since.pop(name, None)
+                continue
+            if value > self.threshold:
+                since = self._high_since.setdefault(name, now)
+                if now - since >= self.minutes * 60:
+                    self._alerted.add(name)
+                    label = "CPU" if self.metric == "cpu" else "Memory"
+                    events.append(WatchEvent(
+                        name, self.kind,
+                        f"{label} of '{name}' above {self.threshold:g}% for {self.minutes} min (now {value:.0f}%).",
+                        threshold=int(self.threshold), window_minutes=self.minutes))
+            else:
+                self._high_since.pop(name, None)
+        return events

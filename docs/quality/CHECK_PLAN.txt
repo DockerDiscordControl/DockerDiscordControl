@@ -245,7 +245,7 @@
 [ ] services/automation/auto_action_config_service.py:755 AutoActionConfigService.increment_trigger_count
 [ ] services/automation/auto_action_config_service.py:783 get_auto_action_config_service
 
-## Section 11  (1925 lines, 40 public names)
+## Section 11  (1976 lines, 42 public names)
 [ ] services/automation/auto_action_state_service.py:24 TriggerEvent
 [ ] services/automation/auto_action_state_service.py:34 TriggerEvent.to_dict
 [ ] services/automation/auto_action_state_service.py:37 AutoActionStateService
@@ -268,6 +268,8 @@
 [ ] services/automation/container_watch.py:42 WatchEvent
 [ ] services/automation/container_watch.py:52 ContainerWatcher
 [ ] services/automation/container_watch.py:60 ContainerWatcher.observe
+[ ] services/automation/container_watch.py:108 ResourceWatcher
+[ ] services/automation/container_watch.py:128 ResourceWatcher.observe
 [ ] services/config/channel_config_service.py:29 ChannelConfigService
 [ ] services/config/channel_config_service.py:126 ChannelConfigService.get_all_channels
 [ ] services/config/channel_config_service.py:232 ChannelConfigService.get_channel

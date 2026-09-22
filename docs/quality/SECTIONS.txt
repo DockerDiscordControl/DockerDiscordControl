@@ -69,10 +69,10 @@ services/admin/admin_service.py:1-379
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-788
 
-## Section 11  (1822 lines, 7 pieces)
+## Section 11  (1976 lines, 7 pieces)
 services/automation/auto_action_state_service.py:1-364
 services/automation/automation_service.py:1-654
-services/automation/container_watch.py:1-100
+services/automation/container_watch.py:1-151
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576
 services/config/channel_roles.py:1-38
