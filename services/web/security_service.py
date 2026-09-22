@@ -318,13 +318,13 @@ class SecurityService:
         """Log security action for audit trail."""
         try:
             from services.infrastructure.action_logger import log_user_action
-            from flask import session
-
-            user = session.get('user', 'Unknown')
+            # No session['user']: nothing in the tree ever sets it, so this
+            # wrote "Unknown". log_user_action takes the name from the
+            # authenticated request itself
+            # (tests/spec/test_the_action_log_names_the_person_who_acted.py).
             log_user_action(
                 action=action,
                 target=target,
-                user=user,
                 source="Web UI - Security",
                 details=details
             )

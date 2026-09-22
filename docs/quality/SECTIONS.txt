@@ -137,7 +137,7 @@ services/donation/unified_donation_service.py:1-31
 services/exceptions.py:1-299
 services/infrastructure/__init__.py:1-0
 services/infrastructure/action_log_service.py:1-387
-services/infrastructure/action_logger.py:1-103
+services/infrastructure/action_logger.py:1-124
 services/infrastructure/container_info_service.py:1-332
 
 ## Section 19  (1970 lines, 5 pieces)

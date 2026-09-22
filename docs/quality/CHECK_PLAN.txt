@@ -560,7 +560,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/donation/unified/processors.py:52 execute_async_donation
 [ ] services/donation/unified/reset.py:27 reset_donations
 
-## Section 18  (1679 lines, 88 public names)
+## Section 18  (1700 lines, 88 public names)
 [ ] services/donation/unified/service.py:40 UnifiedDonationService
 [ ] services/donation/unified/service.py:50 UnifiedDonationService.process_donation
 [ ] services/donation/unified/service.py:226 UnifiedDonationService.process_donation_async
@@ -637,9 +637,9 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/infrastructure/action_log_service.py:179 ActionLogService.get_logs
 [ ] services/infrastructure/action_log_service.py:378 get_action_log_service
 [ ] services/infrastructure/action_logger.py:20 ActionLogUnreadable
-[ ] services/infrastructure/action_logger.py:41 log_user_action
-[ ] services/infrastructure/action_logger.py:60 get_action_logs_json
-[ ] services/infrastructure/action_logger.py:85 get_action_logs_text
+[ ] services/infrastructure/action_logger.py:60 log_user_action
+[ ] services/infrastructure/action_logger.py:81 get_action_logs_json
+[ ] services/infrastructure/action_logger.py:106 get_action_logs_text
 [ ] services/infrastructure/container_info_service.py:53 ContainerInfo
 [ ] services/infrastructure/container_info_service.py:66 ContainerInfo.from_dict
 [ ] services/infrastructure/container_info_service.py:85 ContainerInfo.to_dict

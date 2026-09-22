@@ -12,7 +12,7 @@ Action Logger Compatibility Layer - Maintains existing API while using new servi
 import logging
 from pathlib import Path
 from services.infrastructure.action_log_service import get_action_log_service, DEFAULT_TEXT_LOG_FILE
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger('ddc.action_logger')
 
@@ -38,6 +38,25 @@ _ACTION_LOG_FILE = str(DEFAULT_TEXT_LOG_FILE)
 
 ACTION_LOG_FILE = _ACTION_LOG_FILE  # Both names for compatibility
 
+def _user_of_this_request() -> Optional[str]:
+    """The authenticated name of the request this action came in on, or None.
+
+    Every panel route is behind Basic auth, so the name in the Authorization
+    header is the one DDC verified. Without it the panel's own actions - saving
+    settings, booking a donation, editing a schedule - were all logged as
+    "System", and the log the operator reads could not answer "who did this?".
+    """
+    try:
+        from flask import has_request_context, request
+
+        if not has_request_context():
+            return None
+        credentials = request.authorization
+        return credentials.username if credentials and credentials.username else None
+    except Exception:  # noqa: BLE001 - logging must never be the thing that fails
+        return None
+
+
 def log_user_action(action: str, target: str, user: str = "System",
                    source: str = "Unknown", details: str = "-"):
     """
@@ -50,6 +69,8 @@ def log_user_action(action: str, target: str, user: str = "System",
         source: Source of the action (e.g., Web UI, Discord Command)
         details: Additional details about the action
     """
+    if user == "System":
+        user = _user_of_this_request() or "System"
     service = get_action_log_service()
     result = service.log_action(action, target, user, source, details)
 
