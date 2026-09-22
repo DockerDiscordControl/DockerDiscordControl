@@ -8,6 +8,17 @@ the API version once and caches it instead of pinning it (§7 step 6 - docker-py
 defaults to API 1.44, which Docker older than 25 refuses), and there were eight client
 sites, not seven (§6). The sections below are the plan as decided; where the result
 differs, the commit messages say why.
+
+**Since then, on the same branch:** the cog split of Phase 3 and the watchdog,
+resource, image-update and Compose-stack work of Phase 4 are done, and three
+independent review passes over the new code have been worked through. What they
+changed about this plan's promises: a proxy that does not come up no longer lets
+DDC fall back to the raw socket (the only remaining fallback is a container
+started with `--user`, which never had a proxy); the reserved image endpoint no
+longer allows a digest in the name, because nothing can ask for one; a failure
+inside a running answer is no longer written into it as a second answer; and the
+API version is negotiated once even when several clients are built at the same
+moment, which is what the sentence above always claimed.
 v2.4 is finalised first; v2.5 is skipped. Written 2026-09-22, revised the same
 day after an independent review that measured the v2.4.1 tree, the running
 container and docker-py 7.1.0 itself. Corrections are marked **(revised)**.
