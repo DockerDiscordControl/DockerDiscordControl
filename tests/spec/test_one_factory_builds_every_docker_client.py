@@ -146,3 +146,44 @@ def test_a_courtesy_that_fails_does_not_take_docker_with_it(fake, monkeypatch, c
     finally:
         client.close()
     assert "docker_socket_path" in caplog.text
+
+
+def test_eight_clients_built_at_once_negotiate_once(fake):
+    """THE FINDING: the cached API version was read under the lock but
+    negotiated outside it, so clients built at the same moment - DDC builds
+    them from the bot loop, the web workers and the scheduler at boot - each
+    asked the daemon for /version and each wrote the answer. Harmless in
+    effect (extra round trips), but "negotiated once and cached" is what the
+    architecture plan says and what this file's other test pins with three
+    SEQUENTIAL builds, which cannot fail on it.
+
+    COUNTER-CHECK (2026-09-22): red before - eight threads produced up to
+    eight /version requests."""
+    import threading
+
+    from services.docker_service.client_factory import build_docker_client
+
+    _, _, seen = fake
+    ready = threading.Barrier(8)
+    clients = []
+    errors = []
+
+    def build():
+        try:
+            ready.wait(timeout=10)
+            clients.append(build_docker_client(timeout=5))
+        except Exception as error:  # noqa: BLE001 - reported below
+            errors.append(error)
+
+    threads = [threading.Thread(target=build) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=20)
+    try:
+        assert not errors, errors
+        assert len(clients) == 8
+        assert len(_versions(seen)) == 1, _versions(seen)
+    finally:
+        for client in clients:
+            client.close()

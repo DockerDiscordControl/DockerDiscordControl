@@ -85,11 +85,17 @@ def build_docker_client(*, timeout: float) -> docker.DockerClient:
     _report_retired_socket_path()
     with _lock:
         known = _api_version
-    client = docker.from_env(timeout=timeout, version=known or "auto")
-    if known is None:
-        with _lock:
-            _api_version = client.api.api_version
-    return client
+    if known is not None:
+        return docker.from_env(timeout=timeout, version=known)
+    # The FIRST client negotiates under the lock, so clients built at the same
+    # moment - bot loop, web workers and scheduler at boot - do not each ask the
+    # daemon for /version. Afterwards nobody takes the lock to build a client.
+    with _lock:
+        if _api_version is not None:
+            return docker.from_env(timeout=timeout, version=_api_version)
+        client = docker.from_env(timeout=timeout, version="auto")
+        _api_version = client.api.api_version
+        return client
 
 
 def _reset_for_tests() -> None:
