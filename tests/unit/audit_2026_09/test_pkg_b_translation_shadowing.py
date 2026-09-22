@@ -138,8 +138,8 @@ async def test_control_config_load_failure_sends_message():
     from cogs.docker_control import DockerControlCog
     cog, ctx = _control_cog(), _control_ctx()
     with patch.object(DockerControlCog, "config", new_callable=PropertyMock, return_value={}), \
-         patch("cogs.docker_control._channel_has_permission", return_value=True), \
-         patch("cogs.docker_control.load_config", return_value={}), patch("cogs.overview_embeds.load_config", return_value={}):
+         patch("cogs.docker_control._channel_has_permission", return_value=True), patch("cogs.slash_commands._channel_has_permission", return_value=True), \
+         patch("cogs.docker_control.load_config", return_value={}), patch("cogs.slash_commands.load_config", return_value={}), patch("cogs.overview_embeds.load_config", return_value={}):
         await DockerControlCog.control.callback(cog, ctx)
 
     ctx.followup.send.assert_awaited_once_with(translate("❌ Could not load configuration."))
@@ -152,9 +152,9 @@ async def test_control_no_servers_sends_message():
     scs = MagicMock()
     scs.get_all_servers.return_value = []
     with patch.object(DockerControlCog, "config", new_callable=PropertyMock, return_value={}), \
-         patch("cogs.docker_control._channel_has_permission", return_value=True), \
-         patch("cogs.docker_control.load_config", return_value={"language": "en"}), patch("cogs.overview_embeds.load_config", return_value={"language": "en"}), \
-         patch("cogs.docker_control.get_server_config_service", return_value=scs):
+         patch("cogs.docker_control._channel_has_permission", return_value=True), patch("cogs.slash_commands._channel_has_permission", return_value=True), \
+         patch("cogs.docker_control.load_config", return_value={"language": "en"}), patch("cogs.slash_commands.load_config", return_value={"language": "en"}), patch("cogs.overview_embeds.load_config", return_value={"language": "en"}), \
+         patch("cogs.docker_control.get_server_config_service", return_value=scs), patch("cogs.slash_commands.get_server_config_service", return_value=scs):
         await DockerControlCog.control.callback(cog, ctx)
 
     ctx.followup.send.assert_awaited_once_with(translate("❌ No servers configured."))

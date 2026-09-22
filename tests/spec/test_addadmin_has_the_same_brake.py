@@ -18,7 +18,8 @@ from pathlib import Path
 import pytest
 
 PROJECT = Path(__file__).resolve().parents[2]
-SOURCE = PROJECT / "cogs" / "docker_control.py"
+# The slash commands moved to slash_commands.py in the Phase 3 cog split.
+SOURCE = PROJECT / "cogs" / "slash_commands.py"
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 # The slash commands of this cog, by the name they are registered under.
 COMMANDS = ("control", "help_command", "ping_command", "donate_command",
