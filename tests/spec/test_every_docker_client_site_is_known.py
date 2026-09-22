@@ -8,10 +8,11 @@ hard-coded ``unix:///var/run/docker.sock``, or the configured
 proxy. Both paths work, so no functional test notices; the security claim of
 v3.0 would simply be false. See docs/V3_ARCHITECTURE_PLAN.md §6.
 
-This is a ratchet, not a fix. It pins the sites as they ARE today, including
-their differences, and turns red when one appears, disappears or changes how
-it resolves the socket. The client factory of v3.0 (Etappe 2c) will empty the
-table on purpose, one row at a time.
+This began as a ratchet on eight sites as they were, and was emptied on
+purpose, one row per commit, as each site moved onto the client factory
+(services/docker_service/client_factory.py, v3.0 step 6). Since 2026-09-22 the
+table holds the factory and nothing else: a new row means a new way past the
+proxy.
 
 It also pins that no site passes ``version=``: without it docker-py 7.1.0 calls
 ``GET /version`` (unprefixed) on every client construction to negotiate the
@@ -51,12 +52,9 @@ DEFAULT_SOCKET = "unix:///var/run/docker.sock"
 FACTORY = ("services/docker_service/client_factory.py", "build_docker_client")
 
 # (file, enclosing function) -> (constructors used, hard-codes the default socket)
-# Every row except the factory is a site still to be moved onto the factory;
-# the table only shrinks.
+# Only the factory. Do not add a row: route the new client through the factory.
 KNOWN_SITES = {
     FACTORY: ({"from_env"}, False),
-    ("services/docker_service/docker_client_pool.py", "get_docker_client_async"):
-        ({"DockerClient", "from_env"}, False),
 }
 
 

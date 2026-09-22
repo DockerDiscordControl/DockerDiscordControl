@@ -698,8 +698,11 @@ def get_docker_client_service() -> DockerClientService:
 @asynccontextmanager
 async def get_docker_client_async(timeout: float = 30.0, operation: str = 'default', container_name: str = None):
     """
-    Backward compatibility async context manager for Docker client access.
-    FALLBACK: Uses simple docker.from_env() until SERVICE FIRST is fully stable.
+    Async context manager handing out one Docker client, built by the client factory.
+
+    It used to try the configured docker_socket_path first and docker.from_env
+    second. Behind the v3.0 proxy the first way walks past it;
+    docker_socket_path is retired. The caller's timeout, as before.
 
     Args:
         timeout: Operation timeout in seconds
@@ -709,40 +712,20 @@ async def get_docker_client_async(timeout: float = 30.0, operation: str = 'defau
     Yields:
         docker.DockerClient: Docker client instance
     """
-    # TEMPORARY FALLBACK: Use direct docker.from_env() for stability
+    from .client_factory import build_docker_client
+
     client = None
     try:
-        # Load Docker configuration like the old working version
-        from services.config.config_service import load_config
-        config = load_config()
-        docker_config = config.get('docker_config', {})
-        socket_path = docker_config.get('docker_socket_path', '/var/run/docker.sock')
-
         try:
-            # Method 1: Try configured socket path
-            client = await asyncio.to_thread(
-                docker.DockerClient,
-                base_url=f'unix://{socket_path}',
-                timeout=int(timeout)
-            )
+            client = await asyncio.to_thread(build_docker_client, timeout=int(timeout))
             await asyncio.to_thread(client.ping)
-            logger.debug(f"Docker client created with configured socket: {socket_path}")
-
-        except (docker.errors.DockerException, OSError, RuntimeError) as e1:
-            logger.debug(f"Configured socket failed ({socket_path}): {e1}")
-            try:
-                # Method 2: Fallback to docker.from_env
-                client = await asyncio.to_thread(docker.from_env, timeout=int(timeout))
-                await asyncio.to_thread(client.ping)
-                logger.debug("Docker client created with docker.from_env fallback")
-
-            except (docker.errors.DockerException, OSError, RuntimeError) as e2:
-                logger.error(f"All Docker client methods failed: config={e1}, from_env={e2}")
-                raise DockerConnectionError(
-                    "Docker connection failed",
-                    error_code="DOCKER_CONNECTION_FAILED",
-                    details={'config_error': str(e1), 'from_env_error': str(e2)}
-                )
+        except (docker.errors.DockerException, OSError, RuntimeError) as e:
+            logger.error(f"Docker client could not be created: {e}")
+            raise DockerConnectionError(
+                "Docker connection failed",
+                error_code="DOCKER_CONNECTION_FAILED",
+                details={'error': str(e)}
+            )
 
         yield client
 

@@ -599,70 +599,32 @@ class TestModuleSingletonAndBackcompat:
         assert s1 is s2
         assert isinstance(s1, DockerClientService)
 
+    # Rewritten 2026-09-22 with the move onto the client factory; these pinned
+    # "configured docker_socket_path first, from_env second".
     @pytest.mark.asyncio
-    async def test_get_docker_client_async_success_path(self):
+    async def test_get_docker_client_async_goes_through_the_factory(self):
         mock_client = _make_mock_client(ping_ok=True)
-        fake_load_config = MagicMock(
-            return_value={"docker_config": {"docker_socket_path": "/tmp/sock"}}
-        )
-
         with patch(
-            "services.config.config_service.load_config",
-            fake_load_config,
-        ):
-            with patch.object(
-                dcp_mod.docker, "DockerClient", return_value=mock_client
-            ):
-                async with get_docker_client_async(timeout=5.0) as c:
-                    assert c is mock_client
-
-        # After context exit, close was called.
+            "services.docker_service.client_factory.build_docker_client",
+            return_value=mock_client,
+        ) as factory:
+            async with get_docker_client_async(timeout=5.0) as c:
+                assert c is mock_client
+        factory.assert_called_once_with(timeout=5)
         mock_client.close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_docker_client_async_falls_back_to_from_env(self):
-        fallback = _make_mock_client(ping_ok=True)
-        fake_load_config = MagicMock(
-            return_value={"docker_config": {"docker_socket_path": "/tmp/sock"}}
-        )
+    async def test_get_docker_client_async_takes_no_second_way(self):
         with patch(
-            "services.config.config_service.load_config",
-            fake_load_config,
-        ):
-            with patch.object(
-                dcp_mod.docker,
-                "DockerClient",
-                side_effect=dcp_mod.docker.errors.DockerException("nope"),
-            ):
-                with patch.object(
-                    dcp_mod.docker, "from_env", return_value=fallback
-                ):
-                    async with get_docker_client_async(timeout=5.0) as c:
-                        assert c is fallback
-        fallback.close.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_get_docker_client_async_total_failure_raises(self):
-        fake_load_config = MagicMock(
-            return_value={"docker_config": {"docker_socket_path": "/tmp/sock"}}
-        )
-        with patch(
-            "services.config.config_service.load_config",
-            fake_load_config,
-        ):
-            with patch.object(
-                dcp_mod.docker,
-                "DockerClient",
-                side_effect=dcp_mod.docker.errors.DockerException("primary"),
-            ):
-                with patch.object(
-                    dcp_mod.docker,
-                    "from_env",
-                    side_effect=dcp_mod.docker.errors.DockerException("env"),
-                ):
-                    with pytest.raises(DockerConnectionError):
-                        async with get_docker_client_async(timeout=1.0):
-                            pass
+            "services.docker_service.client_factory.build_docker_client",
+            side_effect=dcp_mod.docker.errors.DockerException("proxy down"),
+        ), patch.object(dcp_mod.docker, "DockerClient") as direct, \
+                patch.object(dcp_mod.docker, "from_env") as from_env:
+            with pytest.raises(DockerConnectionError):
+                async with get_docker_client_async(timeout=1.0):
+                    pass
+        direct.assert_not_called()
+        from_env.assert_not_called()
 
 
 # =========================================================================== #

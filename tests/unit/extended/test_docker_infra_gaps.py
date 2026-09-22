@@ -893,20 +893,13 @@ class TestPoolBackcompatCloseError:
     async def test_close_error_in_finally_is_swallowed(self):
         client = _mock_client()
         client.close.side_effect = OSError("cannot close")
-        fake_load_config = MagicMock(
-            return_value={
-                "docker_config": {"docker_socket_path": "/tmp/sock"}
-            }
-        )
         with patch(
-            "services.config.config_service.load_config", fake_load_config
+            "services.docker_service.client_factory.build_docker_client",
+            return_value=client,
         ):
-            with patch.object(
-                dcp_mod.docker, "DockerClient", return_value=client
-            ):
-                # Must not raise even when close errors out.
-                async with dcp_mod.get_docker_client_async(timeout=1.0) as c:
-                    assert c is client
+            # Must not raise even when close errors out.
+            async with dcp_mod.get_docker_client_async(timeout=1.0) as c:
+                assert c is client
 
 
 # =========================================================================== #

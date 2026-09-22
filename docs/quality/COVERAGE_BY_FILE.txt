@@ -125,7 +125,7 @@ services/docker_proxy/allowlist_proxy.py	227	NONE
 services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	95	NONE
 services/docker_service/docker_action_service.py	295	pass1:s14:plan pass2:s14:1-276
-services/docker_service/docker_client_pool.py	755	pass1:s15:1-708  [37 of 745 lines never in a package]
+services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
 services/docker_service/docker_utils.py	1217	pass1:s16:1-1404  [28 of 1432 lines never in a package]
 services/docker_service/server_order.py	111	pass1:s16:1-111
 services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101
