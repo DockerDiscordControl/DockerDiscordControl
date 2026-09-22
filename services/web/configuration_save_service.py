@@ -98,6 +98,14 @@ class ConfigurationSaveService:
             # Step 2: Clean and process form data
             cleaned_form_data = self._clean_form_data(request.form_data)
 
+            # What is on disk BEFORE the write below. Step 4 used to read it
+            # afterwards and compare the new configuration with itself, so a
+            # changed language or timezone was never noticed and the caches were
+            # never cleared - the panel stayed in the old language until restart.
+            from services.config.config_service import load_config as _load_config_before
+
+            config_before = _load_config_before() or {}
+
             # Step 3: Process configuration through ConfigService
             processed_data, success, message = self._process_configuration(cleaned_form_data)
             if not success:
@@ -106,8 +114,9 @@ class ConfigurationSaveService:
                     message=message or "Configuration processing failed"
                 )
 
-            # Step 4: Check for critical settings changes
-            critical_changes = self._check_critical_changes(processed_data)
+            # Step 4: Check for critical settings changes (against the values
+            # read before step 3 wrote them)
+            critical_changes = self._check_critical_changes(processed_data, config_before)
 
             # Step 5: Save server order separately for immediate effect
             self._save_server_order(processed_data)
@@ -246,11 +255,17 @@ class ConfigurationSaveService:
             self.logger.error(f"Data error processing configuration: {e}", exc_info=True)
             return {}, False, f"Data error processing configuration: {str(e)}"
 
-    def _check_critical_changes(self, processed_data: Dict[str, Any]) -> 'CriticalChanges':
-        """Check for critical settings that require cache invalidation."""
+    def _check_critical_changes(self, processed_data: Dict[str, Any],
+                                config_before: Optional[Dict[str, Any]] = None) -> 'CriticalChanges':
+        """Check for critical settings that require cache invalidation.
+
+        ``config_before`` is what was on disk before this save wrote; without
+        it the comparison reads the file this save has just written and can
+        never see a change.
+        """
         try:
             from services.config.config_service import load_config
-            current_config = load_config()
+            current_config = config_before if config_before is not None else load_config()
 
             changes = CriticalChanges()
 

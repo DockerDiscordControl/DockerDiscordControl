@@ -1079,7 +1079,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/translation/translation_config_service.py:666 TranslationConfigService.get_target_channel_ids
 [ ] services/translation/translation_config_service.py:680 get_translation_config_service
 
-## Section 28  (1929 lines, 40 public names)
+## Section 28  (1944 lines, 40 public names)
 [ ] services/translation/translation_service.py:54 TranslationContext
 [ ] services/translation/translation_service.py:67 TranslationContext.message_link
 [ ] services/translation/translation_service.py:71 TranslationContext.full_text
@@ -1117,9 +1117,9 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/web/configuration_save_service.py:50 info_fields_to_write
 [ ] services/web/configuration_save_service.py:76 ConfigurationSaveService
 [ ] services/web/configuration_save_service.py:82 ConfigurationSaveService.save_configuration
-[ ] services/web/configuration_save_service.py:574 CriticalChanges
-[ ] services/web/configuration_save_service.py:585 SaveFilesResult
-[ ] services/web/configuration_save_service.py:596 get_configuration_save_service
+[ ] services/web/configuration_save_service.py:589 CriticalChanges
+[ ] services/web/configuration_save_service.py:600 SaveFilesResult
+[ ] services/web/configuration_save_service.py:611 get_configuration_save_service
 
 ## Section 29  (1845 lines, 50 public names)
 [ ] services/web/container_log_service.py:27 LogType
