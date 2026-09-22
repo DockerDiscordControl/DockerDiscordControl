@@ -39,6 +39,9 @@ def cog(monkeypatch):
     from cogs.docker_control import DockerControlCog
 
     monkeypatch.setattr(docker_control, "load_config", lambda: {"timezone": "UTC"})
+    # The overview embeds moved to cogs/overview_embeds.py (Phase 3): patch both.
+    import cogs.overview_embeds as overview_embeds
+    monkeypatch.setattr(overview_embeds, "load_config", lambda: {"timezone": "UTC"})
 
     instance = DockerControlCog.__new__(DockerControlCog)
     instance.pending_actions = {}

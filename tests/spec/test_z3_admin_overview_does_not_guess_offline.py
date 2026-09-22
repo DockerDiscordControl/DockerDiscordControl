@@ -48,7 +48,7 @@ def _patches():
     mech_cache = MagicMock()
     mech_cache.get_cached_status.return_value = SimpleNamespace(success=False, error_message="n/a")
     return [
-        patch("cogs.docker_control.load_config", return_value={}),
+        patch("cogs.docker_control.load_config", return_value={}), patch("cogs.overview_embeds.load_config", return_value={}),
         patch("services.infrastructure.container_info_service.get_container_info_service",
               return_value=info_service),
         patch("services.donation.donation_utils.is_donations_disabled", return_value=False),

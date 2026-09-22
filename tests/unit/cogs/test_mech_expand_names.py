@@ -33,7 +33,12 @@ import pytest
 from services.mech.mech_service_adapter import get_level_name
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-SOURCE = (PROJECT_ROOT / "cogs" / "docker_control.py").read_text(encoding="utf-8")
+# The cog spans several files since the Phase 3 split; the expanded overview
+# (where the mech names are built) moved to overview_embeds.py.
+SOURCE = "\n".join(
+    (PROJECT_ROOT / "cogs" / name).read_text(encoding="utf-8")
+    for name in ("docker_control.py", "overview_embeds.py")
+)
 
 MAX_LEVEL = 11
 

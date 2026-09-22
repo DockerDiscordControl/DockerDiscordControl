@@ -70,7 +70,8 @@ def test_no_reference_to_nonexistent_get_translation():
 
 def test_admin_overview_embed_imports_translate_once():
     """B12: ruff F811 - `translate` was imported twice in _create_admin_overview_embed."""
-    tree = ast.parse((COGS_DIR / "docker_control.py").read_text(encoding="utf-8"))
+    # The overview embeds moved to overview_embeds.py in the Phase 3 cog split.
+    tree = ast.parse((COGS_DIR / "overview_embeds.py").read_text(encoding="utf-8"))
     fn = next(n for n in ast.walk(tree)
               if isinstance(n, ast.AsyncFunctionDef) and n.name == "_create_admin_overview_embed")
     imports = [a for n in ast.walk(fn) if isinstance(n, ast.ImportFrom)
@@ -138,7 +139,7 @@ async def test_control_config_load_failure_sends_message():
     cog, ctx = _control_cog(), _control_ctx()
     with patch.object(DockerControlCog, "config", new_callable=PropertyMock, return_value={}), \
          patch("cogs.docker_control._channel_has_permission", return_value=True), \
-         patch("cogs.docker_control.load_config", return_value={}):
+         patch("cogs.docker_control.load_config", return_value={}), patch("cogs.overview_embeds.load_config", return_value={}):
         await DockerControlCog.control.callback(cog, ctx)
 
     ctx.followup.send.assert_awaited_once_with(translate("❌ Could not load configuration."))
@@ -152,7 +153,7 @@ async def test_control_no_servers_sends_message():
     scs.get_all_servers.return_value = []
     with patch.object(DockerControlCog, "config", new_callable=PropertyMock, return_value={}), \
          patch("cogs.docker_control._channel_has_permission", return_value=True), \
-         patch("cogs.docker_control.load_config", return_value={"language": "en"}), \
+         patch("cogs.docker_control.load_config", return_value={"language": "en"}), patch("cogs.overview_embeds.load_config", return_value={"language": "en"}), \
          patch("cogs.docker_control.get_server_config_service", return_value=scs):
         await DockerControlCog.control.callback(cog, ctx)
 

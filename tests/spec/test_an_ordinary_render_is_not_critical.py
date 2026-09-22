@@ -37,7 +37,7 @@ async def _render(caplog):
     service.get_cached_status.return_value = _mech_result()
     cog = object.__new__(DockerControlCog)
     with caplog.at_level(logging.DEBUG):
-        with patch("cogs.docker_control.load_config", return_value={}), \
+        with patch("cogs.docker_control.load_config", return_value={}), patch("cogs.overview_embeds.load_config", return_value={}), \
              patch("services.donation.donation_utils.is_donations_disabled",
                    return_value=False), \
              patch("services.mech.mech_status_cache_service.get_mech_status_cache_service",

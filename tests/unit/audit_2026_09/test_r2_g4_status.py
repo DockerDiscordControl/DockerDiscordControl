@@ -163,7 +163,7 @@ class TestNotFoundDetection:
         cog.bulk_fetch_container_status = AsyncMock(return_value={
             "gone": ContainerStatusResult.not_found_result("gone", "Gone")})
         with patch("cogs.docker_control.get_server_config_service", return_value=_servers("gone")), \
-             patch("cogs.docker_control.load_config", return_value={"language": "en"}):
+             patch("cogs.docker_control.load_config", return_value={"language": "en"}), patch("cogs.overview_embeds.load_config", return_value={"language": "en"}):
             await cog._background_cache_population()
 
         assert cache.get("gone")["data"].not_found is True
@@ -176,7 +176,7 @@ def _render_patches():
     mech_cache = MagicMock()
     mech_cache.get_cached_status.return_value = SimpleNamespace(success=False, error_message="n/a")
     return [
-        patch("cogs.docker_control.load_config", return_value={}),
+        patch("cogs.docker_control.load_config", return_value={}), patch("cogs.overview_embeds.load_config", return_value={}),
         patch("services.infrastructure.container_info_service.get_container_info_service",
               return_value=info_service),
         patch("services.donation.donation_utils.is_donations_disabled", return_value=False),
@@ -256,7 +256,7 @@ class TestStatusCacheMaxRenderAge:
         cog = _cog(cache)
         cog.bulk_fetch_container_status = _bulk_fetch()
         with patch("cogs.docker_control.get_server_config_service", return_value=_servers("a", "b")), \
-             patch("cogs.docker_control.load_config", return_value={"language": "en"}):
+             patch("cogs.docker_control.load_config", return_value={"language": "en"}), patch("cogs.overview_embeds.load_config", return_value={"language": "en"}):
             await asyncio.gather(*(cog._ensure_status_cache_fresh() for _i in range(3)))
             await cog._ensure_status_cache_fresh()   # just refreshed -> fresh again, no fetch
 
@@ -275,7 +275,7 @@ class TestStatusCacheMaxRenderAge:
         cog = _cog(FakeStatusCache({"a": _entry(5), "b": _entry(STATUS_CACHE_MAX_RENDER_AGE_SECONDS + 30)}))
         cog.bulk_fetch_container_status = _bulk_fetch(names_returned={"a"})
         with patch("cogs.docker_control.get_server_config_service", return_value=_servers("a", "b")), \
-             patch("cogs.docker_control.load_config", return_value={"language": "en"}):
+             patch("cogs.docker_control.load_config", return_value={"language": "en"}), patch("cogs.overview_embeds.load_config", return_value={"language": "en"}):
             await cog._ensure_status_cache_fresh()
             await cog._ensure_status_cache_fresh()
 

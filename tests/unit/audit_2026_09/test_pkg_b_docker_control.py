@@ -83,7 +83,7 @@ async def test_stale_cache_fetches_once_for_concurrent_callers():
     cog = _cog(cache)
     cog.bulk_fetch_container_status = _bulk_fetch()
     with patch("cogs.docker_control.get_server_config_service", return_value=_servers("a", "b")), \
-         patch("cogs.docker_control.load_config", return_value={"language": "en"}):
+         patch("cogs.docker_control.load_config", return_value={"language": "en"}), patch("cogs.overview_embeds.load_config", return_value={"language": "en"}):
         await asyncio.gather(*(cog._ensure_status_cache_fresh() for _i in range(3)))
     assert cog.bulk_fetch_container_status.await_count == 1
     assert cache.get("b") is not None
@@ -94,7 +94,7 @@ async def test_failed_containers_do_not_force_refetch():
     cog = _cog(FakeStatusCache(["a"]))
     cog.bulk_fetch_container_status = _bulk_fetch(fail={"b"})
     with patch("cogs.docker_control.get_server_config_service", return_value=_servers("a", "b")), \
-         patch("cogs.docker_control.load_config", return_value={"language": "en"}):
+         patch("cogs.docker_control.load_config", return_value={"language": "en"}), patch("cogs.overview_embeds.load_config", return_value={"language": "en"}):
         await cog._ensure_status_cache_fresh()   # b missing -> one fetch, b fails
         await cog._ensure_status_cache_fresh()   # b known-failed -> no second fetch
     assert cog.bulk_fetch_container_status.await_count == 1
@@ -134,7 +134,7 @@ async def test_overview_builders_return_tuple_when_mech_cache_fails(builder):
     cog = _cog(FakeStatusCache())
     mech_cache = MagicMock()
     mech_cache.get_cached_status.return_value = SimpleNamespace(success=False, error_message="boom")
-    with patch("cogs.docker_control.load_config", return_value={}), \
+    with patch("cogs.docker_control.load_config", return_value={}), patch("cogs.overview_embeds.load_config", return_value={}), \
          patch("services.donation.donation_utils.is_donations_disabled", return_value=False), \
          patch("services.mech.mech_status_cache_service.get_mech_status_cache_service",
                return_value=mech_cache):
@@ -158,7 +158,7 @@ async def test_trigger_status_refresh_updates_overviews():
     cog.channel_server_message_ids = {1: {"overview": 10, "admin_overview": 11}}
     cog._update_overview_message = AsyncMock(return_value=True)
 
-    with patch("cogs.docker_control.load_config", return_value={"servers": [{"docker_name": "web"}]}), \
+    with patch("cogs.docker_control.load_config", return_value={"servers": [{"docker_name": "web"}]}), patch("cogs.overview_embeds.load_config", return_value={"servers": [{"docker_name": "web"}]}), \
          patch("cogs.docker_control.get_server_config_service", return_value=_servers("web")), \
          patch("services.infrastructure.container_status_service.get_container_status_service"):
         await cog.trigger_status_refresh("web", delay_seconds=0)

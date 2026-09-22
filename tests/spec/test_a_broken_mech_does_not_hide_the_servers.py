@@ -46,6 +46,9 @@ def cog_with_a_broken_mech(monkeypatch):
     from cogs.docker_control import DockerControlCog
 
     monkeypatch.setattr(docker_control, "load_config", lambda: {"timezone": "Europe/Berlin"})
+    # The overview embeds moved to cogs/overview_embeds.py (Phase 3): patch both.
+    import cogs.overview_embeds as overview_embeds
+    monkeypatch.setattr(overview_embeds, "load_config", lambda: {"timezone": "Europe/Berlin"})
 
     import services.donation.donation_utils as donation_utils
     monkeypatch.setattr(donation_utils, "is_donations_disabled", lambda: False)
