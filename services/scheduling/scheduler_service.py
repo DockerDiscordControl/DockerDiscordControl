@@ -373,16 +373,6 @@ class SchedulerService:
                 if not task.next_run_ts or task.next_run_ts > current_ts:
                     continue
 
-                # Missed by more than the grace period (host down, scheduler not
-                # running): don't run it retroactively, move it to its next occurrence
-                # instead of leaving next_run in the past forever.
-                if self._lateness(task, current_ts) > MISSED_RUN_GRACE_SECONDS:
-                    try:
-                        reschedule_missed_task(task)
-                    except (RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
-                        logger.error(f"Error rescheduling missed task {task.task_id}: {e}", exc_info=True)
-                    continue
-
                 # Skip if task is already running
                 if task.task_id in self.active_tasks:
                     logger.debug(f"Task {task.container_name} (ID: {task.task_id}) is already running, skipping")
@@ -393,6 +383,20 @@ class SchedulerService:
                 if self._executed_runs.get(task.task_id) == task.next_run_ts:
                     logger.debug(f"Task {task.task_id} already executed for {task.next_run_ts}, skipping")
                     self.task_execution_stats['total_skipped'] += 1
+                    continue
+
+                # Missed by more than the grace period (host down, scheduler not
+                # running): don't run it retroactively, move it to its next
+                # occurrence instead of leaving next_run in the past forever.
+                # AFTER the two checks above: a task's next_run_ts only moves
+                # once its execution returns, so a slow run still looks due, and
+                # this used to write it off as "Missed scheduled time ...; not
+                # executed" while it was executing.
+                if self._lateness(task, current_ts) > MISSED_RUN_GRACE_SECONDS:
+                    try:
+                        reschedule_missed_task(task)
+                    except (RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
+                        logger.error(f"Error rescheduling missed task {task.task_id}: {e}", exc_info=True)
                     continue
 
                 due_tasks.append(task)
