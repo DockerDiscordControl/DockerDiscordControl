@@ -1584,7 +1584,7 @@
 [ ] cogs/ddc_ui.py:87 DDCModal
 [ ] cogs/ddc_ui.py:90 DDCModal.on_error
 
-## Section 39  (435 lines, 9 public names)
+## Section 39  (655 lines, 24 public names)
 [ ] app/web/tls.py:56 tls_mode
 [ ] app/web/tls.py:67 apply_tls_mode
 [ ] app/web/tls.py:97 Certificate
@@ -1594,3 +1594,18 @@
 [ ] services/docker_proxy/allowlist_proxy.py:132 _Handler.handle
 [ ] services/docker_proxy/allowlist_proxy.py:204 serve
 [ ] services/docker_proxy/allowlist_proxy.py:214 main
+[ ] services/web/two_factor_service.py:50 TwoFactorUnreadable
+[ ] services/web/two_factor_service.py:54 totp
+[ ] services/web/two_factor_service.py:63 secret_bytes
+[ ] services/web/two_factor_service.py:68 new_secret
+[ ] services/web/two_factor_service.py:82 default_path
+[ ] services/web/two_factor_service.py:86 TwoFactorStore
+[ ] services/web/two_factor_service.py:118 TwoFactorStore.enabled
+[ ] services/web/two_factor_service.py:121 TwoFactorStore.pending_or_active_secret
+[ ] services/web/two_factor_service.py:125 TwoFactorStore.remaining_recovery_codes
+[ ] services/web/two_factor_service.py:128 TwoFactorStore.prompt_dismissed
+[ ] services/web/two_factor_service.py:131 TwoFactorStore.dismiss_prompt
+[ ] services/web/two_factor_service.py:138 TwoFactorStore.begin_setup
+[ ] services/web/two_factor_service.py:148 TwoFactorStore.confirm_setup
+[ ] services/web/two_factor_service.py:189 TwoFactorStore.verify
+[ ] services/web/two_factor_service.py:211 TwoFactorStore.disable

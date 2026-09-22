@@ -208,6 +208,7 @@ services/web/mech_web_service.py	676	pass1:s30:1-676
 services/web/performance_stats_service.py	181	pass1:s30:1-172  [9 of 181 lines never in a package]
 services/web/security_service.py	350	pass1:s30:1-339  [6 of 345 lines never in a package]
 services/web/task_management_service.py	1087	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
+services/web/two_factor_service.py	220	NONE
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150
 utils/atomic_io.py	70	pass1:s35:1-70
