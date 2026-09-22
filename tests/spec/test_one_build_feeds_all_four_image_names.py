@@ -19,12 +19,17 @@ What this pins down, as contracts rather than as the workflow's wording:
   hard-coded list of its own.
 * No other workflow in this repository can push an image. A second pushing
   workflow is exactly how two builds end up under one name again.
+* The README sync writes the description of all four names from the one
+  README, and no other workflow writes a Docker Hub description, and no
+  short description is longer than Docker Hub keeps.
 
-COUNTER-CHECK (carried out 2026-09-22): written before the workflow was
-changed, and red for the reason expected - three names missing from the
-publish list. Three tests were green from the start, so each was broken on
-purpose and went red: a hard-coded ``tags:`` in the build step, and a
-``docker/login-action`` step slipped into ``tests.yml``.
+COUNTER-CHECK (carried out 2026-09-22): written before the workflows were
+changed. Red for the two reasons expected - three names missing from the
+publish list, three names without a description - and red for the 100
+characters (the old main description had 115). Three tests were green from the
+start, so each was broken on purpose and went red: a hard-coded ``tags:`` in
+the build step, a ``docker/login-action`` step and a
+``peter-evans/dockerhub-description`` step slipped into ``tests.yml``.
 
 WHAT THIS DOES NOT PROVE: it reads the workflow files, not a GitHub run. That
 the four names really carry one digest is only shown by the first release,
@@ -141,3 +146,39 @@ def test_the_push_detector_bites():
     assert _pushes_an_image({"run": "docker buildx build \\\n  --platform linux/amd64 \\\n  --push ."})
     assert not _pushes_an_image({"uses": "actions/checkout@v4"})
     assert not _pushes_an_image({"run": "docker build -t local ."})
+
+
+def test_all_four_descriptions_come_from_the_one_readme():
+    syncs = [s for s in _steps(_load(README_SYNC)) if _uses(s, "peter-evans/dockerhub-description")]
+    repositories = [s.get("with", {}).get("repository") for s in syncs]
+    assert sorted(repositories) == sorted(FOUR_NAMES), (
+        f"{README_SYNC} writes descriptions for {sorted(repositories)}"
+    )
+    readmes = {s.get("with", {}).get("readme-filepath") for s in syncs}
+    assert readmes == {"./README.md"}, f"descriptions come from {readmes}, not the one README"
+
+
+def test_no_other_workflow_writes_a_hub_description():
+    findings = [
+        path.name
+        for path in sorted(WORKFLOWS.glob("*.yml"))
+        if path.name != README_SYNC
+        and any(_uses(s, "peter-evans/dockerhub-description") for s in _steps(_load(path.name)))
+    ]
+    assert not findings, f"Docker Hub descriptions are also written by: {findings}"
+
+
+# Docker Hub keeps at most 100 characters of a short description. Measured on
+# 2026-09-22 against the Hub API: all four descriptions of that day were cut
+# at exactly 100, mid-word ("... 200MB RAM. Perf", "... ARM6").
+HUB_SHORT_DESCRIPTION_LIMIT = 100
+
+
+def test_every_short_description_fits_docker_hub():
+    syncs = [s for s in _steps(_load(README_SYNC)) if _uses(s, "peter-evans/dockerhub-description")]
+    too_long = {
+        s["with"]["repository"]: len(s["with"].get("short-description", ""))
+        for s in syncs
+        if len(s.get("with", {}).get("short-description", "")) > HUB_SHORT_DESCRIPTION_LIMIT
+    }
+    assert syncs and not too_long, f"Docker Hub would cut these mid-word: {too_long}"

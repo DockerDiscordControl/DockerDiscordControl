@@ -33,20 +33,54 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Sync README to Docker Hub
+      # All four Docker Hub names carry the same image since v2.4 (see
+      # docker-publish.yml), so all four get their overview from this README.
+      # The platform names used to promise builds of their own ("Native Apple
+      # Silicon", "WSL2 optimized"); those were separate copies, not special
+      # builds, and the claims are gone. Docker Hub keeps 100 characters of a
+      # short description and cuts the rest mid-word. Pinned by
+      # tests/spec/test_one_build_feeds_all_four_image_names.py.
+      - name: Sync README to dockerdiscordcontrol
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: dockerdiscordcontrol/dockerdiscordcontrol
-          short-description: 'Control Docker containers via Discord bot + Web UI. 80% test coverage, Alpine Linux, 200MB RAM. Perfect for Unraid!'
+          short-description: 'Control Docker containers from Discord and a web panel. One image for amd64 and arm64.'
+          readme-filepath: ./README.md
+
+      - name: Sync README to dockerdiscordcontrol-linux
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: dockerdiscordcontrol/dockerdiscordcontrol-linux
+          short-description: 'Same image as dockerdiscordcontrol/dockerdiscordcontrol. One build for Linux, Mac and Windows.'
+          readme-filepath: ./README.md
+
+      - name: Sync README to dockerdiscordcontrol-mac
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: dockerdiscordcontrol/dockerdiscordcontrol-mac
+          short-description: 'Same image as dockerdiscordcontrol/dockerdiscordcontrol. One build for Linux, Mac and Windows.'
+          readme-filepath: ./README.md
+
+      - name: Sync README to dockerdiscordcontrol-windows
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: dockerdiscordcontrol/dockerdiscordcontrol-windows
+          short-description: 'Same image as dockerdiscordcontrol/dockerdiscordcontrol. One build for Linux, Mac and Windows.'
           readme-filepath: ./README.md
 
       - name: Summary
         run: |
           echo "## ✅ Docker Hub README Sync Complete!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Repository**: dockerdiscordcontrol/dockerdiscordcontrol" >> $GITHUB_STEP_SUMMARY
+          echo "**Repositories**: dockerdiscordcontrol/dockerdiscordcontrol, -linux, -mac, -windows" >> $GITHUB_STEP_SUMMARY
           echo "**Source**: README.md" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp**: $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
