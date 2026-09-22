@@ -38,7 +38,7 @@ EXPECTED_KEYS = {
     *((BUTTON, OVERVIEW, f"{name}_{CHANNEL}") for name in ("admin_button", "help_button", "info_button", "mech_details")),
     # the admin overview message, bound to its tracked message id
     *((BUTTON, ADMIN_OVERVIEW, f"admin_overview_{name}_{CHANNEL}")
-      for name in ("admin", "donate", "restart_all", "stop_all")),
+      for name in ("admin", "donate", "restart_all", "restart_stack", "stop_all")),
     # per-channel mech buttons, any message
     *((BUTTON, None, f"{name}_{CHANNEL}") for name in (
         "mech_expand", "mech_collapse", "mech_donate", "mech_history",

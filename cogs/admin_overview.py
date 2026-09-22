@@ -150,6 +150,7 @@ class AdminOverviewView(DDCView):
         self.add_item(AdminOverviewAdminButton(cog_instance, channel_id))
         self.add_item(AdminOverviewRestartAllButton(cog_instance, channel_id, enabled=has_running_containers))
         self.add_item(AdminOverviewStopAllButton(cog_instance, channel_id, enabled=has_running_containers))
+        self.add_item(AdminOverviewRestartStackButton(cog_instance, channel_id, enabled=has_running_containers))
         self.add_item(AdminOverviewDonateButton(cog_instance, channel_id))
 
 class AdminOverviewAdminButton(Button):
@@ -418,6 +419,31 @@ class AdminOverviewStopAllButton(Button):
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
+
+class AdminOverviewRestartStackButton(Button):
+    """Button to restart one Compose stack; the flow is in cogs/stack_restart.py."""
+
+    def __init__(self, cog_instance, channel_id: int, enabled: bool):
+        self.cog = cog_instance
+        self.channel_id = channel_id
+
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label=_("Stack"),
+            emoji="🔄",
+            custom_id=f"admin_overview_restart_stack_{channel_id}",
+            row=0,
+            disabled=not enabled
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except (discord.errors.NotFound, discord.errors.HTTPException) as e:
+            logger.warning(f"Restart stack interaction could not be answered: {e}")
+            return
+        from .stack_restart import offer_stacks
+        await offer_stacks(self.cog, self.channel_id, interaction)
 
 class AdminOverviewDonateButton(Button):
     """Donate button for supporting the project."""

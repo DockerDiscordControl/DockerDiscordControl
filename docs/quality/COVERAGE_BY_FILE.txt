@@ -90,7 +90,7 @@ app/web/tls.py	206	NONE
 app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
-cogs/admin_overview.py	919	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/admin_overview.py	945	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	627	NONE
 cogs/channel_lifecycle.py	582	NONE
@@ -104,6 +104,7 @@ cogs/loop_safety.py	90	NONE
 cogs/message_updates.py	944	NONE
 cogs/overview_embeds.py	894	NONE
 cogs/slash_commands.py	788	NONE
+cogs/stack_restart.py	176	NONE
 cogs/status_handlers.py	1400	passE:E15,E16:80-200,560-700
 cogs/status_info_integration.py	1249	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203
 cogs/task_ui.py	1228	NONE
