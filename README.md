@@ -690,6 +690,25 @@ Since v3.0 this is required for the action log to show the client address behind
 proxy; without it the log shows the proxy's address. Before v3.0 DDC believed the
 headers from anyone, which let a direct client escape the login and setup rate limits.
 
+### HTTPS (TLS)
+
+```bash
+# off (default): plain HTTP, as before v3.0.
+# proxy:        TLS ends at your reverse proxy (recommended). The session cookie is
+#               Secure, and requests that do not arrive over HTTPS through a proxy in
+#               DDC_TRUSTED_PROXIES are refused (except /health).
+# self-signed:  DDC serves HTTPS itself with a certificate it creates in
+#               config/tls/ (renewed at start when it has < 60 days left).
+DDC_TLS_MODE=off
+# Extra names/IPs for the self-signed certificate, comma-separated.
+DDC_TLS_HOSTNAMES=ddc.lan,192.168.1.249
+```
+
+With `self-signed`, the log prints the certificate's SHA-256 fingerprint at every start.
+Trust step: open `https://<host>:9374`, compare the fingerprint your browser shows with
+the one in the log, and only then accept the certificate. Any other value of
+`DDC_TLS_MODE` stops the start instead of silently serving plain HTTP.
+
 ### Performance Optimization Variables (New in 2025)
 
 DDC now includes advanced performance optimization settings that can be configured via environment variables:

@@ -221,7 +221,9 @@ EXPOSE 9374
 # No curl/wget in the image (busybox wget is removed above), so use python3.
 # ProxyHandler({}) ignores HTTP(S)_PROXY (urlopen would send 127.0.0.1 to the proxy);
 # the port follows DDC_WEB_PORT with the same fallback to 9374 as run.py.
+# With DDC_TLS_MODE=self-signed DDC answers only HTTPS; the check then uses https
+# without verifying the certificate - it talks to its own loopback, not a peer.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import os, urllib.request as u; p = os.environ.get('DDC_WEB_PORT', '').strip(); p = p if p.isdigit() and 0 < int(p) < 65536 else '9374'; u.build_opener(u.ProxyHandler({})).open('http://127.0.0.1:' + p + '/health', timeout=8)" || exit 1
+    CMD python3 -c "import os, ssl, urllib.request as u; p = os.environ.get('DDC_WEB_PORT', '').strip(); p = p if p.isdigit() and 0 < int(p) < 65536 else '9374'; t = os.environ.get('DDC_TLS_MODE', '').strip().lower() == 'self-signed'; s = 'https' if t else 'http'; h = [u.ProxyHandler({})] + ([u.HTTPSHandler(context=ssl._create_unverified_context())] if t else []); u.build_opener(*h).open(s + '://127.0.0.1:' + p + '/health', timeout=8)" || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]

@@ -28,6 +28,7 @@ from .logging import configure_logging
 from .i18n import register_i18n
 from .routes import register_routes
 from .security import install_security_handlers
+from .tls import apply_tls_mode, tls_mode
 
 
 def create_app(test_config: Optional[Mapping[str, object]] = None) -> Flask:
@@ -48,6 +49,10 @@ def create_app(test_config: Optional[Mapping[str, object]] = None) -> Flask:
     initialize_gevent(app.logger)
 
     configure_proxy(app)
+    # After the trust list: the proxy mode decides by the scheme it produced.
+    # An unknown DDC_TLS_MODE raises here and stops the start (see app/web/tls.py).
+    app.config["DDC_TLS_MODE"] = tls_mode(os.environ)
+    apply_tls_mode(app)
     init_rate_limiting(app)
     register_blueprints(app)
     install_csrf_protection(app)

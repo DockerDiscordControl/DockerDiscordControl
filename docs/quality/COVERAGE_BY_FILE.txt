@@ -73,7 +73,7 @@ app/utils/shared_data.py	105	pass1:s34:1-97  [8 of 105 lines never in a package]
 app/utils/web_helpers.py	913	pass1:s34:1-862  [43 of 905 lines never in a package]
 app/web/__init__.py	12	pass1:s34:1-12
 app/web/action_logger.py	20	pass1:s34:1-20
-app/web/app_factory.py	61	pass1:s34:1-61
+app/web/app_factory.py	66	pass1:s34:1-61
 app/web/background.py	85	pass1:s34:1-85
 app/web/blueprints.py	31	pass1:s34:1-31
 app/web/compat.py	102	pass1:s34:1-102
@@ -85,6 +85,7 @@ app/web/i18n.py	64	pass1:s35:1-54  [10 of 64 lines never in a package]
 app/web/logging.py	60	pass1:s35:1-60
 app/web/routes.py	197	pass1:s35:1-100  [81 of 181 lines never in a package]
 app/web/security.py	86	pass1:s35:1-86
+app/web/tls.py	206	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/admin_overview.py	901	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]

@@ -1363,7 +1363,7 @@
 [ ] app/utils/container_info_web_handler.py:63 load_container_info_for_web
 [ ] app/utils/container_info_web_handler.py:103 save_container_configs_from_web
 
-## Section 34  (1994 lines, 35 public names)
+## Section 34  (1999 lines, 35 public names)
 [ ] app/bot/startup_steps/sequence.py:18 run_startup_sequence
 [ ] app/utils/port_diagnostics.py:19 PortDiagnostics
 [ ] app/utils/port_diagnostics.py:233 PortDiagnostics.check_port_binding
@@ -1391,7 +1391,7 @@
 [ ] app/utils/web_helpers.py:794 stop_mech_decay_background
 [ ] app/utils/web_helpers.py:841 set_initial_password_from_env
 [ ] app/web/action_logger.py:17 ensure_action_logger
-[ ] app/web/app_factory.py:33 create_app
+[ ] app/web/app_factory.py:34 create_app
 [ ] app/web/background.py:51 register_background_services
 [ ] app/web/blueprints.py:23 register_blueprints
 [ ] app/web/compat.py:39 initialize_gevent
@@ -1584,7 +1584,12 @@
 [ ] cogs/ddc_ui.py:87 DDCModal
 [ ] cogs/ddc_ui.py:90 DDCModal.on_error
 
-## Section 39  (229 lines, 4 public names)
+## Section 39  (435 lines, 9 public names)
+[ ] app/web/tls.py:56 tls_mode
+[ ] app/web/tls.py:67 apply_tls_mode
+[ ] app/web/tls.py:97 Certificate
+[ ] app/web/tls.py:131 ensure_self_signed_certificate
+[ ] app/web/tls.py:193 make_tls_server
 [ ] services/docker_proxy/allowlist_proxy.py:65 is_allowed
 [ ] services/docker_proxy/allowlist_proxy.py:132 _Handler.handle
 [ ] services/docker_proxy/allowlist_proxy.py:204 serve

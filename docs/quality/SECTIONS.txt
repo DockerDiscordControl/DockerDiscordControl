@@ -244,7 +244,7 @@ app/utils/shared_data.py:1-105
 app/utils/web_helpers.py:1-913
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
-app/web/app_factory.py:1-61
+app/web/app_factory.py:1-66
 app/web/background.py:1-85
 app/web/blueprints.py:1-31
 app/web/compat.py:1-102
@@ -297,9 +297,11 @@ cogs/ddc_ui.py:1-94
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 
-## Section 39  (229 lines, 2 pieces)
+## Section 39  (435 lines, 3 pieces)
 # New on 2026-09-22 for v3.0: the allowlist proxy in front of the Docker
-# socket. Its own section because it is the security boundary of v3.0 and
-# must be reviewed as one piece, not as a tail of a busier section.
+# socket, and the TLS modes of the web panel. Their own section because they
+# are the security boundary of v3.0 and must be reviewed as one piece, not as
+# a tail of a busier section.
+app/web/tls.py:1-206
 services/docker_proxy/__init__.py:1-2
 services/docker_proxy/allowlist_proxy.py:1-227

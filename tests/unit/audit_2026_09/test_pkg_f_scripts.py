@@ -191,7 +191,8 @@ def test_f4_dockerfile_healthcheck():
     dockerfile = _read("Dockerfile")
     assert re.search(r"^HEALTHCHECK ", dockerfile, re.M)
     # Audit R3-2/R3-3: loopback URL, proxies ignored, port from DDC_WEB_PORT (default 9374)
-    assert "'http://127.0.0.1:' + p + '/health'" in dockerfile
+    # Scheme follows DDC_TLS_MODE since v3.0 (https in self-signed mode).
+    assert "s + '://127.0.0.1:' + p + '/health'" in dockerfile
     assert "ProxyHandler({})" in dockerfile
     assert "DDC_WEB_PORT" in dockerfile and "'9374'" in dockerfile
 

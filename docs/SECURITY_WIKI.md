@@ -127,6 +127,11 @@ server {
 }
 ```
 
+**Tell DDC it runs behind TLS.** Set `DDC_TLS_MODE=proxy`: the session cookie becomes
+`Secure`, and DDC refuses plain requests that did not come through the proxy over HTTPS
+(except `/health`), so the proxy is not optional. Without a proxy, `DDC_TLS_MODE=self-signed`
+lets DDC serve HTTPS itself; check the certificate fingerprint printed in the log once.
+
 **Tell DDC which proxy to believe.** DDC ignores `X-Forwarded-*` unless the request
 comes from an address in `DDC_TRUSTED_PROXIES` (addresses or CIDR ranges,
 comma-separated), for example `DDC_TRUSTED_PROXIES=172.18.0.0/16` for a proxy in the

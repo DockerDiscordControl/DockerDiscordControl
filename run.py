@@ -42,6 +42,38 @@ def _terminate_process(exit_code: int) -> None:
     os._exit(exit_code)
 
 
+def _serve_web(app, port, threads):
+    """Serve the web UI with the server the TLS mode needs (app/web/tls.py).
+
+    waitress for plain HTTP and behind a TLS proxy; werkzeug's threaded TLS
+    server for DDC_TLS_MODE=self-signed, since waitress cannot terminate TLS.
+    """
+    from app.web.tls import tls_mode
+
+    if tls_mode(os.environ) == "self-signed":
+        from pathlib import Path
+
+        import app.web.tls as tls
+        from utils.config_paths import get_config_dir
+
+        certificate = tls.ensure_self_signed_certificate(Path(get_config_dir()) / "tls")
+        logger.info(
+            f"🔒 HTTPS with a self-signed certificate ({'new' if certificate.created else 'kept'}, "
+            f"valid until {certificate.not_after:%Y-%m-%d}). Trust step: compare the browser's "
+            f"SHA-256 fingerprint with {certificate.fingerprint}"
+        )
+        tls.make_tls_server(app, "0.0.0.0", port, certificate).serve_forever()
+        return
+    serve(
+        app,
+        host="0.0.0.0",
+        port=port,
+        threads=threads,
+        ident="DDC-Web",
+        _quiet=True  # Reduce waitress startup logs
+    )
+
+
 def start_web_server():
     """Starts the Flask Web UI using Waitress in a separate thread."""
     try:
@@ -64,14 +96,7 @@ def start_web_server():
 
         for attempt in range(1, WEB_BIND_ATTEMPTS + 1):
             try:
-                serve(
-                    app,
-                    host="0.0.0.0",
-                    port=port,
-                    threads=threads,
-                    ident="DDC-Web",
-                    _quiet=True  # Reduce waitress startup logs
-                )
+                _serve_web(app, port, threads)
                 break
             except OSError as e:
                 if e.errno != errno.EADDRINUSE:
