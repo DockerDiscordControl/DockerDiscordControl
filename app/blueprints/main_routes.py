@@ -15,7 +15,7 @@ import io
 import re
 
 # Import auth from app.auth
-from app.auth import auth
+from app.auth import auth, setup_is_closed
 from services.config.config_service import load_config, save_config, update_config_fields
 from services.exceptions import ConfigServiceError
 from services.infrastructure.action_logger import log_user_action
@@ -1090,33 +1090,10 @@ def logout():
 # FIRST-TIME SETUP ROUTES
 # ========================================
 
-def _setup_is_closed(config):
-    """Why first-time setup may not run now - or None if it may.
-
-    A missing password hash has TWO causes that look the same: a fresh
-    installation, and a configuration that could not be read (_load_json_file
-    returns the default either way). app/auth.py refuses the admin/setup LOGIN
-    while a read error stands; these routes WRITE the password, so they need
-    the same guard - without it an unauthenticated request could take over an
-    established installation whose config/ became unreadable.
-    """
-    read_errors = config.get('config_read_errors')
-    if read_errors:
-        current_app.logger.error(
-            "SECURITY: /setup asked while the configuration could not be read (%s). "
-            "That is a read error, not a fresh install - setup stays closed. Check the "
-            "permissions on config/ (the app runs as user 'ddc').",
-            "; ".join(str(error) for error in read_errors))
-        return 'The configuration could not be read; see the DDC log. Setup stays closed.'
-    if config.get('web_ui_password_hash') is not None:
-        return 'Setup is not allowed when password is already configured'
-    return None
-
-
 @main_bp.route('/setup', methods=['GET'])
 def setup_page():
     """First-time setup page - only works if no password is configured."""
-    closed = _setup_is_closed(load_config())
+    closed = setup_is_closed(load_config())
     if closed:
         flash(closed, 'error')
         return redirect(url_for('main_bp.config_page'))
@@ -1126,7 +1103,7 @@ def setup_page():
 @main_bp.route('/setup', methods=['POST'])
 def setup_save():
     """Save the initial setup configuration."""
-    closed = _setup_is_closed(load_config())
+    closed = setup_is_closed(load_config())
     if closed:
         return jsonify({'success': False, 'error': closed}), 403
 

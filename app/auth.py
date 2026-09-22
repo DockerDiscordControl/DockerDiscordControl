@@ -172,6 +172,22 @@ def init_limiter(app):
                 return jsonify(error="Too many login attempts. Please try again later."), 429
 
 @auth.verify_password
+def setup_is_closed(config):
+    """Why first-time setup may not run now - or None if it may. A missing hash
+    means EITHER a fresh install or a config that could not be read; auth.py
+    refuses the first-run LOGIN then, and these routes WRITE the password."""
+    read_errors = config.get('config_read_errors')
+    if read_errors:
+        current_app.logger.error(
+            "SECURITY: /setup asked while the configuration could not be read (%s) - a read "
+            "error, not a fresh install. Check the permissions on config/ (user 'ddc').",
+            "; ".join(str(error) for error in read_errors))
+        return 'The configuration could not be read; see the DDC log. Setup stays closed.'
+    if config.get('web_ui_password_hash') is not None:
+        return 'Setup is not allowed when password is already configured'
+    return None
+
+
 def verify_password(username, password):
     logger = current_app.logger
     config = load_config()
