@@ -31,12 +31,13 @@ that it was read - 184 of 184, up from the 22 the first wave had covered.
 - **Migrated v1 installations:** on first start the settings actually in effect are folded into
   `config.json` once (a backup is written first, legacy files are renamed to `*.folded-<ts>`).
   Without this, a password or bot token could have been lost.
-- **Rotate your Discord bot token** if you care: older versions kept a decrypted copy in
-  `config.json` (and `config.json.bak`). Fixed, and leftovers are cleaned up on the next save.
-- **If you ever pressed "Encrypt token": press it again.** On v2 installations that button
-  reported success and changed nothing - the token stayed in plaintext in `config.json`.
-  It now really encrypts, and the security panel shows the token's actual state. Nothing is
-  encrypted automatically on upgrade; the token stays as it is until you press the button.
+- **Your bot token on disk.** On most installations it is stored in plaintext in `config.json`,
+  and upgrading does not change that. The **Encrypt token** button now really encrypts it; in
+  earlier versions it reported success on v2 installations and changed nothing, so anyone who
+  pressed it before still has a plaintext token and should press it again. Where the token was
+  already stored encrypted, older versions also wrote a decrypted copy next to it (and into
+  `config.json.bak`); that copy is removed on the next save. Nothing is encrypted automatically.
+  If the token has sat on disk in plaintext, consider resetting it in the Discord developer portal.
 - **Downgrading to v2.3.1:** the mech keeps working (snapshot format unchanged, the interim decay
   field is migrated out on load). But on installations migrated from v1, the one-time fold makes
   `config.json` authoritative while v2.3.1 reads only the old split files — changed credentials or

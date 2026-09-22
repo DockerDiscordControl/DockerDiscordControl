@@ -17,27 +17,29 @@ installations** on upgrade. **188 findings fixed** and a suite of **5,715 tests*
 file in the project carries written evidence that it was read — 184 of 184.
 
 ⚠️ **Please read the [upgrade notes](docs/CHANGELOG.md#v240---2026-09-22) before updating** — you
-will be logged out once, and long-dead scheduled tasks are paused instead of being resurrected.
+will be logged out once, long-dead scheduled tasks are paused instead of being resurrected, and
+your bot token stays in plaintext until you encrypt it.
 
 **Fixed, among others**
-- **Admin users can be saved again** — `/api/admin-users` was not covered by the CSRF exemption and
-  the UI never sent a token, so every save failed with a generic error.
-- **The bot no longer blocks itself** — all Docker SDK calls run off the event loop. This caused
-  repeated container timeouts and the flood of "SLOW batched processing" warnings.
-- **Weekly and cron tasks survive** — the weekday was never written to `tasks.json`, and `croniter`
-  was missing from the image, so cron tasks were silently deactivated.
-- **Auto-action rules with more than one container work** — they locked themselves out via the
-  global cooldown and silently never ran.
-- **"Change password" actually changes the password** — it previously did nothing and stored the
-  new password in plaintext.
+- **One container can no longer make all your servers disappear** — a container whose image had
+  been removed from the host emptied the whole container list.
+- **Admin users can be saved again** — every save failed with "Failed to save admin users".
+- **Scheduled tasks run the way you set them up** — weekly tasks were dropped, cron tasks
+  silently switched off, and one missed run could stop a recurring task for good.
+- **The bot stays responsive** — Docker calls no longer block it, which caused repeated container
+  timeouts and the flood of "SLOW batched processing" warnings.
+- **Every button answers** — a failure now gets a message instead of an endless "thinking…".
+- **Auto-actions with several containers work** — they locked themselves out and never ran.
+- **"Change password" changes the password** — it used to do nothing and stored the new password
+  in plaintext.
 
 🔒 **Security**
-- CSRF enforced for **all** blueprints, no route exempt; rejected requests return a clear reason.
-- The decrypted bot token is no longer written to `config.json`; leftovers are cleaned up on the
-  next save. **Rotate your token** if you care — it was on disk in plaintext before.
+- The **Encrypt token** button really encrypts the token; before, it reported success and changed
+  nothing. If you pressed it on an earlier version, press it again — see the upgrade notes.
+- CSRF protection on every route; rejected requests get a clear message.
 - Session cookie renamed to `ddc_session` with `SameSite=Lax`; new passwords require 12 characters.
-- Auto-action regex patterns are validated properly, and each search runs in a separate process
-  with a hard 0.5 s budget, so a catastrophic pattern can no longer freeze the bot.
+- Auto-action regex patterns are validated, and each search runs in a separate process with a
+  hard 0.5 s budget, so a catastrophic pattern can no longer freeze the bot.
 
 Full details in the [changelog](docs/CHANGELOG.md).
 
