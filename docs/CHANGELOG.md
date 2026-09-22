@@ -76,6 +76,20 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   (only containers that allow restart, stopped ones are skipped).
 - The Admin Overview shows the stack's name above its containers.
 
+### 🐛 Fixed (behaviour you may have seen before v3.0)
+
+- **A container DDC could not ask is no longer reported as offline.** A Docker query that timed
+  out was counted as a successful "not running": the overview showed 🔴 and, with a watchdog rule,
+  DDC would have alarmed about a container that never went down. The last known state now stays.
+- **Big installations get their overviews back.** None of the three overview embeds limited its
+  length, and Discord refuses a description over 4096 characters - measured with 200 containers,
+  the Admin Overview built 6,662 and was refused, so no overview appeared at all. As many
+  containers as fit are shown and the last line says how many are missing.
+- **A long info text no longer hides a container's info.** The panel's 250-character limit was a
+  browser hint only; a longer text made the Info button answer with an error. It is cut at the
+  save (and in the embed, for files written by hand).
+- **The Web UI password fields line up again** when a label needs two lines (German and others).
+
 ### Other
 
 - One source repository: the same build is pushed as `dockerdiscordcontrol/dockerdiscordcontrol`,
