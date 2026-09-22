@@ -267,14 +267,13 @@ class StatusHandlersMixin:
                 continue
 
             if isinstance(info, Exception) or info is None:
-                # Container offline or error - still provide complete status structure
-                logger.debug(f"[INTELLIGENT_BULK_FETCH] {docker_name} appears offline or error: {info}")
-                status_results[docker_name] = ContainerStatusResult.offline_result(
-                    docker_name=docker_name,
-                    display_name=display_name,
-                    details_allowed=details_allowed
-                )
-                successful_fetches += 1  # Still a successful status determination
+                # NOT offline - a stopped container answers inspect normally, so
+                # nothing was measured. Z3: never report that as "not running".
+                logger.warning(f"[INTELLIGENT_BULK_FETCH] {docker_name} could not be asked: {info}")
+                status_results[docker_name] = ContainerStatusResult.error_result(
+                    docker_name=docker_name, error_type='fetch',
+                    error=info if isinstance(info, Exception) else RuntimeError("no answer from Docker"))
+                failed_fetches += 1
                 continue
 
             # Process container info - COMPLETE DATA COLLECTION
@@ -605,13 +604,11 @@ class StatusHandlersMixin:
                 )
 
             if not info:
-                # Container does not exist or Docker daemon is unreachable
-                logger.warning(f"Container info not found for {docker_name}. Assuming offline.")
-                return ContainerStatusResult.offline_result(
-                    docker_name=docker_name,
-                    display_name=display_name,
-                    details_allowed=details_allowed
-                )
+                # Nothing measured, and Docker did not say it is gone (above)
+                logger.warning(f"Container info for {docker_name} could not be read - reported as unknown")
+                return ContainerStatusResult.error_result(
+                    docker_name=docker_name, error_type='fetch',
+                    error=RuntimeError("no answer from Docker"))
 
             is_running = info.get('State', {}).get('Running', False)
             uptime = "N/A"

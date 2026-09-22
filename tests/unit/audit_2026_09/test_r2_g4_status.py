@@ -145,8 +145,10 @@ class TestNotFoundDetection:
             results = await mixin.bulk_fetch_container_status(["gone", "down"])
 
         assert results["gone"].not_found is True and results["gone"].success is True
-        # No NotFound from Docker (e.g. daemon trouble) -> still the old offline result
-        assert results["down"].not_found is False and results["down"].is_offline
+        # No NotFound from Docker (e.g. daemon trouble) -> a FAILED measurement.
+        # This line used to expect an offline result; see SPEC.md Z3 and
+        # tests/spec/test_a_container_that_could_not_be_asked_is_not_reported_offline.py
+        assert results["down"].not_found is False and results["down"].success is False
 
     async def test_get_status_returns_not_found_result(self):
         mixin = StatusHandlersMixin()

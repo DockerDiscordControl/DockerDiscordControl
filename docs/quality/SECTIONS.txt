@@ -27,7 +27,7 @@ cogs/control_helpers.py:1-284
 cogs/control_ui.py:1-1832
 
 ## Section 03  (1948 lines, 1 piece)
-cogs/control_ui.py:1833-3783
+cogs/control_ui.py:1833-3780
 
 ## Section 04  (1535 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -56,10 +56,10 @@ cogs/donation_ui.py:1-628
 cogs/enhanced_info_modal_simple.py:1-694
 
 ## Section 08  (1398 lines, 1 piece)
-cogs/status_handlers.py:1-1400
+cogs/status_handlers.py:1-1397
 
 ## Section 09  (1234 lines, 1 piece)
-cogs/status_info_integration.py:1-1255
+cogs/status_info_integration.py:1-1252
 
 ## Section 10  (1502 lines, 7 pieces)
 cogs/translation_manager.py:1-149

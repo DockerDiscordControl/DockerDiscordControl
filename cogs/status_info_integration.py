@@ -953,7 +953,8 @@ class StatusInfoButton(discord.ui.Button):
         display_name = self.server_config.get('name', self.container_name)
 
         # Load fresh container info data to get latest protected info
-        from services.infrastructure.container_info_service import get_container_info_service
+        from services.infrastructure.container_info_service import (MAX_CUSTOM_TEXT,
+                                                                     get_container_info_service)
         info_service = get_container_info_service()
         info_result = info_service.get_container_info(self.container_name)
         fresh_info_config = info_result.data.to_dict() if info_result.success else self.info_config
@@ -968,12 +969,8 @@ class StatusInfoButton(discord.ui.Button):
         description_parts = []
 
         # Add custom text if provided
-        # Cut here as well: a file written by hand or by an older version can
-        # hold more than the save allows, and an over-long description is
-        # refused by Discord - the Info button would answer with an error
-        # instead of the container's info.
-        from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
-
+        # Cut here too: a file written by hand or by an older version can hold
+        # more than the save allows, and Discord refuses an over-long description
         custom_text = fresh_info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT]
         if custom_text:
             description_parts.append(f"{custom_text}")

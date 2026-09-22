@@ -215,8 +215,15 @@ class TestStatusHandlersRefactored:
             assert result.error_message == 'Docker error'
 
     @pytest.mark.asyncio
-    async def test_get_status_offline_returns_container_status_result(self, mixin):
-        """Test that get_status returns ContainerStatusResult for offline container"""
+    async def test_get_status_without_an_answer_returns_a_failure(self, mixin):
+        """No answer from Docker is a FAILED measurement, not an offline container.
+
+        This test used to assert success=True / is_offline for info=None. A
+        container that is really stopped answers inspect normally, so that
+        branch means "nothing could be measured" - reporting it as offline made
+        the watchdog alarm about a container that never went down (SPEC.md Z3,
+        tests/spec/test_a_container_that_could_not_be_asked_is_not_reported_offline.py).
+        """
         server_config = {
             'name': 'Test Server',
             'docker_name': 'test_container',
@@ -230,11 +237,10 @@ class TestStatusHandlersRefactored:
 
             result = await mixin.get_status(server_config)
 
-            # Should return offline result
             assert isinstance(result, ContainerStatusResult)
-            assert result.success is True
+            assert result.success is False
             assert result.is_running is False
-            assert result.is_offline is True
+            assert result.error_type == 'fetch'
 
     # =====================================================================
     # SECTION 2: bulk_fetch_container_status Tests

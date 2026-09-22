@@ -46,62 +46,62 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/control_helpers.py:273 validate_custom_port
 
 ## Section 02  (1832 lines, 17 public names)
-[ ] cogs/control_ui.py:332 ActionButton
-[ ] cogs/control_ui.py:392 ActionButton.callback
-[ ] cogs/control_ui.py:499 ActionButton.callback.run_docker_action
-[ ] cogs/control_ui.py:624 ActionButton.callback.run_docker_action.update_all_views
-[ ] cogs/control_ui.py:838 ToggleButton
-[ ] cogs/control_ui.py:885 ToggleButton.callback
-[ ] cogs/control_ui.py:1141 ControlView
-[ ] cogs/control_ui.py:1252 InfoButton
-[ ] cogs/control_ui.py:1269 InfoButton.callback
-[ ] cogs/control_ui.py:1503 TaskDeleteButton
-[ ] cogs/control_ui.py:1518 TaskDeleteButton.callback
-[ ] cogs/control_ui.py:1593 MechView
-[ ] cogs/control_ui.py:1619 InfoDropdownButton
-[ ] cogs/control_ui.py:1634 InfoDropdownButton.callback
-[ ] cogs/control_ui.py:1733 ContainerInfoSelectView
-[ ] cogs/control_ui.py:1743 ContainerInfoDropdown
-[ ] cogs/control_ui.py:1772 ContainerInfoDropdown.callback
+[ ] cogs/control_ui.py:333 ActionButton
+[ ] cogs/control_ui.py:393 ActionButton.callback
+[ ] cogs/control_ui.py:500 ActionButton.callback.run_docker_action
+[ ] cogs/control_ui.py:625 ActionButton.callback.run_docker_action.update_all_views
+[ ] cogs/control_ui.py:839 ToggleButton
+[ ] cogs/control_ui.py:886 ToggleButton.callback
+[ ] cogs/control_ui.py:1142 ControlView
+[ ] cogs/control_ui.py:1253 InfoButton
+[ ] cogs/control_ui.py:1270 InfoButton.callback
+[ ] cogs/control_ui.py:1501 TaskDeleteButton
+[ ] cogs/control_ui.py:1516 TaskDeleteButton.callback
+[ ] cogs/control_ui.py:1591 MechView
+[ ] cogs/control_ui.py:1617 InfoDropdownButton
+[ ] cogs/control_ui.py:1632 InfoDropdownButton.callback
+[ ] cogs/control_ui.py:1731 ContainerInfoSelectView
+[ ] cogs/control_ui.py:1741 ContainerInfoDropdown
+[ ] cogs/control_ui.py:1770 ContainerInfoDropdown.callback
 
-## Section 03  (1951 lines, 37 public names)
-[ ] cogs/control_ui.py:1941 PasswordProtectedView
-[ ] cogs/control_ui.py:1953 PasswordButton
-[ ] cogs/control_ui.py:1968 PasswordButton.callback
-[ ] cogs/control_ui.py:1998 AdminButton
-[ ] cogs/control_ui.py:2013 AdminButton.callback
-[ ] cogs/control_ui.py:2094 AdminButton.callback.get_sort_key
-[ ] cogs/control_ui.py:2132 AdminContainerSelectView
-[ ] cogs/control_ui.py:2170 AdminContainerDropdown
-[ ] cogs/control_ui.py:2192 AdminContainerDropdown.__init__.get_order_key
-[ ] cogs/control_ui.py:2240 AdminContainerDropdown.callback
-[ ] cogs/control_ui.py:2403 HelpButton
-[ ] cogs/control_ui.py:2418 HelpButton.callback
-[ ] cogs/control_ui.py:2485 MechDetailsButton
-[ ] cogs/control_ui.py:2497 MechDetailsButton.callback
-[ ] cogs/control_ui.py:2616 MechExpandButton
-[ ] cogs/control_ui.py:2631 MechExpandButton.callback
-[ ] cogs/control_ui.py:2738 MechCollapseButton
-[ ] cogs/control_ui.py:2753 MechCollapseButton.callback
-[ ] cogs/control_ui.py:2875 MechDonateButton
-[ ] cogs/control_ui.py:2889 MechDonateButton.callback
-[ ] cogs/control_ui.py:2920 MechHistoryButton
-[ ] cogs/control_ui.py:2934 MechHistoryButton.callback
-[ ] cogs/control_ui.py:3303 MechSelectionView
-[ ] cogs/control_ui.py:3336 MechDisplayButton
-[ ] cogs/control_ui.py:3367 MechDisplayButton.callback
-[ ] cogs/control_ui.py:3465 EpilogueButton
-[ ] cogs/control_ui.py:3477 EpilogueButton.callback
-[ ] cogs/control_ui.py:3533 MechStoryView
-[ ] cogs/control_ui.py:3548 ReadStoryButton
-[ ] cogs/control_ui.py:3561 ReadStoryButton.callback
-[ ] cogs/control_ui.py:3632 PlaySongButton
-[ ] cogs/control_ui.py:3646 PlaySongButton.callback
-[ ] cogs/control_ui.py:3693 MechDetailsView
-[ ] cogs/control_ui.py:3706 MechPrivateDonateButton
-[ ] cogs/control_ui.py:3718 MechPrivateDonateButton.callback
-[ ] cogs/control_ui.py:3745 MechPrivateHistoryButton
-[ ] cogs/control_ui.py:3757 MechPrivateHistoryButton.callback
+## Section 03  (1948 lines, 37 public names)
+[ ] cogs/control_ui.py:1939 PasswordProtectedView
+[ ] cogs/control_ui.py:1951 PasswordButton
+[ ] cogs/control_ui.py:1966 PasswordButton.callback
+[ ] cogs/control_ui.py:1996 AdminButton
+[ ] cogs/control_ui.py:2011 AdminButton.callback
+[ ] cogs/control_ui.py:2091 AdminButton.callback.get_sort_key
+[ ] cogs/control_ui.py:2129 AdminContainerSelectView
+[ ] cogs/control_ui.py:2167 AdminContainerDropdown
+[ ] cogs/control_ui.py:2189 AdminContainerDropdown.__init__.get_order_key
+[ ] cogs/control_ui.py:2237 AdminContainerDropdown.callback
+[ ] cogs/control_ui.py:2400 HelpButton
+[ ] cogs/control_ui.py:2415 HelpButton.callback
+[ ] cogs/control_ui.py:2482 MechDetailsButton
+[ ] cogs/control_ui.py:2494 MechDetailsButton.callback
+[ ] cogs/control_ui.py:2613 MechExpandButton
+[ ] cogs/control_ui.py:2628 MechExpandButton.callback
+[ ] cogs/control_ui.py:2735 MechCollapseButton
+[ ] cogs/control_ui.py:2750 MechCollapseButton.callback
+[ ] cogs/control_ui.py:2872 MechDonateButton
+[ ] cogs/control_ui.py:2886 MechDonateButton.callback
+[ ] cogs/control_ui.py:2917 MechHistoryButton
+[ ] cogs/control_ui.py:2931 MechHistoryButton.callback
+[ ] cogs/control_ui.py:3300 MechSelectionView
+[ ] cogs/control_ui.py:3333 MechDisplayButton
+[ ] cogs/control_ui.py:3364 MechDisplayButton.callback
+[ ] cogs/control_ui.py:3462 EpilogueButton
+[ ] cogs/control_ui.py:3474 EpilogueButton.callback
+[ ] cogs/control_ui.py:3530 MechStoryView
+[ ] cogs/control_ui.py:3545 ReadStoryButton
+[ ] cogs/control_ui.py:3558 ReadStoryButton.callback
+[ ] cogs/control_ui.py:3629 PlaySongButton
+[ ] cogs/control_ui.py:3643 PlaySongButton.callback
+[ ] cogs/control_ui.py:3690 MechDetailsView
+[ ] cogs/control_ui.py:3703 MechPrivateDonateButton
+[ ] cogs/control_ui.py:3715 MechPrivateDonateButton.callback
+[ ] cogs/control_ui.py:3742 MechPrivateHistoryButton
+[ ] cogs/control_ui.py:3754 MechPrivateHistoryButton.callback
 
 ## Section 04  (1535 lines, 13 public names)
 [ ] cogs/channel_lifecycle.py:30 ChannelLifecycleMixin
@@ -174,16 +174,16 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/enhanced_info_modal_simple.py:549 PasswordValidationModal
 [ ] cogs/enhanced_info_modal_simple.py:574 PasswordValidationModal.callback
 
-## Section 08  (1400 lines, 7 public names)
+## Section 08  (1397 lines, 7 public names)
 [ ] cogs/status_handlers.py:74 format_uptime
 [ ] cogs/status_handlers.py:108 StatusHandlersMixin
 [ ] cogs/status_handlers.py:114 StatusHandlersMixin.bulk_fetch_container_status
 [ ] cogs/status_handlers.py:184 StatusHandlersMixin.bulk_fetch_container_status.fetch_fast_container
-[ ] cogs/status_handlers.py:509 StatusHandlersMixin.bulk_update_status_cache
-[ ] cogs/status_handlers.py:573 StatusHandlersMixin.get_status
-[ ] cogs/status_handlers.py:1125 StatusHandlersMixin.send_server_status
+[ ] cogs/status_handlers.py:508 StatusHandlersMixin.bulk_update_status_cache
+[ ] cogs/status_handlers.py:572 StatusHandlersMixin.get_status
+[ ] cogs/status_handlers.py:1122 StatusHandlersMixin.send_server_status
 
-## Section 09  (1255 lines, 24 public names)
+## Section 09  (1252 lines, 24 public names)
 [ ] cogs/status_info_integration.py:58 container_logs_text
 [ ] cogs/status_info_integration.py:77 container_logs_text.get_logs_sync
 [ ] cogs/status_info_integration.py:106 ContainerInfoAdminView
@@ -204,10 +204,10 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/status_info_integration.py:858 ProtectedInfoOnlyView
 [ ] cogs/status_info_integration.py:873 StatusInfoButton
 [ ] cogs/status_info_integration.py:894 StatusInfoButton.callback
-[ ] cogs/status_info_integration.py:1075 ProtectedInfoButton
-[ ] cogs/status_info_integration.py:1092 ProtectedInfoButton.callback
-[ ] cogs/status_info_integration.py:1143 create_enhanced_status_embed
-[ ] cogs/status_info_integration.py:1235 should_show_info_in_status_channel
+[ ] cogs/status_info_integration.py:1072 ProtectedInfoButton
+[ ] cogs/status_info_integration.py:1089 ProtectedInfoButton.callback
+[ ] cogs/status_info_integration.py:1140 create_enhanced_status_embed
+[ ] cogs/status_info_integration.py:1232 should_show_info_in_status_channel
 
 ## Section 10  (1508 lines, 45 public names)
 [ ] cogs/translation_manager.py:23 TranslationManager

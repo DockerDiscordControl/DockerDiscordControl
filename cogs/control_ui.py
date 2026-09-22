@@ -26,6 +26,7 @@ from .control_helpers import (_admin_may_control, _admin_may_control_task,
                               _channel_has_permission, _get_pending_embed,
                               _is_registered_admin)
 from utils.logging_utils import get_module_logger
+from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
 from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
@@ -1417,10 +1418,7 @@ class InfoButton(Button):
         description_parts = []
 
         # Add custom text if provided
-        # Cut here as well - see _generate_info_embed in status_info_integration
-        from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
-
-        custom_text = info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT]
+        custom_text = info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT]  # see status_info_integration
         if custom_text:
             description_parts.append(f"```\n{custom_text}\n```")
 
@@ -2083,7 +2081,6 @@ class AdminButton(Button):
                 await interaction.followup.send(_("📦 No active containers found."), ephemeral=True)
                 return
 
-            # Log containers BEFORE sorting (with types)
             logger.info(f"AdminButton: {len(active_containers)} containers BEFORE sorting:")
             for c in active_containers:
                 order_val = c.get('order', 999)
