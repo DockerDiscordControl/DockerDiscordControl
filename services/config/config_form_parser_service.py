@@ -98,6 +98,18 @@ class ConfigFormParserService:
 
         logger.info(f"[FORM_DEBUG] Selected servers (Active checkboxes): {selected_servers}")
 
+        # The order the operator arranged, as the browser sends it: server_order,
+        # the container names joined with "__,__". It is the only order the
+        # page has ever posted - no template renders an order_<name> field, so
+        # reading only that left every container at 999 after every save, and
+        # the admin overview and both dropdowns lost their order (review E54).
+        # 0-based, which is what the containers of an older install carry.
+        positions = {
+            name: index for index, name in enumerate(
+                n.strip() for n in ConfigFormParserService._form_str(form_data, 'server_order').split('__,__')
+                if n.strip())
+        }
+
         for container_name in selected_servers:
             if not container_name:
                 continue
@@ -112,11 +124,13 @@ class ConfigFormParserService:
                 if ConfigFormParserService._parse_form_checkbox(form_data, f'allow_{action}_{container_name}')
             ]
 
-            order_value = form_data.get(f'order_{container_name}', 999)
+            # An explicit order_<name> still wins, for any client that sends one.
+            fallback = positions.get(container_name, 999)
+            order_value = form_data.get(f'order_{container_name}', fallback)
             try:
-                order = int(order_value) if order_value else 999
+                order = int(order_value) if order_value not in (None, '') else fallback
             except (ValueError, TypeError):
-                order = 999
+                order = fallback
 
             # Game-server query (opengsq) per-container settings - sanitized/validated
             from services.config.config_validation_service import ConfigValidationService
