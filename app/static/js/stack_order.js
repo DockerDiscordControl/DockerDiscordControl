@@ -31,13 +31,15 @@ function sortServerRowsByStack() {
     const tbody = document.getElementById('docker-container-list');
     if (!tbody) return false;
     const rows = Array.from(tbody.querySelectorAll('tr[data-container-name]'));
-    const byName = new Map(rows.map(row => [row.getAttribute('data-container-name'), row]));
-    const order = stackOrder(rows.map(row => ({
-        name: row.getAttribute('data-container-name'),
+    // Ordered by POSITION, not by name: a stale config entry can put the same
+    // container in the table twice, and a name-to-row map then moved one element
+    // twice and shuffled the rest.
+    const order = stackOrder(rows.map((row, index) => ({
+        name: index,
         project: row.getAttribute('data-compose-project') || null,
     })));
-    if (order.every((name, index) => rows[index] === byName.get(name))) return false;
-    order.forEach(name => tbody.appendChild(byName.get(name)));
+    if (order.every((index, position) => index === position)) return false;
+    order.forEach(index => tbody.appendChild(rows[index]));
     updateOrderNumbers();
     updateMoveButtons();
     markConfigurationChanged();

@@ -38,6 +38,31 @@ const cases = {
     const twice = Array.from(stackOrder(once.map(n => e(n, byName[n]))));
     assert.deepStrictEqual(twice, once);
   },
+  'two rows with the same name both survive'() {
+    // Docker forbids duplicate names, but a stale config entry can produce two
+    // rows all the same - and keying on the name used to move one element twice
+    // and drop the other out of the table (and out of the saved order).
+    const rows = [['plex', ''], ['db', 'blog'], ['db', 'blog']].map(([name, project], index) => ({
+      name, project, index,
+      getAttribute(attr) {
+        return attr === 'data-container-name' ? name : attr === 'data-compose-project' ? project : null;
+      },
+    }));
+    const tbody = {
+      rows: rows.slice(),
+      querySelectorAll() { return this.rows.slice(); },
+      appendChild(row) { this.rows = this.rows.filter(r => r !== row).concat([row]); },
+    };
+    const document = { addEventListener() {}, getElementById: id => (id === 'docker-container-list' ? tbody : null) };
+    const sandbox = load(document);
+    sandbox.updateOrderNumbers = () => {};
+    sandbox.updateMoveButtons = () => {};
+    sandbox.markConfigurationChanged = () => {};
+    sandbox.sortServerRowsByStack();
+    assert.deepStrictEqual(tbody.rows.map(r => r.index), [0, 1, 2],
+      'the rows were shuffled: keying on the name moves one element twice');
+  },
+
   'the button reorders the table rows and renumbers them'() {
     const rows = [['db', 'blog'], ['plex', ''], ['web', 'blog']].map(([name, project]) => ({
       name, project,
