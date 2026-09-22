@@ -4,18 +4,22 @@
     <p class="form-text">
         {{ _t('web.auth.description') }}
     </p>
+    {# Each column lays its content out top-to-bottom and pushes the field to the
+       bottom, so a label that wraps - the German "Neues Passwort (leer lassen, um
+       aktuelles beizubehalten)" takes two lines - does not drag its own input down
+       (operator report 2026-09-22). #}
     <div class="row">
-        <div class="col-md-4 mb-3">
+        <div class="col-md-4 mb-3 d-flex flex-column">
             <label for="web_ui_user" class="form-label">{{ _t('web.auth.username_label') }}</label>
-            <input type="text" class="form-control" id="web_ui_user" name="web_ui_user" value="admin" readonly>
+            <input type="text" class="form-control mt-auto" id="web_ui_user" name="web_ui_user" value="admin" readonly>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-4 mb-3 d-flex flex-column">
             <label for="new_web_ui_password" class="form-label">{{ _t('web.auth.new_password_label') }}</label>
-            <input type="password" class="form-control" data-immediate-effect="true" id="new_web_ui_password" name="new_web_ui_password" autocomplete="new-password" placeholder="{{ _t('web.auth.new_password_placeholder') }}">
+            <input type="password" class="form-control mt-auto" data-immediate-effect="true" id="new_web_ui_password" name="new_web_ui_password" autocomplete="new-password" placeholder="{{ _t('web.auth.new_password_placeholder') }}">
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-4 mb-3 d-flex flex-column">
             <label for="confirm_web_ui_password" class="form-label">{{ _t('web.setup.confirm_password_label') }}</label>
-            <input type="password" class="form-control" data-immediate-effect="true" id="confirm_web_ui_password" name="confirm_web_ui_password" autocomplete="new-password" placeholder="{{ _t('web.setup.confirm_password_placeholder') }}">
+            <input type="password" class="form-control mt-auto" data-immediate-effect="true" id="confirm_web_ui_password" name="confirm_web_ui_password" autocomplete="new-password" placeholder="{{ _t('web.setup.confirm_password_placeholder') }}">
         </div>
     </div>
 
