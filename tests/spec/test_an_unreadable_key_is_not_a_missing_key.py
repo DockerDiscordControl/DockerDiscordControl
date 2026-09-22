@@ -145,3 +145,25 @@ def test_a_key_that_decrypts_is_still_used(client, monkeypatch):
     body = json.loads(_post(client).data)
 
     assert "No API key configured" not in (body.get("error") or "")
+
+
+def test_the_answer_names_the_kind_of_failure_but_not_its_details(client, monkeypatch, caplog):
+    """CodeQL #65 (py/stack-trace-exposure): the exception MESSAGE went into
+    the HTTP answer. A decryption error can carry paths or library internals;
+    those belong in the log, where the operator reads them. The answer keeps
+    the exception TYPE, which is enough to tell the cases apart, and still
+    says what to do."""
+    import logging
+    monkeypatch.setattr(routes, "get_translation_config_service",
+                        lambda: _ConfigService("gAAAAAbroken",
+                                               key_error=TranslationKeyUnreadable(
+                                                   "/app/config/secret.key is unreadable")))
+
+    with caplog.at_level(logging.DEBUG):
+        body = json.loads(_post(client).data)
+
+    assert "/app/config/secret.key" not in body["error"], body["error"]
+    assert "TranslationKeyUnreadable" in body["error"], body["error"]
+    assert "Enter it again" in body["error"], body["error"]
+    assert any("/app/config/secret.key" in r.getMessage() for r in caplog.records), \
+        "the details must still reach the log"

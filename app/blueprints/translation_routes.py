@@ -258,8 +258,9 @@ def test_translation():
                 # configured" - while the operator was looking at the key they
                 # had entered. Since review C27 the message here says exactly
                 # what to do about it (review C42).
-                key_problem = f"{type(e).__name__}: {e}"
-                logger.error("Translation API key could not be decrypted: %s", key_problem)
+                key_problem = type(e).__name__  # details stay in the log (CodeQL #65)
+                logger.error("Translation API key could not be decrypted: %s: %s",
+                             key_problem, e)
         else:
             api_key = stored
 
