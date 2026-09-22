@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1581 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1582 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -954,7 +954,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/mech/progress_service.py:1718 reset_progress_services
 [ ] services/mech/progress_service.py:1723 get_progress_service
 
-## Section 25  (1276 lines, 43 public names)
+## Section 25  (1306 lines, 45 public names)
 [ ] services/mech/speed_levels.py:224 get_speed_info
 [ ] services/mech/speed_levels.py:255 get_speed_emoji
 [ ] services/mech/speed_levels.py:262 get_translated_speed_description
@@ -973,68 +973,69 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/scheduling/donation_message_service.py:25 set_bot_instance
 [ ] services/scheduling/donation_message_service.py:30 get_bot_instance
 [ ] services/scheduling/donation_message_service.py:67 execute_donation_message_task
-[ ] services/scheduling/runtime.py:47 SchedulerRuntime
-[ ] services/scheduling/runtime.py:68 SchedulerRuntime.config_dir
-[ ] services/scheduling/runtime.py:72 SchedulerRuntime.tasks_file_path
-[ ] services/scheduling/runtime.py:75 SchedulerRuntime.ensure_layout
-[ ] services/scheduling/runtime.py:84 SchedulerRuntime.tasks_cache
-[ ] services/scheduling/runtime.py:87 SchedulerRuntime.replace_tasks_cache
-[ ] services/scheduling/runtime.py:90 SchedulerRuntime.clear_tasks_cache
-[ ] services/scheduling/runtime.py:93 SchedulerRuntime.store_task
-[ ] services/scheduling/runtime.py:97 SchedulerRuntime.container_tasks_cache
-[ ] services/scheduling/runtime.py:101 SchedulerRuntime.container_cache_timestamp
-[ ] services/scheduling/runtime.py:104 SchedulerRuntime.update_container_cache
-[ ] services/scheduling/runtime.py:110 SchedulerRuntime.clear_container_cache
-[ ] services/scheduling/runtime.py:114 SchedulerRuntime.invalidate_caches
-[ ] services/scheduling/runtime.py:121 SchedulerRuntime.mark_tasks_file_missing
-[ ] services/scheduling/runtime.py:125 SchedulerRuntime.update_tracked_file_state
-[ ] services/scheduling/runtime.py:129 SchedulerRuntime.record_current_file_state
-[ ] services/scheduling/runtime.py:137 SchedulerRuntime.is_tasks_file_modified
-[ ] services/scheduling/runtime.py:160 SchedulerRuntime.get_timezone
-[ ] services/scheduling/runtime.py:174 SchedulerRuntime.clear_timezone_cache
-[ ] services/scheduling/runtime.py:180 SchedulerRuntime.get_system_task_state
-[ ] services/scheduling/runtime.py:184 SchedulerRuntime.store_system_task_state
-[ ] services/scheduling/runtime.py:191 get_scheduler_runtime
-[ ] services/scheduling/runtime.py:198 reset_scheduler_runtime
+[ ] services/scheduling/runtime.py:49 SchedulerRuntime
+[ ] services/scheduling/runtime.py:70 SchedulerRuntime.config_dir
+[ ] services/scheduling/runtime.py:74 SchedulerRuntime.tasks_file_path
+[ ] services/scheduling/runtime.py:77 SchedulerRuntime.ensure_layout
+[ ] services/scheduling/runtime.py:86 SchedulerRuntime.tasks_cache
+[ ] services/scheduling/runtime.py:89 SchedulerRuntime.replace_tasks_cache
+[ ] services/scheduling/runtime.py:92 SchedulerRuntime.clear_tasks_cache
+[ ] services/scheduling/runtime.py:95 SchedulerRuntime.store_task
+[ ] services/scheduling/runtime.py:99 SchedulerRuntime.container_tasks_cache
+[ ] services/scheduling/runtime.py:103 SchedulerRuntime.container_cache_timestamp
+[ ] services/scheduling/runtime.py:106 SchedulerRuntime.update_container_cache
+[ ] services/scheduling/runtime.py:112 SchedulerRuntime.clear_container_cache
+[ ] services/scheduling/runtime.py:116 SchedulerRuntime.invalidate_caches
+[ ] services/scheduling/runtime.py:123 SchedulerRuntime.mark_tasks_file_missing
+[ ] services/scheduling/runtime.py:127 SchedulerRuntime.update_tracked_file_state
+[ ] services/scheduling/runtime.py:131 SchedulerRuntime.record_current_file_state
+[ ] services/scheduling/runtime.py:139 SchedulerRuntime.is_tasks_file_modified
+[ ] services/scheduling/runtime.py:162 SchedulerRuntime.get_timezone
+[ ] services/scheduling/runtime.py:176 SchedulerRuntime.clear_timezone_cache
+[ ] services/scheduling/runtime.py:182 SchedulerRuntime.get_system_task_state
+[ ] services/scheduling/runtime.py:186 SchedulerRuntime.store_system_task_state
+[ ] services/scheduling/runtime.py:194 with_tasks_lock
+[ ] services/scheduling/runtime.py:203 with_tasks_lock.wrapper
+[ ] services/scheduling/runtime.py:221 get_scheduler_runtime
+[ ] services/scheduling/runtime.py:228 reset_scheduler_runtime
 [ ] services/scheduling/schedule_helpers.py:37 ScheduleValidationError
 [ ] services/scheduling/schedule_helpers.py:53 validate_task_before_creation
 
-## Section 26  (1745 lines, 28 public names)
+## Section 26  (1745 lines, 27 public names)
 [ ] services/scheduling/scheduler.py:47 initialize_logging
 [ ] services/scheduling/scheduler.py:100 normalize_weekday
-[ ] services/scheduling/scheduler.py:154 _with_tasks_lock.wrapper
-[ ] services/scheduling/scheduler.py:187 ScheduledTask
-[ ] services/scheduling/scheduler.py:311 ScheduledTask.is_system_task
-[ ] services/scheduling/scheduler.py:315 ScheduledTask.is_donation_task
-[ ] services/scheduling/scheduler.py:332 ScheduledTask.is_valid
-[ ] services/scheduling/scheduler.py:489 ScheduledTask.to_dict
-[ ] services/scheduling/scheduler.py:534 ScheduledTask.from_dict
-[ ] services/scheduling/scheduler.py:733 ScheduledTask.calculate_next_run
-[ ] services/scheduling/scheduler.py:812 ScheduledTask.get_next_run_datetime
-[ ] services/scheduling/scheduler.py:829 ScheduledTask.should_run
-[ ] services/scheduling/scheduler.py:833 ScheduledTask.update_after_execution
-[ ] services/scheduling/scheduler.py:864 ScheduledTask._calculate_next_donation_run.get_second_sunday
-[ ] services/scheduling/scheduler.py:926 create_donation_system_task
-[ ] services/scheduling/scheduler.py:1169 load_tasks
-[ ] services/scheduling/scheduler.py:1277 save_tasks
-[ ] services/scheduling/scheduler.py:1314 find_task_by_id
-[ ] services/scheduling/scheduler.py:1366 get_tasks_for_container
-[ ] services/scheduling/scheduler.py:1404 check_task_time_collision
-[ ] services/scheduling/scheduler.py:1426 add_task
-[ ] services/scheduling/scheduler.py:1459 update_task
-[ ] services/scheduling/scheduler.py:1509 delete_task
-[ ] services/scheduling/scheduler.py:1554 reschedule_missed_task
-[ ] services/scheduling/scheduler.py:1619 is_upgrade_pause_note
-[ ] services/scheduling/scheduler.py:1624 pause_long_dead_tasks_once
-[ ] services/scheduling/scheduler.py:1715 get_tasks_in_timeframe
-[ ] services/scheduling/scheduler.py:1735 get_next_week_tasks
+[ ] services/scheduling/scheduler.py:157 ScheduledTask
+[ ] services/scheduling/scheduler.py:281 ScheduledTask.is_system_task
+[ ] services/scheduling/scheduler.py:285 ScheduledTask.is_donation_task
+[ ] services/scheduling/scheduler.py:302 ScheduledTask.is_valid
+[ ] services/scheduling/scheduler.py:447 ScheduledTask.to_dict
+[ ] services/scheduling/scheduler.py:492 ScheduledTask.from_dict
+[ ] services/scheduling/scheduler.py:691 ScheduledTask.calculate_next_run
+[ ] services/scheduling/scheduler.py:770 ScheduledTask.get_next_run_datetime
+[ ] services/scheduling/scheduler.py:787 ScheduledTask.should_run
+[ ] services/scheduling/scheduler.py:791 ScheduledTask.update_after_execution
+[ ] services/scheduling/scheduler.py:822 ScheduledTask._calculate_next_donation_run.get_second_sunday
+[ ] services/scheduling/scheduler.py:884 create_donation_system_task
+[ ] services/scheduling/scheduler.py:1127 load_tasks
+[ ] services/scheduling/scheduler.py:1235 save_tasks
+[ ] services/scheduling/scheduler.py:1272 find_task_by_id
+[ ] services/scheduling/scheduler.py:1324 get_tasks_for_container
+[ ] services/scheduling/scheduler.py:1362 check_task_time_collision
+[ ] services/scheduling/scheduler.py:1384 add_task
+[ ] services/scheduling/scheduler.py:1417 update_task
+[ ] services/scheduling/scheduler.py:1467 delete_task
+[ ] services/scheduling/scheduler.py:1512 reschedule_missed_task
+[ ] services/scheduling/scheduler.py:1577 is_upgrade_pause_note
+[ ] services/scheduling/scheduler.py:1582 pause_long_dead_tasks_once
+[ ] services/scheduling/scheduler.py:1673 get_tasks_in_timeframe
+[ ] services/scheduling/scheduler.py:1693 get_next_week_tasks
 
-## Section 27  (1979 lines, 53 public names)
-[ ] services/scheduling/scheduler.py:1788 execute_task
-[ ] services/scheduling/scheduler.py:2121 validate_new_task_input
-[ ] services/scheduling/scheduler.py:2170 parse_time_string
-[ ] services/scheduling/scheduler.py:2228 parse_month_string
-[ ] services/scheduling/scheduler.py:2250 parse_weekday_string
+## Section 27  (1967 lines, 53 public names)
+[ ] services/scheduling/scheduler.py:1746 execute_task
+[ ] services/scheduling/scheduler.py:2079 validate_new_task_input
+[ ] services/scheduling/scheduler.py:2128 parse_time_string
+[ ] services/scheduling/scheduler.py:2186 parse_month_string
+[ ] services/scheduling/scheduler.py:2208 parse_weekday_string
 [ ] services/scheduling/scheduler_service.py:63 set_bot_instance
 [ ] services/scheduling/scheduler_service.py:68 get_bot_instance
 [ ] services/scheduling/scheduler_service.py:72 SchedulerService

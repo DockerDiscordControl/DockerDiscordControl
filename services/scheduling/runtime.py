@@ -17,6 +17,8 @@ configuration directory and avoid surprise side effects during imports.
 
 from __future__ import annotations
 
+import functools
+import threading
 import os
 import time
 from dataclasses import dataclass, field
@@ -183,6 +185,34 @@ class SchedulerRuntime:
 
     def store_system_task_state(self, task_id: str, state: Dict[str, object]) -> None:
         self._state.system_task_state[task_id] = dict(state)
+
+
+TASKS_LOCK = threading.RLock()  # also imported by scheduler.py under its old name
+_FILE_LOCK_DEPTH = 0  # flock is per fd: only the outermost call may open it
+
+
+def with_tasks_lock(func):
+    """Hold the tasks.json lock - in this process AND across processes.
+
+    The bot and the web UI are two processes (supervisord), where a thread lock
+    serialises nothing, and an atomic write makes the swap atomic, not the
+    read-modify-write: both read, both write, and the second replaces a file
+    that never saw the first one's change (a deleted task comes back).
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        global _FILE_LOCK_DEPTH
+        with TASKS_LOCK:
+            if _FILE_LOCK_DEPTH:
+                return func(*args, **kwargs)
+            from utils.atomic_io import cross_process_lock
+            with cross_process_lock(get_scheduler_runtime().tasks_file_path):
+                _FILE_LOCK_DEPTH += 1
+                try:
+                    return func(*args, **kwargs)
+                finally:
+                    _FILE_LOCK_DEPTH -= 1
+    return wrapper
 
 
 _runtime: Optional[SchedulerRuntime] = None

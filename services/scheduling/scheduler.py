@@ -130,41 +130,11 @@ def _localize(tz, naive_dt: datetime) -> datetime:
         return tz.normalize(tz.localize(naive_dt))
     return naive_dt.replace(tzinfo=tz)
 
-# Serializes read-modify-write cycles on tasks.json between the scheduler (bot
-# loop) and the Web UI thread. Reentrant: add/update/delete call load_tasks(),
-# which may save on its own.
-_TASKS_LOCK = threading.RLock()
-
-# How deep we are inside the file lock. flock is per open file description, so
-# taking it twice in one process would block on itself; the RLock above already
-# serialises this process's threads, so only the outermost call opens it.
-_FILE_LOCK_DEPTH = 0
-
-
-def _with_tasks_lock(func):
-    """Run func while holding the tasks.json lock - in this process AND across them.
-
-    The bot and the web UI are two processes (supervisord). A thread lock
-    serialises nothing between them, and an atomic write makes the swap atomic,
-    not the read-modify-write: both read, both write, and the second replaces a
-    file that never saw the first one's change - a deleted task comes back, or a
-    reschedule is undone.
-    """
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        global _FILE_LOCK_DEPTH
-        with _TASKS_LOCK:
-            if _FILE_LOCK_DEPTH:
-                return func(*args, **kwargs)
-            from utils.atomic_io import cross_process_lock
-
-            with cross_process_lock(TASKS_FILE_PATH):
-                _FILE_LOCK_DEPTH += 1
-                try:
-                    return func(*args, **kwargs)
-                finally:
-                    _FILE_LOCK_DEPTH -= 1
-    return wrapper
+# One lock for the read-modify-write cycles on tasks.json: reentrant in this
+# process (add/update/delete call load_tasks, which may save on its own) AND
+# taken across processes, because the bot and the Web UI are two of them.
+from services.scheduling.runtime import (  # noqa: E402
+    TASKS_LOCK as _TASKS_LOCK, with_tasks_lock as _with_tasks_lock)
 
 # Scheduler file path
 TASKS_FILE_PATH = _runtime.tasks_file_path
@@ -473,18 +443,6 @@ class ScheduledTask:
             return False
 
         return True
-
-        # Check if the day is valid (1-31)
-        try:
-            day = int(self.day_val) if isinstance(self.day_val, str) else self.day_val
-            if 1 <= day <= 31:
-                return True
-
-            logger.warning(f"Task {self.task_id}: Invalid day value {day} for monthly cycle (must be 1-31)")
-            return False
-        except (ValueError, TypeError):
-            logger.warning(f"Task {self.task_id}: day_val cannot be converted to integer: {self.day_val}")
-            return False
 
     def to_dict(self) -> Dict[str, Any]:
         """Converts task to dict for Web UI JSON storage (tasks.json)."""
