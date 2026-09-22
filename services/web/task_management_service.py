@@ -943,9 +943,15 @@ class TaskManagementService:
             if 'schedule_details' in data:
                 self._update_task_schedule_details(task, data['schedule_details'])
 
-            # Update timezone if provided
+            # Update timezone if provided. The edit form sends the timezone the
+            # PANEL is set to, not the one the task was created in, so opening an
+            # old task after a timezone change and saving anything at all moves
+            # it: a daily task at 20:00 from Europe/Berlin to America/New_York
+            # went from 18:00 UTC to 00:00 UTC (measured). The operator is told.
+            timezone_before = task.timezone_str
             if 'timezone_str' in data:
                 task.timezone_str = data['timezone_str']
+            timezone_moved = (task.timezone_str != timezone_before)
 
             # Validate updated task
             if not task.is_valid():
@@ -973,10 +979,19 @@ class TaskManagementService:
                 # Log user action
                 self._log_task_update(task, original_values)
 
+                message = f"Task {task.task_id} updated successfully"
+                if timezone_moved:
+                    message = (
+                        f"{message}. Note: the task was created in {timezone_before} "
+                        f"and now follows {task.timezone_str}, so the same time of "
+                        f"day is a different moment - check its next run.")
+                    self.logger.info(
+                        f"Task {task.task_id} moved from {timezone_before} to "
+                        f"{task.timezone_str} while being edited.")
                 return EditTaskResult(
                     success=True,
                     task_data=task.to_dict(),
-                    message=f"Task {task.task_id} updated successfully"
+                    message=message
                 )
             else:
                 return EditTaskResult(

@@ -469,7 +469,9 @@ class TaskManager {
             const result = await response.json();
             
             if (result.success) {
-                this.showSuccess(t('tasks.updated_successfully'));
+                // The service's own words when it has some: an edit can move the
+                // task to another timezone, and that used to happen in silence.
+                this.showSuccess(result.message || t('tasks.updated_successfully'));
                 setTimeout(() => {
                     this.editModal?.hide();
                     this.fetchTasks();

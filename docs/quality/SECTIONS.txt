@@ -220,17 +220,17 @@ services/web/mech_web_service.py:1-676
 services/web/performance_stats_service.py:1-181
 services/web/security_service.py:1-350
 
-## Section 31  (1954 lines, 6 pieces)
-services/web/task_management_service.py:1-1102
+## Section 31  (1914 lines, 5 pieces)
+services/web/task_management_service.py:1-1117
 app/__init__.py:1-13
 app/auth.py:1-270
-app/blueprints/action_log_routes.py:1-91
 app/blueprints/automation_routes.py:1-272
 app/blueprints/log_routes.py:1-242
 
-## Section 32  (1828 lines, 2 pieces)
+## Section 32  (1919 lines, 3 pieces)
 app/blueprints/main_routes.py:1-1507
 app/blueprints/tasks_bp.py:1-314
+app/blueprints/action_log_routes.py:1-91
 
 ## Section 33  (1999 lines, 24 pieces)
 app/blueprints/translation_routes.py:1-364
