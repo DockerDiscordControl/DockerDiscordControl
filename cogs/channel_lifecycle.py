@@ -52,21 +52,44 @@ class ChannelLifecycleMixin:
                 added = new_channel_ids - current_channel_ids
                 removed = current_channel_ids - new_channel_ids
 
-                if not added and not removed:
-                    logger.info("Channel hot-reload: no channels added or removed")
+                # Channels that stayed but changed what they are FOR. What DDC
+                # tracks says which mode it built: 'admin_overview' for a control
+                # channel, 'overview' for a status channel. Without this a channel
+                # switched from serverstatus to control kept its server overview
+                # until a restart, and the hot-reload said "nothing changed".
+                switched = []
+                for channel_id in new_channel_ids & current_channel_ids:
+                    tracked = self.channel_server_message_ids.get(channel_id) or {}
+                    if not tracked:
+                        continue
+                    commands = (new_channel_permissions.get(str(channel_id), {})
+                                .get('commands', {}))
+                    wants_control = bool(commands.get('control'))
+                    built_control = 'admin_overview' in tracked
+                    if wants_control != built_control:
+                        switched.append(channel_id)
+
+                if not added and not removed and not switched:
+                    logger.info("Channel hot-reload: no channels added, removed or switched")
                     return
 
-                logger.info(f"Channel hot-reload: {len(added)} added, {len(removed)} removed")
+                logger.info(f"Channel hot-reload: {len(added)} added, {len(removed)} removed, "
+                            f"{len(switched)} switched")
 
                 # Teardown removed channels
                 for channel_id in removed:
                     await self._teardown_channel(channel_id)
 
-                # Setup added channels (with rate limit pause between each)
-                for channel_id in added:
+                # A switched channel is torn down and built again in its new mode
+                for channel_id in switched:
+                    await self._teardown_channel(channel_id)
+
+                # Setup added and switched channels (with rate limit pause between each)
+                to_set_up = list(added) + switched
+                for channel_id in to_set_up:
                     channel_config = new_channel_permissions.get(str(channel_id), {})
                     await self._setup_channel(channel_id, channel_config)
-                    if len(added) > 1:
+                    if len(to_set_up) > 1:
                         await asyncio.sleep(2)  # Avoid Discord rate limits
 
                 logger.info("Channel hot-reload completed successfully")

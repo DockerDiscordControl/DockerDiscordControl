@@ -32,7 +32,7 @@ cogs/control_ui.py:1833-3777
 ## Section 04  (1535 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
 # Step 5 (2026-09-22): channel setup/teardown/regeneration moved to channel_lifecycle.py.
-cogs/channel_lifecycle.py:1-611
+cogs/channel_lifecycle.py:1-634
 cogs/docker_control.py:1-863
 cogs/loop_safety.py:1-90
 
