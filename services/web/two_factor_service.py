@@ -214,7 +214,11 @@ class TwoFactorStore:
             return False
         with self._lock:
             data = self._read()
-            for key in ("enabled", "secret", "last_step", "recovery_hashes", "enabled_at", "pending_secret"):
+            # prompt_dismissed as well: switching 2FA off is a fresh start, and a
+            # "Later" from before it was ever used must not silence the dialog
+            # for the rest of the installation's life.
+            for key in ("enabled", "secret", "last_step", "recovery_hashes", "enabled_at",
+                        "pending_secret", "prompt_dismissed"):
                 data.pop(key, None)
             self._write(data)
         return True

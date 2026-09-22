@@ -1583,7 +1583,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/ddc_ui.py:87 DDCModal
 [ ] cogs/ddc_ui.py:90 DDCModal.on_error
 
-## Section 39  (893 lines, 31 public names)
+## Section 39  (897 lines, 31 public names)
 [ ] app/blueprints/two_factor_routes.py:115 install_two_factor
 [ ] app/blueprints/two_factor_routes.py:125 status
 [ ] app/blueprints/two_factor_routes.py:133 setup
