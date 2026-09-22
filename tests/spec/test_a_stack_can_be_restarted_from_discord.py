@@ -147,7 +147,9 @@ async def test_the_first_press_offers_the_stacks_to_an_admin_only(world):
     await button.callback(admin)
     view = admin.followup.send.await_args.kwargs["view"]
     select = view.children[0]
-    assert [o.value for o in select.options] == ["blog", "mon"]
+    # The option's value is its position in the menu (a Compose project name may be
+    # longer than the 100 characters Discord allows there); the label is the name.
+    assert [o.label for o in select.options] == ["blog", "mon"]
     assert world.acted == []
 
 
@@ -165,7 +167,8 @@ async def test_choosing_a_stack_asks_for_confirmation(world):
 
     select = StackSelect(_cog(), CHANNEL, {"blog": ["db", "web"], "mon": ["grafana"]})
     inter = _interaction(ADMIN_ID)
-    select._selected_values, select._interaction = ["blog"], inter  # what py-cord's refresh_state sets
+    blog = next(o.value for o in select.options if o.label == "blog")
+    select._selected_values, select._interaction = [blog], inter  # what py-cord's refresh_state sets
     await select.callback(inter)
     kwargs = inter.response.edit_message.await_args.kwargs
     assert "db" in kwargs["embed"].description and "web" in kwargs["embed"].description

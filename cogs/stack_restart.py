@@ -33,6 +33,7 @@ from discord.ui import Button, Select
 
 from cogs import admin_overview as ao
 from cogs.translation_manager import _
+from services.discord.embed_helper_service import fit_lines
 from .ddc_ui import DDCView
 
 logger = logging.getLogger('ddc.stack_restart')
@@ -82,10 +83,15 @@ async def offer_stacks(cog, channel_id: int, interaction) -> None:
             _("ℹ️ None of the active containers belongs to a Compose stack."), ephemeral=True)
         return
     names = {stack: [s['docker_name'] for s in members] for stack, members in stacks.items()}
+    description = _("Choose the Compose stack to restart.")
     if len(names) > MAX_OPTIONS:
+        # A menu holds 25 options; say which part of the list is shown instead of
+        # leaving the admin to wonder where their stack went.
         logger.info(f"Stack restart: {len(names)} stacks, the menu shows the first {MAX_OPTIONS}")
-    embed = discord.Embed(title=_("🔄 Restart a stack"),
-                          description=_("Choose the Compose stack to restart."),
+        description += "\n" + _("Showing the first {shown} of {total} stacks - {missing} are not "
+                                "in the menu.").format(shown=MAX_OPTIONS, total=len(names),
+                                                       missing=len(names) - MAX_OPTIONS)
+    embed = discord.Embed(title=_("🔄 Restart a stack"), description=description,
                           color=discord.Color.orange())
     await interaction.followup.send(embed=embed, view=StackPickView(cog, channel_id, names), ephemeral=True)
 
@@ -102,19 +108,27 @@ class StackSelect(Select):
         self.cog = cog
         self.channel_id = channel_id
         self.stacks = dict(list(stacks.items())[:MAX_OPTIONS])
-        options = [discord.SelectOption(label=stack[:100], value=stack,
-                                        description=_("{count} containers").format(count=len(members)))
-                   for stack, members in self.stacks.items()]
+        # The option's VALUE may hold 100 characters too, and a Compose project
+        # name is the operator's, of any length - so the value is the position
+        # in this menu and the name is looked up from it.
+        self._by_value = {str(index): stack for index, stack in enumerate(self.stacks)}
+        options = [discord.SelectOption(label=stack[:100], value=value,
+                                        description=_("{count} containers").format(
+                                            count=len(self.stacks[stack])))
+                   for value, stack in self._by_value.items()]
         super().__init__(placeholder=_("Choose a stack"), options=options,
                          custom_id="restart_stack_select", min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        stack = self.values[0]
-        members = ", ".join(f"`{name}`" for name in self.stacks.get(stack, []))
+        stack = self._by_value.get(self.values[0], self.values[0])
+        # Escaped and cut: the name and the member list are the operator's data,
+        # and Discord refuses a description past 4096 characters
+        members = fit_lines([f"`{name}`" for name in self.stacks.get(stack, [])], separator=", ",
+                            limit=3500, more=lambda count: _("… and {count} more").format(count=count))
         embed = discord.Embed(
             title=_("⚠️ Confirm Restart Stack"),
             description=_("Restart the running containers of the stack **{stack}**?\n\n{members}").format(
-                stack=stack, members=members),
+                stack=discord.utils.escape_markdown(stack), members=members),
             color=discord.Color.orange())
         await interaction.response.edit_message(embed=embed, view=RestartStackConfirmationView(
             self.cog, self.channel_id, stack))
@@ -160,7 +174,8 @@ class ConfirmRestartStackButton(Button):
             logger.info(f"Restart stack {self.stack}: {[m['docker_name'] for m in members]}")
             counts = await ao._restart_running_servers(members, docker_action_service_first)
             embed = discord.Embed(
-                title=_("🔄 Stack {stack} restarted").format(stack=self.stack),
+                title=_("🔄 Stack {stack} restarted").format(
+                    stack=discord.utils.escape_markdown(self.stack)[:180]),
                 description=ao._restart_summary(counts),
                 color=discord.Color.green() if counts["failed"] == 0 else discord.Color.orange())
             await interaction.followup.send(embed=embed, ephemeral=True)
