@@ -121,7 +121,7 @@ services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s1
 services/discord/embed_helper_service.py	173	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
 services/discord/status_overview_service.py	363	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_service/__init__.py	28	pass2:s14:1-28
-services/docker_service/docker_action_service.py	283	pass1:s14:plan pass2:s14:1-276
+services/docker_service/docker_action_service.py	295	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	771	pass1:s15:1-708  [37 of 745 lines never in a package]
 services/docker_service/docker_utils.py	1451	pass1:s16:1-1404  [28 of 1432 lines never in a package]
 services/docker_service/server_order.py	111	pass1:s16:1-111

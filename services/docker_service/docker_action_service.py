@@ -62,7 +62,19 @@ def get_stop_timeout_kwargs(container) -> dict:
     """
     try:
         stop_timeout = (container.attrs.get('Config') or {}).get('StopTimeout')
-    except (AttributeError, TypeError):
+    except (AttributeError, TypeError) as e:
+        # `{}` here means something completely different from the `{}` below,
+        # and the caller cannot tell them apart: down there no StopTimeout is
+        # configured, up here the container could not be read at all. Both make
+        # restart() fall back to docker-py's timeout=10, which is what a game
+        # server that writes its world on shutdown does not survive - and this
+        # function is on every stop and restart there is. It has to say so
+        # (review E50).
+        logger.warning(
+            "Could not read the stop timeout of '%s' (%s) - falling back to "
+            "docker-py's ten-second default. A container that needs longer to "
+            "save may be killed mid-write.",
+            getattr(container, 'name', '<unknown container>'), e)
         return {}
     if isinstance(stop_timeout, int) and not isinstance(stop_timeout, bool) and stop_timeout >= 0:
         return {'timeout': stop_timeout}
