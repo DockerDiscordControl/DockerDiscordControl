@@ -43,6 +43,36 @@ class ConfigurationSaveResult:
     error: Optional[str] = None
 
 
+INFO_FIELDS = ("enabled", "show_ip", "custom_ip", "custom_port", "custom_text",
+               "protected_enabled", "protected_content", "protected_password")
+
+
+def info_fields_to_write(form_data, all_container_names, active_container_names):
+    """(names to write, form data) for the container-info save.
+
+    Only containers the PAGE showed are written: a rendered row carries every
+    info field as a hidden input, so the form is the one place that knows what
+    the operator meant. A container that exists as a file but was not on the
+    page - the display limit, or a container Docker did not list at that moment
+    - used to be treated like one the operator had switched off, and lost its
+    custom text and its protected content with it.
+
+    A container that WAS shown and is no longer ticked is cleared, and cleared
+    completely: the protected fields were not even named before, so they fell
+    back to empty anyway - now that is said rather than implied.
+    """
+    active = set(active_container_names or [])
+    shown = [name for name in (all_container_names or [])
+             if f"info_enabled_{name}" in form_data]
+    for name in shown:
+        if name in active:
+            continue
+        for field in INFO_FIELDS:
+            form_data[f"info_{field}_{name}"] = "0" if field in ("enabled", "show_ip",
+                                                                 "protected_enabled") else ""
+    return shown, form_data
+
+
 class ConfigurationSaveService:
     """Service for handling complex configuration save operations."""
 
@@ -340,22 +370,15 @@ class ConfigurationSaveService:
                                          for server in processed_data['servers']
                                          if server.get('docker_name') or server.get('container_name')]
 
-            # Save container info for ALL containers
-            if all_container_names:
-                # For inactive containers, we need to clear their info fields
-                for container_name in all_container_names:
-                    if container_name not in active_container_names:
-                        # Create empty form data for inactive containers to clear their info
-                        form_data[f'info_enabled_{container_name}'] = '0'
-                        form_data[f'info_show_ip_{container_name}'] = '0'
-                        form_data[f'info_custom_ip_{container_name}'] = ''
-                        form_data[f'info_custom_port_{container_name}'] = ''
-                        form_data[f'info_custom_text_{container_name}'] = ''
-                        self.logger.info(f"[SAVE_DEBUG] Clearing info for inactive container: {container_name}")
-
-                # Save info for ALL containers (active and inactive)
-                info_results = save_container_info_from_web(form_data, all_container_names)
-                self.logger.info(f"Container info save results for {len(all_container_names)} containers: {info_results}")
+            # Container info: only for the containers the page actually showed
+            names_to_write, form_data = info_fields_to_write(
+                form_data, all_container_names, active_container_names)
+            unseen = [name for name in all_container_names if name not in names_to_write]
+            if unseen:
+                self.logger.info(f"Container info left untouched (not on the page): {unseen}")
+            if names_to_write:
+                info_results = save_container_info_from_web(form_data, names_to_write)
+                self.logger.info(f"Container info save results for {len(names_to_write)} containers: {info_results}")
 
             # Prepare file paths for display
             config_files = []
