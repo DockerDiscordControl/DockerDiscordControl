@@ -496,7 +496,6 @@
 [ ] services/docker_service/docker_utils.py:779 is_container_exists
 [ ] services/docker_service/docker_utils.py:800 get_containers_data
 [ ] services/docker_service/docker_utils.py:862 test_docker_performance
-[ ] services/docker_service/docker_utils.py:1023 analyze_docker_stats_performance
 [ ] services/docker_service/docker_utils.py:1244 compare_container_performance
 [ ] services/docker_service/server_order.py:36 save_server_order
 [ ] services/docker_service/server_order.py:63 load_server_order

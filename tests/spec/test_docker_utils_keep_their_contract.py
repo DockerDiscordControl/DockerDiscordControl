@@ -81,7 +81,6 @@ async def test_container_data_answers_a_list(docker_is_gone):
 @pytest.mark.asyncio
 async def test_the_diagnostics_answer_too(docker_is_gone):
     """A diagnostic that raises when the thing is broken is no diagnostic."""
-    assert isinstance(await docker_is_gone.analyze_docker_stats_performance("minecraft"), dict)
     assert isinstance(await docker_is_gone.compare_container_performance(["minecraft"]), str)
     assert isinstance(await docker_is_gone.test_docker_performance(), dict)
 

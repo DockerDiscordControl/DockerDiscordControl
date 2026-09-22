@@ -962,7 +962,8 @@ class TestDockerErrorClass:
 
 # ---------------------------------------------------------------------------
 # Performance / analysis helpers (test_docker_performance,
-# analyze_docker_stats_performance, compare_container_performance)
+# compare_container_performance). analyze_docker_stats_performance was dead
+# code and is deleted - see tests/spec/test_no_code_asks_docker_for_host_info.py.
 # ---------------------------------------------------------------------------
 
 
@@ -1022,94 +1023,6 @@ class TestPerformanceHelpers:
             container_names=["alpha"], iterations=1
         )
         assert result["summary"]["timeout_count"] >= 1
-
-    @pytest.mark.asyncio
-    async def test_analyze_docker_stats_performance_invalid_name_returns_empty(
-        self, monkeypatch
-    ):
-        monkeypatch.setattr(
-            "utils.common_helpers.validate_container_name", lambda n: False
-        )
-        result = await docker_utils.analyze_docker_stats_performance(
-            "../bad", iterations=1
-        )
-        assert result == {}
-
-    @pytest.mark.asyncio
-    async def test_analyze_docker_stats_performance_empty_name_returns_empty(self):
-        result = await docker_utils.analyze_docker_stats_performance("", iterations=1)
-        assert result == {}
-
-    @pytest.mark.asyncio
-    async def test_analyze_docker_stats_performance_collects_metrics(
-        self, fake_docker_client, monkeypatch
-    ):
-        monkeypatch.setattr(
-            "utils.common_helpers.validate_container_name", lambda n: True
-        )
-
-        # Make the inner sleep instant so the test runs quickly.
-        async def _no_sleep(*_a, **_kw):
-            return None
-
-        monkeypatch.setattr(asyncio, "sleep", _no_sleep)
-
-        container = fake_docker_client._fake_container
-        container.attrs = {
-            "State": {"Status": "running"},
-            "Created": "2024-01-01",
-            "RestartCount": 0,
-            "Platform": "linux",
-            "Driver": "overlay2",
-        }
-        container.stats.return_value = {
-            "cpu_stats": {
-                "cpu_usage": {"total_usage": 100},
-                "system_cpu_usage": 1000,
-                "online_cpus": 2,
-            },
-            "memory_stats": {
-                "usage": 200,
-                "limit": 1000,
-                "stats": {"cache": 50},
-            },
-            "blkio_stats": {
-                "io_service_bytes_recursive": [
-                    {"op": "Read", "value": 11},
-                    {"op": "Write", "value": 22},
-                ]
-            },
-            "networks": {
-                "eth0": {
-                    "rx_bytes": 100,
-                    "tx_bytes": 200,
-                    "rx_packets": 1,
-                    "tx_packets": 2,
-                }
-            },
-        }
-        fake_docker_client.info.return_value = {
-            "ServerVersion": "24.0",
-            "Containers": 5,
-            "ContainersRunning": 3,
-            "MemTotal": 8 * 1024 * 1024 * 1024,
-            "StorageDriver": "overlay2",
-        }
-        monkeypatch.setattr(
-            docker_utils,
-            "get_docker_client_async",
-            _make_async_client_cm(fake_docker_client),
-        )
-
-        result = await docker_utils.analyze_docker_stats_performance(
-            "demo", iterations=2
-        )
-        assert result["container_name"] == "demo"
-        assert result["iterations"] == 2
-        assert result["timing_breakdown"]["stats_call_times"]
-        assert result["analysis"]
-        assert "performance_category" in result["analysis"]
-        assert result["system_info"]["docker_version"] == "24.0"
 
     @pytest.mark.asyncio
     async def test_compare_container_performance_no_containers_returns_warning(

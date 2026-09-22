@@ -102,8 +102,9 @@ of a container that already exists.
    `DockerException("Error while fetching server API version")`. Tecnativa
    grants `VERSION` by default for exactly this reason.
 2. `client.info()` in `docker_utils.py` (`analyze_docker_stats_performance`)
-   would be `GET /info`. The function has no caller anywhere; it is dead code
-   and gets deleted in step 1 of §7 rather than allowlisted.
+   would be `GET /info`. The function had no caller anywhere; it was dead code
+   and is deleted (Etappe 2a) rather than allowlisted.
+   `tests/spec/test_no_code_asks_docker_for_host_info.py` keeps it out.
 
 So the surface is **eight endpoints plus one implicit `GET /version`**, and
 every one of them carries query strings (`all=1`, `stream=false`, `tail=`,
