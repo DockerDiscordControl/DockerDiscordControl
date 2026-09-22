@@ -188,7 +188,7 @@ RUN chmod +x /app/entrypoint.sh && \
 # Environment
 # DDC_VERSION: single source for the version shown by the entrypoint banner and /health
 # (bump together with README.md / docs/CHANGELOG.md on release).
-ENV DDC_VERSION="2.4.0" \
+ENV DDC_VERSION="2.4.1" \
     PYTHONPATH="/app:/opt/runtime/site-packages" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

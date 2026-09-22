@@ -4,6 +4,33 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v2.4.1 - 2026-09-22
+
+Security patch. After the v2.4.0 release, GitHub's code scanner (CodeQL) flagged ten places.
+Four were real and are fixed (reviews E56-E59); six were checked and are false positives, with
+the reasons in `docs/quality/reviews/PASS_E_FIXED.md`. No config migration, no new settings, no
+logout. Coming from v2.3.1 or earlier, read the v2.4.0 upgrade notes below first.
+
+### 🔒 Security
+
+- **Error answers without internal error text.** The translation test endpoint (stored API key
+  cannot be decrypted) and saving admin container assignments (container list cannot be read)
+  returned the raw exception message, which can name paths on the host. The answers now give a
+  plain reason; the details are logged. (CodeQL #65, #64)
+- **Setup page alerts are text, not HTML.** The first-time setup page inserted server and browser
+  messages with `innerHTML`. They are now inserted as text, and the translated messages reach
+  the page as JavaScript strings (`|tojson`), so escaped characters are not shown literally.
+  (CodeQL #57)
+- **`docker-publish.yml` limits its token.** The workflow had no top-level `permissions:` block,
+  so its test job ran with the repository's default token rights. It now defaults to
+  `contents: read`, and a test holds every workflow to a top-level block. (CodeQL #56)
+
+### Testing
+
+- 5,722 tests (7 new), each fix with a test that failed against the old code.
+
+---
+
 ## v2.4.0 - 2026-09-22
 
 Audit release. Every subsystem was reviewed, then a second pass looked specifically at what
