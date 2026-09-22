@@ -85,11 +85,19 @@ class MechStateManager:
         try:
             with open(self.state_file, 'r') as f:
                 self.state_cache = json.load(f)
+            self._read_failed = False
             return self.state_cache
         except FileNotFoundError:
             logger.debug(f"No state file at {self.state_file} yet, starting empty")
+            self._read_failed = False        # nothing there is not a read error
             return {}
         except (OSError, ValueError) as e:
+            # Only an OSError means "the file may be perfectly good, we just
+            # could not read it" - and then a write must not replace it with the
+            # empty cache plus one key (see _writable_state). Invalid JSON is
+            # unusable content, and replacing THAT cleanly is the documented
+            # behaviour (tests/unit/services/mech/test_mech_state_manager_atomic.py).
+            self._read_failed = isinstance(e, OSError)
             # ValueError covers json.JSONDecodeError; OSError covers permissions,
             # a directory in the file's place, and an I/O error on the mount.
             logger.error(
@@ -132,21 +140,42 @@ class MechStateManager:
             except OSError:
                 pass
 
+    def _writable_state(self):
+        """The state to change - or None when it must not be written.
+
+        After a read that failed, the cache is empty while the FILE is still
+        good; writing then replaced the tracked overview ids and every channel's
+        state with a single key. One more read is tried; if that fails too, the
+        change is refused and said so.
+        """
+        if getattr(self, '_read_failed', False):
+            self.load_state()
+            if getattr(self, '_read_failed', False):
+                logger.error(
+                    "Not writing %s: it could not be read, and writing now would replace "
+                    "the state that is still in it with almost nothing.", self.state_file)
+                return None
+        return self.state_cache
+
     def get_state(self, key: str, default=None):
         """Get specific state value"""
         return self.state_cache.get(key, default)
 
     def set_state(self, key: str, value: Any):
         """Set specific state value and save"""
-        self.state_cache[key] = value
-        self.save_state(self.state_cache)
+        state = self._writable_state()
+        if state is None:
+            return
+        state[key] = value
+        self.save_state(state)
 
     def set_expanded_state(self, channel_id: str, expanded: bool):
         """Set expanded state for a channel"""
-        if 'mech_expanded_states' not in self.state_cache:
-            self.state_cache['mech_expanded_states'] = {}
-        self.state_cache['mech_expanded_states'][str(channel_id)] = expanded
-        self.save_state(self.state_cache)
+        state = self._writable_state()
+        if state is None:
+            return
+        state.setdefault('mech_expanded_states', {})[str(channel_id)] = expanded
+        self.save_state(state)
 
     def get_expanded_state(self, channel_id: str) -> bool:
         """Get expanded state for a channel"""
@@ -154,10 +183,11 @@ class MechStateManager:
 
     def set_last_glvl(self, channel_id: str, glvl: int):
         """Set last glvl for a channel"""
-        if 'last_glvl_per_channel' not in self.state_cache:
-            self.state_cache['last_glvl_per_channel'] = {}
-        self.state_cache['last_glvl_per_channel'][str(channel_id)] = glvl
-        self.save_state(self.state_cache)
+        state = self._writable_state()
+        if state is None:
+            return
+        state.setdefault('last_glvl_per_channel', {})[str(channel_id)] = glvl
+        self.save_state(state)
 
     def get_last_glvl(self, channel_id: str) -> int:
         """Get last glvl for a channel"""

@@ -835,7 +835,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/mech/mech_high_res_service.py:208 MechHighResService.get_canvas_size_for_resolution
 [ ] services/mech/mech_high_res_service.py:243 get_mech_high_res_service
 
-## Section 23  (1932 lines, 70 public names)
+## Section 23  (1962 lines, 70 public names)
 [ ] services/mech/mech_reset_service.py:30 ResetResult
 [ ] services/mech/mech_reset_service.py:36 MechResetService
 [ ] services/mech/mech_reset_service.py:76 MechResetService.full_reset
@@ -866,16 +866,16 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/mech/mech_service_adapter.py:294 get_mech_service
 [ ] services/mech/mech_state_manager.py:19 MechStateManager
 [ ] services/mech/mech_state_manager.py:63 MechStateManager.load_state
-[ ] services/mech/mech_state_manager.py:103 MechStateManager.save_state
-[ ] services/mech/mech_state_manager.py:135 MechStateManager.get_state
-[ ] services/mech/mech_state_manager.py:139 MechStateManager.set_state
-[ ] services/mech/mech_state_manager.py:144 MechStateManager.set_expanded_state
-[ ] services/mech/mech_state_manager.py:151 MechStateManager.get_expanded_state
-[ ] services/mech/mech_state_manager.py:155 MechStateManager.set_last_glvl
-[ ] services/mech/mech_state_manager.py:162 MechStateManager.get_last_glvl
-[ ] services/mech/mech_state_manager.py:166 MechStateManager.should_force_recreate
-[ ] services/mech/mech_state_manager.py:175 MechStateManager.mark_force_recreate
-[ ] services/mech/mech_state_manager.py:186 get_mech_state_manager
+[ ] services/mech/mech_state_manager.py:111 MechStateManager.save_state
+[ ] services/mech/mech_state_manager.py:160 MechStateManager.get_state
+[ ] services/mech/mech_state_manager.py:164 MechStateManager.set_state
+[ ] services/mech/mech_state_manager.py:172 MechStateManager.set_expanded_state
+[ ] services/mech/mech_state_manager.py:180 MechStateManager.get_expanded_state
+[ ] services/mech/mech_state_manager.py:184 MechStateManager.set_last_glvl
+[ ] services/mech/mech_state_manager.py:192 MechStateManager.get_last_glvl
+[ ] services/mech/mech_state_manager.py:196 MechStateManager.should_force_recreate
+[ ] services/mech/mech_state_manager.py:205 MechStateManager.mark_force_recreate
+[ ] services/mech/mech_state_manager.py:216 get_mech_state_manager
 [ ] services/mech/mech_status_cache_service.py:27 MechStatusCacheRequest
 [ ] services/mech/mech_status_cache_service.py:34 MechStatusCacheResult
 [ ] services/mech/mech_status_cache_service.py:62 MechStatusCacheService
