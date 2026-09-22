@@ -142,7 +142,8 @@ def test_save_service_turns_config_save_error_into_failure(monkeypatch):
     svc = ConfigurationSaveService()
     monkeypatch.setattr(svc, "_initialize_dependencies", lambda: ConfigurationSaveResult(success=True))
     monkeypatch.setattr(svc, "_process_configuration", lambda form: ({"language": "en"}, True, "ok"))
-    monkeypatch.setattr(svc, "_check_critical_changes", lambda data: CriticalChanges())
+    # two arguments since 2026-09-22: the check is handed the config as it was BEFORE the write
+    monkeypatch.setattr(svc, "_check_critical_changes", lambda data, before=None: CriticalChanges())
     monkeypatch.setattr(svc, "_save_server_order", lambda data: None)
 
     def failing_save(*args):

@@ -171,7 +171,6 @@ def init_limiter(app):
                 app.logger.warning(f"Rate limit exceeded for auth from IP: {client_ip}")
                 return jsonify(error="Too many login attempts. Please try again later."), 429
 
-@auth.verify_password
 def setup_is_closed(config):
     """Why first-time setup may not run now - or None if it may. A missing hash
     means EITHER a fresh install or a config that could not be read; auth.py
@@ -188,6 +187,7 @@ def setup_is_closed(config):
     return None
 
 
+@auth.verify_password
 def verify_password(username, password):
     logger = current_app.logger
     config = load_config()
