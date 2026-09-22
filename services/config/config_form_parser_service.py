@@ -239,6 +239,24 @@ class ConfigFormParserService:
         return channel_permissions
 
     @staticmethod
+    def find_unusable_channel_ids(form_data: Dict[str, Any]) -> List[str]:
+        """Return the channel IDs a save will SKIP - one digit short, a letter in them.
+
+        A skipped row never reaches the parsed set, and save_all_channels removes
+        every <channel_id>.json that is not in that set: the most ordinary typing
+        mistake there is therefore deleted a channel's permissions while the panel
+        said "saved successfully". The save names them now, as it does duplicates.
+        """
+        unusable = []
+        for prefix in ('status', 'control'):
+            for count in range(1, MAX_CHANNEL_ROWS + 1):
+                raw = form_data.get(f'{prefix}_channel_id_{count}', '')
+                channel_id = raw.strip() if isinstance(raw, str) else str(raw).strip()
+                if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
+                    unusable.append(channel_id)
+        return sorted(set(unusable))
+
+    @staticmethod
     def find_duplicate_channel_ids(form_data: Dict[str, Any]) -> List[str]:
         """
         Return channel IDs submitted in BOTH the status and the control table.
@@ -498,6 +516,14 @@ class ConfigFormParserService:
 
             if password_changed:
                 message += " Web UI password changed; log in again with the new password."
+
+            unusable = ConfigFormParserService.find_unusable_channel_ids(form_data)
+            if result.success and unusable:
+                message += (
+                    f" Warning: {', '.join(unusable)} is not a Discord channel ID (17-19 digits), "
+                    "so that row was NOT saved - and a channel that is no longer listed loses its "
+                    "permissions. Check the channel list."
+                )
 
             duplicates = ConfigFormParserService.find_duplicate_channel_ids(form_data)
             if result.success and duplicates:

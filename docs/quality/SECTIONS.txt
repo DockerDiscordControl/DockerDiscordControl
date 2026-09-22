@@ -84,7 +84,7 @@ services/config/channel_roles.py:1-38
 # directories:
 # section 11 is at the 2,000 lines a section may hold.
 services/automation/own_actions.py:1-70
-services/config/config_form_parser_service.py:1-531
+services/config/config_form_parser_service.py:1-557
 services/config/config_loader_service.py:1-481
 services/config/config_migration_service.py:1-466
 
