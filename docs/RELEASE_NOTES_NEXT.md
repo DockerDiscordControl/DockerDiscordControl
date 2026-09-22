@@ -60,16 +60,38 @@ NOT protect.
 
 ## Fixed on the way
 
+Three independent review passes over the code found these, among others. Each one is fixed with
+a test that was red against the old code.
+
+- **The update interval you set is kept.** The overview was edited every minute whatever you had
+  configured.
+- **Live Logs survive.** Recreating a deleted overview swept the channel clean, including your
+  Live Log and the auto-action notices - and in a channel with both overviews it started a
+  delete-and-post loop, one per minute.
+- **`/control` replaces its panel** instead of leaving a second, frozen one behind, and a channel
+  switched between status and control mode is rebuilt at once.
 - A container DDC could not ask - a query that timed out - was reported as offline. It is now
   reported as unknown, and the last known state stays.
 - On a large installation no overview appeared at all: an embed longer than 4096 characters is
-  refused by Discord. As many containers as fit are shown, and the last line says how many are
-  missing.
+  refused by Discord. Measured with 20-character names, the Admin Overview now shows 120
+  containers whole and names the rest.
+- **Honest numbers:** data older than one and a half refresh cycles says how old it is, a
+  container Docker says does not exist is not counted as "offline", and details you switched off
+  say so instead of showing "—%".
+- **The panel says when a save did not work** - a container file it could not write, a mistyped
+  channel ID (which silently deleted that channel's permissions), a heartbeat URL without https.
+  The info of containers the page did not show is no longer cleared, and a changed language takes
+  effect at once.
 - A long info text made the Info button answer with an error instead of showing the text.
 - In the panel, a label that needs two lines no longer pushes its input field out of line.
+- **Security:** on an installation whose configuration could not be read, the first-time setup
+  page reopened - and an unauthenticated request could set a new panel password. It stays closed
+  now.
 
 ## Testing
 
-- 6,061 tests pass in the production image, over the 43 groups of `tests/GROUPS.txt`.
-- Three independent review passes over the new code; every finding they confirmed is fixed with
-  a test that was red against the old code, or written down as a decision.
+- 6,154 tests pass in the production image, over the 43 groups of `tests/GROUPS.txt`
+  (`scripts/ddc_test.sh --all`).
+- Six independent review passes: three over the new v3.0 code, three over the cog split, the
+  status embeds and the panel's save path. Every finding they confirmed is fixed with a test
+  that was red against the old code, or written down as a decision.
