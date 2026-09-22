@@ -50,9 +50,46 @@ ADDOPTS="${DDC_TEST_ADDOPTS:--q -rfE --tb=short}"
 SSH_OPTS="${DDC_TEST_SSH_OPTS:-}"
 
 if [ "$#" -eq 0 ]; then
-    echo "usage: $(basename "$0") <pytest args/paths...>" >&2
+    echo "usage: $(basename "$0") <pytest args/paths...>   |   $(basename "$0") --all" >&2
     echo "example: $(basename "$0") tests/unit/cogs" >&2
     exit 2
+fi
+
+# --all: every group of tests/GROUPS.txt, one container per group (see the note
+# above on why one run cannot hold them all), with one line per group and a
+# total. The group list is the project's own - the workflows read the same file.
+if [ "$1" = "--all" ]; then
+    HERE=$(cd "$(dirname "$0")/.." && pwd)
+    LIST="$HERE/tests/GROUPS.txt"
+    if [ ! -f "$LIST" ]; then
+        echo "[ddc_test] $LIST is missing - no group list, no full run" >&2
+        exit 2
+    fi
+    total_passed=0; total_skipped=0; total_bad=0; groups=0; failed_groups=""
+    while IFS= read -r group; do
+        case "$group" in ""|\#*) continue;; esac
+        line=$("$0" "$group" 2>&1 | tail -1)
+        groups=$((groups + 1))
+        echo "$group :: $line"
+        passed=$(printf '%s' "$line" | sed -n 's/.*[^0-9]\([0-9][0-9]*\) passed.*/\1/p')
+        skipped=$(printf '%s' "$line" | sed -n 's/.*[^0-9]\([0-9][0-9]*\) skipped.*/\1/p')
+        # two plain expressions: "\|" is a GNU extension that neither BSD sed nor
+        # busybox understands, and it silently matched nothing here
+        failed=$(printf '%s' "$line" | sed -n 's/.*[^0-9]\([0-9][0-9]*\) failed.*/\1/p')
+        errors=$(printf '%s' "$line" | sed -n 's/.*[^0-9]\([0-9][0-9]*\) error.*/\1/p')
+        bad=$(( ${failed:-0} + ${errors:-0} ))
+        [ "$bad" = "0" ] && bad=""
+        total_passed=$((total_passed + ${passed:-0}))
+        total_skipped=$((total_skipped + ${skipped:-0}))
+        total_bad=$((total_bad + ${bad:-0}))
+        [ -n "${bad:-}" ] && failed_groups="$failed_groups $group"
+    done < "$LIST"
+    echo "[ddc_test] $groups groups: $total_passed passed, $total_skipped skipped, $total_bad failed"
+    if [ -n "$failed_groups" ]; then
+        echo "[ddc_test] groups with failures:$failed_groups" >&2
+        exit 1
+    fi
+    exit 0
 fi
 
 NAME="ddctest-$(date +%s)-$$"
