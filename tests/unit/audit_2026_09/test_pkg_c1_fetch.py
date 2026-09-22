@@ -54,6 +54,7 @@ class FakeContainer:
         self.attrs = {
             "State": {"StartedAt": "2024-01-01T00:00:00Z"},
             "NetworkSettings": {"Ports": {}},
+            "Config": {"Image": "img:latest"},
         }
         self.image_calls = 0
         self.stats_calls = []
@@ -165,11 +166,14 @@ class TestSdkCallsOffTheEventLoop:
                 timeout=0.1)
         assert time.monotonic() - start < 0.4
 
-    async def test_container_image_evaluated_once(self, fake_docker):
+    async def test_container_image_is_never_requested(self, fake_docker):
+        """Package C1 cut the extra image request from two to one. Review E53
+        cut it to none: the name is in attrs, and the request was what failed
+        with 404 once the image had been removed from the host."""
         result = await ContainerStatusService()._fetch_container_status(
             ContainerStatusRequest(container_name="x"))
         assert result.image == "img:latest"
-        assert fake_docker.client.container.image_calls == 1
+        assert fake_docker.client.container.image_calls == 0
 
     async def test_fetch_with_retries_queries_docker_once(self, fake_docker, perf, monkeypatch):
         # Fresh status service singleton so no cached state leaks in or out

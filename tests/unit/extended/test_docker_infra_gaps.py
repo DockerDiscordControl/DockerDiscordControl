@@ -506,9 +506,14 @@ class TestDockerUtilsListContainersInner:
     """list_docker_containers per-container exception branches (693-698)."""
 
     @pytest.mark.asyncio
-    async def test_list_skips_notfound_and_attrerror(
+    async def test_list_keeps_containers_whose_image_lookup_would_fail(
         self, monkeypatch
     ):
+        """Formerly test_list_skips_notfound_and_attrerror, which asserted that
+        a container whose image lookup raised was DROPPED from the list - the
+        very behaviour a user reported against v2.3.1 (review E53). The image
+        name now comes from attrs, so the lookup is never made and all three
+        containers stay."""
         # Use a real-ish container class so attribute access raises naturally.
         class _Image:
             def __init__(self, tags, id_):
@@ -533,6 +538,7 @@ class TestDockerUtilsListContainersInner:
                 self.id = f"{name}-id"
                 self.status = "running"
                 self.image = image
+                self.attrs = {"Config": {"Image": f"{name}:1"}}
 
         good_img = _Image(["nginx:1"], "sha:gooooooooood")
         good = _Container("good", good_img)
@@ -553,10 +559,10 @@ class TestDockerUtilsListContainersInner:
             _async_cm_yielding(client),
         )
         result = await docker_utils.list_docker_containers()
-        # Only the good entry survives -- the others raised NotFound /
-        # AttributeError respectively.
-        assert len(result) == 1
-        assert result[0]["name"] == "good"
+        assert [c["name"] for c in result] == ["broken", "good", "weird"], (
+            "a container whose image lookup would fail fell out of the list")
+        assert {c["name"]: c["image"] for c in result} == {
+            "broken": "broken:1", "good": "good:1", "weird": "weird:1"}
 
 
 class TestDockerUtilsContainersDataInner:
@@ -1206,10 +1212,8 @@ class TestContainerStatusFetchSuccessBranch:
         fake_container.attrs = {
             "State": {"StartedAt": "2024-01-01T00:00:00Z"},
             "NetworkSettings": {"Ports": {"80/tcp": []}},
+            "Config": {"Image": "nginx:latest"},
         }
-        fake_container.image = MagicMock(
-            tags=["nginx:latest"], id="sha256:abcd"
-        )
 
         # The production code uses ``container.stats(stream=False)`` (single
         # snapshot with a filled precpu_stats), which returns one stats dict.
@@ -1259,13 +1263,13 @@ class TestContainerStatusFetchSuccessBranch:
     ):
         svc = ContainerStatusService()
 
-        # A non-Mock plain object lacks .image -> AttributeError (line 416-426
-        # ``except (AttributeError, KeyError, IndexError)``).
+        # A plain object without .status -> AttributeError, which reaches the
+        # ``except (AttributeError, KeyError, IndexError)`` branch. This used to
+        # rely on a missing .image; since review E53 the image is read from
+        # attrs and .image is never touched, so the branch needs another way in.
         class _BareContainer:
-            status = "running"
             attrs = {"State": {"StartedAt": "2024-01-01T00:00:00Z"},
                      "NetworkSettings": {"Ports": {}}}
-            # No .image attribute -> AttributeError raised in production.
 
         fake_client = MagicMock()
         fake_client.containers.get.return_value = _BareContainer()

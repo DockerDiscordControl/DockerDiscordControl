@@ -27,6 +27,12 @@ leaves their per-container timestamp alone.
 The counter-check (test_a_successful_refresh_does_replace_the_list) holds the
 other end: keeping the old cache on failure must not turn into keeping it on
 success.
+
+SINCE REVIEW E53 the trigger described above is gone: the image name is read
+from ``attrs['Config']['Image']`` and ``container.image`` is never requested,
+so a removed image can no longer stop the loop. The guard stays anyway, with a
+synthetic failure inside the loop, because build-then-swap is what protects
+the cache against the NEXT per-container lookup someone adds to that loop.
 """
 
 import time
@@ -48,16 +54,21 @@ class _Container:
     def __init__(self, name, status="running", tag=None, broken=False):
         self.id = f"{name}0123456789ab"
         self.name = name
-        self.status = status
+        self._status = status
         self._image = _Image([tag or f"{name}:latest"])
         self._broken = broken
+        self.attrs = {"Config": {"Image": tag or f"{name}:latest"}}
+
+    @property
+    def status(self):
+        if self._broken:
+            # A DockerException in the middle of the loop. Until review E53
+            # this came from container.image, which the loop no longer reads.
+            raise docker.errors.NotFound("container vanished mid-refresh")
+        return self._status
 
     @property
     def image(self):
-        if self._broken:
-            # What docker-py raises when the image is gone from under the
-            # container - a DockerException, so the outer handler swallows it.
-            raise docker.errors.NotFound("image not found")
         return self._image
 
 

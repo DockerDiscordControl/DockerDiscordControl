@@ -9,6 +9,7 @@ import os
 import logging
 import time
 import docker
+from utils.container_image import image_name_of
 from threading import Thread
 import threading
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -327,7 +328,10 @@ def update_docker_cache(logger):
                     'id': container.id[:12],
                     'name': container.name,
                     'status': container.status,
-                    'image': container.image.tags[0] if container.image.tags else container.image.id[:12]
+                    # From attrs, not container.image: that is a second request,
+                    # and a 404 for ONE removed image used to fail the whole
+                    # refresh and empty the list (review E53).
+                    'image': image_name_of(container)
                 }
 
                 # Calculate a hash for change detection

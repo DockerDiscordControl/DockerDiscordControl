@@ -299,15 +299,21 @@ class TestUpdateDockerCache:
         assert wh.docker_cache["containers"] == []
 
     def test_update_cache_image_id_fallback_when_no_tags(self, monkeypatch):
-        """No tags -> image field uses id[:12]."""
+        """A container created from a bare image id shows 12 characters of it.
+
+        This used to expect "sha256:deadb": the old code cut the first twelve
+        characters of the id INCLUDING the "sha256:" prefix, leaving five of
+        the hash. Since review E53 the name comes from attrs['Config']['Image']
+        and the prefix is dropped before shortening.
+        """
         import app.utils.web_helpers as wh
 
         c = MagicMock()
         c.id = "deadbeefcafe0011223344556677889900"
         c.name = "no_tags"
         c.status = "running"
-        c.image.tags = []
-        c.image.id = "sha256:deadbeefcafe0011223344"
+        c.attrs = {"Image": "sha256:deadbeefcafe0011223344",
+                   "Config": {"Image": "sha256:deadbeefcafe0011223344"}}
 
         client = MagicMock()
         client.containers.list.return_value = [c]
@@ -319,8 +325,7 @@ class TestUpdateDockerCache:
 
         wh.update_docker_cache(logging.getLogger("t"))
         result = [c for c in wh.docker_cache["containers"] if c["name"] == "no_tags"][0]
-        # First 12 chars of the image *id* string
-        assert result["image"] == "sha256:deadb"
+        assert result["image"] == "deadbeefcafe"
 
 
 class TestGetDockerContainersLive:

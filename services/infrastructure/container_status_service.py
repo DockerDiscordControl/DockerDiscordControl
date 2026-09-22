@@ -14,6 +14,8 @@ and proper caching for high-performance Discord status updates.
 
 import asyncio
 import docker.errors
+
+from utils.container_image import image_name_of
 import json
 import logging
 import os
@@ -423,9 +425,11 @@ class ContainerStatusService:
             is_running = container.status == 'running'
             status = container.status
 
-            # Basic container details (container.image is an extra API call - evaluate once)
-            container_image = container.image
-            image = container_image.tags[0] if container_image.tags else str(container_image.id)[:12]
+            # Read from attrs. container.image is an extra API call, and when the
+            # image has been removed from the host it raises ImageNotFound - a
+            # NotFound, which the handler below reported as "container_not_found"
+            # for a container that was running (review E53).
+            image = image_name_of(container)
 
             # Calculate uptime
             if is_running and container.attrs.get('State', {}).get('StartedAt'):

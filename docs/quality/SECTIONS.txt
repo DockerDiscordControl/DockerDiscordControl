@@ -86,8 +86,8 @@ services/docker_service/docker_action_service.py:1-295
 ## Section 15  (771 lines, 1 piece)
 services/docker_service/docker_client_pool.py:1-771
 
-## Section 16  (1948 lines, 5 pieces)
-services/docker_service/docker_utils.py:1-1451
+## Section 16  (1951 lines, 5 pieces)
+services/docker_service/docker_utils.py:1-1454
 services/docker_service/server_order.py:1-111
 services/docker_service/status_cache_runtime.py:1-101
 services/docker_status/__init__.py:1-34
@@ -118,8 +118,8 @@ services/infrastructure/action_log_service.py:1-387
 services/infrastructure/action_logger.py:1-103
 services/infrastructure/container_info_service.py:1-326
 
-## Section 19  (1966 lines, 5 pieces)
-services/infrastructure/container_status_service.py:1-833
+## Section 19  (1970 lines, 5 pieces)
+services/infrastructure/container_status_service.py:1-837
 services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-193
 services/infrastructure/event_manager.py:1-118
@@ -233,14 +233,14 @@ app/constants.py:1-17
 app/utils/__init__.py:1-7
 app/utils/container_info_web_handler.py:1-275
 
-## Section 34  (1986 lines, 10 pieces)
+## Section 34  (1990 lines, 10 pieces)
 # app/bot/startup_steps/sequence.py moved here from 33 on 2026-09-21: 33 had
 # grown to 2,021 of the 2,000 a section may hold, and this is the file that
 # grew (review E9). 34 had the room.
 app/bot/startup_steps/sequence.py:1-65
 app/utils/port_diagnostics.py:1-600
 app/utils/shared_data.py:1-105
-app/utils/web_helpers.py:1-905
+app/utils/web_helpers.py:1-909
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-61
@@ -265,10 +265,13 @@ utils/common_helpers.py:1-501
 utils/config_cache.py:1-307
 utils/config_paths.py:1-47
 
-## Section 36  (1804 lines, 5 pieces)
+## Section 36  (1856 lines, 6 pieces)
 # utils/import_utils.py moved here from 35 on 2026-09-21: 35 had grown to
 # 2,024 of the 2,000 lines a section may hold. 36 had the room, and both
 # halves of 35 were reviewed in stage C either way.
+# utils/container_image.py added 2026-09-22 (review E53): alphabetically it
+# sits on the 35/36 boundary, and 35 is the section that already overflowed.
+utils/container_image.py:1-52
 utils/import_utils.py:1-165
 utils/logging_utils.py:1-546
 utils/observability.py:1-593

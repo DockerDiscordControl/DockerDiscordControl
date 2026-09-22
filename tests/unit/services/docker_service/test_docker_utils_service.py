@@ -62,7 +62,10 @@ def fake_docker_client():
     """A MagicMock simulating ``docker.DockerClient``."""
     client = MagicMock(name="DockerClient")
     container = MagicMock(name="Container")
-    container.attrs = {"State": {"Status": "running"}, "Id": "abc123"}
+    # Real containers carry Config.Image; the image name is read from there
+    # since review E53, not from container.image (a second API request).
+    container.attrs = {"State": {"Status": "running"}, "Id": "abc123",
+                       "Image": "sha256:deadbeef", "Config": {"Image": "nginx:latest"}}
     container.short_id = "abc123abc123"
     container.name = "demo"
     container.status = "running"

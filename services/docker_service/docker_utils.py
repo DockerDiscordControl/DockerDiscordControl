@@ -17,6 +17,7 @@ from typing import Tuple, Optional, Dict, Any, List
 import docker
 import docker.client
 from utils.logging_utils import setup_logger
+from utils.container_image import image_name_of
 import time
 import os
 import json
@@ -767,8 +768,10 @@ async def list_docker_containers() -> List[Dict[str, Any]]:
             containers = []
             for container in raw_containers:
                 try:
-                     image_tags = container.image.tags
-                     image_name = image_tags[0] if image_tags else container.image.id[:12]
+                     # From attrs: container.image is a second request, and a
+                     # removed image made this container drop out of the list
+                     # through the NotFound handler below (review E53).
+                     image_name = image_name_of(container)
                      containers.append({
                          "id": container.short_id,
                          "name": container.name,
