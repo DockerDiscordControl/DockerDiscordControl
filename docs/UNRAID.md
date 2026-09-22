@@ -88,7 +88,7 @@ The container automatically:
 5. **Configure Discord bot** in the Settings tab
 6. **Set up Discord channels** in Channel Configuration
 
-## 🎮 Discord Bot Setup
+## Discord Bot Setup
 
 1. Create Discord Application at https://discord.com/developers/applications
 2. Create a Bot and copy the Token

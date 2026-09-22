@@ -97,7 +97,7 @@ MAX_CACHE_AGE = _get_advanced_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
 # Flag to enable background refresh
 ENABLE_BACKGROUND_REFRESH = _get_advanced_setting('DDC_ENABLE_BACKGROUND_REFRESH', True, bool)
 # Global kill-switch for game-server player-count queries (opengsq), default ON.
-# The REAL opt-in is the per-container 🎮 "query_enabled" checkbox, which defaults OFF -
+# The REAL opt-in is the per-container "query_enabled" checkbox, which defaults OFF -
 # so no outbound query runs until a container is explicitly enabled (zero overhead, the
 # GameQueryService is never even imported). Set DDC_ENABLE_OPENGSQ=false to hard-disable.
 ENABLE_OPENGSQ = _get_advanced_setting('DDC_ENABLE_OPENGSQ', True, bool)

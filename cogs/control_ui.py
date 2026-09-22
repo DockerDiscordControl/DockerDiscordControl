@@ -47,7 +47,7 @@ _embed_pool = []                 # Pool of reusable embed objects
 _view_template_cache = {}        # Cache for view templates per container state
 
 # Description templates for fast string generation
-# {player_line} is the optional game-server player-count line ("│ Players: 🎮 x/y\n" or "").
+# {player_line} is the optional game-server player-count line ("│ Players: x/y\n" or "", from format_player_line).
 # It must mirror the background status-loop renderer (cogs/status_handlers.py) so the count
 # does NOT flicker away when the user toggles Expand/Collapse.
 _description_templates = {

@@ -495,7 +495,7 @@ Standard upgrade is a simple container restart — no manual migration needed:
 - Graceful fallbacks for edge cases
 - NFS `root_squash` handling
 
-#### 🎮 New Discord Command
+#### New Discord Command
 
 - **`/addadmin`** - Add admin users directly from Discord
   - Opens modal to enter Discord User ID
@@ -557,7 +557,7 @@ Most settings now take effect immediately without container restart:
 Intelligent container automation that monitors Discord channels and triggers actions:
 
 **Features:**
-- 🎮 Game Server Auto-Updates - Restart when update bots announce new versions
+- Game Server Auto-Updates - Restart when update bots announce new versions
 - 🔗 Universal Webhook Control - Trigger from CI/CD, monitoring, GitHub Actions
 - 📝 Flexible Triggers - Keywords (with fuzzy search) or regex patterns
 - 🛡️ Built-in Safety - Cooldowns, protected containers, atomic locking
@@ -594,7 +594,7 @@ Dead Man's Switch monitoring:
 
 Production-ready release with multi-language support, performance improvements, and security enhancements.
 
-#### 🎮 EVERYTHING via Discord
+#### EVERYTHING via Discord
 
 - Live Logs Viewer - Monitor container output in real-time
 - Task System - Create, view, delete tasks (Once, Daily, Weekly, Monthly, Yearly)

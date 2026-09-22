@@ -248,7 +248,7 @@ def save_container_configs_from_web(servers_data: list) -> Dict[str, bool]:
             if 'allow_detailed_status' in server:
                 container_config['allow_detailed_status'] = server['allow_detailed_status']
 
-            # Persist per-container game-server query (opengsq / 🎮 player count) settings.
+            # Persist per-container game-server query (opengsq player count) settings.
             # These are parsed+sanitized into the server dict by ConfigFormParserService;
             # without copying them here they would be silently reset to defaults on save.
             for _qf in ('query_enabled', 'query_protocol', 'query_host', 'query_port', 'query_token'):

@@ -318,7 +318,7 @@ environment:
   - PGID=100
 ```
 
-🎮 **New Discord Command:**
+**New Discord Command:**
 - **NEW:** `/addadmin` - Add admin users directly from Discord
   - Opens modal to enter Discord User ID
   - In Control channels: Any user can add admins
@@ -351,7 +351,7 @@ environment:
 ### ✅ **v2.1.0 (2025-11-26) - Auto-Action System & Status Watchdog**
 
 🤖 **Auto-Action System (AAS) - Intelligent Container Automation:**
-- **NEW:** 🎮 **Game Server Auto-Updates** - Your Minecraft/Valheim/Palworld server restarts automatically when update bots announce new versions. No more manual restarts!
+- **NEW:** **Game Server Auto-Updates** - Your Minecraft/Valheim/Palworld server restarts automatically when update bots announce new versions. No more manual restarts!
 - **NEW:** 🔗 **Universal Webhook Control** - Trigger container actions from ANY external event: CI/CD pipelines, monitoring alerts, GitHub Actions, home automation, or custom scripts
 - **NEW:** 📝 **Flexible Triggers** - Match Discord messages by keywords (with fuzzy search) or regex patterns
 - **NEW:** 🛡️ **Built-in Safety** - Cooldowns prevent spam, protected containers can't be accidentally stopped, atomic locking ensures clean operations
@@ -374,7 +374,7 @@ environment:
 
 ### ✅ **v2.0.0 (2025-11-18) - MAJOR UPDATE - Complete Rewrite**
 
-🎮 **EVERYTHING via Discord - Complete Control:**
+**EVERYTHING via Discord - Complete Control:**
 - **NEW:** Live Logs Viewer - Monitor container output in real-time directly in Discord
 - **NEW:** Task System - Create, view, delete tasks (Once, Daily, Weekly, Monthly, Yearly) entirely in Discord
 - **NEW:** Container Info System - Attach custom info and password-protected info to containers
@@ -450,7 +450,7 @@ The former platform repositories (DockerDiscordControl-Linux, -Mac and -Windows)
 ## Features - EVERYTHING via Discord! 🚀
 
 ### 🤖 Auto-Action System (AAS) - Intelligent Container Automation
-- **🎮 Game Server Auto-Updates**: Palworld, Valheim, Minecraft, or any game server - automatically restart when Discord update bots announce new versions. Set it and forget it!
+- **Game Server Auto-Updates**: Palworld, Valheim, Minecraft, or any game server - automatically restart when Discord update bots announce new versions. Set it and forget it!
 - **🔗 Universal Webhook Control**: Control containers from ANY external system - CI/CD pipelines (Jenkins, GitLab), monitoring alerts (Grafana, Prometheus), GitHub Actions, Home Assistant, IFTTT, or your own scripts. One webhook URL, endless possibilities!
 - **🔒 Zero Attack Surface**: DDC only makes outbound connections to Discord - no open ports, no exposed APIs, no attack surface! All automation flows through Discord's secure infrastructure. Your Docker socket and network stay completely protected.
 - **📝 Flexible Triggers**: Match Discord messages by keywords ("update available", "new version") with optional fuzzy matching, or use regex for complex patterns
@@ -464,7 +464,7 @@ The former platform repositories (DockerDiscordControl-Linux, -Mac and -Windows)
 - **Simple Setup**: Just paste a monitoring URL from your preferred service
 - **Flexible Intervals**: Configure ping frequency from 1-60 minutes
 
-### 🎮 Discord Container Control
+### Discord Container Control
 - **Start, Stop, Restart** individual containers or **ALL containers at once**
 - **Live Logs Viewer** - Monitor container output in real-time directly in Discord
 - **Attach Custom Info** to containers (e.g., current WAN IP address, connection details)

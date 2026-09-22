@@ -350,7 +350,7 @@ class StatusHandlersMixin:
                                                 servers_by_docker_name: Dict[str, Any]) -> None:
         """Add live game-server player counts to running, query-enabled containers (opengsq).
 
-        Controlled per-container via ``query_enabled`` (the 🎮 column in the web UI). The
+        Controlled per-container via ``query_enabled`` (the player-count checkbox column in the web UI). The
         DDC_ENABLE_OPENGSQ setting is a global kill-switch (default ON, read dynamically) so
         ops can disable all querying without unchecking every container. Fully best-effort:
         any failure leaves players_online=None and never affects the status results.
