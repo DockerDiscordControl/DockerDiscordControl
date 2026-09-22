@@ -676,13 +676,39 @@ class TestEvolutionDynamicCost:
         cfg_path.write_text(json.dumps({}), encoding="utf-8")
         svc = EvolutionConfigService(config_path=str(cfg_path))
 
-        # Stub out the central save to avoid hitting the real ConfigService.
-        with patch.object(svc, "save_config", return_value=True):
-            # Above-range value clamped to 2.5
+        # Catch what would have been written. `assert True` used to stand here,
+        # with the comment "no exception means the clamping branches executed" -
+        # so a set_difficulty_multiplier that stored 99.0 unclamped kept this
+        # test green, in a test named after the clamping. The reachable cost
+        # range was already wrong once for exactly this value (review C69).
+        with patch.object(svc, "save_config", return_value=True) as saved:
             svc.set_difficulty_multiplier(99.0)
-            # Below-range value clamped to 0.25
+            above = saved.call_args.args[0]["evolution_settings"]
+
             svc.set_difficulty_multiplier(-1.0)
-        assert True  # no exception means the clamping branches executed
+            below = saved.call_args.args[0]["evolution_settings"]
+
+        # The bounds are DERIVED from the level-2 base cost, they are not a
+        # fixed pair (review C69). An empty file still resolves through the
+        # fallback config, which prices level 2 at $10, so with
+        # LEVEL_2_COST_FLOOR=5 / CEILING=50 the reachable range is 0.5 to 5.0.
+        #
+        # The comment that used to sit here said "clamped to 2.5" and "to 0.25".
+        # Those are the numbers _lowest_difficulty()/_highest_difficulty()
+        # return only when the base cost is 0, a branch this test never takes.
+        # Nothing noticed, because the assertion was `assert True`.
+        assert svc._highest_difficulty() == pytest.approx(5.0)
+        assert svc._lowest_difficulty() == pytest.approx(0.5)
+
+        assert above["difficulty_multiplier"] == pytest.approx(5.0), (
+            f"99.0 was stored as {above['difficulty_multiplier']} - not clamped "
+            f"to the ceiling the level-2 cost allows"
+        )
+        assert below["difficulty_multiplier"] == pytest.approx(0.5), (
+            f"-1.0 was stored as {below['difficulty_multiplier']} - not clamped "
+            f"to the floor the level-2 cost allows"
+        )
+        assert above["manual_difficulty_override"] is True
 
 
 class TestEvolutionConfigService:

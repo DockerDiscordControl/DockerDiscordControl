@@ -18,6 +18,7 @@ from services.status.status_cache_service import get_status_cache_service
 from services.config.server_config_service import get_server_config_service
 from services.config.config_service import load_config  # Keep for backward compatibility
 from cogs.translation_manager import _
+from .ddc_ui import DDCView
 
 logger = logging.getLogger('ddc.admin_overview')
 
@@ -36,7 +37,7 @@ async def _refresh_tracked_admin_overview(cog, channel_id: int) -> bool:
     return await cog._update_overview_message(channel_id, message_id, 'admin_overview')
 
 
-class AdminOverviewView(View):
+class AdminOverviewView(DDCView):
     """View for admin overview in control channels with bulk container management."""
 
     def __init__(self, cog_instance, channel_id: int, has_running_containers: bool):
@@ -410,7 +411,7 @@ class AdminOverviewDonateButton(Button):
 # CONFIRMATION VIEWS FOR BULK ACTIONS
 # =============================================================================
 
-class RestartAllConfirmationView(View):
+class RestartAllConfirmationView(DDCView):
     """Confirmation view for restarting all containers."""
 
     def __init__(self, cog_instance, channel_id: int):
@@ -422,7 +423,7 @@ class RestartAllConfirmationView(View):
         self.add_item(ConfirmRestartAllButton(cog_instance, channel_id))
         self.add_item(CancelBulkActionButton())
 
-class StopAllConfirmationView(View):
+class StopAllConfirmationView(DDCView):
     """Confirmation view for stopping all containers."""
 
     def __init__(self, cog_instance, channel_id: int):

@@ -53,7 +53,7 @@ class ConfigCacheService:
             Cached config dict if valid, None otherwise
         """
         with self._cache_lock:
-            current_time = os.path.getmtime(config_dir) if config_dir.exists() else 0
+            current_time = self.get_config_dir_mtime(config_dir)
 
             if (cache_key in self._config_cache and
                 self._cache_timestamps.get(cache_key, 0) >= current_time):
@@ -61,10 +61,45 @@ class ConfigCacheService:
 
             return None
 
+    # The directories DDC keeps configuration in, below config/ itself. A
+    # directory's mtime moves when an entry in THAT directory is created,
+    # renamed or removed - not when a file inside a subdirectory changes. The
+    # channel permissions and the container settings, which are the two things
+    # an operator actually edits, live one level down (review E29).
+    _CONFIG_SUBDIRECTORIES = ('channels', 'containers')
+
     @staticmethod
     def get_config_dir_mtime(config_dir: Path) -> float:
-        """Return the modification time of the config directory (0 if missing)."""
-        return os.path.getmtime(config_dir) if config_dir.exists() else 0
+        """The newest mtime of the config directory and the ones below it.
+
+        This used to be ``config_dir`` alone, and it missed every change to a
+        channel or a container file. Nothing broke, because every save path goes
+        on to call ``ConfigService.save_config``, which invalidates explicitly,
+        and the bot and the web panel are one process - so that invalidation
+        reaches both (measured: a single ``python3 run.py`` in the container).
+
+        What this check is for is the case where nothing called it: a file
+        edited by hand on the host - normal here, since ``config/`` is mode 700
+        and gets edited through the Unraid shell - or a future save path that
+        writes a channel file without going through ``save_config``. Then DDC
+        served the old configuration until something unrelated touched
+        ``config/`` itself, or until a restart, and the change simply did not
+        take effect (review E29).
+
+        Two extra stat calls per lookup, against a configuration that silently
+        does not apply.
+        """
+        if not config_dir.exists():
+            return 0
+        newest = os.path.getmtime(config_dir)
+        for name in ConfigCacheService._CONFIG_SUBDIRECTORIES:
+            sub = config_dir / name
+            try:
+                newest = max(newest, os.path.getmtime(sub))
+            except OSError:
+                # Not every install has both; a fresh one has neither.
+                continue
+        return newest
 
     def set_cached_config(self, cache_key: str, config: Dict[str, Any], config_dir: Path,
                           mtime: Optional[float] = None) -> None:

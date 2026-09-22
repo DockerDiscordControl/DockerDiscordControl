@@ -22,6 +22,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
+# DockerConnectivity failures arrive here as DockerServiceError - see the
+# handlers below and review E44.
+from services.exceptions import DockerServiceError
 from utils.atomic_io import atomic_write_json
 from utils.logging_utils import get_module_logger
 
@@ -210,7 +213,7 @@ class ContainerStatusService:
 
             return result
 
-        except (AttributeError, ImportError, RuntimeError) as e:
+        except (DockerServiceError, AttributeError, ImportError, RuntimeError) as e:
             duration_ms = (time.time() - start_time) * 1000
             self.logger.error(f"Service error getting container status for {request.container_name}: {e}", exc_info=True)
 
@@ -551,7 +554,7 @@ class ContainerStatusService:
                 error_type="docker_service_error",
                 query_duration_ms=duration_ms
             )
-        except (RuntimeError, OSError, IOError) as e:
+        except (DockerServiceError, RuntimeError, OSError, IOError) as e:
             duration_ms = (time.time() - start_time) * 1000
             self.logger.error(f"Docker communication error for {request.container_name}: {e}", exc_info=True)
 

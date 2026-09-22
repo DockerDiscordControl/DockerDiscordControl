@@ -29,6 +29,7 @@ from utils.logging_utils import get_module_logger
 from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
+from .ddc_ui import DDCView
 
 logger = get_module_logger('control_ui')
 
@@ -238,6 +239,94 @@ def _make_action_done_callback(cog, docker_name: str, pending_entry: dict, label
         if cog.pending_actions.get(docker_name) is pending_entry:
             del cog.pending_actions[docker_name]
     return _on_done
+
+
+# Discord shows at most this many options in one select. It is a hard limit of
+# the platform, not a choice DDC gets to make.
+DISCORD_SELECT_LIMIT = 25
+
+
+# The two option values that mean "turn the page" rather than "this container".
+# They cannot collide with a container name: Docker names cannot contain spaces
+# or the arrow characters.
+SELECT_PAGE_PREV = "__ddc_page_prev__"
+SELECT_PAGE_NEXT = "__ddc_page_next__"
+
+# Room for both arrows on every page, so the page boundaries are the same
+# whichever direction the operator arrives from. Page 1 could hold one more
+# (it has no way back), but then "previous" from page 2 would land somewhere
+# else than page 1 started, which is how off-by-one paging bugs are made.
+CONTAINERS_PER_PAGE = DISCORD_SELECT_LIMIT - 2
+
+
+def _page_of(containers, page):
+    """The slice of `containers` shown on `page`, and whether there is more.
+
+    E37 repaired the silence around ``containers[:25]``: the placeholder said
+    "(25/30)" and a warning named the five that were dropped. The operator
+    could see the list was cut - they still could not reach what was cut off.
+
+    This is the answer the project had already built once, for the 31 days of
+    a month (``SimpleMonthdayDropdown``, review B21): the list pages, and
+    nothing is left out. A list that fits in one select is untouched and shows
+    no arrows at all, because paging that announces itself when it is not
+    needed is a regression for every install that has seven containers.
+    """
+    if len(containers) <= DISCORD_SELECT_LIMIT:
+        return containers, False, False
+
+    start = page * CONTAINERS_PER_PAGE
+    shown = containers[start:start + CONTAINERS_PER_PAGE]
+    return shown, page > 0, (start + CONTAINERS_PER_PAGE) < len(containers)
+
+
+def _page_arrows(containers, page, has_prev, has_next):
+    """The arrow options that lead out of this page.
+
+    The labels are numbers and an arrow, deliberately without ``_()``: they
+    carry no words, so they need no entry in the forty catalogues and read the
+    same in every language. ``SimpleMonthdayDropdown`` made the same choice for
+    the same reason.
+    """
+    before, after = [], []
+    if has_prev:
+        first = (page - 1) * CONTAINERS_PER_PAGE + 1
+        before.append(discord.SelectOption(
+            label=f"←  {first} - {first + CONTAINERS_PER_PAGE - 1}",
+            value=SELECT_PAGE_PREV))
+    if has_next:
+        first = (page + 1) * CONTAINERS_PER_PAGE + 1
+        after.append(discord.SelectOption(
+            label=f"{first} - {min(first + CONTAINERS_PER_PAGE - 1, len(containers))}  →",
+            value=SELECT_PAGE_NEXT))
+    return before, after
+
+
+def _paged_placeholder(placeholder, containers, page, paged):
+    """"Select a container... (24-30/30)" - numbers, so no catalogue entry."""
+    if not paged:
+        return placeholder
+    start = page * CONTAINERS_PER_PAGE + 1
+    end = min(start + CONTAINERS_PER_PAGE - 1, len(containers))
+    return f"{placeholder} ({start}-{end}/{len(containers)})"
+
+
+async def _turn_page(dropdown, interaction, containers, rebuild):
+    """Swap this dropdown for the neighbouring page, in the same row.
+
+    The same move ``SimpleMonthdayDropdown._turn_page`` makes: the view keeps
+    its identity, only the select is exchanged, so nothing else on the message
+    is disturbed.
+    """
+    step = 1 if dropdown.values[0] == SELECT_PAGE_NEXT else -1
+    row = getattr(dropdown, 'row', None)
+    view = dropdown.view
+    view.remove_item(dropdown)
+    other = rebuild(dropdown.page + step)
+    if row is not None:
+        other.row = row
+    view.add_item(other)
+    await interaction.response.edit_message(view=view)
 
 
 class ActionButton(Button):
@@ -569,8 +658,13 @@ class ActionButton(Button):
                                     self.cog.expanded_states[self.docker_name] = True
                                     self.server_config['_is_admin_control'] = True
 
-                                    # Generate admin control embed
-                                    admin_embed, _, _ = await self.cog._generate_status_embed_and_view(
+                                    # Generate admin control embed.
+                                    # NOT `_`: this function calls the translation
+                                    # function, and binding `_` anywhere makes it
+                                    # local for the WHOLE scope (review E38 - the
+                                    # same mistake as E34, caught by the same
+                                    # guard two hours later).
+                                    admin_embed, _view, _running = await self.cog._generate_status_embed_and_view(
                                         interaction.channel.id,
                                         self.display_name,
                                         self.server_config,
@@ -599,7 +693,7 @@ class ActionButton(Button):
                                     )
 
                                     if admin_embed:
-                                        admin_embed.title = f"🛠️ Admin Control: {self.display_name}"
+                                        admin_embed.title = _("🛠️ Admin Control: {name}").format(name=self.display_name)
                                         if not fresh_status_data or isinstance(fresh_status_data, Exception):
                                             admin_embed.color = discord.Color.gold()
                                         elif is_running:
@@ -617,7 +711,7 @@ class ActionButton(Button):
                             else:
                                 # Update normal control message
                                 try:
-                                    normal_embed, normal_view, _ = await self.cog._generate_status_embed_and_view(
+                                    normal_embed, normal_view, _running = await self.cog._generate_status_embed_and_view(
                                         interaction.channel.id,
                                         self.display_name,
                                         self.server_config,
@@ -642,7 +736,7 @@ class ActionButton(Button):
                                                 if channel:
                                                     message = await channel.fetch_message(msg_data['message_id'])
                                                     if message:
-                                                        embed, view, _ = await self.cog._generate_status_embed_and_view(
+                                                        embed, view, _running = await self.cog._generate_status_embed_and_view(
                                                             channel_id,
                                                             self.display_name,
                                                             server_config_for_update,
@@ -1044,7 +1138,7 @@ class ToggleButton(Button):
 # ULTRA-OPTIMIZED CONTROL VIEW CLASS
 # =============================================================================
 
-class ControlView(View):
+class ControlView(DDCView):
     """Ultra-optimized view with control buttons for a Docker container."""
     cog: 'DockerControlCog'
 
@@ -1208,7 +1302,7 @@ class InfoButton(Button):
             # Check if channel has info permission (skip check for admins)
             if not is_admin and not self._channel_has_info_permission(channel_id, config):
                 await interaction.followup.send(
-                    "❌ You don't have permission to view container info in this channel.",
+                    _("❌ You don't have permission to view container info in this channel."),
                     ephemeral=True
                 )
                 return
@@ -1270,7 +1364,7 @@ class InfoButton(Button):
                     return
                 else:
                     await interaction.followup.send(
-                        "ℹ️ Container info is not configured for this container.",
+                        _("ℹ️ Container info is not configured for this container."),
                         ephemeral=True
                     )
                     return
@@ -1306,7 +1400,7 @@ class InfoButton(Button):
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}", exc_info=True)
             await interaction.followup.send(
-                "❌ An error occurred while loading container info.",
+                _("❌ An error occurred. Please try again."),
                 ephemeral=True
             )
 
@@ -1315,7 +1409,7 @@ class InfoButton(Button):
 
         # Create embed with container branding
         embed = discord.Embed(
-            title=f"📋 {self.display_name} - Container Info",
+            title=_("📋 {name} - Container Info").format(name=self.display_name),
             color=0x3498db
         )
 
@@ -1342,7 +1436,7 @@ class InfoButton(Button):
         if description_parts:
             embed.description = "\n".join(description_parts)
         else:
-            embed.description = "*No information configured for this container.*"
+            embed.description = _("*No information configured for this container.*")
 
         embed.set_footer(text="https://ddc.bot")
         return embed
@@ -1493,7 +1587,7 @@ class TaskDeleteButton(Button):
 # disabled label button that nothing ever built, and whose callback said of
 # itself "This should never be called since button is disabled" (review B22).
 
-class MechView(View):
+class MechView(DDCView):
     """View with simplified buttons for Mech status in /ss command."""
 
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
@@ -1604,7 +1698,7 @@ class InfoDropdownButton(Button):
                     continue
 
             if not containers_with_info:
-                await interaction.followup.send("ℹ️ No active containers have information configured.", ephemeral=True)
+                await interaction.followup.send(_("ℹ️ No active containers have information configured."), ephemeral=True)
                 return
 
             # Sort containers by the 'order' field (same as Admin Overview)
@@ -1628,12 +1722,12 @@ class InfoDropdownButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing info selection: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error showing container selection.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have expired
                 pass
 
-class ContainerInfoSelectView(View):
+class ContainerInfoSelectView(DDCView):
     """View with dropdown for selecting a container to view info."""
 
     def __init__(self, cog_instance: 'DockerControlCog', containers: list):
@@ -1646,21 +1740,26 @@ class ContainerInfoSelectView(View):
 class ContainerInfoDropdown(discord.ui.Select):
     """Dropdown for selecting a container."""
 
-    def __init__(self, cog_instance: 'DockerControlCog', containers: list):
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list, page: int = 0):
         self.cog = cog_instance
         self.containers = containers
+        self.page = page
 
-        # Create options from containers
-        options = []
-        for container in containers[:25]:  # Discord limit is 25 options
-            option = discord.SelectOption(
+        # Create options from containers, one page at a time (review E37)
+        placeholder = _("Select a container...")
+        shown, has_prev, has_next = _page_of(containers, page)
+        before, after = _page_arrows(containers, page, has_prev, has_next)
+        options = list(before)
+        for container in shown:
+            options.append(discord.SelectOption(
                 label=container['display'],
                 value=container['name']
-            )
-            options.append(option)
+            ))
+        options.extend(after)
 
         super().__init__(
-            placeholder=_("Select a container..."),
+            placeholder=_paged_placeholder(placeholder, containers, page,
+                                           has_prev or has_next),
             options=options,
             min_values=1,
             max_values=1,
@@ -1670,6 +1769,12 @@ class ContainerInfoDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle container selection."""
         try:
+            if self.values[0] in (SELECT_PAGE_PREV, SELECT_PAGE_NEXT):
+                await _turn_page(
+                    self, interaction, self.containers,
+                    lambda page: ContainerInfoDropdown(self.cog, self.containers, page=page))
+                return
+
             selected_container = self.values[0]
 
             # Get container info and full container data
@@ -1694,7 +1799,7 @@ class ContainerInfoDropdown(discord.ui.Select):
 
             if not container_data:
                 await interaction.response.edit_message(
-                    content=f"❌ Container '{selected_container}' not found",
+                    content=_("❌ Container '{name}' not found").format(name=selected_container),
                     embed=None,
                     view=None
                 )
@@ -1821,16 +1926,16 @@ class ContainerInfoDropdown(discord.ui.Select):
             try:
                 if not interaction.response.is_done():
                     await interaction.response.edit_message(
-                        content="❌ Error showing container information.",
+                        content=_("❌ An error occurred. Please try again."),
                         embed=None,
                         view=None
                     )
                 else:
-                    await interaction.followup.send("❌ Error showing container information.", ephemeral=True)
+                    await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
-class PasswordProtectedView(View):
+class PasswordProtectedView(DDCView):
     """View with button for entering password to access protected info."""
 
     def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, info_config: dict):
@@ -1881,9 +1986,9 @@ class PasswordButton(Button):
             logger.error(f"Error showing password modal: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message("❌ Error showing password modal.", ephemeral=True)
+                    await interaction.response.send_message(_("❌ An error occurred. Please try again."), ephemeral=True)
                 else:
-                    await interaction.followup.send("❌ Error showing password modal.", ephemeral=True)
+                    await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -1923,7 +2028,7 @@ class AdminButton(Button):
             # Check if user is admin
             user_id = str(interaction.user.id)
             if not admin_service.is_user_admin(user_id):
-                await interaction.followup.send("🛠️ You are not authorized to use admin controls.", ephemeral=True)
+                await interaction.followup.send(_("🛠️ You are not authorized to use admin controls."), ephemeral=True)
                 return
 
             # Apply spam protection
@@ -1972,7 +2077,7 @@ class AdminButton(Button):
                     continue
 
             if not active_containers:
-                await interaction.followup.send("📦 No active containers found.", ephemeral=True)
+                await interaction.followup.send(_("📦 No active containers found."), ephemeral=True)
                 return
 
             # Log containers BEFORE sorting (with types)
@@ -2017,11 +2122,11 @@ class AdminButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing admin panel: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error showing admin panel.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
-class AdminContainerSelectView(View):
+class AdminContainerSelectView(DDCView):
     """View with dropdown for selecting a container for admin control."""
 
     def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int,
@@ -2062,18 +2167,23 @@ class AdminContainerSelectView(View):
 class AdminContainerDropdown(discord.ui.Select):
     """Dropdown for selecting a container for admin control."""
 
-    def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int):
+    def __init__(self, cog_instance: 'DockerControlCog', containers: list, channel_id: int,
+                 page: int = 0):
         self.cog = cog_instance
         self.channel_id = channel_id
+        self.page = page
 
         # CRITICAL: Re-sort containers here to ensure correct order
         # Sort by 'order' field from Web UI configuration
 
-        # Debug: Show what we received
-        logger.info(f"AdminDropdown received {len(containers)} containers:")
+        # DEBUG level, not INFO: this writes one line PER CONTAINER, twice (once
+        # here and once after sorting), every time the panel is opened. On a
+        # seven-container install that is fourteen INFO lines for one click,
+        # and the header calls itself "Debug" (review E37).
+        logger.debug(f"AdminDropdown received {len(containers)} containers:")
         for c in containers:
             order_val = c.get('order', 999)
-            logger.info(f"  - {c['display']}: order={order_val} (type={type(order_val).__name__})")
+            logger.debug(f"  - {c['display']}: order={order_val} (type={type(order_val).__name__})")
 
         # Sort containers by order field (handles both int and string from Web UI)
         def get_order_key(container):
@@ -2089,14 +2199,17 @@ class AdminContainerDropdown(discord.ui.Select):
         sorted_containers = sorted(containers, key=get_order_key)
         self.containers = sorted_containers
 
-        # Debug log the sorted order
-        logger.info("AdminDropdown after sorting:")
+        # Debug log the sorted order - see above.
+        logger.debug("AdminDropdown after sorting:")
         for c in sorted_containers:
-            logger.info(f"  - {c['display']}: order={c.get('order', 999)}")
+            logger.debug(f"  - {c['display']}: order={c.get('order', 999)}")
 
-        # Create options from sorted containers
-        options = []
-        for i, container in enumerate(sorted_containers[:25]):  # Discord limit is 25 options
+        # Create options from sorted containers, one page at a time (review E37)
+        placeholder = _("Select a container to control...")
+        shown, has_prev, has_next = _page_of(sorted_containers, page)
+        before, after = _page_arrows(sorted_containers, page, has_prev, has_next)
+        options = list(before)
+        for container in shown:
             # Remove " Server" suffix for cleaner dropdown display
             display_label = container['display']
             if display_label.endswith(' Server'):
@@ -2110,9 +2223,11 @@ class AdminContainerDropdown(discord.ui.Select):
                 description=" "  # Single space - invisible but forces Discord to keep our order
             )
             options.append(option)
+        options.extend(after)
 
         super().__init__(
-            placeholder=_("Select a container to control..."),
+            placeholder=_paged_placeholder(placeholder, sorted_containers, page,
+                                           has_prev or has_next),
             options=options,
             min_values=1,
             max_values=1,
@@ -2122,6 +2237,15 @@ class AdminContainerDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle container selection and show control panel."""
         try:
+            # Before the defer: turning the page edits the message itself, and
+            # a deferred interaction can no longer answer with edit_message.
+            if self.values[0] in (SELECT_PAGE_PREV, SELECT_PAGE_NEXT):
+                await _turn_page(
+                    self, interaction, self.containers,
+                    lambda page: AdminContainerDropdown(
+                        self.cog, self.containers, self.channel_id, page=page))
+                return
+
             # IMPORTANT: Defer immediately to avoid interaction timeout (3 second limit)
             await interaction.response.defer()
 
@@ -2165,7 +2289,8 @@ class AdminContainerDropdown(discord.ui.Select):
 
             if not container_config:
                 await interaction.edit_original_response(
-                    content=f"❌ Container configuration not found for '{selected_container}'",
+                    content=_("❌ Container configuration not found for '{name}'").format(
+                        name=selected_container),
                     embed=None,
                     view=None
                 )
@@ -2177,8 +2302,10 @@ class AdminContainerDropdown(discord.ui.Select):
             # Load configuration
             config = load_config()
             if not config:
+                logger.error("[ADMIN_BTN] Configuration could not be loaded - "
+                             "the admin panel cannot be built")
                 await interaction.edit_original_response(
-                    content="❌ Failed to load configuration",
+                    content=_("❌ An error occurred. Please try again."),
                     embed=None,
                     view=None
                 )
@@ -2195,7 +2322,12 @@ class AdminContainerDropdown(discord.ui.Select):
 
             # Generate expanded control embed and view using the cog's method
             if hasattr(self.cog, '_generate_status_embed_and_view'):
-                embed, view, _ = await self.cog._generate_status_embed_and_view(
+                # NOT `_`: this function now calls the translation function, and
+                # binding `_` anywhere in it makes `_` local for the WHOLE scope -
+                # every _() before this line would raise UnboundLocalError and
+                # every one after it would call a tuple element (review E34,
+                # caught by test_the_translation_function_is_not_shadowed).
+                embed, view, _running = await self.cog._generate_status_embed_and_view(
                     self.channel_id,
                     selected_container,  # Use container name, not display name
                     container_config,
@@ -2226,7 +2358,7 @@ class AdminContainerDropdown(discord.ui.Select):
                 )
 
                 # Add admin header to embed
-                embed.title = f"🛠️ Admin Control: {display_name}"
+                embed.title = _("🛠️ Admin Control: {name}").format(name=display_name)
 
                 # Dynamic color based on container status
                 if not status_known:
@@ -2242,8 +2374,10 @@ class AdminContainerDropdown(discord.ui.Select):
                 await interaction.edit_original_response(embed=embed, view=control_view)
             else:
                 # Fallback if method not available
+                logger.error("[ADMIN_BTN] The cog has no _generate_status_embed_and_view - "
+                             "the control panel cannot be built")
                 await interaction.edit_original_response(
-                    content="❌ Control generation method not available",
+                    content=_("❌ An error occurred. Please try again."),
                     embed=None,
                     view=None
                 )
@@ -2256,7 +2390,7 @@ class AdminContainerDropdown(discord.ui.Select):
             try:
                 # Since we deferred at the start, response is always done, so edit original
                 await interaction.edit_original_response(
-                    content="❌ Error showing container control panel.",
+                    content=_("❌ An error occurred. Please try again."),
                     embed=None,
                     view=None
                 )
@@ -2340,7 +2474,7 @@ class HelpButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error showing help information.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have expired
                 pass
@@ -2379,7 +2513,7 @@ class MechDetailsButton(Button):
 
             if not result.success:
                 await interaction.followup.send(
-                    "❌ Error retrieving mech status details. Please try again later.",
+                    _("❌ Error retrieving mech status details. Please try again later."),
                     ephemeral=True
                 )
                 return
@@ -2464,12 +2598,12 @@ class MechDetailsButton(Button):
             try:
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error retrieving mech details. Please try again later.",
+                        _("❌ Error retrieving mech details. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error retrieving mech details. Please try again later.",
+                        _("❌ Error retrieving mech details. Please try again later."),
                         ephemeral=True
                     )
             except (discord.errors.DiscordException, RuntimeError):
@@ -2496,7 +2630,7 @@ class MechExpandButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Apply spam protection
@@ -2537,7 +2671,7 @@ class MechExpandButton(Button):
 
             # Start interaction tracking to prevent auto-update conflicts
             if not await self.cog._start_interaction(self.channel_id):
-                await interaction.followup.send("⏰ Another interaction is in progress. Please try again.", ephemeral=True)
+                await interaction.followup.send(_("⏰ Another interaction is in progress. Please try again."), ephemeral=True)
                 return
 
             try:
@@ -2573,7 +2707,7 @@ class MechExpandButton(Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error expanding mech status: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error expanding mech status.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
@@ -2584,8 +2718,8 @@ class MechExpandButton(Button):
         config = load_config()
         if not config:
             # Fallback embed
-            embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
-            embed.description = "Error: Could not load configuration."
+            embed = discord.Embed(title=_("Server Overview"), color=discord.Color.blue())
+            embed.description = _("Error: Could not load configuration.")
             return embed, None
 
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
@@ -2618,7 +2752,7 @@ class MechCollapseButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Apply spam protection
@@ -2648,7 +2782,7 @@ class MechCollapseButton(Button):
 
             # Start interaction tracking to prevent auto-update conflicts
             if not await self.cog._start_interaction(self.channel_id):
-                await interaction.followup.send("⏰ Another interaction is in progress. Please try again.", ephemeral=True)
+                await interaction.followup.send(_("⏰ Another interaction is in progress. Please try again."), ephemeral=True)
                 return
 
             try:
@@ -2680,7 +2814,7 @@ class MechCollapseButton(Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error collapsing mech status: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error collapsing mech status.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
@@ -2691,8 +2825,8 @@ class MechCollapseButton(Button):
         config = load_config()
         if not config:
             # Fallback embed
-            embed = discord.Embed(title="Server Overview", color=discord.Color.blue())
-            embed.description = "Error: Could not load configuration."
+            embed = discord.Embed(title=_("Server Overview"), color=discord.Color.blue())
+            embed.description = _("Error: Could not load configuration.")
             return embed, None
 
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
@@ -2765,9 +2899,9 @@ class MechDonateButton(Button):
             try:
                 # Smart error response - check if interaction was already handled by _handle_donate_interaction
                 if interaction.response.is_done():
-                    await interaction.followup.send("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+                    await interaction.followup.send(_("❌ Error processing donation. Please try `/donate` directly."), ephemeral=True)
                 else:
-                    await interaction.response.send_message("❌ Error processing donation. Please try `/donate` directly.", ephemeral=True)
+                    await interaction.response.send_message(_("❌ Error processing donation. Please try `/donate` directly."), ephemeral=True)
             except discord.errors.NotFound:
                 logger.warning("Cannot send error message - interaction expired")
             except (discord.errors.DiscordException, RuntimeError):
@@ -2841,7 +2975,7 @@ class MechHistoryButton(Button):
 
             # Check if donations are disabled (after defer, use followup)
             if is_donations_disabled():
-                await interaction.followup.send("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.followup.send(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Get current mech state using SERVICE FIRST
@@ -2850,7 +2984,10 @@ class MechHistoryButton(Button):
             mech_state_request = GetMechStateRequest(include_decimals=False)
             mech_state_result = mech_service.get_mech_state_service(mech_state_request)
             if not mech_state_result.success:
-                await interaction.followup.send("❌ Failed to get mech state", ephemeral=True)
+                logger.error("[MECH] The mech state could not be read - "
+                             "the selection cannot be shown")
+                await interaction.followup.send(
+                    _("❌ An error occurred. Please try again."), ephemeral=True)
                 return
             current_level = mech_state_result.level
 
@@ -2905,9 +3042,9 @@ class MechHistoryButton(Button):
 
         # Add footer
         if next_level:
-            embed.set_footer(text="History integrates story chapters with mech evolutions • Next evolution goal as shadow preview")
+            embed.set_footer(text=_("History integrates story chapters with mech evolutions • Next evolution goal as shadow preview"))
         else:
-            embed.set_footer(text="History integrates story chapters with mech evolutions • Level 10 is the final known evolution...")
+            embed.set_footer(text=_("History integrates story chapters with mech evolutions • Level 10 is the final known evolution..."))
 
         # Respond immediately to avoid timeout
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -2950,7 +3087,10 @@ class MechHistoryButton(Button):
                         mech_state_request = GetMechStateRequest(include_decimals=False)
                         mech_state_result = mech_service.get_mech_state_service(mech_state_request)
                         if not mech_state_result.success:
-                            await interaction.response.send_message("❌ Failed to get mech state", ephemeral=True)
+                            logger.error("[MECH] The mech state could not be read - "
+                                         "the display cannot be shown")
+                            await interaction.response.send_message(
+                                _("❌ An error occurred. Please try again."), ephemeral=True)
                             return
                         power = mech_state_result.power
 
@@ -2969,7 +3109,7 @@ class MechHistoryButton(Button):
                             logger.error(f"Failed to load unlocked mech {level}: {image_result.error_message}")
                             embed = discord.Embed(
                                 title=f"❌ **Level {level}: {_(evolution_info.name)}**",
-                                description="*Animation could not be loaded*",
+                                description=_("*Animation could not be loaded*"),
                                 color=0xff0000
                             )
                             await channel.send(embed=embed, ephemeral=True)
@@ -2997,7 +3137,7 @@ class MechHistoryButton(Button):
                         logger.error(f"Error creating animation for level {level}: {e}", exc_info=True)
                         embed = discord.Embed(
                             title=f"❌ **Level {level}: {_(evolution_info.name)}**",
-                            description="*Animation could not be loaded*",
+                            description=_("*Animation could not be loaded*"),
                             color=0xff0000
                         )
                         await channel.send(embed=embed, ephemeral=True)
@@ -3060,7 +3200,7 @@ class MechHistoryButton(Button):
                     description="*[DATA_CORRUPTED] - 000x34A##%&33DL*\n*[UNAUTHORIZED_ACCESS_DETECTED]*\n*[EVOLUTION_DATA_ENCRYPTED]*",
                     color=0x330033  # Dark purple - mysterious/corrupted
                 )
-                corrupted_embed.set_footer(text="⚠️ System anomaly detected - Evolution data corrupted")
+                corrupted_embed.set_footer(text=_("⚠️ System anomaly detected - Evolution data corrupted"))
                 await channel.send(embed=corrupted_embed, ephemeral=True)
 
                 # Small delay for dramatic effect
@@ -3149,14 +3289,15 @@ class MechHistoryButton(Button):
         )
 
         if chapter_key == "epilogue":
-            embed.set_footer(text="⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE")
+            embed.set_footer(text=_("⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE"))
         else:
-            embed.set_footer(text="The Song of Steel and Stars - A Chronicle of the Mech Ascension")
+            embed.set_footer(
+                text=f"{_('The Song of Steel and Stars')} - {_('A Chronicle of the Mech Ascension')}")
 
         await channel.send(embed=embed, ephemeral=True)
 
 
-class MechSelectionView(View):
+class MechSelectionView(DDCView):
     """View with buttons for each unlocked mech."""
 
     def __init__(self, cog_instance: 'DockerControlCog', current_level: int):
@@ -3225,7 +3366,7 @@ class MechDisplayButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # self.custom_id = mech_display_<level> -> slider mech_display.
@@ -3335,7 +3476,7 @@ class EpilogueButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Not self.custom_id ("epilogue_button"): without "mech_story_" in
@@ -3377,7 +3518,7 @@ And those who dare… sp34k its ████ do s0 only once.
                 description=epilogue_text,
                 color=0x330033
             )
-            embed.set_footer(text="⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE")
+            embed.set_footer(text=_("⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE"))
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -3386,7 +3527,7 @@ And those who dare… sp34k its ████ do s0 only once.
             await interaction.response.send_message(_("❌ Error loading epilogue."), ephemeral=True)
 
 
-class MechStoryView(View):
+class MechStoryView(DDCView):
     """View with Read Story and Play Song buttons - only for unlocked mechs."""
 
     def __init__(self, cog_instance: 'DockerControlCog', level: int, unlocked: bool = True):
@@ -3419,7 +3560,7 @@ class ReadStoryButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Not self.custom_id (read_story_<level>) - see EpilogueButton.
@@ -3472,7 +3613,8 @@ class ReadStoryButton(Button):
                     description=chapter_content,
                     color=color
                 )
-                embed.set_footer(text="The Song of Steel and Stars - A Chronicle of the Mech Ascension")
+                embed.set_footer(
+                text=f"{_('The Song of Steel and Stars')} - {_('A Chronicle of the Mech Ascension')}")
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
@@ -3503,7 +3645,7 @@ class PlaySongButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message("❌ Mech system is currently disabled.", ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
                 return
 
             # Not self.custom_id (play_song_<level>) - see EpilogueButton.
@@ -3530,7 +3672,7 @@ class PlaySongButton(Button):
                 await interaction.followup.send(message_text, ephemeral=True)
             else:
                 await interaction.followup.send(
-                    f"❌ No music available for Mech Level {self.level}\n"
+                    _("❌ No music available for Mech Level {level}").format(level=self.level) + "\n"
                     f"Error: {result.error}",
                     ephemeral=True
                 )
@@ -3545,7 +3687,7 @@ class PlaySongButton(Button):
 # MECH DETAILS VIEW FOR PRIVATE MESSAGES
 # =============================================================================
 
-class MechDetailsView(View):
+class MechDetailsView(DDCView):
     """View for private mech details messages with Spenden and History buttons."""
 
     def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
@@ -3583,12 +3725,12 @@ class MechPrivateDonateButton(Button):
                 # Smart error response - check if interaction was already deferred by child button
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error processing donation request. Please try again later.",
+                        _("❌ Error processing donation request. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error processing donation request. Please try again later.",
+                        _("❌ Error processing donation request. Please try again later."),
                         ephemeral=True
                     )
             except discord.errors.NotFound:
@@ -3622,12 +3764,12 @@ class MechPrivateHistoryButton(Button):
                 # Smart error response - check if interaction was already deferred by child button
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error loading mech history. Please try again later.",
+                        _("❌ Error loading mech history. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error loading mech history. Please try again later.",
+                        _("❌ Error loading mech history. Please try again later."),
                         ephemeral=True
                     )
             except discord.errors.NotFound:

@@ -9,6 +9,7 @@
 import discord
 from discord.ext import commands, tasks
 import asyncio
+import functools
 from datetime import datetime, timedelta, timezone
 import os
 import logging
@@ -38,7 +39,7 @@ from services.docker_service.status_cache_runtime import get_docker_status_cache
 # Scheduler imports removed - unused in this module
 
 # Import outsourced parts
-from .translation_manager import _, get_translations
+from .translation_manager import _
 from .control_helpers import get_guild_id, container_select, _channel_has_permission
 # control_ui imports removed - unused in this module
 
@@ -49,6 +50,7 @@ from .control_helpers import get_guild_id, container_select, _channel_has_permis
 
 # Import the status handlers mixin that contains status-related functionality
 from .status_handlers import StatusHandlersMixin
+from .ddc_ui import DDCModal, DDCView
 
 # Import the command handlers mixin that contains Docker action command functionality
 # Command handlers removed - using UI buttons for all container control
@@ -93,6 +95,74 @@ def _heartbeat_enabled(config: dict) -> bool:
     if not isinstance(heartbeat, dict) or not heartbeat.get('enabled', False):
         return False
     return bool((heartbeat.get('ping_url') or '').strip())
+
+
+# --------------------------------------------------------------------------- #
+# Background loops: one bad cycle must not be the last one (review E17)
+# --------------------------------------------------------------------------- #
+#
+# Measured in the shipped py-cord (ext/tasks/__init__.py):
+#
+#   line 103  _valid_exception = (OSError, GatewayNotFound, ConnectionClosed,
+#                                 aiohttp.ClientError, asyncio.TimeoutError)
+#   line 171  only those are retried;
+#   line 195  ANYTHING else sets _has_failed, calls the loop's error handler and
+#             re-raises - the loop is over, permanently, until DDC restarts;
+#   line 474  the DEFAULT error handler is a bare print() to sys.stderr.
+#
+# So a single ValueError or DDC exception used to end the status display for the
+# rest of the run, and DDC's own log never mentioned it. The operator sees stale
+# numbers and has nothing to look at. That is the worst shape a defect can have.
+#
+# Two answers, because they cover different failures. The decorator keeps a bad
+# CYCLE from being fatal; the error handler makes a loop that dies anyway say so
+# through DDC's logger instead of py-cord's print.
+
+def survives_one_bad_cycle(coro):
+    """Let a loop body fail a cycle without ending the loop.
+
+    The cycle is lost and said so at ERROR. The loop runs again at its next
+    interval, which is what "periodic" is supposed to mean.
+
+    CancelledError travels on untouched: it means DDC is shutting down, not
+    that the cycle failed. It descends from BaseException, so `except Exception`
+    would not have caught it anyway - the clause is a signpost, and becomes
+    load-bearing the moment somebody widens the handler.
+    """
+    @functools.wraps(coro)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await coro(*args, **kwargs)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001 - see above
+            logger.error("Background loop '%s' lost a cycle (%s: %s) - it will "
+                         "run again at the next interval",
+                         coro.__name__, type(e).__name__, e, exc_info=True)
+            return None
+    return wrapper
+
+
+def _register_loop_error_handlers(cls) -> None:
+    """Give every tasks.Loop on a class an error handler that uses the logger."""
+    for attribute_name in dir(cls):
+        candidate = getattr(cls, attribute_name, None)
+        if not isinstance(candidate, tasks.Loop):
+            continue
+
+        def make_handler(loop_name):
+            async def handler(*args):
+                exception = args[-1]
+                logger.error(
+                    "BACKGROUND LOOP STOPPED: '%s' ended with %s: %s. It will "
+                    "NOT run again until DDC is restarted - whatever it does is "
+                    "no longer happening.",
+                    loop_name, type(exception).__name__, exception,
+                    exc_info=exception)
+            handler.__name__ = f"on_{loop_name}_stopped"
+            return handler
+
+        candidate.error(make_handler(attribute_name))
 
 
 class DockerControlCog(commands.Cog, StatusHandlersMixin):
@@ -271,29 +341,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             logger.error(f"[DEBUG INIT] Step 8 FAILED: {e}", exc_info=True)
             raise
 
-        # Initialize translations
-        logger.debug("Step 9: Initializing translations...")
-        try:
-            self.translations = get_translations()
-            logger.debug("Step 9 complete: Translations initialized")
-        except Exception as e:
-            logger.error(f"[DEBUG INIT] Step 9 FAILED: {e}", exc_info=True)
-            raise
-
-        # Initialize self as status handler
-        self.status_handlers = self
-
-        # Initialize performance monitoring
-        self._loop_stats = {
-            'status_update': {'runs': 0, 'errors': 0, 'last_duration': 0},
-            'message_edit': {'runs': 0, 'errors': 0, 'last_duration': 0},
-            'inactivity': {'runs': 0, 'errors': 0, 'last_duration': 0},
-            'cache_clear': {'runs': 0, 'errors': 0, 'last_duration': 0},
-            'heartbeat': {'runs': 0, 'errors': 0, 'last_duration': 0}
-        }
-
         # Initialize task tracking
-        logger.debug("Step 10: Initializing asyncio locks...")
+        logger.debug("Step 9: Initializing asyncio locks...")
         try:
             self._active_tasks = set()
             self._task_lock = asyncio.Lock()
@@ -306,9 +355,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             # (regenerate, recreate, recovery, /ss, /control, initial send) so two concurrent
             # paths can never post a duplicate overview into the same channel.
             self._channel_locks: Dict[int, asyncio.Lock] = {}
-            logger.debug("Step 10 complete: Asyncio locks initialized")
+            logger.debug("Step 9 complete: Asyncio locks initialized")
         except Exception as e:
-            logger.error(f"[DEBUG INIT] Step 10 FAILED: {e}", exc_info=True)
+            logger.error(f"[DEBUG INIT] Step 9 FAILED: {e}", exc_info=True)
             raise
 
         # NOTE: Background loops are started in cog_load() hook, not in __init__
@@ -321,7 +370,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             'box_elements': {},
             'last_cache_clear': datetime.now(timezone.utc)
         }
-        self._EMBED_CACHE_TTL = 300  # 5 minutes cache for embed elements
 
         logger.info("Ensuring other potential loops (if any residues from old structure) are cancelled.")
         if hasattr(self, 'heartbeat_send_loop') and self.heartbeat_send_loop.is_running(): self.heartbeat_send_loop.cancel()
@@ -696,6 +744,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     # --- PERIODIC MESSAGE EDIT LOOP (FULL LOGIC, MOVED DIRECTLY INTO COG) ---
     @tasks.loop(minutes=1, reconnect=True)
+    @survives_one_bad_cycle
     async def periodic_message_edit_loop(self):
         """Periodically checks and edits messages in channels that require updates."""
         config = load_config()
@@ -778,8 +827,17 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                     except (ImportError, AttributeError, RuntimeError) as service_error:
                         logger.warning(f"SERVICE_FIRST: Error in overview decision service: {service_error}")
-                        # Fallback to original logic on service error
-                        tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
+                        # Fall back to the channel's own interval - the same
+                        # fallback the admin overview below has always used.
+                        #
+                        # This used to queue the update unconditionally, and the
+                        # loop runs every minute: with the decision service
+                        # broken, the overview was edited sixty times an hour for
+                        # an operator who had asked for once (review E18). Two
+                        # messages taking the same decision had two different
+                        # fallbacks, and nobody decided that they should.
+                        if last_update_time is None or (now_utc - last_update_time) >= update_interval_delta:
+                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
 
                     continue  # Overview message handled, move to next message
 
@@ -2120,7 +2178,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}\n`/info <container>` - {_('Shows detailed container information.')}" + "\n\u200b", inline=False)
 
         # Control Channel Commands
-        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**Container Control:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**Task Management:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**{_('Container Control')}:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**{_('Task Management')}:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
 
         # Add status indicators explanation
         embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
@@ -2129,7 +2187,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         embed.add_field(name=f"**{_('Info System')}**", value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}" + "\n\u200b", inline=False)
 
         # Add task management explanation
-        embed.add_field(name=f"**{_('Task Scheduling')}**", value=f"⏰ {_('Click to manage scheduled tasks')}\n➕ **Add Task** - {_('Schedule container actions (daily, weekly, monthly, yearly, once)')}\n❌ **Delete Tasks** - {_('Remove scheduled tasks for the container')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Task Scheduling')}**", value=f"⏰ {_('Click to manage scheduled tasks')}\n➕ **{_('Add Task')}** - {_('Schedule container actions (daily, weekly, monthly, yearly, once)')}\n❌ **{_('Delete Tasks')}** - {_('Remove scheduled tasks for the container')}" + "\n\u200b", inline=False)
 
         # Add control buttons explanation (no spacing after last field)
         embed.add_field(name=f"**{_('Control Buttons (Admin Channels)')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}", inline=False)
@@ -2642,9 +2700,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     animation_file = None
                     # Add fallback visual indicator in embed
                     if not embed.footer or not embed.footer.text:
-                        embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                        embed.set_footer(text=translate("🎬 Animation service temporarily unavailable"))
                     else:
-                        embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
+                        # The separator is structure, the words are language
+                        # (review E35).
+                        embed.set_footer(
+                            text=f"{embed.footer.text} | {translate('🎬 Animation unavailable')}")
 
                 # Use clean progress bar data from CACHE - NO MORE MANUAL CALCULATION! 🎯
                 # For Level 1, use decimal Power for accurate percentage
@@ -2757,7 +2818,19 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # For refreshes without animation file, reference existing with correct extension
                     embed.set_image(url="attachment://mech_animation.webp")  # Assume WebP for new system
 
-            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
+            except Exception as e:  # noqa: BLE001
+                # Broad on purpose (review E20). The container list is already in
+                # embed.description by the time this block runs; the mech is
+                # decoration on top of it. Anything that escapes here takes the
+                # finished list with it, and the operator loses the thing they
+                # need - is my server up? - because of the thing they do not.
+                #
+                # This file already records that happening: the comment above
+                # describes an ImportError that "escaped the handler below (it
+                # only catches DiscordException/RuntimeError/OSError/KeyError),
+                # so expanding the mech section in Discord crashed outright".
+                # That was repaired by fixing the import. The shape that let one
+                # bad import take the whole overview down was left alone.
                 logger.error(f"Could not load expanded mech status for /ss: {e}", exc_info=True)
         else:
             # Donations disabled - no mech components
@@ -2809,9 +2882,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         )
 
         # Build description header
+        # The counts are not known yet - the loop below does the counting - so
+        # this slot is filled once, afterwards, and nothing is formatted twice.
+        #
+        # It used to build the whole line here with online='{online}' and
+        # offline='{offline}' passed as LITERAL strings, so they survived the
+        # format and could be filled later. They never were: the line further
+        # down rebuilds the string from scratch, so that first build was a
+        # catalogue lookup and a format whose result was thrown away on every
+        # admin overview. And it looked deliberate, which is the worse half -
+        # if the rebuild ever stopped running, the operator's panel would read
+        # "Online: {online}" in words (review E42).
         header_lines = [
             translate("Last update") + f": {current_time}",
-            translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online='{online}', offline='{offline}')
+            "",
         ]
 
         # Collect container lines separately (will add spacing between them later)
@@ -3179,9 +3263,12 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     animation_file = None
                     # Add fallback visual indicator in embed
                     if not embed.footer or not embed.footer.text:
-                        embed.set_footer(text="🎬 Animation service temporarily unavailable")
+                        embed.set_footer(text=translate("🎬 Animation service temporarily unavailable"))
                     else:
-                        embed.set_footer(text=f"{embed.footer.text} | 🎬 Animation unavailable")
+                        # The separator is structure, the words are language
+                        # (review E35).
+                        embed.set_footer(
+                            text=f"{embed.footer.text} | {translate('🎬 Animation unavailable')}")
 
                 # For collapsed view, only add a simple field name (no detailed info)
                 embed.add_field(name=translate("Donation Engine"), value="*" + translate("Click + to view Mech details") + "*", inline=False)
@@ -3197,7 +3284,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     # For refreshes without animation file, reference existing with correct extension
                     embed.set_image(url="attachment://mech_animation.webp")  # Assume WebP for new system
 
-            except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
+            except Exception as e:  # noqa: BLE001 - same as the expanded builder (E20)
                 logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
         else:
             # Donations disabled - no mech components
@@ -3325,6 +3412,20 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
             updated_count = 0
             for channel_id, messages in self.channel_server_message_ids.items():
                 if 'overview' in messages:
+                    # Per channel, and it has to be (review E23). Everything below
+                    # decides EDIT or delete-and-repost for THIS channel, and it
+                    # used to decide it in `force_recreate` - the function's own
+                    # parameter - so the first channel that said "recreate" said it
+                    # for every channel after it, in dictionary order, without
+                    # their decisions ever being consulted. _edit_only_ss_messages
+                    # exists to say "edit, do not recreate"; expanding a mech panel
+                    # in one channel could delete and repost the overview in
+                    # another, moving it to the bottom with a new id.
+                    #
+                    # The rate limiter further down is the clearest proof that per
+                    # channel was the intent all along: should_force_recreate takes
+                    # a channel id, and its answer was written to a shared variable.
+                    recreate_this_channel = force_recreate
                     try:
                         channel = self.bot.get_channel(channel_id)
                         if not channel:
@@ -3363,7 +3464,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 last_update_time=last_update_time,
                                 reason=reason,
                                 force_refresh=False,  # This is auto-update, not manual
-                                force_recreate=force_recreate,
+                                force_recreate=recreate_this_channel,
                                 last_channel_activity=last_activity
                             )
 
@@ -3374,7 +3475,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
                             # Use Service decision for recreate logic
                             if decision.should_recreate:
-                                force_recreate = True
+                                recreate_this_channel = True
                                 logger.debug(f"SERVICE_FIRST: Force recreate for channel {channel_id} - {decision.reason}")
 
                             logger.debug(f"SERVICE_FIRST: Updating channel {channel_id} - {decision.reason}")
@@ -3454,10 +3555,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 self.mech_state_manager.set_last_glvl(channel_id, current_glvl)
 
                         # Override force_recreate if significant Glvl change or power depletion detected
-                        if (glvl_changed or power_depleted) and not force_recreate:
+                        if (glvl_changed or power_depleted) and not recreate_this_channel:
                             # Check rate limit before allowing force_recreate
                             if self.mech_state_manager.should_force_recreate(channel_id):
-                                force_recreate = True
+                                recreate_this_channel = True
                                 self.mech_state_manager.mark_force_recreate(channel_id)
                                 from .translation_manager import _
                                 if power_depleted:
@@ -3467,11 +3568,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                                 logger.info(f"{upgrade_text}")
                             else:
                                 logger.debug(f"Rate limited force_recreate for channel {channel_id} (Glvl change or power depletion)")
-                                force_recreate = False
+                                recreate_this_channel = False
 
                         # Create updated embed based on expansion state
                         is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
-                        logger.info(f"AUTO-UPDATE: Channel {channel_id} is_expanded={is_mech_expanded}, force_recreate={force_recreate}")
+                        logger.info(f"AUTO-UPDATE: Channel {channel_id} is_expanded={is_mech_expanded}, force_recreate={recreate_this_channel}")
                         if is_mech_expanded:
                             logger.info(f"AUTO-UPDATE: Creating expanded embed for channel {channel_id}")
                             embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
@@ -3479,7 +3580,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                             logger.info(f"AUTO-UPDATE: Creating collapsed embed for channel {channel_id}")
                             embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
 
-                        if force_recreate:
+                        if recreate_this_channel:
                             # FIX B: serialize delete+recreate per channel and re-validate the
                             # tracked id first - another path (regenerate/recovery) may have already
                             # recreated this overview, in which case we must NOT post a second one.
@@ -3603,6 +3704,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     # --- Status Cache Update Loop ---
     @tasks.loop(seconds=30)
+    @survives_one_bad_cycle
     async def status_update_loop(self):
         """Periodically updates the cache with the latest container statuses."""
         # Load configuration first
@@ -3803,6 +3905,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
     # --- Inactivity Check Loop ---
     @tasks.loop(seconds=30)
+    @survives_one_bad_cycle
     async def inactivity_check_loop(self):
         """Checks for channel inactivity and regenerates messages if needed."""
         config = load_config()
@@ -4483,28 +4586,28 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
 
             # Create persistent views for mech buttons
             # These views will persist across bot restarts
-            class PersistentMechExpandView(discord.ui.View):
+            class PersistentMechExpandView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
                     self.add_item(MechExpandButton(cog_instance, channel_id))
 
-            class PersistentMechCollapseView(discord.ui.View):
+            class PersistentMechCollapseView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
                     self.add_item(MechCollapseButton(cog_instance, channel_id))
 
-            class PersistentMechDonateView(discord.ui.View):
+            class PersistentMechDonateView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
                     self.add_item(MechDonateButton(cog_instance, channel_id))
 
-            class PersistentMechHistoryView(discord.ui.View):
+            class PersistentMechHistoryView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
                     self.add_item(MechHistoryButton(cog_instance, channel_id))
 
             # Create persistent views for mech selection buttons (levels 1-11)
-            class PersistentMechSelectionView(discord.ui.View):
+            class PersistentMechSelectionView(DDCView):
                 def __init__(self, cog_instance):
                     super().__init__(timeout=None)
                     # Add buttons for all possible mech levels (1-11). Registered as locked: the
@@ -4516,7 +4619,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
                     self.add_item(EpilogueButton(cog_instance))
 
             # Create persistent views for story buttons (levels 1-11)
-            class PersistentMechStoryView(discord.ui.View):
+            class PersistentMechStoryView(DDCView):
                 def __init__(self, cog_instance):
                     super().__init__(timeout=None)
                     # Add story and music buttons for all possible levels (1-11)
@@ -4553,7 +4656,10 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin):
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.warning(f"⚠️ Could not register persistent mech views: {e}")
 
-class DonationView(discord.ui.View):
+_register_loop_error_handlers(DockerControlCog)
+
+
+class DonationView(DDCView):
     """View with donation buttons that track clicks."""
 
     def __init__(self, donation_manager_available: bool, message=None, bot=None):
@@ -4639,7 +4745,7 @@ class DonationView(discord.ui.View):
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in broadcast_clicked: {e}", exc_info=True)
 
-class DonationBroadcastModal(discord.ui.Modal):
+class DonationBroadcastModal(DDCModal):
     """Modal for donation broadcast details."""
 
     def __init__(self, donation_manager_available: bool, default_name: str, bot=None):
@@ -4791,6 +4897,15 @@ class DonationBroadcastModal(discord.ui.Modal):
                     old_state_result = mech_service.get_mech_state_service(old_state_request)
                     if not old_state_result.success:
                         logger.error("Failed to get old mech state")
+                        # This used to be a bare return. The callback has already
+                        # answered "⏳ Processing..." to close the modal, so every
+                        # path after it owes the donor a replacement - and the
+                        # booking failure three branches down does exactly that.
+                        # Somebody who has just given money and is told nothing
+                        # assumes it did not work, and gives again (review E19).
+                        await interaction.edit_original_response(
+                            content=_("❌ Donation processing failed: {error}").format(
+                                error=_("the mech state could not be read")))
                         return
                     old_evolution_level = old_state_result.level
 
@@ -4851,6 +4966,11 @@ class DonationBroadcastModal(discord.ui.Modal):
                         new_state_result = mech_service.get_mech_state_service(new_state_request)
                         if not new_state_result.success:
                             logger.error("Failed to get new mech state")
+                            # Same as above (review E19): a bare return left the
+                            # donor at "⏳ Processing..." for ever.
+                            await interaction.edit_original_response(
+                                content=_("❌ Donation processing failed: {error}").format(
+                                    error=_("the mech state could not be read")))
                             return
 
                     # For donation cases, the new_state is returned from add_donation methods
@@ -5016,8 +5136,17 @@ class DonationBroadcastModal(discord.ui.Modal):
                 except Exception:
                     pass  # Ignore if already deleted or expired
 
-        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
-            logger.error(f"Error in donation broadcast modal: {e}", exc_info=True)
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose. Everything below this line exists to give the
+            # donor an answer and to remove the public "Processing a $X
+            # donation" message, and the tuple that stood here - (DiscordException,
+            # RuntimeError, ValueError) - did not include what the mech service
+            # actually raises: MechStateError -> MechServiceError ->
+            # DDCBaseException. So a mech failure left the callback entirely,
+            # past the cleanup and past the answer, and the donor watched
+            # "⏳ Processing..." for ever (review E19).
+            logger.error("Error in donation broadcast modal: %s: %s",
+                         type(e).__name__, e, exc_info=True)
 
             # Clean up processing message even if error occurred
             if processing_msg:
@@ -5034,7 +5163,7 @@ class DonationBroadcastModal(discord.ui.Modal):
                 logger.error(f"Could not send error response: {edit_error}", exc_info=True)
 
 
-class AddAdminModal(discord.ui.Modal):
+class AddAdminModal(DDCModal):
     """Modal for adding a new admin user."""
 
     def __init__(self):
@@ -5263,6 +5392,19 @@ def setup(bot):
                          exc_info=True)
 
     # Start the task and add to cog
+    # Same reason as every loop on the cog (review E17): py-cord's default error
+    # handler is a print() to stderr, so a loop that stops stops in silence.
+    # This one is not an attribute of the class, so _register_loop_error_handlers
+    # does not reach it - it is given the same handler by hand.
+    async def _donation_loop_stopped(*args):
+        exception = args[-1]
+        logger.error(
+            "BACKGROUND LOOP STOPPED: 'check_donation_notifications' ended with "
+            "%s: %s. It will NOT run again until DDC is restarted - donations "
+            "made in the web panel are no longer announced in Discord.",
+            type(exception).__name__, exception, exc_info=exception)
+
+    check_donation_notifications.error(_donation_loop_stopped)
     check_donation_notifications.start()
     cog.donation_notification_task = check_donation_notifications
 

@@ -1252,7 +1252,23 @@ class TestBotEvents:
                 asyncio.run(
                     bot._events["on_error"]("on_message", "extra")
                 )
-        # No assertion needed beyond no-raise: handler must swallow.
+
+        # `caplog` was set up here and never read, under the comment "No
+        # assertion needed beyond no-raise: handler must swallow" - in a test
+        # named `logs_traceback`. A handler that swallowed the error and logged
+        # NOTHING passed, which is the shape review E14 found elsewhere in this
+        # very file: a handler installed on an event that never fires, with a
+        # test that called the function directly and never asked whether
+        # anything reached the log (review E52).
+        logged = " ".join(r.getMessage() for r in caplog.records
+                          if r.levelno >= logging.ERROR)
+        assert logged, "on_error swallowed the failure without a word"
+        assert "on_message" in logged, (
+            f"the log line does not name the event that failed: {logged!r}"
+        )
+        assert "RuntimeError" in logged and "boom" in logged, (
+            f"the traceback is missing from the log line: {logged!r}"
+        )
 
     def test_on_command_error_skips_donate_commands(self, fake_runtime):
         bot = _FakeBot()
@@ -1320,18 +1336,39 @@ class TestBotEvents:
         assert "kaboom" in called_args.args[0]
         assert called_args.kwargs.get("ephemeral") is True
 
-    def test_on_command_error_unexpected_error_no_respond(self, fake_runtime):
+    def test_on_command_error_unexpected_error_answers_without_the_repr(self, fake_runtime):
+        """Changed by review E14, deliberately.
+
+        This used to assert ctx.respond was NOT called, on the strength of the
+        implementation and nothing else - the comment read "Unexpected errors
+        are logged but do not call ctx.respond", which is a description, not a
+        reason. Not responding left the interaction hanging: the user saw the
+        command thinking, and then nothing, forever. That is the one failure
+        mode a user always notices.
+
+        What the old test was right about, without saying so: an arbitrary
+        exception must not be pasted into Discord. An ApplicationCommandError
+        carries a message written to be read; a ValueError carries whatever it
+        happens to carry. So the answer is generic, and that is pinned here.
+        """
         bot = _FakeBot()
         bot_events.register_event_handlers(bot, fake_runtime)
         ctx = MagicMock()
         ctx.command = "stop"
-        ctx.respond = MagicMock()
 
-        err = ValueError("unexpected")
+        async def _respond(*a, **kw):
+            return None
+        ctx.respond.side_effect = _respond
+
+        err = ValueError("a secret from inside the process")
 
         import asyncio
         asyncio.run(
             bot._events["on_command_error"](ctx, err)
         )
-        # Unexpected errors are logged but do not call ctx.respond.
-        ctx.respond.assert_not_called()
+        ctx.respond.assert_called_once()
+        message = ctx.respond.call_args.args[0]
+        assert "secret from inside" not in message, (
+            f"the exception text was pasted into Discord: {message!r}"
+        )
+        assert ctx.respond.call_args.kwargs.get("ephemeral") is True

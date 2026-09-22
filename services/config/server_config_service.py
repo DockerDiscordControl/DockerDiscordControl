@@ -53,6 +53,7 @@ class ServerConfigService:
 
             # Read each JSON file in containers directory
             total_containers = 0
+            unreadable = []
             for json_file in containers_dir.glob('*.json'):
                 total_containers += 1
                 try:
@@ -96,9 +97,28 @@ class ServerConfigService:
                             logger.debug(f"Skipped INACTIVE container config: {json_file.name}")
 
                 except json.JSONDecodeError as e:
+                    unreadable.append(json_file.name)
                     logger.error(f"Invalid JSON in {json_file}: {e}")
                 except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+                    unreadable.append(json_file.name)
                     logger.error(f"Error reading {json_file}: {e}", exc_info=True)
+
+            if unreadable:
+                # Said once, with what it MEANS (review E33 - the same sentence
+                # as E28, one directory across). The per-file errors above name
+                # the cause; this names the effect. A container whose file could
+                # not be read is simply absent from this list, and this list is
+                # what the whole status display is drawn from - so the container
+                # does not appear as offline or as "not found", it is GONE. That
+                # is indistinguishable from one the operator switched off, which
+                # is the only reason a container is normally missing.
+                logger.error(
+                    "%d of %d container configuration files could not be read (%s). "
+                    "Those containers are MISSING from the status display, the "
+                    "overview and the control panel entirely - not shown as "
+                    "offline, not shown at all. Fix the files and restart - "
+                    "nothing was deleted.",
+                    len(unreadable), total_containers, ", ".join(sorted(unreadable)))
 
             # The total is counted in the loop above; scanning the directory a second time just
             # to fill this log line doubled the I/O of an already hot function.

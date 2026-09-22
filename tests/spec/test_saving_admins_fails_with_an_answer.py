@@ -70,13 +70,28 @@ def test_a_disk_error_while_saving_gives_an_answer(client, monkeypatch):
 
 
 def test_a_corrupt_file_while_reading_gives_an_answer(client, monkeypatch):
-    """The GET branch had no guard at all."""
+    """The GET branch had no guard at all.
+
+    **The status changed from 200 to 500 on 2026-09-21 (review E22), and that
+    is the same finding one level on.** What C21 was about is that the route
+    EXPLAINS the failure instead of ending as an unhandled 500, and that is
+    still exactly what it does - the body below is unchanged. What C21 pinned
+    by accident was the literal 200, which is a different claim: it says the
+    request succeeded.
+
+    It had not, and ``fetch()`` does not reject on a 200, so the panel ran its
+    success path over the error body and read it as "there are no admins" - and
+    the next Save wrote that empty list over the file that could not be read.
+    See test_a_failed_admin_read_cannot_erase_the_admins.py.
+    """
     _use(monkeypatch, _AdminService(on_get=json.JSONDecodeError("bad", "{", 0)))
 
     response = client.get("/api/admin-users")
 
-    assert response.status_code == 200
-    assert json.loads(response.data)["success"] is False
+    assert response.status_code == 500
+    assert json.loads(response.data)["success"] is False, (
+        "the status code must not replace the explanation - that was C21's point"
+    )
 
 
 def test_a_good_save_still_says_so(client, monkeypatch):

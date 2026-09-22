@@ -26,6 +26,7 @@ from .translation_manager import _
 import asyncio
 import aiohttp
 from services.automation import get_auto_action_config_service
+from .ddc_ui import DDCView
 
 logger = get_module_logger('status_info_integration')
 
@@ -74,7 +75,7 @@ async def container_logs_text(container_name: str) -> str:
         logger.debug(f"Error getting logs for {container_name}: {e}")
         return f"Error retrieving logs: {str(e)[:100]}"
 
-class ContainerInfoAdminView(discord.ui.View):
+class ContainerInfoAdminView(DDCView):
     """
     Admin view for container info with Edit and Debug buttons (control channels only).
     """
@@ -288,7 +289,7 @@ class EditInfoButton(discord.ui.Button):
             except Exception:
                 pass
 
-class LiveLogView(discord.ui.View):
+class LiveLogView(DDCView):
     """View for live-updating debug logs with refresh controls."""
 
     def __init__(self, container_name: str, auto_refresh: bool = False):
@@ -395,7 +396,8 @@ class LiveLogView(discord.ui.View):
                     color=0x00ff00,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
+                embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
+                    seconds=self.refresh_interval, remaining=remaining))
             else:
                 # Auto-refresh is not running
                 embed = discord.Embed(
@@ -404,7 +406,7 @@ class LiveLogView(discord.ui.View):
                     color=0x0099ff,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text="📄 Static logs • Click ▶️ to start live updates")
+                embed.set_footer(text=_("📄 Static logs • Click ▶️ to start live updates"))
 
             # Edit the message with new view
             await self.message_ref.edit(embed=embed, view=new_view)
@@ -465,9 +467,10 @@ class LiveLogView(discord.ui.View):
                     remaining = self.max_refreshes - self.refresh_count
 
                     if remaining > 0:
-                        embed.set_footer(text=f"🔄 Auto-refreshing every {self.refresh_interval}s • {remaining} updates remaining")
+                        embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
+                    seconds=self.refresh_interval, remaining=remaining))
                     else:
-                        embed.set_footer(text="✅ Auto-refresh completed • Click ▶️ to restart live updates")
+                        embed.set_footer(text=_("✅ Auto-refresh completed • Click ▶️ to restart live updates"))
                         embed.color = 0x808080  # Change to gray when done
                         self.auto_refresh_enabled = False
                         self.auto_refresh_task = None  # Clear task reference
@@ -546,7 +549,7 @@ class LiveLogView(discord.ui.View):
                     color=0x0099ff,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text="🔄 Manually refreshed • Click again to update")
+                embed.set_footer(text=_("🔄 Manually refreshed • Click again to update"))
 
                 try:
                     await self.message_ref.edit(embed=embed, view=self)
@@ -583,7 +586,7 @@ class LiveLogView(discord.ui.View):
                         color=0xff6600,
                         timestamp=datetime.now(timezone.utc)
                     )
-                    embed.set_footer(text="⏹️ Auto-refresh stopped • Click Start to restart")
+                    embed.set_footer(text=_("⏹️ Auto-refresh stopped • Click Start to restart"))
 
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
@@ -609,7 +612,8 @@ class LiveLogView(discord.ui.View):
                         color=0x00ff00,
                         timestamp=datetime.now(timezone.utc)
                     )
-                    embed.set_footer(text=f"▶️ Auto-refresh restarted • Updating every {self.refresh_interval} seconds")
+                    embed.set_footer(text=_("▶️ Auto-refresh restarted • Updating every {seconds} seconds").format(
+                        seconds=self.refresh_interval))
 
                     try:
                         await self.message_ref.edit(embed=embed, view=self)
@@ -653,7 +657,7 @@ class LiveLogView(discord.ui.View):
                     # Get current embed and update it
                     current_embed = self.message_ref.embeds[0] if self.message_ref.embeds else None
                     if current_embed:
-                        current_embed.set_footer(text="⏰ Live Logs view timed out • Use /info command to create new Live Logs")
+                        current_embed.set_footer(text=_("⏰ Live Logs view timed out • Use /info command to create new Live Logs"))
                         current_embed.color = 0x808080  # Gray color
                         await self.message_ref.edit(embed=current_embed, view=self)
                     logger.info(f"Live Logs view timed out for container {self.container_name}")
@@ -777,7 +781,7 @@ class DebugLogsButton(discord.ui.Button):
                 logger.info(f"Debug logs displayed for {self.container_name} for user {interaction.user.id} (auto-start: {auto_start_enabled})")
             else:
                 await interaction.followup.send(
-                    "❌ Could not retrieve debug logs for this container.",
+                    _("❌ Could not retrieve debug logs for this container."),
                     ephemeral=True
                 )
 
@@ -786,18 +790,18 @@ class DebugLogsButton(discord.ui.Button):
             try:
                 if interaction.response.is_done():
                     await interaction.followup.send(
-                        "❌ Error retrieving debug logs. Please try again later.",
+                        _("❌ Error retrieving debug logs. Please try again later."),
                         ephemeral=True
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Error retrieving debug logs. Please try again later.",
+                        _("❌ Error retrieving debug logs. Please try again later."),
                         ephemeral=True
                     )
             except Exception:
                 pass
 
-class StatusInfoView(discord.ui.View):
+class StatusInfoView(DDCView):
     """
     View for status-only channels that provides info display without control buttons.
     Only shows info button when container has info enabled.
@@ -823,7 +827,7 @@ class StatusInfoView(discord.ui.View):
         if self.info_config.get('protected_enabled', False):
             self.add_item(ProtectedInfoButton(cog_instance, server_config, self.info_config))
 
-class ProtectedInfoOnlyView(discord.ui.View):
+class ProtectedInfoOnlyView(DDCView):
     """
     View for /info command in status channels that only shows protected info button.
     """
@@ -928,7 +932,7 @@ class StatusInfoButton(discord.ui.Button):
 
         # Create embed with container branding
         embed = discord.Embed(
-            title=f"📋 {display_name} - Container Info",
+            title=_("📋 {name} - Container Info").format(name=display_name),
             color=0x3498db
         )
 
@@ -1235,7 +1239,7 @@ class TaskManagementButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in task management button: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error opening task management.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except Exception:
                 pass
 
@@ -1252,7 +1256,7 @@ class TaskManagementButton(discord.ui.Button):
             if not tasks:
                 embed = discord.Embed(
                     title=f"⏰ No Tasks for {self.container_name}",
-                    description="No scheduled tasks found for this container.",
+                    description=_("No scheduled tasks found for this container."),
                     color=discord.Color.orange()
                 )
                 view = TaskManagementView(self.cog, self.container_name)
@@ -1302,11 +1306,11 @@ class TaskManagementButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing task list: {e}", exc_info=True)
             try:
-                await interaction.followup.send("❌ Error loading task list.", ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
             except Exception:
                 pass  # Interaction might have expired
 
-class TaskManagementView(discord.ui.View):
+class TaskManagementView(DDCView):
     """View with buttons for task management (Add Task, Delete Tasks, Auto-Action)."""
 
     def __init__(self, cog_instance, container_name: str):
@@ -1404,7 +1408,7 @@ class DeleteTasksButton(discord.ui.Button):
 
             if not tasks:
                 await interaction.followup.send(
-                    f"⏰ No tasks found for {self.container_name} to delete.",
+                    _("⏰ No tasks found for {name} to delete.").format(name=self.container_name),
                     ephemeral=True
                 )
                 return
@@ -1546,7 +1550,7 @@ def _get_allowed_task_actions(container_name: str) -> List[str]:
     return []
 
 
-class TaskCreationView(discord.ui.View):
+class TaskCreationView(DDCView):
     """View for task creation using sequential dropdowns."""
 
     def __init__(self, cog_instance, container_name: str, allowed_actions: Optional[List[str]] = None):
@@ -1659,8 +1663,8 @@ class CycleDropdown(discord.ui.Select):
         self.view.add_item(action_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.values[0].title()}\n\nNow choose the action...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.values[0].title()}\n\n{_('Now choose the action...')}",
             color=discord.Color.blue()
         )
 
@@ -1722,8 +1726,8 @@ class ActionDropdown(discord.ui.Select):
             self.view.add_item(day_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.values[0].title()}\n\nContinue with the next selection...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.values[0].title()}\n\n{_('Continue with the next selection...')}",
             color=discord.Color.blue()
         )
 
@@ -1804,8 +1808,8 @@ class SimpleMonthdayDropdown(discord.ui.Select):
             self.view.add_item(month_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.values[0]}\n\nContinue...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Day')}:** {self.values[0]}\n\n{_('Continue...')}",
             color=discord.Color.blue()
         )
 
@@ -1867,8 +1871,8 @@ class MonthDropdown(discord.ui.Select):
             self.view.add_item(year_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.values[0]}\n\nContinue...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Day')}:** {self.view.selected_day}\n✅ **{_('Month')}:** {self.values[0]}\n\n{_('Continue...')}",
             color=discord.Color.blue()
         )
 
@@ -1909,8 +1913,8 @@ class YearDropdown(discord.ui.Select):
         self.view.add_item(time_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Day:** {self.view.selected_day}\n✅ **Month:** {self.view.selected_month}\n✅ **Year:** {self.values[0]}\n\nNow choose the time...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Day')}:** {self.view.selected_day}\n✅ **{_('Month')}:** {self.view.selected_month}\n✅ **{_('Year')}:** {self.values[0]}\n\n{_('Now choose the time...')}",
             color=discord.Color.blue()
         )
 
@@ -1997,8 +2001,8 @@ class WeekdayDropdown(discord.ui.Select):
         self.view.add_item(time_dropdown)
 
         embed = discord.Embed(
-            title=f"⏰ Create Task: {self.view.container_name}",
-            description=f"✅ **Cycle:** {self.view.selected_cycle.title()}\n✅ **Action:** {self.view.selected_action.title()}\n✅ **Weekday:** {self.values[0].title()}\n\nNow choose the time...",
+            title=f"⏰ {_('Create Task: {container}').format(container=self.view.container_name)}",
+            description=f"✅ **{_('Cycle')}:** {self.view.selected_cycle.title()}\n✅ **{_('Action')}:** {self.view.selected_action.title()}\n✅ **{_('Weekday')}:** {self.values[0].title()}\n\n{_('Now choose the time...')}",
             color=discord.Color.blue()
         )
 
@@ -2222,7 +2226,7 @@ def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) 
     # The StatusInfoView will be used only for status-only channels, control channels use ControlView
     return True
 
-class ContainerTaskDeleteView(discord.ui.View):
+class ContainerTaskDeleteView(DDCView):
     """View for deleting tasks specific to a container."""
 
     def __init__(self, cog_instance, tasks: list, container_name: str):

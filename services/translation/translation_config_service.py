@@ -7,6 +7,7 @@ Service First: Configuration Management for Channel Translation.
 Handles CRUD operations, validation, and persistence for channel_translations.json.
 """
 
+import copy
 import json
 import logging
 import threading
@@ -270,14 +271,60 @@ class TranslationConfigService:
             }
             self._save_config_file(default_config)
 
+    # Cached copy and the mtime it was read at (review E32).
+    _cached_config: Optional[Dict[str, Any]] = None
+    _cached_mtime: float = -1.0
+
     def _load_config_file(self) -> Dict[str, Any]:
-        """Load raw JSON config from file."""
+        """Load raw JSON config from file, cached on the file's mtime.
+
+        The cache is not a nicety. ``TranslationMonitor.on_message`` listens to
+        EVERY message in every channel the bot can see and hands each one to
+        ``TranslationService.process_message``, which opens with
+        ``get_settings()`` and ``get_source_channel_ids()`` - two calls to this
+        method - before it can decide the message has nothing to do with it.
+
+        Measured in the running container, on a channel that is not a
+        translation source at all:
+
+            process_message: 0.20 ms per message, 2.0 file reads per message
+
+        So every message anybody wrote anywhere on the server made DDC open and
+        parse this file twice, on a bind-mounted filesystem, to find that out.
+        Same sentence as review E30: a configuration read on a path that runs
+        per item rather than per operation.
+
+        Keyed on the mtime rather than a timer, so an edit from the web panel
+        or by hand is picked up on the next call and nothing has to be
+        invalidated by hand. A file that cannot be stat'ed is read the old way.
+        """
+        try:
+            mtime = os.path.getmtime(self.config_file)
+        except OSError:
+            mtime = None
+
+        if mtime is not None and self._cached_config is not None and mtime == self._cached_mtime:
+            # A COPY, always. Every write path here does
+            # `config = self._load_config_file()`, mutates it and saves it -
+            # so handing out the cached object would let a save that FAILED
+            # leave its change in memory, and DDC would go on believing
+            # something that is not on disk. Copying a one-kilobyte dict costs
+            # a fraction of the file read it replaces.
+            return copy.deepcopy(self._cached_config)
+
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error loading channel_translations.json: {e}")
+            # Not cached: a corrupt file is expected to be fixed, and the next
+            # call should see that rather than the fallback.
             return {"settings": TranslationSettings().to_dict(), "channel_pairs": []}
+
+        if mtime is not None:
+            self._cached_config = data
+            self._cached_mtime = mtime
+        return copy.deepcopy(data)
 
     def _save_config_file(self, data: Dict[str, Any]) -> bool:
         """Save JSON config to file atomically."""

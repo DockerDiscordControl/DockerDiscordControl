@@ -662,8 +662,25 @@ class StatusHandlersMixin:
                 details_allowed=details_allowed
             )
 
-        except (RuntimeError, OSError, ValueError, KeyError, TypeError) as e:
-            logger.error(f"Error getting status for {docker_name}: {e}", exc_info=True)
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose. This is the SINGLE-container path - the refresh
+            # button on a container panel - and its whole job is to come back
+            # with a ContainerStatusResult, a failed one included, so the panel
+            # can show the failure in place.
+            #
+            # The tuple that stood here listed five types and not the one the
+            # chain underneath actually produces (review E16):
+            #   get_docker_info_dict_service_first -> get_container_status
+            #     -> _fetch_container_status -> get_docker_client_async,
+            # which raises DockerConnectionError when the daemon is gone. The
+            # button raised instead of showing a failed container.
+            #
+            # The bulk path is not affected: it asks check_connectivity first,
+            # and review B25 turns an exception in a gathered result into a
+            # named error result. This path has neither, which is why the same
+            # sentence had to be answered twice.
+            logger.error("Error getting status for %s: %s: %s",
+                         docker_name, type(e).__name__, e, exc_info=True)
             return ContainerStatusResult.error_result(
                 docker_name=docker_name,
                 error=e,

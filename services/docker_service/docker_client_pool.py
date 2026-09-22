@@ -244,6 +244,32 @@ class DockerClientService:
                     queue_depth=self._queue.qsize()
                 )
 
+        except DockerConnectionError as e:
+            # Docker is unreachable. `_create_new_client_async` raises this and
+            # it derives from DDCBaseException -> Exception, not RuntimeError,
+            # so it passed the fast path's clause above AND the one below and
+            # left a method whose whole return type exists to carry a failure
+            # as a value (review E48).
+            #
+            # Both paths land here. The fast path raises it directly; the queue
+            # path re-raises it out of `await asyncio.wait_for(future, ...)`,
+            # because C33 taught the processor to hand the error to the waiting
+            # request - and the telling then walked out of the building.
+            self._queue_stats['failures'] += 1
+            total_time = (time.time() - start_time) * 1000
+            error_msg = f"Docker is not reachable: {e}"
+            logger.error(f"[SERVICE] Request {request_id}: {error_msg}")
+
+            return DockerClientResult(
+                success=False,
+                error_message=error_msg,
+                error_type="connection_error",
+                total_time_ms=total_time,
+                pool_size=len(self._pool),
+                active_connections=len(self._in_use),
+                queue_depth=self._queue.qsize()
+            )
+
         except (RuntimeError, ValueError, AttributeError, OSError) as e:
             # Queue/async operation errors, pool state errors
             self._queue_stats['failures'] += 1

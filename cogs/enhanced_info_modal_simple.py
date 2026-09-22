@@ -21,6 +21,7 @@ from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
 from services.infrastructure.action_logger import log_user_action
 from cogs.translation_manager import _
+from .ddc_ui import DDCModal
 # Channel-based security is handled by the calling UI button
 
 logger = get_module_logger('enhanced_info_modal_simple')
@@ -40,7 +41,7 @@ def _info_summary(info: dict) -> str:
             f"password={'set' if info.get('protected_password') else 'unset'}")
 
 
-class SimplifiedContainerInfoModal(discord.ui.Modal):
+class SimplifiedContainerInfoModal(DDCModal):
     """Simplified modal with all options in one dialog."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str = None):
@@ -318,7 +319,7 @@ class SimplifiedContainerInfoModal(discord.ui.Modal):
                 )
 
 
-class ProtectedInfoModal(discord.ui.Modal):
+class ProtectedInfoModal(DDCModal):
     """Modal for managing protected container information."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str = None):
@@ -545,7 +546,7 @@ def _clear_password_attempts(user_id) -> None:
     _PASSWORD_ATTEMPTS.pop(user_id, None)
 
 
-class PasswordValidationModal(discord.ui.Modal):
+class PasswordValidationModal(DDCModal):
     """Modal for validating password to access protected information."""
 
     def __init__(self, cog_instance, container_name: str, display_name: str, container_info: dict):
@@ -584,8 +585,34 @@ class PasswordValidationModal(discord.ui.Modal):
                 )
                 return
 
+            # Ask now, not when the button was built (review E27). self.container_info
+            # is a snapshot taken by StatusInfoView.__init__, and that view is
+            # persistent (timeout=None) - it is rebuilt only when the status message
+            # is regenerated, which is every 5 minutes by default and up to an hour
+            # if the operator set update_interval_minutes that high. In between, a
+            # password changed in the web panel had no effect here and the replaced
+            # secret kept being handed out.
+            #
+            # Same sentence as review B3 / SPEC.md Z5, and the same answer: ask at
+            # the moment of the action. One small JSON read per password submission
+            # is not a cost worth trading a stale secret for.
+            info = self.container_info
+            try:
+                result = get_container_info_service().get_container_info(self.container_name)
+                if result.success and result.data:
+                    info = result.data.to_dict()
+            except Exception as e:  # noqa: BLE001
+                # Falling back to the snapshot on purpose: refusing outright would
+                # lock the operator out of their own data over a transient error,
+                # and a read failure is no reason to hand the secret out either.
+                logger.warning(
+                    "Could not re-read the protected info for %s (%s: %s) - checking "
+                    "against the snapshot the button was built with, which may be "
+                    "up to one refresh interval old",
+                    self.container_name, type(e).__name__, e)
+
             entered_password = self.password_input.value.strip()
-            stored_password = self.container_info.get('protected_password', '')
+            stored_password = info.get('protected_password', '')
 
             if not stored_password:
                 await interaction.response.send_message(
@@ -610,8 +637,9 @@ class PasswordValidationModal(discord.ui.Modal):
                 )
                 return
 
-            # Password correct - show protected info
-            protected_content = self.container_info.get('protected_content', '')
+            # Password correct - show protected info, from the same fresh read as
+            # the password above: they belong together (review E27).
+            protected_content = info.get('protected_content', '')
 
             if not protected_content:
                 await interaction.response.send_message(
@@ -644,7 +672,8 @@ class PasswordValidationModal(discord.ui.Modal):
                 inline=False
             )
 
-            embed.set_footer(text=f"Accessed by {interaction.user.display_name} • Container: {self.container_name}")
+            embed.set_footer(text=_("Accessed by {user} • Container: {container}").format(
+                user=interaction.user.display_name, container=self.container_name))
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
             logger.info(f"Protected info accessed for {self.container_name} by {interaction.user}")

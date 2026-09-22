@@ -268,13 +268,53 @@ class TestProtectedInfoModal:
 # PasswordValidationModal - the access guard
 # ---------------------------------------------------------------------------
 
-def _password_modal(*, entered="pw", stored="pw", content="the secret"):
+def _password_modal(*, entered="pw", stored="pw", content="the secret",
+                    monkeypatch=None):
     modal = object.__new__(PasswordValidationModal)
     modal.container_name = "alpha"
     modal.display_name = "Alpha"
-    modal.container_info = {"protected_password": stored, "protected_content": content}
+    info = {"protected_password": stored, "protected_content": content}
+    modal.container_info = dict(info)
     modal.password_input = _field(entered)
+    # The modal re-reads the container info when the password is submitted
+    # (review E27), because a persistent view's snapshot can be up to one status
+    # refresh old and a changed password has to take effect at once. So the test
+    # has to supply that read too - and it supplies exactly what the snapshot
+    # holds, which keeps every case below saying what it always said.
+    _serve_container_info(info)
     return modal
+
+
+_SERVED_INFO: dict = {}
+
+
+def _serve_container_info(info):
+    """Point the module's info service at `info` for the rest of the test."""
+    _SERVED_INFO.clear()
+    _SERVED_INFO.update(info)
+
+
+class _ServedData:
+    @staticmethod
+    def to_dict():
+        return dict(_SERVED_INFO)
+
+
+class _ServedResult:
+    success = True
+    data = _ServedData
+
+
+class _ServedService:
+    @staticmethod
+    def get_container_info(_name):
+        return _ServedResult
+
+
+@pytest.fixture(autouse=True)
+def _info_service(monkeypatch):
+    monkeypatch.setattr(modal_module, "get_container_info_service",
+                        lambda: _ServedService)
 
 
 class TestPasswordValidation:

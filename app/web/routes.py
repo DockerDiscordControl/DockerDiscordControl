@@ -111,8 +111,18 @@ def register_routes(app: Flask) -> None:
                 return jsonify(data)
             except _STORAGE_ERRORS as e:
                 app.logger.error("Error reading admin data: %s", e, exc_info=True)
+                # 500, not the default 200 (review E22). fetch() does not reject
+                # on an HTTP error, and it certainly does not reject on a 200, so
+                # the panel ran its SUCCESS path over this error body: an empty
+                # admin list, the modal opened saying "no users configured", and
+                # the next Save wrote that empty list over the file that could
+                # not be read. A read error must not be able to become a write
+                # that erases what it failed to read.
+                #
+                # The body keeps its explanation (review C21) - a status code
+                # says a request failed, not why.
                 return jsonify({"success": False,
-                                "error": "An internal error occurred while reading admin data"})
+                                "error": "An internal error occurred while reading admin data"}), 500
 
         try:
             data = request.json or {}

@@ -652,7 +652,12 @@ async def get_docker_stats(docker_container_name: str) -> Tuple[Optional[str], O
     except asyncio.TimeoutError:
         logger.error(f"Timeout getting Docker stats for {docker_container_name}")
         return None, None
-    except (docker.errors.DockerException, OSError, RuntimeError, KeyError, ValueError) as e:
+    # DockerServiceError first: get_docker_client_async raises
+    # DockerConnectionError when the daemon cannot be reached at all, and it
+    # is in none of the types below. This function is documented "or
+    # (None, None) on error" (review E49; E43 repaired its neighbour at 734
+    # and left this one).
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError, KeyError, ValueError) as e:
         logger.error(f"Error getting Docker stats for {docker_container_name}: {e}", exc_info=True)
         return None, None
 
@@ -694,7 +699,10 @@ async def get_docker_info(docker_container_name: str) -> Optional[Dict[str, Any]
     except asyncio.TimeoutError:
         logger.error(f"Timeout getting info for '{docker_container_name}'")
         return None
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+    # DockerServiceError first, for the same reason as get_docker_stats
+    # above. The automation service reads None from here as "the running
+    # state could not be determined" and says so in the log (review E49).
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
         logger.error(f"Docker error in get_docker_info for '{docker_container_name}': {e}", exc_info=True)
         return None
 
@@ -731,7 +739,7 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
     except asyncio.TimeoutError:
         logger.error(f"Timeout during docker action '{action}' on '{docker_container_name}'")
         return False
-    except (docker.errors.DockerException, docker.errors.APIError, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, docker.errors.APIError, OSError, RuntimeError) as e:
         logger.error(f"Docker error during action '{action}' on '{docker_container_name}': {e}", exc_info=True)
         return False
 
@@ -777,7 +785,7 @@ async def list_docker_containers() -> List[Dict[str, Any]]:
     except asyncio.TimeoutError:
         logger.error("Timeout listing Docker containers")
         return []
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
         logger.error(f"Docker error listing containers: {e}", exc_info=True)
         return []
 
@@ -798,7 +806,7 @@ async def is_container_exists(docker_container_name: str) -> bool:
             return True
     except docker.errors.NotFound:
         return False
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
         logger.error(f"Docker error checking existence of '{docker_container_name}': {e}", exc_info=True)
         return False
 
@@ -864,7 +872,7 @@ async def get_containers_data() -> List[Dict[str, Any]]:
                 _cache_timestamp = current_time
 
             return sorted_result
-    except (docker.errors.DockerException, asyncio.TimeoutError, OSError, RuntimeError) as e:
+    except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, OSError, RuntimeError) as e:
         logger.error(f"Error in get_containers_data: {e}", exc_info=True)
         return []
 
@@ -954,6 +962,17 @@ async def test_docker_performance(container_names: List[str] = None, iterations:
                 elif stats == ("N/A", "N/A"):
                     error_info = "Stats timeout"
                     timeout_count += 1
+                elif info is None:
+                    # An unreachable daemon used to arrive here as an exception
+                    # object, captured by `return_exceptions=True` above and
+                    # recorded as "Info error: ...". Since E49 get_docker_info
+                    # keeps the promise in its signature and answers None
+                    # instead - so the report has to read the None, or a
+                    # container nobody could reach is listed with a timing and
+                    # no errors, which reads as healthy.
+                    error_info = "Info error: Docker did not answer"
+                elif stats == (None, None):
+                    error_info = "Stats error: Docker did not answer"
 
                 if container_name not in results['container_results']:
                     results['container_results'][container_name] = {
@@ -1263,7 +1282,7 @@ async def analyze_docker_stats_performance(container_name: str, iterations: int 
                    f"Average {results['analysis'].get('avg_stats_time_ms', 0):.1f}ms, "
                    f"Category: {results['analysis'].get('performance_category', 'unknown')}")
 
-    except (docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, KeyError) as e:
+    except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, KeyError) as e:
         logger.error(f"Error in performance analysis for '{container_name}': {e}", exc_info=True)
         results['error'] = str(e)
 
@@ -1358,7 +1377,7 @@ async def compare_container_performance(container_names: List[str] = None) -> st
                         'pattern': matched_pattern
                     })
 
-        except (docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, OSError) as e:
+        except (DockerServiceError, docker.errors.DockerException, asyncio.TimeoutError, RuntimeError, OSError) as e:
             logger.error(f"Error testing {container_name}: {e}", exc_info=True)
             results.append({
                 'name': container_name,
