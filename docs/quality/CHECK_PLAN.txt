@@ -1,4 +1,4 @@
-docs/quality/CHECK_PLAN.txt: 42 sections, 1582 public names
+docs/quality/CHECK_PLAN.txt: 42 sections, 1583 public names
 review/check_plan.py from SECTIONS.txt and the code -
 # do not edit by hand. For every section the public names a review has to
 # judge one by one: top-level classes and functions, and the public methods
@@ -835,7 +835,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/mech/mech_high_res_service.py:208 MechHighResService.get_canvas_size_for_resolution
 [ ] services/mech/mech_high_res_service.py:243 get_mech_high_res_service
 
-## Section 23  (1962 lines, 70 public names)
+## Section 23  (1804 lines, 61 public names)
 [ ] services/mech/mech_reset_service.py:30 ResetResult
 [ ] services/mech/mech_reset_service.py:36 MechResetService
 [ ] services/mech/mech_reset_service.py:76 MechResetService.full_reset
@@ -892,22 +892,23 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/mech/mech_story_service.py:78 MechStoryService.clear_cache
 [ ] services/mech/mech_story_service.py:83 MechStoryService.get_chapter_key
 [ ] services/mech/mech_story_service.py:199 get_mech_story_service
-[ ] services/mech/progress/runtime.py:34 ProgressRuntime
-[ ] services/mech/progress/runtime.py:43 ProgressRuntime.configure_defaults
-[ ] services/mech/progress/runtime.py:59 ProgressRuntime.ensure_layout
-[ ] services/mech/progress/runtime.py:75 ProgressRuntime.reset_paths
-[ ] services/mech/progress/runtime.py:85 ProgressRuntime.invalidate_cache
-[ ] services/mech/progress/runtime.py:91 ProgressRuntime.load_config
-[ ] services/mech/progress/runtime.py:125 ProgressRuntime.timezone
-[ ] services/mech/progress/runtime.py:145 get_progress_runtime
-[ ] services/mech/progress/runtime.py:154 reset_progress_runtime
 [ ] services/mech/progress_paths.py:34 ProgressPaths
 [ ] services/mech/progress_paths.py:45 ProgressPaths.from_base_dir
 [ ] services/mech/progress_paths.py:88 ProgressPaths.snapshot_for
 [ ] services/mech/progress_paths.py:171 get_progress_paths
 [ ] services/mech/progress_paths.py:184 clear_progress_paths_cache
 
-## Section 24  (1740 lines, 45 public names)
+## Section 24  (1941 lines, 55 public names)
+[ ] services/mech/progress/runtime.py:33 ProcessSafeLock
+[ ] services/mech/progress/runtime.py:76 ProgressRuntime
+[ ] services/mech/progress/runtime.py:86 ProgressRuntime.configure_defaults
+[ ] services/mech/progress/runtime.py:102 ProgressRuntime.ensure_layout
+[ ] services/mech/progress/runtime.py:118 ProgressRuntime.reset_paths
+[ ] services/mech/progress/runtime.py:128 ProgressRuntime.invalidate_cache
+[ ] services/mech/progress/runtime.py:134 ProgressRuntime.load_config
+[ ] services/mech/progress/runtime.py:168 ProgressRuntime.timezone
+[ ] services/mech/progress/runtime.py:188 get_progress_runtime
+[ ] services/mech/progress/runtime.py:197 reset_progress_runtime
 [ ] services/mech/progress_service.py:120 load_config
 [ ] services/mech/progress_service.py:139 Snapshot
 [ ] services/mech/progress_service.py:158 Snapshot.to_json

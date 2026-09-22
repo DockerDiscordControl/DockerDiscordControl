@@ -171,10 +171,12 @@ services/mech/mech_state_manager.py:1-221
 services/mech/mech_status_cache_service.py:1-464
 services/mech/mech_story_service.py:1-204
 services/mech/progress/__init__.py:1-17
-services/mech/progress/runtime.py:1-158
 services/mech/progress_paths.py:1-189
 
 ## Section 24  (1740 lines, 1 piece)
+# runtime.py sits with the service it carries the state for; section 23 is at
+# the 2,000 lines a section may hold.
+services/mech/progress/runtime.py:1-201
 services/mech/progress_service.py:1-1740
 
 ## Section 25  (1276 lines, 7 pieces)

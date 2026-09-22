@@ -30,12 +30,55 @@ from utils.atomic_io import atomic_write_text
 logger = logging.getLogger("ddc.progress.runtime")
 
 
+class ProcessSafeLock:
+    """An RLock in this process, and a file lock across processes.
+
+    DDC runs as two processes (supervisord starts the bot and the web UI) and
+    both change the mech's progress state. A thread lock serialises nothing
+    between them: both load the snapshot, both take "the next" sequence number,
+    and the second write lands from a state that never saw the first one's
+    event - with a last_event_seq that claims it did, so the lagging-snapshot
+    check never looks at that event again. A donation booked in Discord could
+    disappear from the state while its event still sat in the log.
+
+    Reentrant: flock is per open file description, so only the outermost holder
+    opens it; the RLock already serialises this process's threads.
+    """
+
+    __slots__ = ("_lock", "_depth", "_path_of", "_file_lock")
+
+    def __init__(self, path_of):
+        self._lock = RLock()
+        self._depth = 0
+        self._path_of = path_of
+
+    def __enter__(self):
+        self._lock.acquire()
+        if self._depth == 0:
+            from utils.atomic_io import cross_process_lock
+
+            self._file_lock = cross_process_lock(self._path_of())
+            self._file_lock.__enter__()
+        self._depth += 1
+        return self
+
+    def __exit__(self, *error):
+        self._depth -= 1
+        try:
+            if self._depth == 0:
+                self._file_lock.__exit__(*error)
+        finally:
+            self._lock.release()
+        return False
+
+
 @dataclass(slots=True)
 class ProgressRuntime:
     """Container for shared progress service runtime state."""
 
     paths: ProgressPaths = field(default_factory=get_progress_paths)
-    lock: RLock = field(default_factory=RLock)
+    lock: "ProcessSafeLock" = field(
+        default_factory=lambda: ProcessSafeLock(lambda: get_progress_paths().data_dir / "progress"))
     _default_config: Optional[Dict[str, object]] = field(default=None, init=False, repr=False)
     _config_cache: Optional[Dict[str, object]] = field(default=None, init=False, repr=False)
     _timezone: Optional[ZoneInfo] = field(default=None, init=False, repr=False)
