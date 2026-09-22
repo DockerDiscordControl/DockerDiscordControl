@@ -7,9 +7,9 @@
 
 This release comes out of a complete audit of DDC: every subsystem was reviewed, then a second
 review pass looked specifically at what changes for **existing installations** on upgrade.
-**185 findings were fixed** and the test suite now stands at **5,699 tests**.
+**186 findings were fixed** and the test suite now stands at **5,705 tests**.
 
-Every source file in the project carries written evidence that it was read — 183 of 183. That
+Every source file in the project carries written evidence that it was read — 184 of 184. That
 includes `cogs/docker_control.py`, the largest file in DDC at 5,400 lines, which no earlier
 review package had ever covered.
 
@@ -49,6 +49,12 @@ review package had ever covered.
 
 ## Highlights
 
+- **One container with a removed image no longer makes all your servers disappear.** If the
+  image a container was created from had been removed from the host - after an update, a
+  `docker image prune`, or with Docker's containerd image store - DDC's lookup failed with
+  "No such image", and that one error emptied the whole container list in the web panel and
+  made running servers look like they didn't exist in Discord. DDC now reads the image name
+  from data Docker already provides with each container, so this lookup can no longer fail.
 - **A button that fails now tells you so.** py-cord's default handler for a view or modal error
   prints to the log and never replies, so a failed press left the "thinking..." state spinning
   until Discord timed it out. Every one of the 25 views and 5 modals now logs the failure and
@@ -188,13 +194,14 @@ review package had ever covered.
 | Mech | decay debt cleared, startup gift may trigger, animation speed changes |
 | CPU% in status | now current load, not an average since boot |
 | New passwords | minimum 12 characters |
+| Image name shown for a container | the reference the container was created with (e.g. `ich777/steamcmd:valheim`) instead of the image's first tag - usually identical; a container created without a tag now shows it without one |
 
 ## Under the hood
 
-- **185 findings** fixed across bot, scheduler, web panel, config, mech and deployment.
-- **5,699 tests**, all green in the production image (Python 3.14), lint clean. Each finding has
+- **186 findings** fixed across bot, scheduler, web panel, config, mech and deployment.
+- **5,705 tests**, all green in the production image (Python 3.14), lint clean. Each finding has
   a test that failed before its fix and a probe afterwards proving the test can still fail.
-- **183 of 183 source files** carry written evidence of having been read.
+- **184 of 184 source files** carry written evidence of having been read.
 - Two mechanical scans were written and run over the whole project rather than a sample. The
   first looked for functions that raise where their signature promises a value: 86 candidates,
   worked down to 7, and each of those 7 read back to its definition and explained in writing.

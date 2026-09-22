@@ -10,9 +10,9 @@ Audit release. Every subsystem was reviewed, then a second pass looked specifica
 changes for **existing installations** on upgrade. 141 findings were fixed, with 564 new
 regression tests across 32 test modules.
 
-A second wave (reviews E12-E52) added another 44 fixes and 32 more test modules before release.
-The suite is now **5,699 tests**, and every source file in the project carries written evidence
-that it was read - 183 of 183, up from the 22 the first wave had covered.
+A second wave (reviews E12-E53) added another 45 fixes and 33 more test modules before release.
+The suite is now **5,705 tests**, and every source file in the project carries written evidence
+that it was read - 184 of 184, up from the 22 the first wave had covered.
 
 ### ⚠️ Upgrade notes
 
@@ -159,13 +159,21 @@ that it was read - 183 of 183, up from the 22 the first wave had covered.
   **71.3%** over 28880 statements with 4388 tests; `docker_control.py` and `control_ui.py` remain
   the weak spot at about 19%.
 
-### Second wave (reviews E12-E52)
+### Second wave (reviews E12-E53)
 
 Two mechanical scans were written and run over all 183 source files, rather than over the 22 the
 first wave had reached. Both were worked to the end.
 
 **In Discord**
 
+- **One container whose image was removed no longer empties the whole list** (reported on
+  GitHub against v2.3.1). DDC looked up every container's image with a second request to
+  Docker; when an image had been removed from the host - after an update that recreated a
+  container, a `docker image prune`, or with the containerd image store - Docker answered
+  404, and that single error failed the entire refresh. The web panel showed no containers,
+  "Refresh" failed every time, and in Discord a running container was reported as not found.
+  The image name is now read from the data Docker already sends with each container: that
+  cannot fail this way, and it is one API call fewer per container per refresh.
 - **A button or modal that fails now answers you.** py-cord's default handler for a view or modal
   error prints to stderr and never replies, so a failed press left the interaction spinning
   forever. All 25 views and 5 modals were rebased on a common class that logs and answers.
@@ -237,6 +245,7 @@ Both tools are in the repository - `scripts/review/audit_assertion_strength.py` 
 | Mech | decay debt cleared, startup gift may trigger, animation speed changes |
 | CPU% in status | now current load, not an average since boot |
 | New passwords | minimum 12 characters |
+| Image name shown for a container | the reference the container was created with (e.g. `ich777/steamcmd:valheim`) instead of the image's first tag - usually identical; a container created without a tag now shows it without one |
 
 ---
 

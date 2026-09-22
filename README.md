@@ -1,6 +1,6 @@
 # DockerDiscordControl v2.4.0 🐳
 
-[![Version](https://img.shields.io/badge/Version-v2.4.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.4.0) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-5699%2F5699-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-71%25-green?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v2.4.0-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v2.4.0) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-5705%2F5705-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-71%25-green?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -13,8 +13,8 @@ Control your Docker containers directly from Discord! This application provides 
 ### ✅ **v2.4.0 (2026-09-22) - Audit Release**
 
 A complete audit of DDC, followed by a second review pass focused on what changes for **existing
-installations** on upgrade. **185 findings fixed** and a suite of **5,699 tests**. Every source
-file in the project carries written evidence that it was read — 183 of 183.
+installations** on upgrade. **186 findings fixed** and a suite of **5,705 tests**. Every source
+file in the project carries written evidence that it was read — 184 of 184.
 
 ⚠️ **Please read the [upgrade notes](docs/CHANGELOG.md#v240---2026-09-22) before updating** — you
 will be logged out once, and long-dead scheduled tasks are paused instead of being resurrected.
