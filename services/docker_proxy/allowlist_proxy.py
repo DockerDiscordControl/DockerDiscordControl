@@ -54,7 +54,11 @@ ALLOWLIST = (
     ("GET", re.compile(_PREFIX + r"containers/" + _NAME + r"/(json|logs|stats)\Z")),
     ("POST", re.compile(_PREFIX + r"containers/" + _NAME + r"/(start|stop|restart)\Z")),
     # Reserved, read-only: image inspect for the image-update notice (V3 §8 item 4).
-    ("GET", re.compile(_PREFIX + r"images/[a-zA-Z0-9_./:@-]+/json\Z")),
+    # No "@": a digest-pinned reference cannot change, so the image-update check
+    # skips it before it reads the image, and docker-py would percent-encode the
+    # "@" anyway - which this proxy refuses. Permitting it only widened the
+    # surface for something nobody can ask for.
+    ("GET", re.compile(_PREFIX + r"images/[a-zA-Z0-9_./:-]+/json\Z")),
 )
 
 MAX_HEAD_BYTES = 64 * 1024

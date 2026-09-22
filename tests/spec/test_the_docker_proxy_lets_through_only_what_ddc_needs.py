@@ -123,6 +123,11 @@ DENIED = [
     ("POST", "/v1.44/containers/prune"),
     ("DELETE", "/v1.44/images/web"),
     ("GET", "/v1.44/images/web/json/../../containers/create"),
+    # A digest-pinned name. DDC never asks for one - an image reference with a
+    # digest cannot change, so the image-update check skips it before it reads
+    # the image - and docker-py would send it percent-encoded anyway, which this
+    # proxy refuses. An allowlist should not permit what nobody can use.
+    ("GET", "/v1.44/images/nginx@sha256:" + "a" * 64 + "/json"),
     ("GET", "/v1.44/containers/../info"),
     ("GET", "/v1.44/containers/%2e%2e/json"),
     ("GET", "//v1.44/containers/json"),
