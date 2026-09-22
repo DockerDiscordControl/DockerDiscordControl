@@ -153,35 +153,46 @@ RUN apk add --no-cache --virtual .strip-deps binutils && \
     # (CVE-2025-60876 - HTTP header injection, not needed by DDC)
     rm -f /usr/bin/wget
 
-# Create user
+# Create users. ddc runs the app; ddcproxy runs the Docker allowlist proxy and is
+# the only one that gets the socket's group (the entrypoint adds it at start, by
+# the socket's real gid). ddc joins ddcproxy's group so it can reach the proxy
+# socket - and nothing else of the proxy's. Until v2.4.1 ddc itself was in the
+# docker group, so it could talk to the socket directly (V3 §4.3).
 RUN addgroup -g 1000 -S ddc && \
     adduser -u 1000 -S ddc -G ddc && \
-    (addgroup -g 281 -S docker 2>/dev/null || addgroup -S docker) && \
-    adduser ddc docker
+    addgroup -g 2375 -S ddcproxy && \
+    adduser -u 2375 -S -D -H -s /sbin/nologin -G ddcproxy ddcproxy && \
+    adduser ddc ddcproxy
 
-# Copy application code
-COPY --chown=ddc:ddc run.py .
-COPY --chown=ddc:ddc bot.py .
-COPY --chown=ddc:ddc app/ app/
-COPY --chown=ddc:ddc utils/ utils/
-COPY --chown=ddc:ddc cogs/ cogs/
-COPY --chown=ddc:ddc locales/ locales/
-COPY --chown=ddc:ddc services/ services/
-COPY --chown=ddc:ddc encrypted_assets/ encrypted_assets/
+# Copy application code - owned by root. The entrypoint runs as root at every
+# start; code ddc could rewrite would be code root runs next time (V3 §4.3,
+# measured on v2.4.1: ddc could write /app/entrypoint.sh). Only the data
+# directories below belong to ddc.
+COPY run.py .
+COPY bot.py .
+COPY app/ app/
+COPY utils/ utils/
+COPY cogs/ cogs/
+COPY locales/ locales/
+COPY services/ services/
+COPY encrypted_assets/ encrypted_assets/
 # V2.0 Cache-Only: Only copy cached animations
-COPY --chown=ddc:ddc cached_animations/ cached_animations/
-COPY --chown=ddc:ddc cached_displays/ cached_displays/
-COPY --chown=ddc:ddc scripts/entrypoint.sh /app/entrypoint.sh
+COPY cached_animations/ cached_animations/
+COPY cached_displays/ cached_displays/
+COPY scripts/entrypoint.sh /app/entrypoint.sh
 # Password reset utility (docs: docker exec -it -u ddc <container> python3 scripts/reset_password.py)
-COPY --chown=ddc:ddc scripts/reset_password.py /app/scripts/reset_password.py
+COPY scripts/reset_password.py /app/scripts/reset_password.py
+# The Docker allowlist proxy, a root-owned copy outside every path ddc can write.
+COPY services/docker_proxy/allowlist_proxy.py /opt/ddc-proxy/allowlist_proxy.py
 
-# Setup permissions
-RUN chmod +x /app/entrypoint.sh && \
-    mkdir -p /app/config /app/logs /app/scripts && \
+# Setup permissions: code root-owned and read-only for everyone else; data to ddc.
+RUN mkdir -p /app/config /app/logs /app/scripts && \
     mkdir -p /app/config/info /app/config/tasks && \
     mkdir -p /app/cached_displays && \
-    chown -R ddc:ddc /app && \
-    chmod -R 755 /app && \
+    chown -R root:root /app /opt/ddc-proxy && \
+    chmod -R u=rwX,go=rX /app /opt/ddc-proxy && \
+    chmod 755 /app/entrypoint.sh && \
+    chown -R ddc:ddc /app/config /app/logs /app/cached_displays /app/cached_animations && \
     chmod -R 750 /app/config /app/logs /app/cached_displays && \
     find /app -type d -name '__pycache__' -prune -exec rm -rf {} +
 

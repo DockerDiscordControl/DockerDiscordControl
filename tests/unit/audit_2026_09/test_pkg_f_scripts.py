@@ -92,7 +92,8 @@ class TestF5ResetPassword:
         change.assert_not_called()
 
     def test_shipped_in_image_and_documented_with_ddc_user(self):
-        assert "COPY --chown=ddc:ddc scripts/reset_password.py /app/scripts/reset_password.py" in _read("Dockerfile")
+        # Root-owned since v3.0 like all code (V3 §4.3); ddc still runs it.
+        assert "COPY scripts/reset_password.py /app/scripts/reset_password.py" in _read("Dockerfile")
         for relative in ("scripts/reset_password.py", "scripts/safe_reset_mech.sh", "README.md"):
             for line in _read(relative).splitlines():
                 if "docker exec" in line and ("reset_password" in line or "python3 -c" in line):
@@ -148,9 +149,9 @@ class TestF8EntrypointPermissions:
         os.chmod(locked_dir, 0o000)
 
         body = _read("scripts/entrypoint.sh").rsplit('main "$@"', 1)[0]
-        chown_app = 'chown "$target_uid:$target_gid" /app 2>/dev/null || true'
-        assert chown_app in body
-        body = body.replace(chown_app, ":")  # never touch the real /app from a test
+        # Since v3.0 fix_permissions no longer chowns /app itself (V3 §4.3), so
+        # the harness cannot touch the real /app either.
+        assert 'chown "$target_uid:$target_gid" /app ' not in body
         harness = tmp_path / "harness.sh"
         harness.write_text(body + f'\nDATA_DIRS="{data}"\nfix_permissions {os.getuid()} {primary}\n')
 

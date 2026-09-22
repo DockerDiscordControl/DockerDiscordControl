@@ -30,6 +30,14 @@ MAX_UID=65534
 DATA_DIRS="/app/config /app/logs /app/cached_displays /app/cached_animations /app/assets"
 CONFIG_SUBDIRS="info tasks channels"
 
+# The Docker allowlist proxy (v3.0, docs/V3_ARCHITECTURE_PLAN.md §4). It alone is
+# in the socket's group; ddc reaches Docker only through PROXY_SOCKET.
+PROXY_USER="ddcproxy"
+PROXY_SCRIPT="/opt/ddc-proxy/allowlist_proxy.py"
+PROXY_DIR="/run/ddc-proxy"
+PROXY_SOCKET="$PROXY_DIR/docker.sock"
+DOCKER_SOCKET="/var/run/docker.sock"
+
 # ============================================================================ #
 # LOGGING FUNCTIONS
 # ============================================================================ #
@@ -394,14 +402,64 @@ setup_docker_socket_access() {
         fi
     fi
 
-    # Add our user to the socket group
-    if ! addgroup "$APP_USER" "$sock_group" 2>/dev/null; then
-        log_warn "Could not add $APP_USER to group $sock_group"
+    # The proxy user joins the socket group - ddc does not. Until v2.4.1 ddc
+    # itself was added here, so DDC could talk to the socket directly; now the
+    # allowlist proxy is its only way to Docker (V3 §4.3, condition 4).
+    if ! addgroup "$PROXY_USER" "$sock_group" 2>/dev/null; then
+        log_warn "Could not add $PROXY_USER to group $sock_group"
         log_warn "Docker operations may fail"
         return 0
     fi
+    log_info "Added $PROXY_USER to docker group ($sock_group, GID $sock_gid)"
 
-    log_info "Added $APP_USER to docker group ($sock_group, GID $sock_gid)"
+    # An image from before v3.0, or a PGID equal to the socket's gid, can leave
+    # ddc with the socket anyway. Say so loudly: the boundary would be void.
+    delgroup "$APP_USER" "$sock_group" 2>/dev/null || true
+    if [ "$(id -g "$APP_USER" 2>/dev/null)" = "$sock_gid" ]; then
+        log_warn "PGID equals the Docker socket's GID ($sock_gid): $APP_USER can reach the socket"
+        log_warn "directly, past the allowlist proxy. Use a PGID other than $sock_gid."
+    fi
+    return 0
+}
+
+# ============================================================================ #
+# DOCKER ALLOWLIST PROXY
+# ============================================================================ #
+
+start_docker_proxy() {
+    if [ ! -S "$DOCKER_SOCKET" ]; then
+        log_warn "Docker socket not mounted - the allowlist proxy is not started"
+        return 0
+    fi
+    if [ ! -f "$PROXY_SCRIPT" ]; then
+        log_error "Allowlist proxy missing at $PROXY_SCRIPT - Docker control will not work"
+        return 0
+    fi
+
+    mkdir -p "$PROXY_DIR"
+    chown "$PROXY_USER:$PROXY_USER" "$PROXY_DIR"
+    chmod 750 "$PROXY_DIR"
+    # ddc reaches the proxy socket through the proxy's group (PUID/PGID may have
+    # recreated the user, so the membership is set again here).
+    addgroup "$APP_USER" "$PROXY_USER" 2>/dev/null || true
+
+    # Run as the proxy user from the root-owned copy, and restart it if it ever
+    # exits. No root process stays behind: the loop itself runs as the proxy user.
+    su-exec "$PROXY_USER" sh -c "while true; do python3 '$PROXY_SCRIPT' --listen '$PROXY_SOCKET' --upstream '$DOCKER_SOCKET'; echo '[DDC] docker proxy exited - restarting in 2s' >&2; sleep 2; done" &
+
+    local waited=0
+    while [ ! -S "$PROXY_SOCKET" ] && [ "$waited" -lt 50 ]; do
+        sleep 0.1
+        waited=$((waited + 1))
+    done
+    if [ -S "$PROXY_SOCKET" ]; then
+        log_info "Docker allowlist proxy listening on $PROXY_SOCKET"
+    else
+        log_error "Docker allowlist proxy did not come up within 5s"
+    fi
+
+    # Every Docker client DDC builds follows DOCKER_HOST (client factory).
+    export DOCKER_HOST="unix://$PROXY_SOCKET"
     return 0
 }
 
@@ -502,8 +560,8 @@ fix_permissions() {
         fi
     done
 
-    # Also try to chown /app itself (for any temp files)
-    chown "$target_uid:$target_gid" /app 2>/dev/null || true
+    # /app itself is NOT handed to the app user any more: it holds the code and
+    # this entrypoint, which root runs at every start (V3 §4.3, condition 1).
 
     if [ "$chown_failed" = "1" ]; then
         log_warn "Some chown operations failed"
@@ -641,21 +699,28 @@ start_as_user() {
         log_warn "PUID/PGID are ignored when using --user flag"
     fi
 
-    # Verify docker socket access
-    local docker_sock="/var/run/docker.sock"
-    if [ -S "$docker_sock" ]; then
-        if [ -r "$docker_sock" ] && [ -w "$docker_sock" ]; then
-            log_info "Docker socket: read/write OK"
-        elif [ -r "$docker_sock" ]; then
-            log_warn "Docker socket: read-only (some operations may fail)"
+    # Verify the way to Docker: the allowlist proxy when the root phase started
+    # it, otherwise (container started with --user) the raw socket, which means
+    # no proxy stands in between.
+    if [ "${DOCKER_HOST:-}" = "unix://$PROXY_SOCKET" ]; then
+        if [ -S "$PROXY_SOCKET" ] && [ -w "$PROXY_SOCKET" ]; then
+            log_info "Docker access: through the allowlist proxy"
         else
-            log_error "Docker socket: NO ACCESS"
-            log_error "Container control will not work!"
-            log_error "Check socket permissions or add user to docker group"
+            log_error "Docker allowlist proxy socket not usable - container control will not work"
         fi
+        # The proxy only limits DDC if DDC cannot open the socket itself - e.g. a
+        # socket with mode 666 on the host, or a PGID equal to its group.
+        if [ -S "$DOCKER_SOCKET" ] && [ -w "$DOCKER_SOCKET" ]; then
+            log_warn "SECURITY: $(id -un) can open $DOCKER_SOCKET directly - the allowlist proxy"
+            log_warn "does not bind DDC. Check the socket's mode on the host (should be 660)."
+        fi
+    elif [ -S "$DOCKER_SOCKET" ] && [ -r "$DOCKER_SOCKET" ] && [ -w "$DOCKER_SOCKET" ]; then
+        log_warn "Docker access: RAW socket, no allowlist proxy (container started with --user?)"
+        log_warn "Start without --user and use PUID/PGID so the proxy can run."
+    elif [ -S "$DOCKER_SOCKET" ]; then
+        log_error "Docker socket: NO ACCESS - container control will not work"
     else
-        log_error "Docker socket not mounted!"
-        log_error "Container control will not work!"
+        log_error "Docker socket not mounted - container control will not work"
     fi
 
     # Final write test for config directory
@@ -734,7 +799,7 @@ main() {
             log_info "Using default user (UID=$DEFAULT_UID, GID=$DEFAULT_GID)"
         fi
 
-        # Setup docker socket access (always, even with default UID)
+        # Setup docker socket access for the proxy user (always, even with default UID)
         setup_docker_socket_access
 
         # Create directories (if they don't exist)
@@ -747,6 +812,9 @@ main() {
         if ! verify_write_access "$PUID" "$PGID"; then
             log_fatal "Cannot continue without write access to config directory"
         fi
+
+        # Start the Docker allowlist proxy and point DOCKER_HOST at it
+        start_docker_proxy
 
         # Drop privileges and re-execute this script
         drop_privileges "$PUID" "$PGID" "$@"
