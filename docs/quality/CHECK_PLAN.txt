@@ -1635,3 +1635,10 @@
 [ ] cogs/task_ui.py:1057 ContainerTaskDeleteView
 [ ] cogs/task_ui.py:1128 ContainerTaskDeleteButton
 [ ] cogs/task_ui.py:1142 ContainerTaskDeleteButton.callback
+
+## Section 42  (132 lines, 5 public names)
+[ ] services/automation/image_updates.py:46 ImageRef
+[ ] services/automation/image_updates.py:52 parse_image_reference
+[ ] services/automation/image_updates.py:78 local_digests
+[ ] services/automation/image_updates.py:89 update_available
+[ ] services/automation/image_updates.py:100 remote_digest

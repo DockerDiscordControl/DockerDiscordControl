@@ -336,3 +336,8 @@ cogs/message_updates.py:1-944
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
 # (2,403 -> 1234 lines); too large to join a neighbour.
 cogs/task_ui.py:1-1228
+
+## Section 42  (132 lines, 1 piece)
+# Phase 4d (2026-09-22): the image-update check. Section 11, where the other
+# automation files live, is at 1,987 of its 2,000 lines.
+services/automation/image_updates.py:1-132
