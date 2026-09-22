@@ -106,7 +106,7 @@ services/docker_service/docker_action_service.py:1-298
 ## Section 15  (933 lines, 3 pieces)
 services/docker_service/client_factory.py:1-95
 services/docker_service/docker_client_pool.py:1-738
-services/docker_service/reachability.py:1-67
+services/docker_service/reachability.py:1-87
 
 ## Section 16  (1951 lines, 5 pieces)
 services/docker_service/docker_utils.py:1-1220

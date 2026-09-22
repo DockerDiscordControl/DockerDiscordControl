@@ -439,7 +439,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/docker_service/docker_action_service.py:266 get_docker_action_service
 [ ] services/docker_service/docker_action_service.py:278 docker_action_service_first
 
-## Section 15  (900 lines, 16 public names)
+## Section 15  (920 lines, 16 public names)
 [ ] services/docker_service/client_factory.py:74 build_docker_client
 [ ] services/docker_service/docker_client_pool.py:36 DockerClientRequest
 [ ] services/docker_service/docker_client_pool.py:44 DockerClientResult
@@ -455,7 +455,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/docker_service/docker_client_pool.py:639 DockerClientService.close_all
 [ ] services/docker_service/docker_client_pool.py:669 get_docker_client_service
 [ ] services/docker_service/docker_client_pool.py:699 get_docker_client_async
-[ ] services/docker_service/reachability.py:52 docker_reachability
+[ ] services/docker_service/reachability.py:69 docker_reachability
 
 ## Section 16  (1717 lines, 34 public names)
 [ ] services/docker_service/docker_utils.py:220 load_custom_timeout_config

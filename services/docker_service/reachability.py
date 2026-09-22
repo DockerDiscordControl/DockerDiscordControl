@@ -40,8 +40,15 @@ def _ping_status(path: str, timeout: float) -> Optional[int]:
         return None
     try:
         conn.sendall(b"GET /_ping HTTP/1.1\r\nHost: docker\r\nConnection: close\r\n\r\n")
-        head = conn.recv(64)
-        parts = head.split(b" ", 2)
+        # Until the status LINE is complete: one recv(64) could cut it after
+        # "HTTP/1.1 ", and a healthy Docker was then reported as an error.
+        head = b""
+        while b"\r\n" not in head and len(head) < 256:
+            chunk = conn.recv(64)
+            if not chunk:
+                break
+            head += chunk
+        parts = head.split(b"\r\n", 1)[0].split(b" ", 2)
         return int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
     except OSError:
         return 0
@@ -49,15 +56,28 @@ def _ping_status(path: str, timeout: float) -> Optional[int]:
         conn.close()
 
 
+def _socket_path(host: str) -> str:
+    """The socket path in a DOCKER_HOST, whatever spelling it uses."""
+    if not host.startswith("unix://"):
+        return ""
+    rest = host[len("unix://"):]
+    if rest.startswith("localhost/"):
+        rest = rest[len("localhost"):]
+    return rest.rstrip("/") or "/"
+
+
 def docker_reachability(docker_host: Optional[str] = None, proxied: Optional[bool] = None,
                         timeout: float = 2.0) -> dict:
     host = docker_host or os.environ.get("DOCKER_HOST") or DEFAULT_HOST
     if proxied is None:
-        proxied = host == f"unix://{PROXY_SOCKET}"
+        # By the socket PATH, not by one exact spelling: docker-py accepts
+        # "unix://localhost/path" and a trailing slash, and either of them used
+        # to be called "direct" - so a dead proxy sent the operator to the host.
+        proxied = _socket_path(host) == PROXY_SOCKET
     path_kind = "proxy" if proxied else "direct"
     if not host.startswith("unix://"):
         return {"path": path_kind, "state": "not_checked"}
-    status = _ping_status(host[len("unix://"):], timeout)
+    status = _ping_status(_socket_path(host), timeout)
     if status == 200:
         return {"path": path_kind, "state": "ok"}
     if status is None:
