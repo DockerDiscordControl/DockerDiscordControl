@@ -38,14 +38,24 @@ async def _refresh_tracked_admin_overview(cog, channel_id: int) -> bool:
 
 
 async def _restart_running_servers(servers, action):
-    """Restart the running ones of ``servers`` with ``action``; the counts.
+    """Restart the running ones of ``servers``; the counts, keyed "restarted"."""
+    counts = await _act_on_running_servers(servers, action, "restart")
+    return {"restarted": counts["done"], "failed": counts["failed"],
+            "skipped": counts["skipped"], "unknown": counts["unknown"],
+            "not_allowed": counts["not_allowed"]}
 
-    Shared by "Restart All" and "Restart stack", so both treat a container
-    they may not restart, one that is not running and one without a current
-    status the same way.
+
+async def _act_on_running_servers(servers, action, verb: str):
+    """Apply ``verb`` to the running ones of ``servers`` with ``action``; the counts.
+
+    Shared by "Restart All", "Restart stack" and "Stop All", so all three treat
+    a container they may not touch, one that is not running and one without a
+    current status the same way - and pace themselves the same way. Stop All
+    used to carry its own copy of this loop, and the copy kept the bug the
+    restart path was fixed for: it paused on SUCCESSES.
     """
     attempted = 0  # counts calls, not successes: the pause is for the daemon
-    restarted_count = 0
+    done_count = 0
     failed_count = 0
     skipped_count = 0
     # Containers the status cache had nothing about. They used to land
@@ -66,8 +76,8 @@ async def _restart_running_servers(servers, action):
             continue
 
         # Respect per-container allowed_actions (same check as the single-container button)
-        if 'restart' not in server.get('allowed_actions', []):
-            logger.info(f"Bulk restart: Skipping {docker_name} - 'restart' not in allowed_actions")
+        if verb not in server.get('allowed_actions', []):
+            logger.info(f"Bulk {verb}: Skipping {docker_name} - '{verb}' not in allowed_actions")
             not_allowed_count += 1
             continue
 
@@ -90,7 +100,7 @@ async def _restart_running_servers(servers, action):
                 is_running = status_result[1]
 
         if is_running:
-            # Restart container with timeout protection
+            # One container, with timeout protection
             try:
                 # Half a second between operations so the daemon is not overloaded.
                 # Counted by attempts: tied to the successes it never paused at
@@ -101,20 +111,20 @@ async def _restart_running_servers(servers, action):
 
                 # Set timeout for docker operation
                 success = await asyncio.wait_for(
-                    action(docker_name, "restart"),
+                    action(docker_name, verb),
                     timeout=30.0  # 30 second timeout per container
                 )
                 if success:
-                    restarted_count += 1
-                    logger.info(f"Successfully restarted {docker_name}")
+                    done_count += 1
+                    logger.info(f"Successfully applied {verb} to {docker_name}")
                 else:
                     failed_count += 1
-                    logger.warning(f"Failed to restart {docker_name}")
+                    logger.warning(f"Failed to {verb} {docker_name}")
             except asyncio.TimeoutError:
-                logger.error(f"Timeout restarting {docker_name}")
+                logger.error(f"Timeout on {verb} for {docker_name}")
                 failed_count += 1
             except (RuntimeError, OSError) as e:
-                logger.error(f"Error restarting {docker_name}: {e}", exc_info=True)
+                logger.error(f"Error on {verb} for {docker_name}: {e}", exc_info=True)
                 failed_count += 1
         elif status_known:
             skipped_count += 1
@@ -123,7 +133,7 @@ async def _restart_running_servers(servers, action):
                            f"and reported as unchecked rather than as idle")
             unknown_count += 1
 
-    return {"restarted": restarted_count, "failed": failed_count, "skipped": skipped_count,
+    return {"done": done_count, "failed": failed_count, "skipped": skipped_count,
             "unknown": unknown_count, "not_allowed": not_allowed_count}
 
 
@@ -813,17 +823,6 @@ class ConfirmStopAllButton(Button):
 
             logger.info(f"Stop All: Processing {len(servers)} active containers (filtered from {len(all_servers)} total)")
 
-            stopped_count = 0
-            failed_count = 0
-            skipped_count = 0
-            # Containers the status cache had nothing about. They used to land
-            # in skipped_count, and the operator read "Skipped (not running)"
-            # about a container that was never asked and never touched - a
-            # measurement that was not taken, reported as one that was
-            # (review D14).
-            unknown_count = 0
-            not_allowed_count = 0
-
             # Import docker service with error handling
             try:
                 from services.docker_service.docker_action_service import docker_action_service_first
@@ -835,69 +834,16 @@ class ConfirmStopAllButton(Button):
                 )
                 return
 
-            # Process containers with rate limiting
-            for server in servers:
-                if not isinstance(server, dict):
-                    continue
-
-                docker_name = server.get('docker_name')
-                if not docker_name or not isinstance(docker_name, str):
-                    continue
-
-                # Respect per-container allowed_actions (same check as the single-container button)
-                if 'stop' not in server.get('allowed_actions', []):
-                    logger.info(f"Stop All: Skipping {docker_name} - 'stop' not in allowed_actions")
-                    not_allowed_count += 1
-                    continue
-
-                # SERVICE FIRST: Use StatusCacheService to check if container is running
-                # IMPORTANT: Always use docker_name for cache lookups (stable identifier)
-                status_cache_service = get_status_cache_service()
-                cached_entry = status_cache_service.get(docker_name)
-
-                # Extract is_running from cache data (ContainerStatusResult object)
-                is_running = False
-                status_known = bool(cached_entry and cached_entry.get('data'))
-                if status_known:
-                    status_result = cached_entry['data']
-                    # Modern format: ContainerStatusResult dataclass
-                    from services.docker_status.models import ContainerStatusResult
-                    if isinstance(status_result, ContainerStatusResult):
-                        is_running = status_result.is_running
-                    # Backwards compatibility: old tuple format
-                    elif isinstance(status_result, tuple) and len(status_result) >= 2:
-                        is_running = status_result[1]
-
-                if is_running:
-                                # Stop container with timeout protection
-                                try:
-                                    # Add small delay between operations to avoid overloading
-                                    if stopped_count > 0:
-                                        await asyncio.sleep(0.5)
-
-                                    # Set timeout for docker operation
-                                    success = await asyncio.wait_for(
-                                        docker_action_service_first(docker_name, "stop"),
-                                        timeout=30.0  # 30 second timeout per container
-                                    )
-                                    if success:
-                                        stopped_count += 1
-                                        logger.info(f"Successfully stopped {docker_name}")
-                                    else:
-                                        failed_count += 1
-                                        logger.warning(f"Failed to stop {docker_name}")
-                                except asyncio.TimeoutError:
-                                    logger.error(f"Timeout stopping {docker_name}")
-                                    failed_count += 1
-                                except (RuntimeError, OSError) as e:
-                                    logger.error(f"Error stopping {docker_name}: {e}", exc_info=True)
-                                    failed_count += 1
-                elif status_known:
-                    skipped_count += 1
-                else:
-                    logger.warning(f"No cached status for {docker_name} - not touched, "
-                                   f"and reported as unchecked rather than as idle")
-                    unknown_count += 1
+            # One loop for all three bulk buttons (_act_on_running_servers):
+            # this used to be a copy of the restart loop, and the copy kept the
+            # bug the restart path was fixed for - it paused on SUCCESSES, so a
+            # daemon where every stop fails got no pause at all.
+            counts = await _act_on_running_servers(servers, docker_action_service_first, "stop")
+            stopped_count = counts["done"]
+            failed_count = counts["failed"]
+            skipped_count = counts["skipped"]
+            unknown_count = counts["unknown"]
+            not_allowed_count = counts["not_allowed"]
 
             # Send result message
             description = _("Successfully stopped: **{count}** containers").format(count=stopped_count)
