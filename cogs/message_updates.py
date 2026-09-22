@@ -782,8 +782,16 @@ class MessageUpdatesMixin:
                     from .control_ui import MechView
                     view = MechView(self, channel_id)
 
-                # CLEAN SWEEP: Delete all old bot messages before creating new one
-                await self._clean_sweep_bot_messages(channel, "recovery from deleted message")
+                # Old bot messages before the new one - but NOT the operator's Live
+                # Logs, not the auto-action notices, and not this channel's other
+                # tracked overview (sweeping that one made the next cycle recover
+                # it and sweep this one out again, once a minute).
+                keep = {mid for key, mid in
+                        self.channel_server_message_ids.get(channel_id, {}).items()
+                        if key != message_type and mid}
+                await self.cleanup_service.delete_bot_messages_preserve_live_logs(
+                    channel=channel, reason="recovery from deleted message",
+                    message_limit=100, keep_message_ids=keep)
 
                 # Send new overview message as recovery
                 if animation_file:

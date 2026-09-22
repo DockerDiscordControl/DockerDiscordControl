@@ -395,16 +395,16 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/server_config_service.py:209 ServerConfigService.get_base_directory
 [ ] services/config/server_config_service.py:224 get_server_config_service
 
-## Section 14  (1583 lines, 44 public names)
+## Section 14  (1593 lines, 44 public names)
 [ ] services/discord/channel_cleanup_service.py:33 ChannelCleanupRequest
 [ ] services/discord/channel_cleanup_service.py:59 ChannelCleanupResult
 [ ] services/discord/channel_cleanup_service.py:78 ChannelCleanupService
 [ ] services/discord/channel_cleanup_service.py:94 ChannelCleanupService.clean_sweep_bot_messages
 [ ] services/discord/channel_cleanup_service.py:121 ChannelCleanupService.delete_bot_messages_preserve_live_logs
-[ ] services/discord/channel_cleanup_service.py:143 ChannelCleanupService.delete_bot_messages_preserve_live_logs.is_bot_but_not_preserved
-[ ] services/discord/channel_cleanup_service.py:189 ChannelCleanupService.cleanup_channel
-[ ] services/discord/channel_cleanup_service.py:476 get_channel_cleanup_service
-[ ] services/discord/channel_cleanup_service.py:496 reset_channel_cleanup_service
+[ ] services/discord/channel_cleanup_service.py:146 ChannelCleanupService.delete_bot_messages_preserve_live_logs.is_bot_but_not_preserved
+[ ] services/discord/channel_cleanup_service.py:199 ChannelCleanupService.cleanup_channel
+[ ] services/discord/channel_cleanup_service.py:486 get_channel_cleanup_service
+[ ] services/discord/channel_cleanup_service.py:506 reset_channel_cleanup_service
 [ ] services/discord/conditional_update_cache_service.py:22 ConditionalUpdateCacheService
 [ ] services/discord/conditional_update_cache_service.py:48 ConditionalUpdateCacheService.has_content_changed
 [ ] services/discord/conditional_update_cache_service.py:86 ConditionalUpdateCacheService.update_content
@@ -1216,7 +1216,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/web/security_service.py:199 SecurityService.get_security_audit
 [ ] services/web/security_service.py:345 get_security_service
 
-## Section 31  (1959 lines, 52 public names)
+## Section 31  (1975 lines, 52 public names)
 [ ] services/web/task_management_service.py:25 AddTaskRequest
 [ ] services/web/task_management_service.py:37 AddTaskResult
 [ ] services/web/task_management_service.py:46 ListTasksRequest
@@ -1270,7 +1270,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] app/blueprints/log_routes.py:180 get_action_logs
 [ ] app/blueprints/log_routes.py:213 get_action_logs_json
 
-## Section 32  (1844 lines, 41 public names)
+## Section 32  (1821 lines, 41 public names)
 [ ] app/blueprints/main_routes.py:40 _get_cached_mech_state.CachedStateCompat
 [ ] app/blueprints/main_routes.py:62 _get_cached_mech_state.ServiceStateCompat
 [ ] app/blueprints/main_routes.py:91 config_page
@@ -1620,7 +1620,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/web/two_factor_service.py:189 TwoFactorStore.verify
 [ ] services/web/two_factor_service.py:211 TwoFactorStore.disable
 
-## Section 40  (943 lines, 2 public names)
+## Section 40  (951 lines, 2 public names)
 [ ] cogs/message_updates.py:35 MessageUpdatesMixin
 [ ] cogs/message_updates.py:42 MessageUpdatesMixin.periodic_message_edit_loop
 

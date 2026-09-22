@@ -122,7 +122,8 @@ class ChannelCleanupService:
         self,
         channel: discord.TextChannel,
         reason: str,
-        message_limit: int = 200
+        message_limit: int = 200,
+        keep_message_ids=None
     ) -> ChannelCleanupResult:
         """
         Delete bot messages while preserving Live Log and AAS messages.
@@ -140,9 +141,18 @@ class ChannelCleanupService:
             ChannelCleanupResult with detailed operation statistics
         """
 
+        keep = set(keep_message_ids or ())
+
         def is_bot_but_not_preserved(message: discord.Message) -> bool:
-            """Filter function that excludes Live Log and AAS messages."""
+            """Filter function that excludes Live Log, AAS and named messages."""
             if message.author != self.bot.user:
+                return False
+
+            # Messages the caller still tracks (the channel's other overview):
+            # deleting one while its id stays tracked made the next cycle
+            # recover it and sweep this one out again, once a minute.
+            if message.id in keep:
+                logger.debug(f"Preserving tracked message {message.id}")
                 return False
 
             # Check if this is a Live Log message by looking for specific indicators
