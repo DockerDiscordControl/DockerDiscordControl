@@ -61,6 +61,16 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   v2.4.1 never fires them, adding another rule there leaves them untouched, and saving or toggling
   one there is refused by its validation - so after upgrading again they work as before.
 
+### ✨ Compose stacks
+
+- **Sort by stack:** the server list in the web panel shows each container's Compose stack, and a
+  "Sort by stack" button puts the containers of one stack next to each other (where the stack's
+  first container stands). Save to keep the order - no more moving them row by row.
+- **Restart a stack from Discord:** the Admin Overview has a new "Stack" button. Pick a stack,
+  confirm, and its running containers are restarted - with the same rules as "Restart All"
+  (only containers that allow restart, stopped ones are skipped).
+- The Admin Overview shows the stack's name above its containers.
+
 ### Other
 
 - One source repository: the same build is pushed as `dockerdiscordcontrol/dockerdiscordcontrol`,
