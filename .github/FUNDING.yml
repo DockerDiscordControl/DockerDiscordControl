@@ -1,0 +1,6 @@
+# GitHub's Sponsor button. The same links as README.md ("Support DDC Development");
+# tests/spec/test_the_sponsor_button_matches_the_readme.py keeps both in step.
+# github: <the operator's GitHub Sponsors account, once named>
+buy_me_a_coffee: dockerdiscordcontrol
+custom:
+  - https://www.paypal.com/donate/?hosted_button_id=XKVC6SFXU2GW4
