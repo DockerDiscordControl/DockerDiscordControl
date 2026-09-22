@@ -94,28 +94,20 @@ def test_the_migration_itself_answers_false_instead_of_raising(monkeypatch):
 
     manager = TokenSecurityManager.__new__(TokenSecurityManager)
     manager.config_service = MagicMock()
+    # A plaintext token and a password hash, delivered the way the ConfigService
+    # delivers them since review E55 - from config.json. This used to redirect
+    # the config directory to a pair of v1 files (bot_config.json and
+    # web_config.json), which no running v2.4 installation has.
+    manager.config_service.get_config.return_value = {
+        "bot_token": "NOT-A-REAL-TOKEN.for-tests-only.padded-past-fifty-chars",
+        "web_ui_password_hash": "pbkdf2:sha256:600000$abc$def",
+    }
     manager.config_service.encrypt_token.side_effect = TokenEncryptionError(
         "Invalid input for token encryption", error_code="TOKEN_ENCRYPTION_INVALID_INPUT")
-    monkeypatch.setattr("utils.config_paths.get_config_dir",
-                        lambda: _config_dir_with_plaintext_token(monkeypatch))
 
     assert manager.encrypt_existing_plaintext_token() is False
+    manager.config_service.update_config_fields.assert_not_called()
 
-
-def _config_dir_with_plaintext_token(monkeypatch):
-    """A config directory holding a plaintext token and a password hash."""
-    import json
-    import tempfile
-    from pathlib import Path
-
-    directory = Path(tempfile.mkdtemp())
-    (directory / "bot_config.json").write_text(
-        json.dumps({"bot_token": "NOT-A-REAL-TOKEN.for-tests-only.padded-past-fifty-chars"}),
-        encoding="utf-8")
-    (directory / "web_config.json").write_text(
-        json.dumps({"web_ui_password_hash": "pbkdf2:sha256:600000$abc$def"}),
-        encoding="utf-8")
-    return directory
 
 
 def test_an_encryption_that_works_still_reports_success(client):

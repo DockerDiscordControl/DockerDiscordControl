@@ -7,42 +7,15 @@
 # ============================================================================ #
 """
 Enhanced Token Security Module for DockerDiscordControl
-Handles automatic token encryption and security improvements.
+Encrypts the bot token when asked to (never on its own) and reports its status.
 """
 
 import logging
-import json
 import os
-import stat
-import tempfile
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
-from pathlib import Path
-
-
-def _atomic_write_json(path, data: Dict[str, Any]) -> None:
-    """Write JSON via temp file + os.replace so a crash never truncates ``path``."""
-    directory = os.path.dirname(os.path.abspath(path))
-    fd, tmp_path = tempfile.mkstemp(prefix=".tmp_", suffix=".json", dir=directory)
-    try:
-        with os.fdopen(fd, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
-        try:
-            # Keep the original file mode (mkstemp creates the temp file with 0600)
-            os.chmod(tmp_path, stat.S_IMODE(os.stat(path).st_mode))
-        except OSError:
-            pass
-        os.replace(tmp_path, path)
-    except BaseException:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
 
 
 class TokenSecurityManager:
@@ -58,91 +31,75 @@ class TokenSecurityManager:
                 logger.error("ConfigService not available for token encryption")
                 self.config_service = None
 
-    def encrypt_existing_plaintext_token(self) -> bool:
-        """
-        Check if bot_config.json contains a plaintext token and encrypt it.
-        This is for migration from plaintext to encrypted storage.
+    def _stored_token_and_hash(self):
+        """The token as STORED and the password hash, from config.json.
 
-        Returns:
-            bool: True if encryption was successful or not needed, False if failed
+        Every v2 installation keeps both in config.json. This read
+        bot_config.json and web_config.json - the split files of the v1 layout,
+        which the one-time fold at startup merges into config.json - so on a v2
+        installation it found neither and every caller concluded there was no
+        token (review E55).
+        """
+        if not self.config_service:
+            raise RuntimeError("ConfigService not available")
+        config = self.config_service.get_config(force_reload=True)
+        return config.get('bot_token') or '', config.get('web_ui_password_hash') or ''
+
+    @staticmethod
+    def _is_encrypted(token: str) -> bool:
+        return token.startswith('gAAAA')
+
+    def encrypt_existing_plaintext_token(self) -> bool:
+        """Encrypt a plaintext bot token in config.json with the Web UI password.
+
+        What the web panel's "Encrypt token" button runs. It used to look for
+        the v1 files, find none on a v2 installation, and return True - which
+        the panel reports as "Bot token encrypted successfully" while the token
+        stayed plaintext on disk (review E55).
+
+        Returns True when the token is encrypted afterwards or there is none,
+        False when it could not be encrypted - no password hash to derive the
+        key from, or a failure. Never True for a token still in plaintext.
+
+        The round trip is checked BEFORE anything is written: the key comes from
+        the password hash, and a token the bot cannot decrypt is a bot that
+        cannot log in.
         """
         try:
-            # Via utils/config_paths.py (DDC_CONFIG_DIR) - config_service writes
-            # bot_config.json/web_config.json there. Derived from __file__ before,
-            # this looked at the old place: with the files missing there, the
-            # migration reported "nothing to do" and the status "no token".
-            from utils.config_paths import get_config_dir
-            config_dir = get_config_dir()
+            token, password_hash = self._stored_token_and_hash()
 
-            bot_config_file = config_dir / "bot_config.json"
-            web_config_file = config_dir / "web_config.json"
-
-            # Check if files exist
-            if not bot_config_file.exists() or not web_config_file.exists():
-                logger.debug("Config files not found, skipping token encryption migration")
+            if not token:
+                logger.debug("No bot token stored, nothing to encrypt")
                 return True
-
-            # Load configurations
-            with open(bot_config_file, 'r', encoding='utf-8') as f:
-                bot_config = json.load(f)
-
-            with open(web_config_file, 'r', encoding='utf-8') as f:
-                web_config = json.load(f)
-
-            # Get token and password hash
-            current_token = bot_config.get('bot_token', '')
-            password_hash = web_config.get('web_ui_password_hash')
-
-            # Check if token needs encryption
-            if not current_token:
-                logger.debug("No bot token found, skipping encryption")
-                return True
-
-            if current_token.startswith('gAAAAA'):
+            if self._is_encrypted(token):
                 logger.debug("Bot token is already encrypted")
                 return True
-
             if not password_hash:
-                logger.warning("No password hash available for token encryption")
-                return True
-
-            # Encrypt the token
-            if not self.config_service:
-                logger.error("ConfigService not available for encryption")
+                logger.warning("Cannot encrypt the bot token: no Web UI password is set "
+                               "(the encryption key is derived from it)")
                 return False
 
-            encrypted_token = self.config_service.encrypt_token(current_token, password_hash)
-
-            if encrypted_token:
-                # Update bot config with encrypted token
-                bot_config['bot_token'] = encrypted_token
-
-                # Save the updated config (atomically - this file holds the token)
-                _atomic_write_json(bot_config_file, bot_config)
-
-                logger.info("🔒 Successfully encrypted existing plaintext bot token")
-                return True
-            else:
-                logger.error("Failed to encrypt bot token")
+            encrypted = self.config_service.encrypt_token(token, password_hash)
+            if not encrypted or self.config_service.decrypt_token(encrypted, password_hash) != token:
+                logger.error("Bot token encryption did not round-trip - nothing was written")
                 return False
+
+            result = self.config_service.update_config_fields({'bot_token': encrypted})
+            if not getattr(result, 'success', False):
+                logger.error("Could not save the encrypted bot token: %s",
+                             getattr(result, 'message', result))
+                return False
+
+            logger.info("🔒 Bot token encrypted in config.json")
+            return True
 
         except Exception as e:  # noqa: BLE001
-            # OSError: unreadable/root-owned file; ValueError: truncated/empty JSON
-            # (JSONDecodeError); AttributeError/TypeError: JSON that isn't an object.
-            # The migration is optional - never let it break the startup.
-            #
-            # Broad since review E11, because the tuple that used to stand here
-            # did NOT keep that promise: encrypt_token raises TokenEncryptionError
-            # (-> ConfigServiceError -> DDCBaseException), which was in none of
-            # those types. It escaped this layer, the security service above it
-            # and the route above that - three handlers in a row - and the
-            # operator pressed a button and got a blank 500 page.
-            #
-            # Caught by class and not by importing services.exceptions: utils/
-            # importing from services/ at module level is a layering inversion
-            # and broke a whole test group the last time I tried it (E7).
-            logger.error(f"Error during token encryption migration: {type(e).__name__}: {e}",
-                         exc_info=True)
+            # Broad since review E11: encrypt_token raises TokenEncryptionError
+            # (-> ConfigServiceError -> DDCBaseException), which a narrow tuple
+            # let escape three layers up to a blank 500 page. Caught by class and
+            # not by importing services.exceptions: utils/ importing services/ at
+            # module level is a layering inversion (E7).
+            logger.error(f"Error encrypting the bot token: {type(e).__name__}: {e}", exc_info=True)
             return False
 
     def verify_token_encryption_status(self) -> Dict[str, Any]:
@@ -168,7 +125,7 @@ class TokenSecurityManager:
                 status['environment_token_used'] = True
                 status['recommendations'].append("✅ Using secure environment variable")
                 # NO early return any more: that the environment variable is used
-                # says NOTHING about what is in bot_config.json. Before,
+                # says NOTHING about what is in config.json. Before,
                 # token_exists/is_encrypted stayed at their False defaults, so
                 # security_service.py:265 reported 40/40 and "Excellent", the
                 # panel showed green, and auto_encrypt_token_on_startup
@@ -176,29 +133,15 @@ class TokenSecurityManager:
                 # token could sit in the file. The score stays 40/40; only the
                 # warning below is added.
 
-            # Check config files - via utils/config_paths.py, see
-            # encrypt_existing_plaintext_token.
-            from utils.config_paths import get_config_dir
-            config_dir = get_config_dir()
-
-            bot_config_file = config_dir / "bot_config.json"
-            web_config_file = config_dir / "web_config.json"
-
-            if bot_config_file.exists():
-                with open(bot_config_file, 'r', encoding='utf-8') as f:
-                    bot_config = json.load(f)
-
-                current_token = bot_config.get('bot_token', '')
-                if current_token:
-                    status['token_exists'] = True
-                    status['is_encrypted'] = current_token.startswith('gAAAAA')
-
-            if web_config_file.exists():
-                with open(web_config_file, 'r', encoding='utf-8') as f:
-                    web_config = json.load(f)
-
-                status['password_hash_available'] = bool(web_config.get('web_ui_password_hash'))
-                status['can_encrypt'] = status['password_hash_available']
+            # config.json, where every v2 installation keeps the token. This read
+            # the v1 files bot_config.json/web_config.json and so never saw a v2
+            # token at all (review E55).
+            current_token, password_hash = self._stored_token_and_hash()
+            if current_token:
+                status['token_exists'] = True
+                status['is_encrypted'] = self._is_encrypted(current_token)
+            status['password_hash_available'] = bool(password_hash)
+            status['can_encrypt'] = status['password_hash_available']
 
             # Generate recommendations
             if (status['token_exists'] and not status['is_encrypted']
@@ -207,7 +150,7 @@ class TokenSecurityManager:
                 # still readable on disk. Before this fix it was never reported,
                 # because the function above returned before looking at the file.
                 status['recommendations'].append(
-                    "⚠️ Plaintext bot token still present in bot_config.json - the "
+                    "⚠️ Plaintext bot token still present in config.json - the "
                     "environment variable is in use, but the file copy is readable. "
                     "Encrypt it or remove it."
                 )
@@ -228,7 +171,12 @@ class TokenSecurityManager:
             if not status['environment_token_used']:
                 status['recommendations'].append("💡 Consider using DISCORD_BOT_TOKEN environment variable")
 
-        except (AttributeError, KeyError, OSError, RuntimeError, TypeError, ValueError) as e:
+        except Exception as e:  # noqa: BLE001
+            # Broad for the reason the button's handler is (review E11): since
+            # E55 the status reads through the ConfigService, whose loader
+            # raises ConfigLoadError - a DDCBaseException, in none of the types
+            # that stood here. The panel would have got a blank 500 instead of
+            # "Error checking token status".
             logger.error(f"Error checking token encryption status: {e}", exc_info=True)
             status['recommendations'].append("❌ Error checking token status")
 
@@ -290,8 +238,10 @@ class TokenSecurityManager:
 
 def auto_encrypt_token_on_startup():
     """
-    Automatically encrypt plaintext tokens on application startup.
-    This function can be called during DDC initialization.
+    Check the token's encryption status at startup and report it.
+
+    Despite the name, this does not encrypt anything (review E55): the token is
+    encrypted when the Web UI button is pressed.
     """
     try:
         security_manager = TokenSecurityManager()
@@ -299,19 +249,17 @@ def auto_encrypt_token_on_startup():
         # Check status first
         status = security_manager.verify_token_encryption_status()
 
-        # Auto-encrypt if possible and beneficial
+        # Report only - never encrypt here. This used to encrypt a plaintext
+        # token at every start; it never saw a v2 token, so it never did.
+        # Repairing the status (review E55) would have switched it on for every
+        # installation at its first v2.4 start, silently. Decided by the
+        # operator: the token is encrypted when the button is pressed.
         if (status['token_exists'] and
             not status['is_encrypted'] and
             status['can_encrypt'] and
             not status['environment_token_used']):
-
-            logger.info("🔒 Auto-encrypting plaintext bot token...")
-            success = security_manager.encrypt_existing_plaintext_token()
-
-            if success:
-                logger.info("✅ Bot token auto-encryption completed successfully")
-            else:
-                logger.warning("⚠️  Bot token auto-encryption failed")
+            logger.info("Bot token is stored in plaintext - it can be encrypted in the "
+                        "Web UI (Security settings)")
 
         return status
 

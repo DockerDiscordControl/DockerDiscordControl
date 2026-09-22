@@ -113,39 +113,45 @@ def ts_config_dir(tmp_path, monkeypatch):
 
 
 class TestF6TokenMigration:
-    @pytest.mark.parametrize("content", ["", "{", '{"bot_token": "abc"', "null", "[]"])
-    def test_broken_legacy_file_does_not_raise(self, ts_config_dir, content):
-        import utils.token_security as ts
+    # Since review E55 the token manager reads token and password hash through
+    # the ConfigService (config.json) and writes through it. The F6 guarantees
+    # carry over unchanged - a config that cannot be read makes neither the
+    # button nor the status raise - but the way in is the service now, not a
+    # broken bot_config.json: that is the v1 layout, which no running v2.4 has.
 
-        (ts_config_dir / "bot_config.json").write_text(content)
-        (ts_config_dir / "web_config.json").write_text('{"web_ui_password_hash": "h"}')
-        mgr = ts.TokenSecurityManager(config_service=MagicMock())
+    @pytest.mark.parametrize("exc", [
+        json.JSONDecodeError("bad", "", 0),
+        PermissionError("root-owned"),
+        OSError("io"),
+        ValueError("bad"),
+        "ConfigLoadError",
+    ])
+    def test_an_unreadable_config_does_not_raise(self, exc):
+        import utils.token_security as ts
+        if exc == "ConfigLoadError":
+            # A DDCBaseException - in none of the types the status handler
+            # listed before E55 made it as broad as the button's.
+            from services.exceptions import ConfigLoadError
+            exc = ConfigLoadError("config.json unreadable")
+
+        svc = MagicMock()
+        svc.get_config.side_effect = exc
+        mgr = ts.TokenSecurityManager(config_service=svc)
+
         assert mgr.encrypt_existing_plaintext_token() is False
         status = mgr.verify_token_encryption_status()
         assert any("Error checking token status" in r for r in status["recommendations"])
+        svc.update_config_fields.assert_not_called()
 
-    def test_auto_encrypt_with_truncated_file_does_not_raise(self, ts_config_dir):
+    def test_auto_encrypt_with_an_unreadable_config_does_not_raise(self, monkeypatch):
+        import services.config.config_service as svc_mod
         import utils.token_security as ts
 
-        (ts_config_dir / "bot_config.json").write_text('{"bot_token": "pla')
-        (ts_config_dir / "web_config.json").write_text('{"web_ui_password_hash": "h"}')
+        svc = MagicMock()
+        svc.get_config.side_effect = json.JSONDecodeError("truncated", '{"bot_token": "pla', 17)
+        monkeypatch.setattr(svc_mod, "get_config_service", lambda: svc)
         status = ts.auto_encrypt_token_on_startup()
         assert status is None or isinstance(status, dict)
-
-    @pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root ignores file modes")
-    def test_unreadable_legacy_file_does_not_raise(self, ts_config_dir):
-        import utils.token_security as ts
-
-        bot_file = ts_config_dir / "bot_config.json"
-        bot_file.write_text('{"bot_token": "plain"}')
-        (ts_config_dir / "web_config.json").write_text('{"web_ui_password_hash": "h"}')
-        bot_file.chmod(0)
-        try:
-            mgr = ts.TokenSecurityManager(config_service=MagicMock())
-            assert mgr.encrypt_existing_plaintext_token() is False
-            assert isinstance(mgr.verify_token_encryption_status(), dict)
-        finally:
-            bot_file.chmod(0o600)
 
     @pytest.mark.parametrize(
         "exc",
@@ -161,30 +167,24 @@ class TestF6TokenMigration:
         monkeypatch.setattr(ts, "auto_encrypt_token_on_startup", _raise)
         assert ensure_token_security(MagicMock()) is False
 
-    def test_rewrite_is_atomic_and_keeps_mode(self, ts_config_dir):
+    def test_the_button_writes_only_the_token_and_only_through_the_service(self, ts_config_dir):
+        """Was test_rewrite_is_atomic_and_keeps_mode, which checked the module's
+        own atomic rewrite of bot_config.json. The module writes no file of its
+        own any more: it hands exactly one field to the ConfigService, whose
+        save is atomic - so nothing may appear in the config directory from
+        here, and no other field may be touched."""
         import utils.token_security as ts
 
-        bot_file = ts_config_dir / "bot_config.json"
-        bot_file.write_text('{"bot_token": "plain-tok", "other": 1}')
-        bot_file.chmod(0o640)
-        (ts_config_dir / "web_config.json").write_text('{"web_ui_password_hash": "ph"}')
         svc = MagicMock()
+        svc.get_config.return_value = {"bot_token": "plain-tok", "web_ui_password_hash": "ph",
+                                       "other": 1}
         svc.encrypt_token.return_value = "gAAAAA-encrypted"
+        svc.decrypt_token.return_value = "plain-tok"
+        svc.update_config_fields.return_value = SimpleNamespace(success=True)
 
         assert ts.TokenSecurityManager(config_service=svc).encrypt_existing_plaintext_token() is True
-        assert json.loads(bot_file.read_text()) == {"bot_token": "gAAAAA-encrypted", "other": 1}
-        assert stat.S_IMODE(bot_file.stat().st_mode) == 0o640
-        assert sorted(p.name for p in ts_config_dir.iterdir()) == ["bot_config.json", "web_config.json"]
-
-    def test_failed_write_keeps_original_file(self, tmp_path):
-        import utils.token_security as ts
-
-        target = tmp_path / "bot_config.json"
-        target.write_text('{"bot_token": "old"}')
-        with pytest.raises(TypeError):
-            ts._atomic_write_json(target, {"bot_token": object()})
-        assert json.loads(target.read_text()) == {"bot_token": "old"}
-        assert [p.name for p in tmp_path.iterdir()] == ["bot_config.json"]
+        svc.update_config_fields.assert_called_once_with({"bot_token": "gAAAAA-encrypted"})
+        assert list(ts_config_dir.iterdir()) == [], "the manager wrote a file of its own"
 
 
 # --------------------------------------------------------------------------- #

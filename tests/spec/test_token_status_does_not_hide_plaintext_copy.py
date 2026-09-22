@@ -113,30 +113,38 @@ ENCRYPTED = "gAAAAABmZ2VyeXRoaW5nSXNFbmNyeXB0ZWRIZXJlAAAA"
 
 @pytest.fixture
 def setup(tmp_path, monkeypatch):
-    """Point TokenSecurityManager at a throwaway directory.
+    """A real ConfigService in a throwaway directory, token in config.json.
 
     Via ``DDC_CONFIG_DIR``. Until 2026-09-19 the module's ``__file__`` was
-    redirected here, because the service derived the directory itself; since
-    then it reads utils.config_paths.get_config_dir() (test_config_dir_token.py).
-    When the trick stopped working, test_the_good_news_remains stayed GREEN
-    without checking anything - the environment variable alone satisfies it.
+    redirected here; then the manager read bot_config.json/web_config.json from
+    utils.config_paths.get_config_dir(). Since review E55 it reads nothing of
+    its own: it asks the ConfigService, and the token sits where every v2
+    installation keeps it - config.json. The v1 files these tests used to write
+    are folded into config.json at startup; no running v2.4 has them, which is
+    why the "Encrypt token" button could report success on a token it never
+    saw. The singleton is reset so the service is built in THIS directory.
     """
+    import services.config.config_service as cs_mod
+    from werkzeug.security import generate_password_hash
+
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     monkeypatch.setenv("DDC_CONFIG_DIR", str(config_dir))
-
-    def write_bot_config(token):
-        (config_dir / "bot_config.json").write_text(
-            json.dumps({"bot_token": token}), encoding="utf-8")
-
-    (config_dir / "web_config.json").write_text(
-        json.dumps({"web_ui_password_hash": "pbkdf2:sha256:1$abc$def"}), encoding="utf-8")
-
     monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
+    monkeypatch.setattr(cs_mod.ConfigService, "_instance", None)
+    password_hash = generate_password_hash("Probe-Password-2026", method="pbkdf2:sha256:1000")
+
+    def write_token(token):
+        (config_dir / "config.json").write_text(
+            json.dumps({"bot_token": token, "web_ui_password_hash": password_hash}), encoding="utf-8")
+
+    write_token("")
+    service = cs_mod.ConfigService()
 
     return type("Setup", (), {
         "config_dir": config_dir,
-        "write_bot_config": staticmethod(write_bot_config),
+        "service": service,
+        "write_token": staticmethod(write_token),
         "monkeypatch": monkeypatch,
     })
 
@@ -144,19 +152,19 @@ def setup(tmp_path, monkeypatch):
 def test_the_fixture_points_to_the_throwaway_directory(setup):
     """Safeguard against a blunt tool.
 
-    If the redirection of ``__file__`` does not take effect, the service looks
-    into the REAL ``config/`` - then the tests below would say nothing, and in
-    the worst case they would have read the production configuration. Exactly
+    If the service were not the one built in the throwaway directory, it would
+    look into the REAL ``config/`` - then the tests below would say nothing, and
+    in the worst case they would have read the production configuration. Exactly
     this kind of construction has already made a detector worthless twice in
     this programme.
     """
-    setup.write_bot_config(PLAINTEXT_TOKEN)
+    setup.write_token(PLAINTEXT_TOKEN)
 
-    status = TokenSecurityManager(config_service=object()).verify_token_encryption_status()
+    status = TokenSecurityManager(config_service=setup.service).verify_token_encryption_status()
 
     assert status["token_exists"] is True, (
-        "The service does not see the throwaway bot_config.json - the redirection of "
-        "__file__ does not take effect, and the tests below prove nothing."
+        "The manager does not see the token in the throwaway config.json - the "
+        "service is not the one in DDC_CONFIG_DIR, and the tests below prove nothing."
     )
     assert status["is_encrypted"] is False, (
         "A plaintext token must not count as encrypted."
@@ -172,9 +180,9 @@ def test_the_good_news_remains(setup):
     red has repaired the wrong thing.
     """
     setup.monkeypatch.setenv("DISCORD_BOT_TOKEN", "env-token-xyz")
-    setup.write_bot_config(PLAINTEXT_TOKEN)
+    setup.write_token(PLAINTEXT_TOKEN)
 
-    status = TokenSecurityManager(config_service=object()).verify_token_encryption_status()
+    status = TokenSecurityManager(config_service=setup.service).verify_token_encryption_status()
 
     assert status["environment_token_used"] is True, (
         "The environment variable must still be reported as used - "
@@ -192,9 +200,9 @@ def test_environment_variable_does_not_hide_the_plaintext_copy(setup):
     it looks at the file.
     """
     setup.monkeypatch.setenv("DISCORD_BOT_TOKEN", "env-token-xyz")
-    setup.write_bot_config(PLAINTEXT_TOKEN)
+    setup.write_token(PLAINTEXT_TOKEN)
 
-    status = TokenSecurityManager(config_service=object()).verify_token_encryption_status()
+    status = TokenSecurityManager(config_service=setup.service).verify_token_encryption_status()
 
     assert status["token_exists"] is True, (
         "The display reports there is no token in the file - although a "
@@ -225,9 +233,9 @@ def test_encrypted_token_triggers_no_warning(setup):
     ignored.
     """
     setup.monkeypatch.setenv("DISCORD_BOT_TOKEN", "env-token-xyz")
-    setup.write_bot_config(ENCRYPTED)
+    setup.write_token(ENCRYPTED)
 
-    status = TokenSecurityManager(config_service=object()).verify_token_encryption_status()
+    status = TokenSecurityManager(config_service=setup.service).verify_token_encryption_status()
 
     assert status["is_encrypted"] is True
     assert not any("klartext" in r.lower() or "plaintext" in r.lower()  # language data

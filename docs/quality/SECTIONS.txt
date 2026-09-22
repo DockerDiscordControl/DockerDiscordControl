@@ -278,10 +278,10 @@ utils/observability.py:1-593
 utils/settings.py:1-113
 utils/time_utils.py:1-387
 
-## Section 37  (833 lines, 3 pieces)
+## Section 37  (781 lines, 3 pieces)
 utils/performance_metrics.py:1-419
 utils/key_crypto.py:1-84
-utils/token_security.py:1-330
+utils/token_security.py:1-278
 
 ## Section 38  (324 lines, 4 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000

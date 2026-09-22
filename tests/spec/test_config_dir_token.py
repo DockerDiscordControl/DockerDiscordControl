@@ -28,7 +28,6 @@ written, not the cryptography.
 import json
 import logging
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -50,9 +49,39 @@ def config_dir(tmp_path, monkeypatch):
     return target
 
 
-def test_the_security_status_sees_the_plaintext_token(config_dir):
-    """THE FINDING, display."""
-    status = TokenSecurityManager(config_service=MagicMock()).verify_token_encryption_status()
+# --- Since review E55 -------------------------------------------------------
+# The token manager no longer reads a file of its own. It asks the ConfigService
+# for the token and the password hash and writes through it, so it follows
+# DDC_CONFIG_DIR exactly as far as the ConfigService does - one rule in one
+# place. The two tests below therefore build a REAL ConfigService in the
+# configured directory, with the token where every v2 installation keeps it:
+# config.json. The bot_config.json the fixture above writes is the v1 layout,
+# which v2.4 folds into config.json at startup; the tests that read it
+# expected the token in a file no v2 installation has.
+
+
+@pytest.fixture
+def real_service(tmp_path, monkeypatch):
+    import services.config.config_service as cs_mod
+    from werkzeug.security import generate_password_hash
+
+    target = tmp_path / "own_config"
+    target.mkdir()
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(target))
+    monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
+    monkeypatch.setattr(cs_mod, "_PBKDF2_ITERATIONS", 1000)
+    monkeypatch.setattr(cs_mod.ConfigService, "_instance", None)
+    (target / "config.json").write_text(json.dumps({
+        "bot_token": "NOT-A-REAL-TOKEN.for-tests-only.config-dir-probe-padding-000",
+        "web_ui_password_hash": generate_password_hash("Probe-Password-2026", method="pbkdf2:sha256:1000"),
+    }), encoding="utf-8")
+    return cs_mod.ConfigService(), target
+
+
+def test_the_security_status_sees_the_plaintext_token(real_service):
+    """THE FINDING, display: the status sees the token in DDC_CONFIG_DIR."""
+    service, _ = real_service
+    status = TokenSecurityManager(config_service=service).verify_token_encryption_status()
 
     assert status["token_exists"] is True, (
         f"The status does not see the token in DDC_CONFIG_DIR: {status}"
@@ -61,15 +90,20 @@ def test_the_security_status_sees_the_plaintext_token(config_dir):
     assert status["password_hash_available"] is True
 
 
-def test_the_startup_migration_encrypts_in_the_config_dir(config_dir):
-    """THE FINDING, migration: 'nothing to do' with plaintext in the real directory."""
-    service = MagicMock()
-    service.encrypt_token.return_value = "gAAAAA-encrypted"
+def test_the_encrypt_button_encrypts_in_the_config_dir(real_service):
+    """THE FINDING, migration: plaintext in the real directory gets encrypted.
+
+    This was test_the_startup_migration_encrypts_in_the_config_dir. Encryption
+    at startup was switched off by the operator on 2026-09-22 (review E55): it
+    happens when the button is pressed. The guarantee - it lands in the
+    configured directory, not somewhere else - is unchanged.
+    """
+    service, target = real_service
 
     assert TokenSecurityManager(config_service=service).encrypt_existing_plaintext_token() is True
 
-    saved = json.loads((config_dir / "bot_config.json").read_text(encoding="utf-8"))
-    assert saved["bot_token"] == "gAAAAA-encrypted", (
+    saved = json.loads((target / "config.json").read_text(encoding="utf-8"))
+    assert saved["bot_token"].startswith("gAAAA"), (
         "The plaintext token in DDC_CONFIG_DIR was not encrypted."
     )
 
