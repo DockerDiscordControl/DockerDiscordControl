@@ -50,7 +50,11 @@ def service(monkeypatch):
     monkeypatch.setattr(instance, "_clean_form_data", lambda form: dict(form))
     monkeypatch.setattr(instance, "_process_configuration",
                         lambda cleaned: ({"servers": []}, True, "Configuration saved"))
-    monkeypatch.setattr(instance, "_check_critical_changes", lambda data: _Changes())
+    # Two arguments since 2026-09-22: the check is handed the configuration as it
+    # was BEFORE the write, because reading it afterwards compared it with itself
+    # (tests/spec/test_a_language_change_is_noticed_at_the_save.py).
+    monkeypatch.setattr(instance, "_check_critical_changes",
+                        lambda data, before=None: _Changes())
     monkeypatch.setattr(instance, "_save_server_order", lambda data: None)
     monkeypatch.setattr(instance, "_save_configuration_files",
                         lambda data, form, split: SaveFilesResult(success=True,

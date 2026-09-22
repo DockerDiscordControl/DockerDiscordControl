@@ -23,6 +23,13 @@ the form fields are keyed by.
 
 The counter-check keeps the clearing itself: a container that really was
 switched off still has its info cleared.
+
+2026-09-22: the forms below now carry the hidden info fields a rendered row
+carries. Since
+tests/spec/test_a_container_the_page_never_showed_keeps_its_info.py, only
+containers the PAGE showed are written at all - a container the operator never
+saw is neither cleared nor saved - and a form without those fields means "this
+container was not on the page".
 """
 
 import json
@@ -68,6 +75,11 @@ def _saved_info(service, monkeypatch, processed, form_data):
     return seen
 
 
+def _row(name):
+    """The hidden info inputs a rendered row carries."""
+    return {f"info_enabled_{name}": "1", f"info_custom_text_{name}": "kept"}
+
+
 def test_an_active_container_is_not_treated_as_switched_off(service, monkeypatch):
     """THE FINDING: the operator submitted it; do not wipe its info."""
     _instance, containers_dir = service
@@ -76,11 +88,12 @@ def test_an_active_container_is_not_treated_as_switched_off(service, monkeypatch
     _write(containers_dir, "web", {"docker_name": "web", "container_name": "Web-Server"})
 
     seen = _saved_info(service, monkeypatch,
-                       {"servers": [{"docker_name": "web"}]}, {})
+                       {"servers": [{"docker_name": "web"}]}, _row("web"))
 
     assert "info_enabled_Web-Server" not in seen.get("form", {}), (
+        "an active container's info was cleared under its other name")
+    assert seen.get("form", {}).get("info_custom_text_web") == "kept", (
         "an active container's info was cleared")
-    assert "info_enabled_web" not in seen.get("form", {})
 
 
 def test_a_container_that_was_switched_off_is_still_cleared(service, monkeypatch):
@@ -88,7 +101,7 @@ def test_a_container_that_was_switched_off_is_still_cleared(service, monkeypatch
     _instance, containers_dir = service
     _write(containers_dir, "old", {"docker_name": "old", "container_name": "old"})
 
-    seen = _saved_info(service, monkeypatch, {"servers": []}, {})
+    seen = _saved_info(service, monkeypatch, {"servers": []}, _row("old"))
 
     assert seen.get("form", {}).get("info_enabled_old") == "0"
 
@@ -99,7 +112,7 @@ def test_every_container_still_gets_its_info_saved(service, monkeypatch):
     _write(containers_dir, "web", {"docker_name": "web", "container_name": "web"})
     _write(containers_dir, "db", {"docker_name": "db", "container_name": "db"})
 
-    seen = _saved_info(service, monkeypatch,
-                       {"servers": [{"docker_name": "web"}]}, {})
+    form = {**_row("web"), **_row("db")}
+    seen = _saved_info(service, monkeypatch, {"servers": [{"docker_name": "web"}]}, form)
 
     assert sorted(seen.get("names", [])) == ["db", "web"]

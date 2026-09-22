@@ -58,9 +58,20 @@ def _save(form_data):
     return result, info
 
 
+def _rows(*names):
+    """The hidden info inputs the rendered rows carry. Since 2026-09-22 only
+    containers the page showed are written at all
+    (tests/spec/test_a_container_the_page_never_showed_keeps_its_info.py), so a
+    form without them means "this container was not on the page"."""
+    form = {}
+    for name in names:
+        form[f"info_enabled_{name}"] = "1"
+    return form
+
+
 def test_the_info_of_all_containers_is_saved(config_dir):
     """THE FINDING: without containers found, nothing is saved at all."""
-    result, info = _save({})
+    result, info = _save(_rows("live", "idle"))
 
     assert result.success, getattr(result, "error", None)
     info.assert_called_once()
@@ -72,10 +83,10 @@ def test_the_info_of_all_containers_is_saved(config_dir):
 
 def test_the_info_of_disabled_containers_is_cleared(config_dir):
     """THE FINDING, second consequence."""
-    form_data = {}
+    form_data = _rows("live", "idle")
     _save(form_data)
 
     assert form_data.get("info_enabled_idle") == "0", (
         "The disabled container 'idle' keeps its info."
     )
-    assert "info_enabled_live" not in form_data
+    assert form_data.get("info_enabled_live") == "1", "the active container was cleared"
