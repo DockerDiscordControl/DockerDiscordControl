@@ -1417,7 +1417,10 @@ class InfoButton(Button):
         description_parts = []
 
         # Add custom text if provided
-        custom_text = info_config.get('custom_text', '').strip()
+        # Cut here as well - see _generate_info_embed in status_info_integration
+        from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
+
+        custom_text = info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT]
         if custom_text:
             description_parts.append(f"```\n{custom_text}\n```")
 

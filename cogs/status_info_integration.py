@@ -968,7 +968,13 @@ class StatusInfoButton(discord.ui.Button):
         description_parts = []
 
         # Add custom text if provided
-        custom_text = fresh_info_config.get('custom_text', '').strip()
+        # Cut here as well: a file written by hand or by an older version can
+        # hold more than the save allows, and an over-long description is
+        # refused by Discord - the Info button would answer with an error
+        # instead of the container's info.
+        from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
+
+        custom_text = fresh_info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT]
         if custom_text:
             description_parts.append(f"{custom_text}")
 

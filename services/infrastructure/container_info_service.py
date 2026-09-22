@@ -42,6 +42,11 @@ def _validate_path_safety(name: str, base_dir: Path) -> None:
 # whatever they were given (review D18).
 MAX_PROTECTED_CONTENT = 250
 MAX_PROTECTED_PASSWORD = 60
+# The info text everybody sees. The web form says 250 to the browser and the
+# Discord modal enforces 250, but the save path enforced nothing - and this
+# text goes into an embed DESCRIPTION, which Discord refuses beyond 4096
+# characters, so a long one hid the container's whole info behind an error.
+MAX_CUSTOM_TEXT = 250
 
 
 @dataclass(frozen=True)
@@ -201,7 +206,8 @@ class ContainerInfoService:
 
         trimmed = {}
         for field, limit in (("protected_content", MAX_PROTECTED_CONTENT),
-                             ("protected_password", MAX_PROTECTED_PASSWORD)):
+                             ("protected_password", MAX_PROTECTED_PASSWORD),
+                             ("custom_text", MAX_CUSTOM_TEXT)):
             value = getattr(info, field)
             if len(value) > limit:
                 logger.warning(f"{field} for {container_name} is {len(value)} characters "

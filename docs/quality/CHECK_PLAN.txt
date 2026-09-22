@@ -55,53 +55,53 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/control_ui.py:1141 ControlView
 [ ] cogs/control_ui.py:1252 InfoButton
 [ ] cogs/control_ui.py:1269 InfoButton.callback
-[ ] cogs/control_ui.py:1500 TaskDeleteButton
-[ ] cogs/control_ui.py:1515 TaskDeleteButton.callback
-[ ] cogs/control_ui.py:1590 MechView
-[ ] cogs/control_ui.py:1616 InfoDropdownButton
-[ ] cogs/control_ui.py:1631 InfoDropdownButton.callback
-[ ] cogs/control_ui.py:1730 ContainerInfoSelectView
-[ ] cogs/control_ui.py:1740 ContainerInfoDropdown
-[ ] cogs/control_ui.py:1769 ContainerInfoDropdown.callback
+[ ] cogs/control_ui.py:1503 TaskDeleteButton
+[ ] cogs/control_ui.py:1518 TaskDeleteButton.callback
+[ ] cogs/control_ui.py:1593 MechView
+[ ] cogs/control_ui.py:1619 InfoDropdownButton
+[ ] cogs/control_ui.py:1634 InfoDropdownButton.callback
+[ ] cogs/control_ui.py:1733 ContainerInfoSelectView
+[ ] cogs/control_ui.py:1743 ContainerInfoDropdown
+[ ] cogs/control_ui.py:1772 ContainerInfoDropdown.callback
 
-## Section 03  (1948 lines, 37 public names)
-[ ] cogs/control_ui.py:1938 PasswordProtectedView
-[ ] cogs/control_ui.py:1950 PasswordButton
-[ ] cogs/control_ui.py:1965 PasswordButton.callback
-[ ] cogs/control_ui.py:1995 AdminButton
-[ ] cogs/control_ui.py:2010 AdminButton.callback
-[ ] cogs/control_ui.py:2091 AdminButton.callback.get_sort_key
-[ ] cogs/control_ui.py:2129 AdminContainerSelectView
-[ ] cogs/control_ui.py:2167 AdminContainerDropdown
-[ ] cogs/control_ui.py:2189 AdminContainerDropdown.__init__.get_order_key
-[ ] cogs/control_ui.py:2237 AdminContainerDropdown.callback
-[ ] cogs/control_ui.py:2400 HelpButton
-[ ] cogs/control_ui.py:2415 HelpButton.callback
-[ ] cogs/control_ui.py:2482 MechDetailsButton
-[ ] cogs/control_ui.py:2494 MechDetailsButton.callback
-[ ] cogs/control_ui.py:2613 MechExpandButton
-[ ] cogs/control_ui.py:2628 MechExpandButton.callback
-[ ] cogs/control_ui.py:2735 MechCollapseButton
-[ ] cogs/control_ui.py:2750 MechCollapseButton.callback
-[ ] cogs/control_ui.py:2872 MechDonateButton
-[ ] cogs/control_ui.py:2886 MechDonateButton.callback
-[ ] cogs/control_ui.py:2917 MechHistoryButton
-[ ] cogs/control_ui.py:2931 MechHistoryButton.callback
-[ ] cogs/control_ui.py:3300 MechSelectionView
-[ ] cogs/control_ui.py:3333 MechDisplayButton
-[ ] cogs/control_ui.py:3364 MechDisplayButton.callback
-[ ] cogs/control_ui.py:3462 EpilogueButton
-[ ] cogs/control_ui.py:3474 EpilogueButton.callback
-[ ] cogs/control_ui.py:3530 MechStoryView
-[ ] cogs/control_ui.py:3545 ReadStoryButton
-[ ] cogs/control_ui.py:3558 ReadStoryButton.callback
-[ ] cogs/control_ui.py:3629 PlaySongButton
-[ ] cogs/control_ui.py:3643 PlaySongButton.callback
-[ ] cogs/control_ui.py:3690 MechDetailsView
-[ ] cogs/control_ui.py:3703 MechPrivateDonateButton
-[ ] cogs/control_ui.py:3715 MechPrivateDonateButton.callback
-[ ] cogs/control_ui.py:3742 MechPrivateHistoryButton
-[ ] cogs/control_ui.py:3754 MechPrivateHistoryButton.callback
+## Section 03  (1951 lines, 37 public names)
+[ ] cogs/control_ui.py:1941 PasswordProtectedView
+[ ] cogs/control_ui.py:1953 PasswordButton
+[ ] cogs/control_ui.py:1968 PasswordButton.callback
+[ ] cogs/control_ui.py:1998 AdminButton
+[ ] cogs/control_ui.py:2013 AdminButton.callback
+[ ] cogs/control_ui.py:2094 AdminButton.callback.get_sort_key
+[ ] cogs/control_ui.py:2132 AdminContainerSelectView
+[ ] cogs/control_ui.py:2170 AdminContainerDropdown
+[ ] cogs/control_ui.py:2192 AdminContainerDropdown.__init__.get_order_key
+[ ] cogs/control_ui.py:2240 AdminContainerDropdown.callback
+[ ] cogs/control_ui.py:2403 HelpButton
+[ ] cogs/control_ui.py:2418 HelpButton.callback
+[ ] cogs/control_ui.py:2485 MechDetailsButton
+[ ] cogs/control_ui.py:2497 MechDetailsButton.callback
+[ ] cogs/control_ui.py:2616 MechExpandButton
+[ ] cogs/control_ui.py:2631 MechExpandButton.callback
+[ ] cogs/control_ui.py:2738 MechCollapseButton
+[ ] cogs/control_ui.py:2753 MechCollapseButton.callback
+[ ] cogs/control_ui.py:2875 MechDonateButton
+[ ] cogs/control_ui.py:2889 MechDonateButton.callback
+[ ] cogs/control_ui.py:2920 MechHistoryButton
+[ ] cogs/control_ui.py:2934 MechHistoryButton.callback
+[ ] cogs/control_ui.py:3303 MechSelectionView
+[ ] cogs/control_ui.py:3336 MechDisplayButton
+[ ] cogs/control_ui.py:3367 MechDisplayButton.callback
+[ ] cogs/control_ui.py:3465 EpilogueButton
+[ ] cogs/control_ui.py:3477 EpilogueButton.callback
+[ ] cogs/control_ui.py:3533 MechStoryView
+[ ] cogs/control_ui.py:3548 ReadStoryButton
+[ ] cogs/control_ui.py:3561 ReadStoryButton.callback
+[ ] cogs/control_ui.py:3632 PlaySongButton
+[ ] cogs/control_ui.py:3646 PlaySongButton.callback
+[ ] cogs/control_ui.py:3693 MechDetailsView
+[ ] cogs/control_ui.py:3706 MechPrivateDonateButton
+[ ] cogs/control_ui.py:3718 MechPrivateDonateButton.callback
+[ ] cogs/control_ui.py:3745 MechPrivateHistoryButton
+[ ] cogs/control_ui.py:3757 MechPrivateHistoryButton.callback
 
 ## Section 04  (1535 lines, 13 public names)
 [ ] cogs/channel_lifecycle.py:30 ChannelLifecycleMixin
@@ -183,7 +183,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/status_handlers.py:573 StatusHandlersMixin.get_status
 [ ] cogs/status_handlers.py:1125 StatusHandlersMixin.send_server_status
 
-## Section 09  (1249 lines, 24 public names)
+## Section 09  (1255 lines, 24 public names)
 [ ] cogs/status_info_integration.py:58 container_logs_text
 [ ] cogs/status_info_integration.py:77 container_logs_text.get_logs_sync
 [ ] cogs/status_info_integration.py:106 ContainerInfoAdminView
@@ -204,10 +204,10 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] cogs/status_info_integration.py:858 ProtectedInfoOnlyView
 [ ] cogs/status_info_integration.py:873 StatusInfoButton
 [ ] cogs/status_info_integration.py:894 StatusInfoButton.callback
-[ ] cogs/status_info_integration.py:1069 ProtectedInfoButton
-[ ] cogs/status_info_integration.py:1086 ProtectedInfoButton.callback
-[ ] cogs/status_info_integration.py:1137 create_enhanced_status_embed
-[ ] cogs/status_info_integration.py:1229 should_show_info_in_status_channel
+[ ] cogs/status_info_integration.py:1075 ProtectedInfoButton
+[ ] cogs/status_info_integration.py:1092 ProtectedInfoButton.callback
+[ ] cogs/status_info_integration.py:1143 create_enhanced_status_embed
+[ ] cogs/status_info_integration.py:1235 should_show_info_in_status_channel
 
 ## Section 10  (1508 lines, 45 public names)
 [ ] cogs/translation_manager.py:23 TranslationManager
@@ -551,7 +551,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/donation/unified/processors.py:52 execute_async_donation
 [ ] services/donation/unified/reset.py:27 reset_donations
 
-## Section 18  (1673 lines, 88 public names)
+## Section 18  (1679 lines, 88 public names)
 [ ] services/donation/unified/service.py:40 UnifiedDonationService
 [ ] services/donation/unified/service.py:50 UnifiedDonationService.process_donation
 [ ] services/donation/unified/service.py:226 UnifiedDonationService.process_donation_async
@@ -631,15 +631,15 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/infrastructure/action_logger.py:41 log_user_action
 [ ] services/infrastructure/action_logger.py:60 get_action_logs_json
 [ ] services/infrastructure/action_logger.py:85 get_action_logs_text
-[ ] services/infrastructure/container_info_service.py:48 ContainerInfo
-[ ] services/infrastructure/container_info_service.py:61 ContainerInfo.from_dict
-[ ] services/infrastructure/container_info_service.py:80 ContainerInfo.to_dict
-[ ] services/infrastructure/container_info_service.py:94 ServiceResult
-[ ] services/infrastructure/container_info_service.py:100 ContainerInfoService
-[ ] services/infrastructure/container_info_service.py:143 ContainerInfoService.get_container_info
-[ ] services/infrastructure/container_info_service.py:212 ContainerInfoService.save_container_info
-[ ] services/infrastructure/container_info_service.py:265 ContainerInfoService.delete_container_info
-[ ] services/infrastructure/container_info_service.py:317 get_container_info_service
+[ ] services/infrastructure/container_info_service.py:53 ContainerInfo
+[ ] services/infrastructure/container_info_service.py:66 ContainerInfo.from_dict
+[ ] services/infrastructure/container_info_service.py:85 ContainerInfo.to_dict
+[ ] services/infrastructure/container_info_service.py:99 ServiceResult
+[ ] services/infrastructure/container_info_service.py:105 ContainerInfoService
+[ ] services/infrastructure/container_info_service.py:148 ContainerInfoService.get_container_info
+[ ] services/infrastructure/container_info_service.py:218 ContainerInfoService.save_container_info
+[ ] services/infrastructure/container_info_service.py:271 ContainerInfoService.delete_container_info
+[ ] services/infrastructure/container_info_service.py:323 get_container_info_service
 
 ## Section 19  (1994 lines, 52 public names)
 [ ] services/infrastructure/container_status_service.py:36 ContainerStatusRequest
