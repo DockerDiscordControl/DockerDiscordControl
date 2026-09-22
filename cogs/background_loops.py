@@ -183,8 +183,57 @@ class BackgroundLoopsMixin:
                 duration_ms = (time.time() - start_time) * 1000
                 logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
 
+            await self._feed_container_watchdog(results, config)
+
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"[STATUS_LOOP] Unexpected error during status update loop: {e}", exc_info=True)
+
+    async def _feed_container_watchdog(self, results, config):
+        """Hand this cycle's container states to the watchdog and its rules (Phase 4a).
+
+        Only when an enabled container-state rule exists. One base watcher gives
+        stopped/unhealthy; each distinct restart threshold/window among the rules
+        gets its own watcher for restart_loop, so every rule is measured by its
+        own settings. A container with a pending DDC action is "expected": a stop
+        the user asked for is not an alarm. The notice channel defaults to the
+        first control channel.
+        """
+        from services.automation.auto_action_config_service import (TRIGGER_CONTAINER_STATE,
+                                                                    get_auto_action_config_service)
+        from services.automation.automation_service import get_automation_service
+        from services.automation.container_watch import RESTART_LOOP, ContainerState, ContainerWatcher
+        from services.config.channel_roles import control_channel_ids
+
+        rules = [r for r in get_auto_action_config_service().get_rules()
+                 if r.enabled and r.trigger.type == TRIGGER_CONTAINER_STATE]
+        if not rules:
+            return
+        watchers = self.__dict__.setdefault('_container_watchers', {})
+        snapshot = {name: ContainerState(result.is_running, getattr(result, 'health', None),
+                                         getattr(result, 'restart_count', None))
+                    for name, result in results.items()
+                    if result.success and not getattr(result, 'not_found', False)}
+        expected = set(getattr(self, 'pending_actions', {}) or {})
+        now = time.time()
+        base = watchers.setdefault('base', ContainerWatcher())
+        events = [e for e in base.observe(snapshot, now, expected) if e.kind != RESTART_LOOP]
+        for rule in rules:
+            if RESTART_LOOP not in rule.trigger.states:
+                continue
+            key = (rule.trigger.restart_threshold, rule.trigger.restart_window_minutes)
+            if key not in watchers:
+                watchers[key] = ContainerWatcher(key[0], key[1] * 60)
+                watchers[key].observe(snapshot, now, expected)  # baseline, like the base watcher
+                continue
+            events.extend(e for e in watchers[key].observe(snapshot, now, expected) if e.kind == RESTART_LOOP)
+        if not events:
+            return
+        control = control_channel_ids(config or {})
+        try:
+            await get_automation_service().process_container_events(
+                events, bot=self.bot, control_channel_id=control[0] if control else None)
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError, KeyError) as e:
+            logger.error(f"[WATCHDOG] Could not act on {len(events)} container event(s): {e}", exc_info=True)
 
     @status_update_loop.before_loop
     async def before_status_update_loop(self):

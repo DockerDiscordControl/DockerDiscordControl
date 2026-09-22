@@ -120,7 +120,7 @@
 [ ] cogs/slash_commands.py:475 SlashCommandsMixin.donate_command
 [ ] cogs/slash_commands.py:542 SlashCommandsMixin.info_command
 
-## Section 06  (1520 lines, 33 public names)
+## Section 06  (1569 lines, 33 public names)
 [ ] cogs/docker_control.py:890 DockerControlCog.control_command
 [ ] cogs/docker_control.py:947 DockerControlCog.cog_unload
 [ ] cogs/docker_control.py:980 DockerControlCog.update_global_status_cache
@@ -137,15 +137,15 @@
 [ ] cogs/background_loops.py:43 BackgroundLoopsMixin.heartbeat_send_loop
 [ ] cogs/background_loops.py:108 BackgroundLoopsMixin.before_heartbeat_loop
 [ ] cogs/background_loops.py:116 BackgroundLoopsMixin.status_update_loop
-[ ] cogs/background_loops.py:190 BackgroundLoopsMixin.before_status_update_loop
-[ ] cogs/background_loops.py:196 BackgroundLoopsMixin.start_mech_cache_loop
-[ ] cogs/background_loops.py:206 BackgroundLoopsMixin.before_start_mech_cache_loop
-[ ] cogs/background_loops.py:212 BackgroundLoopsMixin.initial_animation_cache_warmup
-[ ] cogs/background_loops.py:309 BackgroundLoopsMixin.before_initial_animation_cache_warmup
-[ ] cogs/background_loops.py:317 BackgroundLoopsMixin.inactivity_check_loop
-[ ] cogs/background_loops.py:478 BackgroundLoopsMixin.before_inactivity_check_loop
-[ ] cogs/background_loops.py:484 BackgroundLoopsMixin.performance_cache_clear_loop
-[ ] cogs/background_loops.py:510 BackgroundLoopsMixin.before_performance_cache_clear_loop
+[ ] cogs/background_loops.py:239 BackgroundLoopsMixin.before_status_update_loop
+[ ] cogs/background_loops.py:245 BackgroundLoopsMixin.start_mech_cache_loop
+[ ] cogs/background_loops.py:255 BackgroundLoopsMixin.before_start_mech_cache_loop
+[ ] cogs/background_loops.py:261 BackgroundLoopsMixin.initial_animation_cache_warmup
+[ ] cogs/background_loops.py:358 BackgroundLoopsMixin.before_initial_animation_cache_warmup
+[ ] cogs/background_loops.py:366 BackgroundLoopsMixin.inactivity_check_loop
+[ ] cogs/background_loops.py:527 BackgroundLoopsMixin.before_inactivity_check_loop
+[ ] cogs/background_loops.py:533 BackgroundLoopsMixin.performance_cache_clear_loop
+[ ] cogs/background_loops.py:559 BackgroundLoopsMixin.before_performance_cache_clear_loop
 [ ] cogs/donation_ui.py:31 DonationView
 [ ] cogs/donation_ui.py:70 DonationView.on_timeout
 [ ] cogs/donation_ui.py:89 DonationView.start_auto_delete_timer
@@ -245,7 +245,7 @@
 [ ] services/automation/auto_action_config_service.py:755 AutoActionConfigService.increment_trigger_count
 [ ] services/automation/auto_action_config_service.py:783 get_auto_action_config_service
 
-## Section 11  (1917 lines, 40 public names)
+## Section 11  (1925 lines, 40 public names)
 [ ] services/automation/auto_action_state_service.py:24 TriggerEvent
 [ ] services/automation/auto_action_state_service.py:34 TriggerEvent.to_dict
 [ ] services/automation/auto_action_state_service.py:37 AutoActionStateService
@@ -263,11 +263,11 @@
 [ ] services/automation/automation_service.py:73 AutomationService
 [ ] services/automation/automation_service.py:81 AutomationService.process_message
 [ ] services/automation/automation_service.py:481 AutomationService.process_container_events
-[ ] services/automation/automation_service.py:647 get_automation_service
+[ ] services/automation/automation_service.py:650 get_automation_service
 [ ] services/automation/container_watch.py:35 ContainerState
 [ ] services/automation/container_watch.py:42 WatchEvent
-[ ] services/automation/container_watch.py:48 ContainerWatcher
-[ ] services/automation/container_watch.py:56 ContainerWatcher.observe
+[ ] services/automation/container_watch.py:52 ContainerWatcher
+[ ] services/automation/container_watch.py:60 ContainerWatcher.observe
 [ ] services/config/channel_config_service.py:29 ChannelConfigService
 [ ] services/config/channel_config_service.py:126 ChannelConfigService.get_all_channels
 [ ] services/config/channel_config_service.py:232 ChannelConfigService.get_channel

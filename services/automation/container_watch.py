@@ -43,6 +43,10 @@ class WatchEvent:
     container: str
     kind: str
     reason: str
+    # restart_loop only: the threshold and window that produced it, so a rule
+    # reacts only to loops measured by its own settings.
+    threshold: Optional[int] = None
+    window_minutes: Optional[int] = None
 
 
 class ContainerWatcher:
@@ -91,5 +95,6 @@ class ContainerWatcher:
             self._loop_alerted_at[name] = now
             minutes = int(self.restart_window // 60)
             return WatchEvent(name, RESTART_LOOP,
-                              f"Container '{name}' restarted {in_window} times within {minutes} min.")
+                              f"Container '{name}' restarted {in_window} times within {minutes} min.",
+                              threshold=self.restart_threshold, window_minutes=minutes)
         return None

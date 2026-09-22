@@ -48,7 +48,7 @@ cogs/slash_commands.py:1-788
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:884-1263
-cogs/background_loops.py:1-512
+cogs/background_loops.py:1-561
 cogs/donation_ui.py:1-628
 
 ## Section 07  (694 lines, 1 piece)
@@ -71,8 +71,8 @@ services/automation/auto_action_config_service.py:1-788
 
 ## Section 11  (1822 lines, 7 pieces)
 services/automation/auto_action_state_service.py:1-364
-services/automation/automation_service.py:1-651
-services/automation/container_watch.py:1-95
+services/automation/automation_service.py:1-654
+services/automation/container_watch.py:1-100
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576
 services/config/channel_roles.py:1-38

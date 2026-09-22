@@ -498,6 +498,9 @@ class AutomationService:
                     continue
                 if rule.trigger.containers and event.container not in rule.trigger.containers:
                     continue
+                if event.kind == 'restart_loop' and (event.threshold, event.window_minutes) != (
+                        rule.trigger.restart_threshold, rule.trigger.restart_window_minutes):
+                    continue  # measured with another rule's threshold/window
                 if await self._execute_container_rule(rule, event, settings, bot, control_channel_id):
                     executed.append(rule.name)
         return executed
