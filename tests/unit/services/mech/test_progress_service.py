@@ -743,7 +743,9 @@ def test_power_gift_idempotent_per_campaign(progress_env):
 def test_deterministic_gift_1_3_in_range(progress_env):
     """The deterministic gift always falls in [100, 300] cents."""
     for camp in ("a", "b", "c", "x", "y", "z", "1", "2"):
-        cents = progress_env.deterministic_gift_1_3("mech1", camp)
+        from services.mech.gifts import deterministic_gift_1_3
+
+        cents = deterministic_gift_1_3("mech1", camp)
         assert cents in (100, 200, 300)
 
 

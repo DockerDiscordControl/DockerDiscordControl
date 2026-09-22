@@ -557,6 +557,9 @@ class TestStartupPower:
     """Tests for app/bot/startup_steps/power.py."""
 
     def test_grant_power_gift_step_logs_when_gift_granted(self, monkeypatch, caplog):
+        # No DDC_VERSION: this is about the welcome gift. The release gift has
+        # its own spec (tests/spec/test_a_release_gift_happens_once_per_version.py).
+        monkeypatch.delenv("DDC_VERSION", raising=False)
         adapter = MagicMock()
         adapter.power_gift.return_value = SimpleNamespace(power_level=500)
 
@@ -573,6 +576,9 @@ class TestStartupPower:
         assert any("Power gift granted" in r.getMessage() for r in caplog.records)
 
     def test_grant_power_gift_step_logs_when_not_needed(self, monkeypatch, caplog):
+        # No DDC_VERSION: this is about the welcome gift. The release gift has
+        # its own spec (tests/spec/test_a_release_gift_happens_once_per_version.py).
+        monkeypatch.delenv("DDC_VERSION", raising=False)
         adapter = MagicMock()
         adapter.power_gift.return_value = SimpleNamespace(power_level=0)
 

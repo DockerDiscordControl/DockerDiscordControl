@@ -3607,7 +3607,9 @@ class TestProgressServiceGaps:
     def test_deterministic_gift_returns_1_to_3(self, progress_env_v2):
         # Lines: deterministic_gift_1_3 returns 100, 200, or 300
         for i in range(20):
-            result = progress_env_v2.deterministic_gift_1_3(
+            from services.mech.gifts import deterministic_gift_1_3
+
+            result = deterministic_gift_1_3(
                 f"mech-{i}", f"campaign-{i}"
             )
             assert result in (100, 200, 300)

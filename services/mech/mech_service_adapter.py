@@ -155,11 +155,18 @@ class MechServiceAdapter:
         prog_state = self.progress_service.tick_decay()
         return self._convert_state(prog_state)
 
-    def power_gift(self, campaign_id: str) -> MechState:
-        """Grant power gift"""
-        prog_state, gift = self.progress_service.power_gift(campaign_id)
+    def power_gift(self, campaign_id: str, gift_cents: Optional[int] = None) -> MechState:
+        """Grant power gift (gift_cents fixes the amount, e.g. a release's three days)"""
+        prog_state, gift = self.progress_service.power_gift(campaign_id, gift_cents=gift_cents)
         if gift:
             logger.info(f"Power gift granted via adapter: ${gift:.2f}")
+        return self._convert_state(prog_state)
+
+    def release_gift(self, version: str) -> MechState:
+        """Three days of energy for an empty mech, once per DDC release"""
+        prog_state, gift = self.progress_service.release_gift(version)
+        if gift:
+            logger.info(f"Release gift granted via adapter: ${gift:.2f}")
         return self._convert_state(prog_state)
 
     def add_system_donation(self, amount: float, event_name: str,

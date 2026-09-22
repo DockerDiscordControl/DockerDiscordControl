@@ -158,27 +158,31 @@ services/mech/mech_display_cache_service.py:1-387
 services/mech/animation_cache_service.py:1-1823
 services/mech/animation_disk_cache.py:1-76
 
-## Section 22  (1670 lines, 4 pieces)
+## Section 22  (1784 lines, 5 pieces)
 services/mech/mech_data_store.py:1-939
 services/mech/mech_defaults.py:1-34
 services/mech/mech_evolutions.py:1-449
+# gifts.py split out of progress_service.py on 2026-09-23 (that file may only
+# shrink); it sits with the other small mech pieces.
+services/mech/gifts.py:1-114
 services/mech/mech_high_res_service.py:1-248
 
 ## Section 23  (1932 lines, 9 pieces)
 services/mech/mech_reset_service.py:1-378
 services/mech/mech_service.py:1-32
-services/mech/mech_service_adapter.py:1-299
+services/mech/mech_service_adapter.py:1-306
 services/mech/mech_state_manager.py:1-221
 services/mech/mech_status_cache_service.py:1-466
 services/mech/mech_story_service.py:1-204
 services/mech/progress/__init__.py:1-17
 services/mech/progress_paths.py:1-189
 
-## Section 24  (1740 lines, 1 piece)
+## Section 24  (1903 lines, 2 pieces)
 # runtime.py sits with the service it carries the state for; section 23 is at
-# the 2,000 lines a section may hold.
+# the 2,000 lines a section may hold. gifts.py joined on 2026-09-23: it was
+# split out of progress_service.py, which may only shrink.
 services/mech/progress/runtime.py:1-201
-services/mech/progress_service.py:1-1740
+services/mech/progress_service.py:1-1702
 
 ## Section 25  (1276 lines, 7 pieces)
 services/mech/speed_levels.py:1-427
@@ -232,7 +236,7 @@ app/blueprints/main_routes.py:1-1507
 app/blueprints/tasks_bp.py:1-314
 app/blueprints/action_log_routes.py:1-91
 
-## Section 33  (1999 lines, 24 pieces)
+## Section 33  (1958 lines, 22 pieces)
 app/blueprints/translation_routes.py:1-364
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
@@ -247,22 +251,24 @@ app/bot/startup.py:1-39
 app/bot/startup_context.py:1-57
 app/bot/startup_steps/__init__.py:1-52
 app/bot/startup_steps/commands.py:1-120
-app/bot/startup_steps/cooldowns.py:1-29
-app/bot/startup_steps/diagnostics.py:1-26
 app/bot/startup_steps/member_count.py:1-126
 app/bot/startup_steps/notifications.py:1-35
-app/bot/startup_steps/power.py:1-53
+app/bot/startup_steps/power.py:1-64
 app/bot/startup_steps/scheduler.py:1-27
 app/bot/token.py:1-123
 app/constants.py:1-17
 app/utils/__init__.py:1-7
 app/utils/container_info_web_handler.py:1-275
 
-## Section 34  (1888 lines, 9 pieces)
+## Section 34  (1943 lines, 11 pieces)
 # app/bot/startup_steps/sequence.py moved here from 33 on 2026-09-21: 33 had
 # grown to 2,021 of the 2,000 a section may hold, and this is the file that
 # grew (review E9). 34 had the room.
+# cooldowns.py and diagnostics.py followed on 2026-09-23, same reason:
+# the release gift grew power.py and 33 went over 2,000 again.
 app/bot/startup_steps/sequence.py:1-65
+app/bot/startup_steps/cooldowns.py:1-29
+app/bot/startup_steps/diagnostics.py:1-26
 app/utils/port_diagnostics.py:1-600
 app/utils/shared_data.py:1-105
 app/utils/web_helpers.py:1-915

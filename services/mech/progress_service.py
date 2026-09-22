@@ -849,12 +849,6 @@ def compute_ui_state(snap: Snapshot) -> ProgressState:
     )
 
 
-def deterministic_gift_1_3(mech_id: str, campaign_id: str) -> int:
-    h = hashlib.sha256((mech_id + "|" + campaign_id).encode("utf-8")).hexdigest()
-    n = int(h[:8], 16)
-    return ((n % 3) + 1) * 100  # 1-3 dollars in cents
-
-
 # ---------------------
 # Core logic
 # ---------------------
@@ -1416,59 +1410,27 @@ class ProgressService:
             persist_snapshot(snap)
             return compute_ui_state(snap)
 
-    def power_gift(self, campaign_id: str) -> Tuple[ProgressState, Optional[int]]:
-        """Grant power gift if power is 0 AND campaign hasn't been used. Returns (state, gift_dollars or None)"""
-        with LOCK:
-            self._heal_if_lagging(read_events())
-            snap = load_snapshot(self.mech_id)
-            # Both refusals below write only if apply_decay_on_demand() actually
-            # changed something - it is a documented no-op apart from backfilling
-            # last_decay_day once. A refused gift changed nothing else, and
-            # rewriting the snapshot for it is the pattern get_state() was
-            # already taken off (review D26).
-            decay_day_before = snap.last_decay_day
-            apply_decay_on_demand(snap)
+    def power_gift(self, campaign_id: str,
+                   gift_cents: Optional[int] = None) -> Tuple[ProgressState, Optional[int]]:
+        """Grant power gift if power is 0 AND campaign hasn't been used.
 
-            def _persist_if_decay_day_changed() -> None:
-                if snap.last_decay_day != decay_day_before:
-                    persist_snapshot(snap)
+        The rules live in services/mech/gifts.py; this is the way in.
+        """
+        from services.mech.gifts import grant_power_gift
 
-            # Use the CURRENT (decayed) power: raw power_acc stays > 0 while decay runs
-            if current_power_cents(snap) > 0:
-                logger.info(f"Power gift skipped: power > 0")
-                _persist_if_decay_day_changed()
-                return compute_ui_state(snap), None
+        return grant_power_gift(self, campaign_id, gift_cents=gift_cents)
 
-            # CHECK FOR DUPLICATE: Search event log for this campaign_id
-            all_events = read_events()
-            for evt in all_events:
-                if evt.type == "PowerGiftGranted" and evt.mech_id == self.mech_id:
-                    existing_campaign = evt.payload.get("campaign_id")
-                    if existing_campaign == campaign_id:
-                        logger.info(f"Power gift skipped: campaign_id '{campaign_id}' already used")
-                        _persist_if_decay_day_changed()
-                        return compute_ui_state(snap), None
+    def release_gift(self, version: str) -> Tuple[ProgressState, Optional[int]]:
+        """Three days of energy for a mech that has run dry, once per DDC release.
 
-            gift_cents = deterministic_gift_1_3(self.mech_id, campaign_id)
+        The campaign carries the version, so the event log refuses it the second
+        time: a restart of the same version gives nothing, an update gives once.
+        """
+        from services.mech.gifts import three_days_of_energy
 
-            evt = Event(
-                seq=next_seq(),
-                ts=now_utc_iso(),
-                type="PowerGiftGranted",
-                mech_id=self.mech_id,
-                payload={"campaign_id": campaign_id, "power_units": gift_cents},
-            )
-            append_event(evt)
-
-            # Power is 0 here: fold any decay debt and restart the decay clock before adding
-            apply_power_event(snap, evt)
-            snap.version += 1
-            snap.last_event_seq = evt.seq
-            persist_snapshot(snap)
-
-            gift_dollars = gift_cents / 100.0
-            logger.info(f"Power gift granted: ${gift_dollars:.2f}")
-            return compute_ui_state(snap), gift_dollars
+        level = load_snapshot(self.mech_id).level
+        return self.power_gift(f"release_{version}",
+                               gift_cents=three_days_of_energy(level))
 
     def rebuild_from_events(self, allow_damaged_log: bool = False) -> ProgressState:
         """

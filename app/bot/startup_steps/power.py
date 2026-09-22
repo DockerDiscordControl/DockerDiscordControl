@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import os
+
 import docker
 
 from ..startup_context import StartupContext, as_step
@@ -21,9 +23,18 @@ async def grant_power_gift_step(context: StartupContext) -> None:
         logger.info("Checking if power gift should be granted...")
         from services.mech.mech_service_adapter import get_mech_service
 
-        campaign_id = "startup_gift_v1"
         adapter = get_mech_service()
-        state = adapter.power_gift(campaign_id)
+        state = adapter.power_gift("startup_gift_v1")
+
+        # Every release refuels a mech that has run dry: three days of the
+        # energy its level consumes, on the energy account only. The campaign
+        # carries the version, and the event log refuses a campaign it already
+        # holds - so a restart of the same version gives nothing and an update
+        # gives once. Without DDC_VERSION there is no release to name, and
+        # inventing one would hand out a gift on every restart.
+        version = (os.environ.get("DDC_VERSION") or "").strip().lstrip("vV")
+        if version:
+            state = adapter.release_gift(version)
 
         if state.power_level > 0:
             logger.info("✅ Power gift granted: $%.2f Power", state.power_level)
