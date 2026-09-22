@@ -213,6 +213,10 @@ class ContainerStatusResult:
     # healthcheck) and RestartCount from the inspect answer.
     health: Optional[str] = None
     restart_count: Optional[int] = None
+    # For the resource thresholds (Phase 4b): the numbers behind cpu/ram, None
+    # when not measured.
+    cpu_percent: Optional[float] = None
+    memory_percent: Optional[float] = None
 
     @property
     def is_online(self) -> bool:
@@ -246,7 +250,9 @@ class ContainerStatusResult:
                       players_online: Optional[int] = None,
                       max_players: Optional[int] = None,
                       health: Optional[str] = None,
-                      restart_count: Optional[int] = None) -> 'ContainerStatusResult':
+                      restart_count: Optional[int] = None,
+                      cpu_percent: Optional[float] = None,
+                      memory_percent: Optional[float] = None) -> 'ContainerStatusResult':
         """Factory method for successful status fetch.
 
         players_online/max_players are optional game-server query results; existing
@@ -265,6 +271,8 @@ class ContainerStatusResult:
             max_players=max_players,
             health=health,
             restart_count=restart_count,
+            cpu_percent=cpu_percent,
+            memory_percent=memory_percent,
         )
 
     @classmethod

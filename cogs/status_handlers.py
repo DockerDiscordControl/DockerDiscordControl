@@ -91,10 +91,15 @@ def format_uptime(days: int, seconds: int) -> str:
 
 
 def _watch_fields(info: Dict[str, Any]) -> Dict[str, Any]:
-    """State.Health.Status and RestartCount for the container watchdog (Phase 4a)."""
+    """What the container watchdog reads from the cache: State.Health.Status and
+    RestartCount (Phase 4a), CPU and memory as percentages (Phase 4b)."""
+    computed = info.get('_computed') or {}
+    usage, limit = computed.get('memory_usage_mb'), computed.get('memory_limit_mb')
     return {
         "health": (info.get('State', {}).get('Health') or {}).get('Status'),
         "restart_count": info.get('RestartCount'),
+        "cpu_percent": computed.get('cpu_percent'),
+        "memory_percent": (usage / limit * 100) if usage is not None and limit else None,
     }
 
 

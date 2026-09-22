@@ -790,6 +790,7 @@ async def get_docker_info_dict_service_first(docker_container_name: str, timeout
         '_computed': {
             'cpu_percent': result.cpu_percent,
             'memory_usage_mb': result.memory_usage_mb,
+            'memory_limit_mb': result.memory_limit_mb,  # for the resource thresholds (Phase 4b)
             'uptime_seconds': result.uptime_seconds
         }
     }

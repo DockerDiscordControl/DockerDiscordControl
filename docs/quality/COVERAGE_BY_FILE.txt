@@ -104,7 +104,7 @@ cogs/loop_safety.py	90	NONE
 cogs/message_updates.py	944	NONE
 cogs/overview_embeds.py	894	NONE
 cogs/slash_commands.py	788	NONE
-cogs/status_handlers.py	1393	passE:E15,E16:80-200,560-700
+cogs/status_handlers.py	1398	passE:E15,E16:80-200,560-700
 cogs/status_info_integration.py	1234	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203
 cogs/task_ui.py	1228	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
@@ -145,7 +145,7 @@ services/docker_service/server_order.py	111	pass1:s16:1-111
 services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101
 services/docker_status/__init__.py	34	pass1:s16:1-34
 services/docker_status/fetch_service.py	251	pass1:s16:1-251
-services/docker_status/models.py	385	pass1:s17:plan pass2:s17:1-376
+services/docker_status/models.py	393	pass1:s17:plan pass2:s17:1-376
 services/docker_status/performance_service.py	234	pass1:s17:plan pass2:s17:1-234
 services/donation/__init__.py	24	pass2:s17:1-24
 services/donation/donation_config.py	50	pass1:s17:plan pass2:s17:1-41
@@ -166,7 +166,7 @@ services/infrastructure/__init__.py	0	pass2:s18:1-0
 services/infrastructure/action_log_service.py	387	pass1:s18:plan pass2:s18:1-376  [11 of 387 lines never in a package]
 services/infrastructure/action_logger.py	103	pass1:s18:plan pass2:s18:1-86  [17 of 103 lines never in a package]
 services/infrastructure/container_info_service.py	326	pass1:s18:plan pass2:s18:1-282  [44 of 326 lines never in a package]
-services/infrastructure/container_status_service.py	852	pass1:s19:1-816  [14 of 830 lines never in a package]
+services/infrastructure/container_status_service.py	853	pass1:s19:1-816  [14 of 830 lines never in a package]
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239
 services/infrastructure/dynamic_cooldown_manager.py	193	pass1:s19:1-179  [14 of 193 lines never in a package]
 services/infrastructure/event_manager.py	118	pass1:s19:1-118
