@@ -79,6 +79,12 @@ Pass E is the read of the files that no earlier pass ever covered
 |---|---|---|
 | **E13** | The two donation-key helpers raised instead of returning the `bool` they promise. No production caller today, so nothing was broken — pinned so the first caller is not the one who finds out. | `0927d2a` |
 
+| **E48** | The Docker client pool's SERVICE FIRST entry point raised instead of returning its result when Docker was unreachable — on **both** of its paths. The return type exists to carry a failure as a value; the failure was never counted in the pool's own statistics either. No production caller today, so nothing was broken. C33 had taught the queue processor to tell the waiting request what happened — and the telling then walked out of the building. | `b40c6c9` |
+
+| **E49** | `get_docker_stats` and `get_docker_info` raised instead of returning the `(None, None)` / `None` their signatures promise. E43 repaired their neighbour forty lines away and left these two. The one live caller already guards with `except Exception`, so nothing was broken. | `8dd62c8` |
+
+| **E49b** | Fixing E49 would have made the performance report **worse**: the unreachable daemon used to arrive there as an exception object and was written down as "Info error: …". Answering None instead meant the report listed a container nobody could reach with a timing and no errors — reading as healthy. The report now reads the None. Found because the test asked for the error text, not just for a dict. | `8dd62c8` |
+
 ## Refuted while reading — not repaired, because there was nothing wrong
 
 - **`new_state.Power` / `new_state.level`** in the donation modal looked like
