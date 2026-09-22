@@ -367,7 +367,12 @@ class MessageUpdatesMixin:
 
             # Get all channels with overview messages
             updated_count = 0
-            for channel_id, messages in self.channel_server_message_ids.items():
+            # A snapshot, like the periodic loop: a config save pops or adds a
+            # channel from another task while this loop awaits, and iterating the
+            # live dict then raised "dictionary changed size during iteration" -
+            # swallowed by the handler below, silently abandoning every channel
+            # after the current one.
+            for channel_id, messages in list(self.channel_server_message_ids.items()):
                 if 'overview' in messages:
                     # Per channel, and it has to be (review E23). Everything below
                     # decides EDIT or delete-and-repost for THIS channel, and it
@@ -594,7 +599,12 @@ class MessageUpdatesMixin:
         try:
             # Iterate through all channels with overview messages
             updated_count = 0
-            for channel_id, messages in self.channel_server_message_ids.items():
+            # A snapshot, like the periodic loop: a config save pops or adds a
+            # channel from another task while this loop awaits, and iterating the
+            # live dict then raised "dictionary changed size during iteration" -
+            # swallowed by the handler below, silently abandoning every channel
+            # after the current one.
+            for channel_id, messages in list(self.channel_server_message_ids.items()):
                 if 'overview' in messages:
                     message_id = messages['overview']
                     try:

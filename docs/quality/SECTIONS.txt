@@ -335,7 +335,7 @@ services/web/two_factor_service.py:1-224
 ## Section 40  (944 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
-cogs/message_updates.py:1-951
+cogs/message_updates.py:1-961
 
 ## Section 41  (1228 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
