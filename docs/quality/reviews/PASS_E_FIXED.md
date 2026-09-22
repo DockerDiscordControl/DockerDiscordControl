@@ -73,6 +73,8 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E47** | **Three async log helpers that nothing calls** — and one of them answers every Docker failure with `None`, which is precisely the defect C18 removed from the live path twenty lines above. Its name says it is the modern one, so reconnecting it is the obvious move, and it would bring C18 back. | No symptom today; a trap removed, 52 lines. The guard is not "no dead code" but "every private helper is reachable from something the service offers" — it fails on the next orphan too. Scan 14 → 12. | `6f99ad0` |
 
+| **E50** | **A stop timeout that goes missing without a word.** `get_stop_timeout_kwargs` answers `{}` both when no StopTimeout is configured *and* when the container object cannot be read — and `{}` makes docker-py's `restart()` fall back to ten seconds, overriding whatever the container has. It sits on **every** stop and restart: buttons, admin overview, scheduled tasks. Valheim, Satisfactory and V-Rising all write their world on shutdown. | Low probability, high damage, and a diagnosis nobody could make — there was no line anywhere pointing at DDC. The silent branch now names the container and says what it fell back to. Found by filtering the 219 falsy-answer hits down to the 24 that log nothing; 23 of those were correct. | `9c0b3e2` |
+
 ## Under the floor — no symptom yet, but a trap
 
 | # | What | Commit |
