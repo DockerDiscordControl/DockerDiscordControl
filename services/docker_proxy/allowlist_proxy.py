@@ -158,19 +158,31 @@ class _Handler(socketserver.BaseRequestHandler):
         length = 0
         for name, value in headers:
             if name.lower() == "content-length":
-                try:
-                    length = int(value)
-                except ValueError:
+                # Digits only, the way Go's strconv.ParseUint reads it. Python's
+                # int() also takes "-1", "+5" and "1_0"; with "-1" the size check
+                # passed and body[:length] cut a byte off - proxy and daemon
+                # reading one request differently, which is what this file exists
+                # to prevent.
+                digits = value.strip()
+                # isascii() as well: str.isdigit() also says yes to "١٢"
+                if not digits.isascii() or not digits.isdigit():
                     _refuse(conn, "400 Bad Request", "bad content-length")
                     return
+                length = int(digits)
         if length > MAX_BODY_BYTES:
             _refuse(conn, "413 Payload Too Large", "request body too large")
             return
-        while len(body) < length:
-            chunk = conn.recv(min(65536, length - len(body)))
-            if not chunk:
-                return
-            body += chunk
+        try:
+            while len(body) < length:
+                chunk = conn.recv(min(65536, length - len(body)))
+                if not chunk:
+                    return
+                body += chunk
+        except OSError as error:
+            # A client that promises a body and then stops used to raise out of
+            # handle(), so the log got a socketserver traceback instead of a line
+            logger.warning(f"docker proxy: client stopped mid-body ({error})")
+            return
         body = body[:length]
 
         kept = [(n, v) for n, v in headers if n.lower() not in ("connection", "keep-alive", "proxy-connection")]
@@ -179,6 +191,7 @@ class _Handler(socketserver.BaseRequestHandler):
 
         upstream = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         upstream.settimeout(IDLE_TIMEOUT_SECONDS)
+        relayed = False
         try:
             upstream.connect(self.upstream_path)
             upstream.sendall(request.encode("latin-1") + body)
@@ -187,12 +200,17 @@ class _Handler(socketserver.BaseRequestHandler):
                 if not chunk:
                     break
                 conn.sendall(chunk)
+                relayed = True
         except OSError as error:
             logger.error(f"docker proxy: upstream failed for {method} {target.split('?', 1)[0]}: {error}")
-            try:
-                _refuse(conn, "502 Bad Gateway", "docker daemon unreachable")
-            except OSError:
-                pass
+            # Only when this request produced nothing yet. Written into an answer
+            # that had already started, the 502 was a second HTTP response inside
+            # the body of the first, and the client read the two as one.
+            if not relayed:
+                try:
+                    _refuse(conn, "502 Bad Gateway", "docker daemon unreachable")
+                except OSError:
+                    pass
         finally:
             upstream.close()
 
