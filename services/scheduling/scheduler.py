@@ -773,10 +773,17 @@ class ScheduledTask:
                                      f"does not match original input ({task_hour}:{task_minute})!")
 
                 return self.next_run_ts
+
+            # Nothing to compute - a one-time or yearly date that has passed. The
+            # OLD time used to stay: an edit that moved a task backwards kept it
+            # armed for the date the operator had just removed, and the panel said
+            # "updated successfully".
+            self.next_run_ts = None
             return None
         except (ValueError, TypeError, AttributeError, OSError) as e:
             # Data/time errors (datetime calculations, timezone operations, timestamp conversion)
             logger.error(f"Error calculating next run for task {self.task_id} (cycle: {self.cycle}): {e}", exc_info=True)
+            self.next_run_ts = None
             return None
 
     def get_next_run_datetime(self) -> Optional[datetime]:
