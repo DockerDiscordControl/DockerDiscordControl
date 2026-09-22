@@ -91,3 +91,12 @@ def test_the_proxy_starts_as_its_own_user_and_ddc_is_pointed_at_it():
     assert 'export DOCKER_HOST="unix://$PROXY_SOCKET"' in body
     main = _function("main")
     assert main.index("start_docker_proxy") < main.index("drop_privileges"), "proxy must start before the drop to ddc"
+
+
+def test_every_process_in_the_image_is_pointed_at_the_proxy():
+    """Found after the first rebuild (2026-09-22): the entrypoint exported
+    DOCKER_HOST only into its own process tree. DDC used the proxy, but every
+    ``docker exec`` session - diagnostics, the boundary check itself - fell back
+    to the raw socket and was (rightly) refused. The image sets it for all."""
+    envs = " ".join(i for i in _instructions(DOCKERFILE) if i.startswith("ENV"))
+    assert 'DOCKER_HOST="unix:///run/ddc-proxy/docker.sock"' in envs, envs

@@ -699,11 +699,11 @@ start_as_user() {
         log_warn "PUID/PGID are ignored when using --user flag"
     fi
 
-    # Verify the way to Docker: the allowlist proxy when the root phase started
-    # it, otherwise (container started with --user) the raw socket, which means
-    # no proxy stands in between.
-    if [ "${DOCKER_HOST:-}" = "unix://$PROXY_SOCKET" ]; then
-        if [ -S "$PROXY_SOCKET" ] && [ -w "$PROXY_SOCKET" ]; then
+    # Verify the way to Docker. The image points DOCKER_HOST at the allowlist
+    # proxy; the root phase started it. A container started with --user has no
+    # root phase and so no proxy - then the raw socket is the only way left.
+    if [ -S "$PROXY_SOCKET" ]; then
+        if [ -w "$PROXY_SOCKET" ]; then
             log_info "Docker access: through the allowlist proxy"
         else
             log_error "Docker allowlist proxy socket not usable - container control will not work"
@@ -717,6 +717,7 @@ start_as_user() {
     elif [ -S "$DOCKER_SOCKET" ] && [ -r "$DOCKER_SOCKET" ] && [ -w "$DOCKER_SOCKET" ]; then
         log_warn "Docker access: RAW socket, no allowlist proxy (container started with --user?)"
         log_warn "Start without --user and use PUID/PGID so the proxy can run."
+        export DOCKER_HOST="unix://$DOCKER_SOCKET"
     elif [ -S "$DOCKER_SOCKET" ]; then
         log_error "Docker socket: NO ACCESS - container control will not work"
     else

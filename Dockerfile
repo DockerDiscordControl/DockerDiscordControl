@@ -199,7 +199,11 @@ RUN mkdir -p /app/config /app/logs /app/scripts && \
 # Environment
 # DDC_VERSION: single source for the version shown by the entrypoint banner and /health
 # (bump together with README.md / docs/CHANGELOG.md on release).
+# DOCKER_HOST: the allowlist proxy the entrypoint starts (v3.0). Set for the whole
+# image, not only exported by the entrypoint, so docker exec sessions and
+# diagnostics take the same way as DDC instead of the raw socket.
 ENV DDC_VERSION="2.4.1" \
+    DOCKER_HOST="unix:///run/ddc-proxy/docker.sock" \
     PYTHONPATH="/app:/opt/runtime/site-packages" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

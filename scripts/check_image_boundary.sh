@@ -63,7 +63,9 @@ must_fail "write the proxy"                   "test -w /opt/ddc-proxy/allowlist_
 must_fail "create a file in /opt/ddc-proxy"   "touch /opt/ddc-proxy/.boundary_probe && rm -f /opt/ddc-proxy/.boundary_probe"
 # Condition 4: ddc cannot open the Docker socket itself.
 must_fail "open /var/run/docker.sock"         "python3 -c \"import socket; s=socket.socket(socket.AF_UNIX); s.connect('/var/run/docker.sock')\""
-# ... but reaches Docker through the proxy, for what DDC needs and nothing else.
+# DDC itself (PID 1) and any exec session are pointed at the proxy.
+must_work "PID 1 uses the proxy"              "tr '\\0' '\\n' < /proc/1/environ | grep -qx 'DOCKER_HOST=unix:///run/ddc-proxy/docker.sock'"
+# ... and reaches Docker through it, for what DDC needs and nothing else.
 must_work "ping Docker through the proxy"     "python3 -c \"import docker, sys; c=docker.from_env(timeout=10); sys.exit(0 if c.ping() else 1)\""
 must_work "list containers through the proxy" "python3 -c \"import docker; c=docker.from_env(timeout=10); c.containers.list(all=True)\""
 must_fail "GET /info through the proxy"       "python3 -c \"import docker; c=docker.from_env(timeout=10); c.info()\""
