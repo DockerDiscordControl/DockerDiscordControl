@@ -96,7 +96,7 @@ of a container that already exists.
 1. **docker-py itself calls `GET /version` on every client construction.**
    docker-py 7.1.0 (`requirements.prod.txt:33`) treats `version=None` as
    "negotiate": `APIClient.__init__` calls `_retrieve_server_version()`, which
-   is `GET /version` **without** the `/v1.xx` prefix. None of the seven client
+   is `GET /version` **without** the `/v1.xx` prefix. None of the eight client
    sites (§6) passes `version=`. A proxy that does not allow `/version` makes
    every `DockerClient(...)` and `from_env()` raise
    `DockerException("Error while fetching server API version")`. Tecnativa
@@ -384,7 +384,7 @@ downgrade test.
 
 ## 6. What v2.4 owes v3.0
 
-### The seven places that build a Docker client
+### The eight places that build a Docker client
 
 Measured in the v2.4.1 tree **(revised: the fallback row was wrong)**:
 
@@ -397,10 +397,17 @@ Measured in the v2.4.1 tree **(revised: the fallback row was wrong)**:
 | `web_helpers.py:281` | `from_env()` | `BACKGROUND_REFRESH_TIMEOUT` (Advanced Setting) |
 | `web_helpers.py:557` | hardcoded `unix:///var/run/docker.sock` | **5** (fast diagnostic probe) |
 | `status_info_integration.py:53` | `from_env()` | default (60) |
+| `docker_utils.py:453` `get_docker_client_async` → `individual_client` **(revised, found by the ratchet)** | `from_env()`, only when the pool is off or fails to import | default (60) |
 
 Two honour `docker_config.docker_socket_path` (both pool entry points, same
 order). Three hardcode the default socket path. Only `docker_utils.py` resolves
-in the opposite order. None of the seven passes `version=` (§3).
+in the opposite order. None of the eight passes `version=` (§3).
+
+**(revised)** The first count and the independent review both found seven. The
+syntax-tree ratchet `tests/spec/test_every_docker_client_site_is_known.py`
+found the eighth: the pool sites pass `docker.DockerClient` to
+`asyncio.to_thread` as a callable, and a text search for `DockerClient(` or
+`from_env` by site misses such shapes.
 
 **Why this matters for v3.0:** `docker.from_env()` reads `DOCKER_HOST`. Point
 `DOCKER_HOST` at the proxy and the `from_env()` sites migrate for free —
@@ -420,7 +427,7 @@ proxy and is retired in the same step, with a migration note.
 
 ### Why the consolidation is NOT being done in v2.4
 
-The seven sites are not seven copies of one thing. They use five different
+The eight sites are not eight copies of one thing. They use five different
 timeouts and two opposing resolution orders. Collapsing them changes behaviour:
 
 - `web_helpers.py:553` uses `timeout=5` because it is a diagnostic that must
@@ -443,7 +450,7 @@ Real, but confined.
 
 ### What v2.4 should do instead: the inventory as a test
 
-No production code changes. A guard that pins these seven sites and fails when
+No production code changes. A guard that pins these eight sites and fails when
 an eighth appears — the same shape as the ratchets in `tests/spec/` (for
 example `test_z10_ci_test_gate.py`, which reads the workflow YAML and fails
 when the gate is loosened). **(revised)** The guard pins the table above as it
@@ -469,7 +476,7 @@ it can be stated in the release notes.
 | # | Step | Cannot start before |
 |---|---|---|
 | 0 | v2.4.1 released | done |
-| 1 | Inventory guard for the seven client sites (§6), and delete the dead `analyze_docker_stats_performance` so `GET /info` is not part of the surface | 0 |
+| 1 | Inventory guard for the eight client sites (§6), and delete the dead `analyze_docker_stats_performance` so `GET /info` is not part of the surface | 0 |
 | 2 | Trusted-proxy list for the forwarded headers (§5.1 a), with the forged-`X-Forwarded-For` test; fixes today's rate-limiter bypass | 0 |
 | 3 | **Operator decision: one container (with all four conditions of §4.3) or two containers** | — (both measurements exist) |
 | 4 | End-to-end test: a real docker-py client through the proxy (§4.2) — written first, red until step 5 | 3 |
