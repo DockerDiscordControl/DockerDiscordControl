@@ -28,9 +28,11 @@ cogs/control_ui.py:1-1832
 ## Section 03  (1948 lines, 1 piece)
 cogs/control_ui.py:1833-3780
 
-## Section 04  (1495 lines, 2 pieces)
+## Section 04  (1532 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
-cogs/docker_control.py:1-1405
+# Step 5 (2026-09-22): channel setup/teardown/regeneration moved to channel_lifecycle.py.
+cogs/channel_lifecycle.py:1-582
+cogs/docker_control.py:1-860
 cogs/loop_safety.py:1-90
 
 ## Section 05  (1705 lines, 3 pieces)
@@ -38,13 +40,13 @@ cogs/loop_safety.py:1-90
 # moved from this range of docker_control.py into overview_embeds.py, which
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
-cogs/docker_control.py:1406-1425
+cogs/docker_control.py:861-880
 cogs/overview_embeds.py:1-894
 cogs/slash_commands.py:1-791
 
 ## Section 06  (1490 lines, 2 pieces)
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
-cogs/docker_control.py:1426-2403
+cogs/docker_control.py:881-1858
 cogs/background_loops.py:1-512
 
 ## Section 07  (694 lines, 1 piece)
