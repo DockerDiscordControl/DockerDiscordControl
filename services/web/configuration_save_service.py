@@ -310,6 +310,10 @@ class ConfigurationSaveService:
 
     def _save_configuration_files(self, processed_data: Dict[str, Any], form_data: Dict[str, Any], config_split_enabled: bool) -> 'SaveFilesResult':
         """Save main configuration and container info files."""
+        # Per-container writes report success per file. They used to be logged
+        # and dropped, so a file the app could not write - the classic case is
+        # one left behind by root - was reported to the operator as saved.
+        not_written = []
         try:
             from services.config.config_service import save_config
             from app.utils.container_info_web_handler import save_container_info_from_web, save_container_configs_from_web
@@ -328,6 +332,7 @@ class ConfigurationSaveService:
                         self.logger.info(f"[SAVE_DEBUG] Server: {server.get('docker_name')} - actions: {server.get('allowed_actions')}")
                     config_results = save_container_configs_from_web(processed_data['servers'])
                     self.logger.info(f"[SAVE_DEBUG] Container config save results: {config_results}")
+                    not_written.extend(name for name, ok in (config_results or {}).items() if not ok)
                 else:
                     self.logger.warning("[SAVE_DEBUG] servers list is empty!")
             else:
@@ -379,6 +384,7 @@ class ConfigurationSaveService:
             if names_to_write:
                 info_results = save_container_info_from_web(form_data, names_to_write)
                 self.logger.info(f"Container info save results for {len(names_to_write)} containers: {info_results}")
+                not_written.extend(name for name, ok in (info_results or {}).items() if not ok)
 
             # Prepare file paths for display
             config_files = []
@@ -390,6 +396,13 @@ class ConfigurationSaveService:
                     os.path.basename(self.config_service.web_config_file)
                 ]
 
+            if not_written:
+                names = ", ".join(sorted(set(not_written)))
+                self.logger.error(f"Container files could not be written: {names}")
+                return SaveFilesResult(
+                    success=False, config_files=config_files,
+                    error=(f"These containers could not be saved: {names}. Check the permissions "
+                           f"on config/containers (the app runs as user 'ddc')."))
             return SaveFilesResult(success=True, config_files=config_files)
 
         except (ImportError, AttributeError, RuntimeError) as e:
