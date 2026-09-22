@@ -80,6 +80,35 @@ Pass E is the read of the files that no earlier pass ever covered
 
 | **E37b** | **The container dropdowns now page.** E37 made the cut visible — "(25/30)" plus a log line naming the five you could not reach. You still could not reach them. Both dropdowns now page through the whole list, the way the day picker has paged through a month's 31 days since B21. | A feature, asked and answered. Nothing changes for your seven containers: no arrows, no marker, no log line below 26. It changes everything for anyone who installs DDC and runs more than twenty-five. | `8a61947` |
 
+## Found by GitHub's code scanner (CodeQL) after v2.4.0
+
+Ten open alerts on `main`. Four were real and are repaired, each with a test that failed
+against the old code. Six were read line by line and are false positives; the reasons are below.
+
+| # | What | Commit |
+|---|---|---|
+| **E56** | CodeQL #65: the translation test endpoint put the decryption error's **message** into its HTTP answer. That message can name paths on the host. The answer now names the exception type only, still says what to do; the full text goes to the log. | `99b80b9` |
+| **E57** | CodeQL #64: refusing a container assignment because the container list could not be read put the `OSError` text, host path included, into the answer. It now says "could not be read, see the log", and the log has the details. | `e484948` |
+| **E58** | CodeQL #57: the first-time setup page built its alerts with `innerHTML` from texts that can come from the server or the browser, on the one page that is reachable before a password exists. It now inserts them as text. Five translated messages reached it HTML-escaped (`&#39;`) and would then have shown their entities; they now come through `|tojson`, as two already did. | `c6ce83e` |
+| **E59** | CodeQL #56: `docker-publish.yml` had no top-level `permissions:`, so its test job, which installs from PyPI and runs the suite, got the repository's default token rights. It now reads only; a new test holds every workflow to a top-level block. | `8a13d60` |
+
+False positives, not changed:
+
+- **#63** (polynomial ReDoS, `auto_action_config_service.py`): the flagged regex is the
+  ReDoS *guard* reading an operator's pattern. It is quadratic on `[[[[…`, but the pattern is
+  capped at 500 characters before the guard runs; measured worst case 5 ms, reachable only by
+  a logged-in admin.
+- **#60** (weak password hashing, `app/auth.py`): SHA-256 there is an HMAC under a random
+  per-process key that fingerprints a credential for a short in-memory cache. Passwords are
+  stored with the real password hash; nothing here is stored or compared as a password hash.
+- **#59** (password logged, `web_helpers.py`): the line logs the *minimum length* constant
+  when `DDC_ADMIN_PASSWORD` is short, never the password.
+- **#58** (password logged, `container_info_service.py`): logs the field *name*
+  `protected_password` and the value's length, never the value.
+- **#62** (bad script-tag filter) and **#61** (URL substring check): both are in tests. One
+  parses our own templates, the other asserts that a footer contains our URL. Neither filters
+  or sanitizes anything.
+
 ## Under the floor — no symptom yet, but a trap
 
 | # | What | Commit |

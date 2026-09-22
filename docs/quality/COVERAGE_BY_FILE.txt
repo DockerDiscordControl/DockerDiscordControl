@@ -43,7 +43,7 @@ app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
 app/blueprints/main_routes.py	1514	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package]
 app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
 app/blueprints/tasks_bp.py	314	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
-app/blueprints/translation_routes.py	363	pass1:s33:1-350  [13 of 363 lines never in a package]
+app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never in a package]
 app/bootstrap/__init__.py	34	pass1:s33:1-34
 app/bootstrap/performance.py	55	pass1:s33:1-55
 app/bootstrap/runtime.py	200	pass1:s33:1-200
@@ -83,7 +83,7 @@ app/web/diagnostics.py	30	pass1:s35:1-30
 app/web/extensions.py	26	pass1:s35:1-26
 app/web/i18n.py	64	pass1:s35:1-54  [10 of 64 lines never in a package]
 app/web/logging.py	60	pass1:s35:1-60
-app/web/routes.py	191	pass1:s35:1-100  [81 of 181 lines never in a package]
+app/web/routes.py	197	pass1:s35:1-100  [81 of 181 lines never in a package]
 app/web/security.py	86	pass1:s35:1-86
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
