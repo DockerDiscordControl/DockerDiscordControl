@@ -582,6 +582,7 @@
   "Year:": "Jahr:",
   "Yearly": "Jährlich",
   "Yes, Restart All": "Ja, alle neu starten",
+  "… and {count} more containers": "… und {count} weitere Container",
   "Stack": "Stack",
   "ℹ️ None of the active containers belongs to a Compose stack.": "ℹ️ Keiner der aktiven Container gehört zu einem Compose-Stack.",
   "🔄 Restart a stack": "🔄 Einen Stack neu starten",

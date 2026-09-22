@@ -582,6 +582,7 @@
   "Year:": "Anul:",
   "Yearly": "Anual",
   "Yes, Restart All": "Da, Repornește Toate",
+  "… and {count} more containers": "… and {count} more containers",
   "Stack": "Stack",
   "ℹ️ None of the active containers belongs to a Compose stack.": "ℹ️ None of the active containers belongs to a Compose stack.",
   "🔄 Restart a stack": "🔄 Restart a stack",

@@ -156,8 +156,15 @@ class OverviewEmbedsMixin:
         # Close server status box
         content_lines.append("└───────────────────────────")
 
-        # Combine all lines into the description
-        embed.description = "```\n" + "\n".join(content_lines) + "\n```"
+        # Combine all lines into the description, cut to what Discord accepts:
+        # an embed description longer than 4096 characters is REFUSED, and the
+        # list grows with the installation (see
+        # tests/spec/test_a_long_container_list_still_reaches_discord.py).
+        from services.discord.embed_helper_service import fit_lines
+
+        embed.description = fit_lines(
+            content_lines, prefix="```\n", suffix="\n```",
+            more=lambda count: translate("… and {count} more containers").format(count=count))
 
         # Check if any containers have info available
         has_any_info = False
@@ -645,11 +652,16 @@ class OverviewEmbedsMixin:
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with consistent spacing between container lines
-        # Use Hangul filler (ㅤ U+3164) on separator line to match ⓘ height
-        container_section = "\nㅤ\n".join(container_lines) if container_lines else ""
+        # Use Hangul filler (ㅤ U+3164) on separator line to match ⓘ height.
+        # Cut to what Discord accepts: an embed description longer than 4096
+        # characters is REFUSED, so on a large installation the whole admin
+        # overview never appeared - the last line says how many are missing.
+        from services.discord.embed_helper_service import fit_lines
 
-        # Combine header and container section
-        embed.description = "\n".join(header_lines) + "\n\n" + container_section
+        head = "\n".join(header_lines) + "\n\n"
+        embed.description = fit_lines(
+            container_lines, separator="\nㅤ\n", prefix=head,
+            more=lambda count: translate("… and {count} more containers").format(count=count))
 
         # Add footer
         embed.set_footer(text="https://ddc.bot")
@@ -780,8 +792,15 @@ class OverviewEmbedsMixin:
         # Close server status box
         content_lines.append("└───────────────────────────")
 
-        # Combine all lines into the description
-        embed.description = "```\n" + "\n".join(content_lines) + "\n```"
+        # Combine all lines into the description, cut to what Discord accepts:
+        # an embed description longer than 4096 characters is REFUSED, and the
+        # list grows with the installation (see
+        # tests/spec/test_a_long_container_list_still_reaches_discord.py).
+        from services.discord.embed_helper_service import fit_lines
+
+        embed.description = fit_lines(
+            content_lines, prefix="```\n", suffix="\n```",
+            more=lambda count: translate("… and {count} more containers").format(count=count))
 
         # Check if any containers have info available
         has_any_info = False

@@ -18,6 +18,42 @@ from utils.logging_utils import get_module_logger
 logger = get_module_logger('embed_helper_service')
 
 
+# Discord refuses an embed whose description is longer than this, so a list
+# that grows with the installation has to be cut BEFORE it is sent - an
+# overview that is refused never appears at all.
+DESCRIPTION_LIMIT = 4096
+
+
+def fit_lines(lines, *, separator: str = "\n", prefix: str = "", suffix: str = "",
+              more=None, limit: int = DESCRIPTION_LIMIT) -> str:
+    """As many of ``lines`` as fit into ``limit``, and how many were left out.
+
+    ``more(n)`` builds the last line for the n lines not shown (translated by
+    the caller); its own length is reserved before the cut is made, so the
+    result including prefix and suffix is never longer than the limit. With no
+    line left out the text is exactly what a plain join would give.
+    """
+    lines = list(lines)
+    room = limit - len(prefix) - len(suffix)
+    whole = separator.join(lines)
+    if len(whole) <= room or more is None:
+        return prefix + whole[:room] + suffix if len(whole) > room else prefix + whole + suffix
+    shown = []
+    used = 0
+    for index, line in enumerate(lines):
+        note = more(len(lines) - index)
+        addition = len(line) + (len(separator) if shown else 0)
+        # Room for this line AND for the note about everything after it
+        if used + addition + len(separator) + len(note) > room:
+            break
+        shown.append(line)
+        used += addition
+    note = more(len(lines) - len(shown))
+    if shown:
+        return prefix + separator.join(shown) + separator + note + suffix
+    return prefix + note[:room] + suffix
+
+
 def format_player_inline(players_online, max_players) -> str:
     """Compact live player count for the space-limited community overview list.
 

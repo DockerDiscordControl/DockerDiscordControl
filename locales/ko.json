@@ -582,6 +582,7 @@
   "Year:": "연도:",
   "Yearly": "매년",
   "Yes, Restart All": "예, 모두 재시작",
+  "… and {count} more containers": "… and {count} more containers",
   "Stack": "Stack",
   "ℹ️ None of the active containers belongs to a Compose stack.": "ℹ️ None of the active containers belongs to a Compose stack.",
   "🔄 Restart a stack": "🔄 Restart a stack",

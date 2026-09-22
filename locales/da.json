@@ -582,6 +582,7 @@
   "Year:": "År:",
   "Yearly": "Årlig",
   "Yes, Restart All": "Ja, genstart alle",
+  "… and {count} more containers": "… and {count} more containers",
   "Stack": "Stack",
   "ℹ️ None of the active containers belongs to a Compose stack.": "ℹ️ None of the active containers belongs to a Compose stack.",
   "🔄 Restart a stack": "🔄 Restart a stack",
