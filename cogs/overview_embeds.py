@@ -32,6 +32,19 @@ from .translation_manager import _
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
+def with_website_footer(embed) -> None:
+    """The website line in the footer, keeping whatever was put there first.
+
+    The animation fallback writes "Animation service temporarily unavailable"
+    into the footer, and an unconditional set_footer at the end of every builder
+    erased it on every render - so the operator saw a missing image and no
+    reason for it.
+    """
+    website = "https://ddc.bot"
+    existing = embed.footer.text if embed.footer and embed.footer.text else ""
+    embed.set_footer(text=f"{existing} | {website}" if existing else website)
+
+
 class OverviewEmbedsMixin:
     """Overview embed builders, mixed into DockerControlCog."""
 
@@ -433,7 +446,7 @@ class OverviewEmbedsMixin:
             logger.info("Donations disabled - skipping mech status for /ss")
 
         # Add website URL as footer for better spacing
-        embed.set_footer(text="https://ddc.bot")
+        with_website_footer(embed)
 
         # Return tuple (embed, animation_file) - single file for expanded view
         return embed, animation_file
@@ -670,7 +683,7 @@ class OverviewEmbedsMixin:
             more=lambda count: translate("… and {count} more containers").format(count=count))
 
         # Add footer
-        embed.set_footer(text="https://ddc.bot")
+        with_website_footer(embed)
 
         return embed, None, has_running_containers
 
@@ -918,7 +931,7 @@ class OverviewEmbedsMixin:
             logger.info("Donations disabled - skipping collapsed mech status for /ss")
 
         # Add website URL as footer for better spacing
-        embed.set_footer(text="https://ddc.bot")
+        with_website_footer(embed)
 
         # Return tuple (embed, animation_file) - single file for collapsed view
         return embed, animation_file

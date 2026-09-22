@@ -708,7 +708,12 @@ class SlashCommandsMixin:
             else:
                 return await target.send(embed=embed, file=file)
         else:
-            # No files
+            # No files - and then the embed must not point at one. The overview
+            # builder sets attachment://mech_animation.webp so an EDIT keeps the
+            # attachment already on the message; on a fresh send without a file
+            # that is a broken image (the first /ss in a channel).
+            if embed.image and (embed.image.url or "").startswith("attachment://"):
+                embed.set_image(url=None)
             if view:
                 return await target.send(embed=embed, view=view)
             else:
