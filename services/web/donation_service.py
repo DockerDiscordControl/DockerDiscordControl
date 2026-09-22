@@ -12,6 +12,7 @@ Donation Service - Handles donation processing, validation, and notifications
 """
 
 import os
+import time
 import json
 import re
 import logging
@@ -217,7 +218,14 @@ class DonationService:
             from utils.config_paths import get_config_dir
             notification_dir = self.NOTIFICATION_DIR or str(get_config_dir())
             os.makedirs(notification_dir, exist_ok=True)
-            notification_file = f"{notification_dir}/donation_notification.json"
+            # One file per announcement, the write time in the name. With a
+            # single fixed name, two donations booked inside the bot's 30
+            # second poll (cogs/docker_control.py, check_donation_notifications)
+            # left one file: the first announcement was gone, silently.
+            # time_ns and the pid keep two writers apart; the reader takes them
+            # in name order, which is age order.
+            notification_file = (f"{notification_dir}/donation_notification_"
+                                 f"{time.time_ns()}_{os.getpid()}.json")
 
             # Write atomically, not with open(..., "w"): this file has a
             # CONCURRENT reader. services/donation/notification_service.py:26

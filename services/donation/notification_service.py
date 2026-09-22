@@ -27,30 +27,49 @@ class DonationNotificationService:
         if notification_path is None:
             from utils.config_paths import get_config_dir
             notification_path = str(get_config_dir() / "donation_notification.json")
+        # The path names the file an older version wrote; its directory is
+        # where every announcement lands now, one file each.
         self.notification_file = Path(notification_path)
+        self.notification_dir = self.notification_file.parent
+
+    def _waiting(self) -> list:
+        """Every announcement not yet told, oldest first.
+
+        The name carries the write time (see donation_service.py), so sorting
+        by name is sorting by age. The file an older version left behind has no
+        time in its name and sorts first, which is right: it is the oldest.
+        """
+        try:
+            return sorted(self.notification_dir.glob(
+                f"{self.notification_file.stem}*{self.notification_file.suffix}"))
+        except OSError as e:
+            logger.error(f"Cannot look for donation notifications: {e}")
+            return []
 
     def check_and_retrieve_notification(self) -> Optional[Dict[str, Any]]:
         """
         Check if a notification file exists, read it, delete it, and return data.
         Returns None if no file exists or error occurs.
         """
-        if not self.notification_file.exists():
+        waiting = self._waiting()
+        if not waiting:
             return None
+        notification_file = waiting[0]
 
         try:
-            logger.info(f"Found donation notification file: {self.notification_file}")
-            
+            logger.info(f"Found donation notification file: {notification_file}")
+
             # Read data
             data = None
-            with open(self.notification_file, 'r', encoding='utf-8') as f:
+            with open(notification_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
+
             logger.info(f"🔔 Notification data loaded: {data}")
 
             # Delete file immediately to prevent double processing
             try:
-                self.notification_file.unlink()
-                logger.debug(f"Deleted notification file: {self.notification_file}")
+                notification_file.unlink()
+                logger.debug(f"Deleted notification file: {notification_file}")
             except OSError as e:
                 logger.error(f"Failed to delete notification file after reading: {e}")
                 # If we can't delete, we return None to avoid loop processing
@@ -61,10 +80,10 @@ class DonationNotificationService:
 
         except (json.JSONDecodeError, OSError, ValueError) as e:
             logger.error(f"Error processing notification file: {e}", exc_info=True)
-            # Try to delete corrupted file so we don't get stuck
+            # Try to delete corrupted file so we don't get stuck. The next poll
+            # takes the next announcement; one broken file holds up nothing.
             try:
-                if self.notification_file.exists():
-                    self.notification_file.unlink()
+                notification_file.unlink()
             except OSError:
                 pass
             return None

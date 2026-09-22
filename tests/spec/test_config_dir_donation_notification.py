@@ -41,7 +41,8 @@ def test_the_notification_reaches_the_bot(config_dir):
     request = DonationRequest(amount=5.0, donor_name="Probe")
 
     assert DonationService()._handle_discord_notification(request) is True
-    assert (config_dir / "donation_notification.json").exists(), (
+    # One file per announcement, so the test asks the directory, not a name.
+    assert list(config_dir.glob("donation_notification*.json")), (
         "The web panel did not write the donation notification to DDC_CONFIG_DIR."
     )
 
@@ -50,7 +51,7 @@ def test_the_notification_reaches_the_bot(config_dir):
     assert data is not None and data.get("donor") == "Probe", (
         f"The bot did not find the notification in DDC_CONFIG_DIR: {data!r}"
     )
-    assert not (config_dir / "donation_notification.json").exists(), (
+    assert not list(config_dir.glob("donation_notification*.json")), (
         "The bot did not consume the notification."
     )
 
@@ -62,5 +63,5 @@ def test_a_set_knob_still_applies(config_dir, tmp_path):
     service.NOTIFICATION_DIR = str(elsewhere)
 
     assert service._handle_discord_notification(DonationRequest(amount=1.0, donor_name="X")) is True
-    assert (elsewhere / "donation_notification.json").exists()
-    assert not (config_dir / "donation_notification.json").exists()
+    assert list(elsewhere.glob("donation_notification*.json"))
+    assert not list(config_dir.glob("donation_notification*.json"))

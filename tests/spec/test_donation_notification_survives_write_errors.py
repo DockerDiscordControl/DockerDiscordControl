@@ -117,6 +117,17 @@ OLD_NOTIFICATION = {"type": "donation", "donor": "Previous", "amount": 1.0,
                     "timestamp": "2026-01-01T00:00:00"}
 
 
+def announcement(directory):
+    """The announcement waiting in the directory.
+
+    Every announcement is its own file now (donation_service.py), so the test
+    asks for what is there instead of a fixed name.
+    """
+    files = sorted(directory.glob("donation_notification*.json"))
+    assert len(files) == 1, f"expected one announcement, found {[f.name for f in files]}"
+    return files[0]
+
+
 @pytest.fixture
 def env(tmp_path):
     """DonationService whose notification directory points at a throwaway directory.
@@ -132,6 +143,7 @@ def env(tmp_path):
     return type("Environment", (), {
         "service": service,
         "directory": tmp_path,
+        # The name an older version wrote; the reader still takes it.
         "file": tmp_path / "donation_notification.json",
     })
 
@@ -147,10 +159,10 @@ def test_the_fixture_writes_into_the_throwaway_directory(env):
     request = DonationRequest(amount=5.5, donor_name="Alice", publish_to_discord=True)
 
     assert env.service._handle_discord_notification(request) is True
-    assert env.file.is_file(), (
+    assert announcement(env.directory).is_file(), (
         f"No notification file in {env.directory} - NOTIFICATION_DIR points elsewhere."
     )
-    content = json.loads(env.file.read_text(encoding="utf-8"))
+    content = json.loads(announcement(env.directory).read_text(encoding="utf-8"))
     assert content["donor"] == "Alice"
     assert content["amount"] == 5.5
 
@@ -209,10 +221,10 @@ def test_process_donation_really_calls_the_writer(env):
         result = env.service.process_donation(request)
 
     assert result.success is True
-    assert env.file.is_file(), (
+    assert announcement(env.directory).is_file(), (
         "process_donation left no notification file - step 3 "
         "(donation_service.py:85) no longer reaches the writer."
     )
-    content = json.loads(env.file.read_text(encoding="utf-8"))
+    content = json.loads(announcement(env.directory).read_text(encoding="utf-8"))
     assert content["donor"] == "Carol"
     assert content["amount"] == 7.25

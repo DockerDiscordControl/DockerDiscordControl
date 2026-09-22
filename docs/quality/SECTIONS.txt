@@ -48,7 +48,7 @@ cogs/slash_commands.py:1-813
 ## Section 06  (1635 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
-cogs/docker_control.py:884-1264
+cogs/docker_control.py:884-1272
 cogs/background_loops.py:1-652
 cogs/donation_ui.py:1-628
 
@@ -122,7 +122,7 @@ services/donation/__init__.py:1-24
 services/donation/donation_config.py:1-50
 services/donation/donation_management_service.py:1-446
 services/donation/donation_utils.py:1-62
-services/donation/notification_service.py:1-79
+services/donation/notification_service.py:1-98
 services/donation/unified/__init__.py:1-30
 services/donation/unified/events.py:1-93
 services/donation/unified/member_count.py:1-38
@@ -208,7 +208,7 @@ services/web/configuration_save_service.py:1-616
 services/web/container_log_service.py:1-432
 services/web/container_refresh_service.py:1-207
 services/web/diagnostics_service.py:1-263
-services/web/donation_service.py:1-314
+services/web/donation_service.py:1-322
 services/web/donation_status_service.py:1-251
 services/web/donation_tracking_service.py:1-164
 services/web/i18n_service.py:1-214

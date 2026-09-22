@@ -180,9 +180,11 @@ class TestDonationServiceProcessFlow:
         assert result.donation_info["mech_level_name"] == "Corewalker"
         assert result.donation_info["published_to_discord"] is True
 
-        # Notification file should have been written.
-        notification_file = tmp_path / "donation_notification.json"
-        assert notification_file.exists()
+        # Notification file should have been written - one file per
+        # announcement, so the name carries a timestamp.
+        written = sorted(tmp_path.glob("donation_notification*.json"))
+        assert len(written) == 1
+        notification_file = written[0]
         payload = json.loads(notification_file.read_text())
         assert payload["donor"] == "Alice"
         assert payload["amount"] == 5.5
@@ -208,7 +210,7 @@ class TestDonationServiceProcessFlow:
         assert result.success is True
         assert result.donation_info["published_to_discord"] is False
         # No notification file should have been written.
-        assert not (tmp_path / "donation_notification.json").exists()
+        assert not list(tmp_path.glob("donation_notification*.json"))
 
     @patch("services.donation.unified_donation_service.process_web_ui_donation")
     def test_process_donation_unified_failure_returns_error(

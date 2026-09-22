@@ -1142,70 +1142,78 @@ def setup(bot):
             from services.donation.notification_service import get_donation_notification_service
             
             service = get_donation_notification_service()
-            # This handles file check, reading, JSON parsing, and deletion atomically
-            notification = service.check_and_retrieve_notification()
+            # Everything that is waiting, not one per cycle: donations
+            # booked in the panel within the same 30 seconds each have
+            # their own file now, and waiting a cycle per file would put
+            # a thank-you minutes behind the donation. The cap keeps one
+            # cycle finite; whatever is left is taken by the next one.
+            for _announcement in range(20):
+                # Reads the oldest file, parses it and deletes it.
+                notification = service.check_and_retrieve_notification()
+                if not notification:
+                    break
 
-            if notification and notification.get('type') == 'donation':
-                donor_name = notification.get('donor', 'Anonymous')
-                amount = notification.get('amount', 0)
+                if notification.get('type') == 'donation':
+                    donor_name = notification.get('donor', 'Anonymous')
+                    amount = notification.get('amount', 0)
 
-                logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
+                    logger.info(f"🔔 Processing donation notification: {donor_name} ${amount}")
 
-                try:
-                    # Create broadcast message (same as /donate) using configured Discord bot language.
-                    # Uses the module-level `_` from .translation_manager (there is no get_translation()).
-                    if amount:
-                        # Format amount exactly like /donate command: $X.XX
-                        formatted_amount = f"${float(amount):.2f}"
-                        broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
-                            donor_name=f"**{donor_name}**",
-                            amount=f"**{formatted_amount}**"
+                    try:
+                        # Create broadcast message (same as /donate) using configured Discord bot language.
+                        # Uses the module-level `_` from .translation_manager (there is no get_translation()).
+                        if amount:
+                            # Format amount exactly like /donate command: $X.XX
+                            formatted_amount = f"${float(amount):.2f}"
+                            broadcast_text = _("{donor_name} donated {amount} to DDC – thank you so much ❤️").format(
+                                donor_name=f"**{donor_name}**",
+                                amount=f"**{formatted_amount}**"
+                            )
+                        else:
+                            broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
+                                donor_name=f"**{donor_name}**"
+                            )
+
+                        # Create embed (same style as /donate)
+                        embed = discord.Embed(
+                            title=_("💝 Donation received"),
+                            description=broadcast_text,
+                            color=0x00ff41
                         )
-                    else:
-                        broadcast_text = _("{donor_name} supports DDC – thank you so much ❤️").format(
-                            donor_name=f"**{donor_name}**"
-                        )
+                        embed.set_footer(text="https://ddc.bot")
 
-                    # Create embed (same style as /donate)
-                    embed = discord.Embed(
-                        title=_("💝 Donation received"),
-                        description=broadcast_text,
-                        color=0x00ff41
-                    )
-                    embed.set_footer(text="https://ddc.bot")
+                        logger.info(f"🔔 Created donation embed for {donor_name} ${amount}")
 
-                    logger.info(f"🔔 Created donation embed for {donor_name} ${amount}")
+                        # Send to configured Status and Control channels from Web UI (like /donate command)
+                        sent_count = 0
+                        config = load_config()
+                        channels_config = config.get('channel_permissions', {})
 
-                    # Send to configured Status and Control channels from Web UI (like /donate command)
-                    sent_count = 0
-                    config = load_config()
-                    channels_config = config.get('channel_permissions', {})
+                        logger.info(f"🔔 Found {len(channels_config)} configured channels in Web UI")
 
-                    logger.info(f"🔔 Found {len(channels_config)} configured channels in Web UI")
+                        for channel_id_str, channel_info in channels_config.items():
+                            try:
+                                channel = bot.get_channel(int(channel_id_str))
+                                donation_broadcasts = channel_info.get('donation_broadcasts', True)
 
-                    for channel_id_str, channel_info in channels_config.items():
-                        try:
-                            channel = bot.get_channel(int(channel_id_str))
-                            donation_broadcasts = channel_info.get('donation_broadcasts', True)
+                                logger.info(f"🔔 Channel {channel_id_str}: found={channel is not None}, broadcasts={donation_broadcasts}")
 
-                            logger.info(f"🔔 Channel {channel_id_str}: found={channel is not None}, broadcasts={donation_broadcasts}")
+                                if channel and donation_broadcasts:
+                                    await channel.send(embed=embed)
+                                    sent_count += 1
+                                    logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel_id_str})")
+                                else:
+                                    if not channel:
+                                        logger.debug(f"🔔 Channel {channel_id_str} not found")
+                                    elif not donation_broadcasts:
+                                        logger.debug(f"🔔 Donation broadcasts disabled for {channel_id_str}")
+                            except (discord.errors.DiscordException, RuntimeError) as channel_error:
+                                logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
-                            if channel and donation_broadcasts:
-                                await channel.send(embed=embed)
-                                sent_count += 1
-                                logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel_id_str})")
-                            else:
-                                if not channel:
-                                    logger.debug(f"🔔 Channel {channel_id_str} not found")
-                                elif not donation_broadcasts:
-                                    logger.debug(f"🔔 Donation broadcasts disabled for {channel_id_str}")
-                        except (discord.errors.DiscordException, RuntimeError) as channel_error:
-                            logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
+                        logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
 
-                    logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
-
-                except (discord.errors.DiscordException, RuntimeError, ValueError) as embed_error:
-                    logger.error(f"🔔 Error creating/sending donation embed: {embed_error}", exc_info=True)
+                    except (discord.errors.DiscordException, RuntimeError, ValueError) as embed_error:
+                        logger.error(f"🔔 Error creating/sending donation embed: {embed_error}", exc_info=True)
 
         except Exception as e:
             # Deliberately broad, and ERROR, not DEBUG (SPEC.md Z8). Once
