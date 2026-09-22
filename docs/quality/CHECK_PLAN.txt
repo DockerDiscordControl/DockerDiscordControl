@@ -345,7 +345,7 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/config_migration_service.py:347 ConfigMigrationService.migrate_web_configs_to_files
 [ ] services/config/config_migration_service.py:370 ConfigMigrationService.migrate_legacy_v1_config_if_needed
 
-## Section 13  (1863 lines, 50 public names)
+## Section 13  (1880 lines, 50 public names)
 [ ] services/config/config_service.py:67 GetConfigRequest
 [ ] services/config/config_service.py:72 GetConfigResult
 [ ] services/config/config_service.py:79 ValidateDonationKeyRequest
@@ -355,23 +355,23 @@ review/check_plan.py from SECTIONS.txt and the code -
 [ ] services/config/config_service.py:104 SetEvolutionModeRequest
 [ ] services/config/config_service.py:114 SetEvolutionModeResult
 [ ] services/config/config_service.py:122 ConfigServiceResult
-[ ] services/config/config_service.py:129 ConfigService
-[ ] services/config/config_service.py:252 ConfigService.get_config
-[ ] services/config/config_service.py:354 ConfigService.save_config
-[ ] services/config/config_service.py:514 ConfigService.update_config_fields
-[ ] services/config/config_service.py:550 ConfigService.change_web_ui_password
-[ ] services/config/config_service.py:609 ConfigService.encrypt_token
-[ ] services/config/config_service.py:646 ConfigService.decrypt_token
-[ ] services/config/config_service.py:1023 ConfigService.get_config_service
-[ ] services/config/config_service.py:1065 ConfigService.validate_donation_key_service
-[ ] services/config/config_service.py:1099 ConfigService.set_evolution_mode_service
-[ ] services/config/config_service.py:1147 ConfigService.get_evolution_mode_service
-[ ] services/config/config_service.py:1201 get_config_service
-[ ] services/config/config_service.py:1210 load_config
-[ ] services/config/config_service.py:1214 save_config
-[ ] services/config/config_service.py:1219 update_config_fields
-[ ] services/config/config_service.py:1224 change_web_ui_password
-[ ] services/config/config_service.py:1246 process_config_form
+[ ] services/config/config_service.py:148 ConfigService
+[ ] services/config/config_service.py:271 ConfigService.get_config
+[ ] services/config/config_service.py:373 ConfigService.save_config
+[ ] services/config/config_service.py:533 ConfigService.update_config_fields
+[ ] services/config/config_service.py:569 ConfigService.change_web_ui_password
+[ ] services/config/config_service.py:628 ConfigService.encrypt_token
+[ ] services/config/config_service.py:665 ConfigService.decrypt_token
+[ ] services/config/config_service.py:1042 ConfigService.get_config_service
+[ ] services/config/config_service.py:1084 ConfigService.validate_donation_key_service
+[ ] services/config/config_service.py:1118 ConfigService.set_evolution_mode_service
+[ ] services/config/config_service.py:1166 ConfigService.get_evolution_mode_service
+[ ] services/config/config_service.py:1218 get_config_service
+[ ] services/config/config_service.py:1227 load_config
+[ ] services/config/config_service.py:1231 save_config
+[ ] services/config/config_service.py:1236 update_config_fields
+[ ] services/config/config_service.py:1241 change_web_ui_password
+[ ] services/config/config_service.py:1263 process_config_form
 [ ] services/config/config_validation_service.py:19 ConfigValidationService
 [ ] services/config/config_validation_service.py:36 ConfigValidationService.sanitize_query_config
 [ ] services/config/config_validation_service.py:80 ConfigValidationService.looks_like_discord_token

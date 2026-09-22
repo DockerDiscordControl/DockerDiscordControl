@@ -126,6 +126,25 @@ class ConfigServiceResult:
     error: Optional[str] = None
     message: Optional[str] = None
 
+def _difficulty_in_range(value, minimum: float, maximum: float) -> float:
+    """The stored difficulty multiplier, or 1.0 when it is not usable.
+
+    Writing it is bounds-checked; reading it was not, so a 0 from a hand-edited
+    evolution_mode.json made every level cost nothing and one cent walked the
+    mech from level 1 to 11.
+    """
+    try:
+        multiplier = float(value)
+    except (TypeError, ValueError):
+        logger.warning("difficulty_multiplier is not a number (%r) - using 1.0", value)
+        return 1.0
+    if not (minimum <= multiplier <= maximum):
+        logger.warning("difficulty_multiplier %s is outside %s..%s - using 1.0",
+                       multiplier, minimum, maximum)
+        return 1.0
+    return multiplier
+
+
 class ConfigService:
     """Unified configuration service - single source of truth for all DDC configuration.
 
@@ -1147,23 +1166,21 @@ class ConfigService:
     def get_evolution_mode_service(self, request: GetEvolutionModeRequest) -> GetEvolutionModeResult:
         """SERVICE FIRST: Get evolution mode configuration with Request/Result pattern."""
         try:
-            # SERVICE FIRST: Use internal helper for consistent file loading
             config_path = self.config_dir / "evolution_mode.json"
-
-            # Default fallback
             default_config = {
                 'use_dynamic': True,
                 'difficulty_multiplier': 1.0
             }
 
-            # Use internal _load_json_file for consistent error handling
-            # Note: _load_json_file already handles JSON/IO errors and returns defaults
+            # _load_json_file handles JSON/IO errors and returns the defaults
             mode_config = self._load_json_file(config_path, default_config)
 
             return GetEvolutionModeResult(
                 success=True,
                 use_dynamic=mode_config.get('use_dynamic', True),
-                difficulty_multiplier=mode_config.get('difficulty_multiplier', 1.0)
+                difficulty_multiplier=_difficulty_in_range(  # bounds on READ too
+                    mode_config.get('difficulty_multiplier', 1.0), self.MIN_DIFFICULTY_MULTIPLIER,
+                    self.MAX_DIFFICULTY_MULTIPLIER)
             )
 
         except ConfigLoadError as e:
