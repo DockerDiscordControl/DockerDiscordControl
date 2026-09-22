@@ -457,6 +457,17 @@ The former platform repositories (DockerDiscordControl-Linux, -Mac and -Windows)
 - **🛡️ Built-in Safety**: Cooldowns prevent trigger spam, mark containers as protected to prevent accidental stops, atomic locking ensures clean operations
 - **🎯 Multi-Container Actions**: Restart your entire game server stack (game + database + proxy) with a single trigger
 
+### 👁️ Container Watchdog
+- **A container that dies is reported**: rules can react when a container stops on its own, turns unhealthy, or restarts several times within a few minutes
+- **Resource thresholds**: react when CPU or memory stays above a threshold for a number of minutes - once per episode, not every poll
+- **Image updates**: a notice when the registry has a newer image for the tag a container runs (a HEAD request every 6 hours, no pull, no effect on Docker Hub's pull limit)
+- **Set up in the web panel** under Auto-Actions, trigger type *Container state*; notices go to the control channel
+
+### 📦 Compose Stacks
+- **The panel knows your stacks**: each container shows its Compose project, and "Sort by stack" arranges the server order so a stack's containers sit together
+- **Restart a whole stack from Discord**: the Admin Overview offers the stacks; pick one, confirm, and its running containers are restarted
+- **Grouped Admin Overview**: the stack's name stands above its containers
+
 ### 🔔 Status Watchdog
 - **Dead Man's Switch**: Get alerts when DDC goes offline
 - **External Monitoring**: Works with Healthchecks.io, Uptime Kuma, Cronitor, and more
