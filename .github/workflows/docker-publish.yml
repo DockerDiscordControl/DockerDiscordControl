@@ -11,6 +11,11 @@ on:
       - main
   workflow_dispatch:
 
+# Default for every job: read the code, nothing else. A job that needs more
+# declares it itself (build_and_push, for the package registry). CodeQL #56.
+permissions:
+  contents: read
+
 jobs:
   # The gate. Without a green run here no image is published.
   # Whoever installs DDC from Unraid Community Apps gets exactly this image - if
