@@ -12,6 +12,34 @@ Brought up to date — the same kind of self-contradiction had to be cleaned up 
 
 ---
 
+## 1a. Repeated 2026-09-23 — 588 files, none of them fails alone
+
+The figures in section 1 are from 2026-09-17 and are stale: the suite has grown from 127 test
+files to **588**, 476 of them in `tests/spec`. Repeated in full that afternoon, after the day's
+work on the watchdog, the panel groups, the donation panel and the form login.
+
+| | 2026-09-17 | 2026-09-23 |
+|---|---|---|
+| files checked | 127 | **588** |
+| fail alone | 1 (two tests) | **0** |
+| measurement dropout | 1 (a bug in my tool) | 0 |
+
+**The tool is in the repository now**, which is the point of this entry. The 2026-09-17 run used
+something written for the occasion, and section 4 records that it lost one file to its own bug.
+This run used `scripts/ddc_test.sh --each [path]`, which starts every test file on its own inside
+ONE throwaway container with the same limits as any other run here, and prints only the files
+that fail alone. It can be repeated with one command.
+
+**It was counter-checked before it was believed.** A test file that fails on purpose was dropped
+into `tests/unit/blueprints`, the run reported it as `ALONE-FAIL`, and the file was deleted again.
+A check that cannot fail proves nothing — the same rule the upgrade/downgrade script follows with
+`DDC_CHECK_SIMULATE_LOSS=1`.
+
+**Known weakness, stated rather than hidden:** `--each` prints only failures, so while it runs
+there is no way to tell how far it has got. Twenty minutes in, silence and finished look the same.
+
+---
+
 ## 1. "Does the test also run alone?" — carried out completely
 
 **Every one** of the 127 test files was started individually in its own throwaway container.

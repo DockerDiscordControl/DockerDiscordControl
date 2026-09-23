@@ -92,6 +92,60 @@ if [ "$1" = "--all" ]; then
     exit 0
 fi
 
+# --each [path]: every test file under <path> (default tests/) started ON ITS OWN,
+# all inside ONE container. Stage 3(d) of the quality programme: a test that is
+# green only inside its group depends on what ran before it, and the next person
+# to run that file alone gets a failure nobody can explain.
+#
+# One container, not one per file: there are 588 test files, and a container per
+# file over ssh takes longer than the check is worth. The limits are the same as
+# every other run here; each file gets its own wall-clock timeout so one hanging
+# file cannot eat the budget for the rest.
+#
+# It prints ONLY the files that fail alone, plus a count. Silence is the good case.
+if [ "$1" = "--each" ]; then
+    TARGET="${2:-tests}"
+    NAME="ddctest-each-$(date +%s)-$$"
+    PER_FILE="${DDC_TEST_PER_FILE_TIMEOUT:-180}"
+    REMOTE_SCRIPT=$(cat <<REMOTE
+set -u
+for old in \$(docker ps -aq --filter "name=ddctest-"); do
+    docker rm -f "\$old" >/dev/null 2>&1
+done
+CFG=\$(mktemp -d /tmp/${NAME}-cfg-XXXX)
+LOGS=\$(mktemp -d /tmp/${NAME}-logs-XXXX)
+chown 1000:1000 "\$CFG" "\$LOGS"
+cleanup() { docker rm -f "${NAME}" >/dev/null 2>&1; rm -rf "\$CFG" "\$LOGS"; }
+trap cleanup EXIT INT TERM
+
+docker run --rm --name "${NAME}" --init \\
+    --memory=${MEMORY} --memory-swap=${MEMORY} --pids-limit=${PIDS} --cpus=${CPUS} \\
+    -u ddc \\
+    -e PYTHONDONTWRITEBYTECODE=1 \\
+    -e PYTHONPATH=/opt/runtime/site-packages:/pytestlib \\
+    -v "${REPO}":/app -v "\$CFG":/app/config -v "\$LOGS":/app/logs \\
+    -v "${PYTESTLIB}":/pytestlib:ro \\
+    -w /app --entrypoint sh "${IMAGE}" \\
+    -c 'unset PYTHONOPTIMIZE
+        checked=0; broken=0
+        for f in \$(find ${TARGET} -name "test_*.py" | sort); do
+            checked=\$((checked + 1))
+            out=\$(timeout ${PER_FILE} python3 -m pytest -p no:cacheprovider \\
+                   -o addopts="-q --tb=line" "\$f" 2>&1)
+            rc=\$?
+            if [ "\$rc" != "0" ] && [ "\$rc" != "5" ]; then
+                broken=\$((broken + 1))
+                echo "ALONE-FAIL \$f (exit \$rc)"
+                echo "\$out" | tail -6 | sed "s/^/    /"
+            fi
+        done
+        echo "[ddc_test] --each: \$checked files checked, \$broken fail alone"'
+REMOTE
+)
+    ssh -o ConnectTimeout=10 $SSH_OPTS "$HOST" "bash -s" <<< "$REMOTE_SCRIPT"
+    exit $?
+fi
+
 NAME="ddctest-$(date +%s)-$$"
 REMOTE_SCRIPT=$(cat <<REMOTE
 set -u
