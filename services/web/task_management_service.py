@@ -676,6 +676,8 @@ class TaskManagementService:
 
         # Mark special task types
         task_dict["is_system_task"] = task.is_system_task()
+        # The list draws a group differently, and can only do so if it is told
+        task_dict["target_is_group"] = bool(getattr(task, "target_is_group", False))
         task_dict["is_donation_task"] = task.is_donation_task()
         task_dict["is_active"] = task.is_active
 

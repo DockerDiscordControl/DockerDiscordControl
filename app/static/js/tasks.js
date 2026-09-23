@@ -157,6 +157,13 @@ class TaskManager {
         let containerDisplay;
         if (isSystemTask) {
             containerDisplay = `<code class="text-info container-name">SYSTEM</code>`;
+        } else if (task.target_is_group) {
+            // A group, not a container: without this the row reads exactly like
+            // a container of that name, and nobody can tell whether the task
+            // restarts one thing or five.
+            containerDisplay = `<i class="bi bi-collection text-warning"></i> ` +
+                `<code class="text-warning container-name">${escapedData.container}</code> ` +
+                `<span class="badge bg-secondary">${this.escapeHtml(t('tasks.group_badge'))}</span>`;
         } else {
             containerDisplay = `<code class="text-info container-name">${escapedData.container}</code>`;
         }

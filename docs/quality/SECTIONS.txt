@@ -233,7 +233,7 @@ services/web/performance_stats_service.py:1-181
 services/web/security_service.py:1-350
 
 ## Section 31  (1914 lines, 5 pieces)
-services/web/task_management_service.py:1-1126
+services/web/task_management_service.py:1-1128
 app/__init__.py:1-13
 app/auth.py:1-270
 app/blueprints/automation_routes.py:1-272
