@@ -103,7 +103,7 @@ app/web/tls.py	216	v3rev:1-216
 app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
-cogs/admin_overview.py	948	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/admin_overview.py	1003	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	661	v3rev:1-652
 cogs/channel_lifecycle.py	646	v3rev2:1-646
@@ -189,7 +189,7 @@ services/infrastructure/dynamic_cooldown_manager.py	193	pass1:s19:1-179  [14 of 
 services/infrastructure/event_manager.py	118	pass1:s19:1-118
 services/infrastructure/game_query_service.py	553	pass1:s19:1-525  [28 of 553 lines never in a package]
 services/infrastructure/game_query_support_service.py	341	pass1:s20:1-282  [59 of 341 lines never in a package]
-services/infrastructure/spam_protection_service.py	564	pass1:s20:1-504  [49 of 553 lines never in a package]
+services/infrastructure/spam_protection_service.py	574	pass1:s20:1-504  [49 of 553 lines never in a package]
 services/infrastructure/update_notifier.py	247	pass1:s20:1-213  [22 of 235 lines never in a package]
 services/mech/__init__.py	30	pass1:s20:1-30
 services/mech/animation_cache_service.py	1823	pass1:s21:1-1813  [33 of 1846 lines never in a package]

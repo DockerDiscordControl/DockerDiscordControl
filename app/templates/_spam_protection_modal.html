@@ -263,6 +263,14 @@ function saveSpamProtection() {
             forceupdate: parseInt(document.getElementById('cooldown_forceupdate').value)
         },
         button_cooldowns: {
+            // The admin overview's five. This list is hard-coded while the read
+            // loop above is dynamic, so a slider missing HERE is rendered and
+            // then dropped on save - it would look adjustable and reset itself.
+            admin_overview_admin: parseInt(document.getElementById('button_admin_overview_admin')?.value || 5),
+            admin_overview_restart_all: parseInt(document.getElementById('button_admin_overview_restart_all')?.value || 30),
+            admin_overview_stop_all: parseInt(document.getElementById('button_admin_overview_stop_all')?.value || 30),
+            admin_overview_restart_stack: parseInt(document.getElementById('button_admin_overview_restart_stack')?.value || 20),
+            admin_overview_donate: parseInt(document.getElementById('button_admin_overview_donate')?.value || 10),
             start: parseInt(document.getElementById('button_start').value),
             stop: parseInt(document.getElementById('button_stop').value),
             restart: parseInt(document.getElementById('button_restart').value),

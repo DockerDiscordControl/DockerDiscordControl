@@ -218,6 +218,39 @@ class AdminOverviewView(DDCView):
                                                           enabled=has_running_containers))
         self.add_item(AdminOverviewDonateButton(cog_instance, channel_id))
 
+async def _admin_button_braked(interaction: discord.Interaction, name: str) -> bool:
+    """Spam brake for the admin overview's buttons. True means: refused.
+
+    None of these five asked the service at all - not the two bulk actions that
+    restart or stop every running container, and not the donate button, which
+    builds a fresh view on every press from a panel that is registered with
+    add_view and therefore works on every overview ever posted.
+
+    The name is the WHOLE name, because get_button_cooldown matches that first
+    and only then the "mech_<slider>_" prefix rule. Each of these has an entry
+    in the defaults and in the panel's save list, so the operator can see and
+    change it - a name without one brakes by the five-second fallback and
+    cannot be adjusted.
+    """
+    from services.infrastructure.spam_protection_service import get_spam_protection_service
+
+    spam_service = get_spam_protection_service()
+    if not spam_service.is_enabled():
+        return False
+    try:
+        if spam_service.is_on_cooldown(interaction.user.id, name):
+            remaining = spam_service.get_remaining_cooldown(interaction.user.id, name)
+            await interaction.response.send_message(
+                _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                    remaining=remaining),
+                ephemeral=True)
+            return True
+        spam_service.add_user_cooldown(interaction.user.id, name)
+    except (RuntimeError, AttributeError, KeyError) as e:
+        logger.error(f"Spam protection error for button '{name}': {e}", exc_info=True)
+    return False
+
+
 class AdminOverviewAdminButton(Button):
     """Admin button for accessing individual container controls."""
 
@@ -235,6 +268,8 @@ class AdminOverviewAdminButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Show container selection dropdown for admin control."""
+        if await _admin_button_braked(interaction, "admin_overview_admin"):
+            return
         # Edge case: Immediately defer to avoid timeout
         try:
             await interaction.response.defer(ephemeral=True)
@@ -313,8 +348,11 @@ class AdminOverviewAdminButton(Button):
         except (discord.errors.DiscordException, ImportError, AttributeError, KeyError) as e:
             logger.error(f"Error in admin overview admin button: {e}", exc_info=True)
             try:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(
+                # followup, not response: every one of these callbacks DEFERS
+                # at the top, so is_done() is already True by the time an error
+                # gets here and the whole branch was unreachable - the operator
+                # was left on a spinner with only a log line.
+                await interaction.followup.send(
                         _("❌ Error accessing admin controls."),
                         ephemeral=True
                     )
@@ -339,6 +377,8 @@ class AdminOverviewRestartAllButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Ask for confirmation before restarting all containers."""
+        if await _admin_button_braked(interaction, "admin_overview_restart_all"):
+            return
         # Edge case: Immediately defer to avoid timeout
         try:
             await interaction.response.defer(ephemeral=True)
@@ -395,8 +435,11 @@ class AdminOverviewRestartAllButton(Button):
         except (discord.errors.DiscordException, ImportError, KeyError, RuntimeError) as e:
             logger.error(f"Error in restart all button: {e}", exc_info=True)
             try:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(
+                # followup, not response: every one of these callbacks DEFERS
+                # at the top, so is_done() is already True by the time an error
+                # gets here and the whole branch was unreachable - the operator
+                # was left on a spinner with only a log line.
+                await interaction.followup.send(
                         _("❌ Error processing restart all request."),
                         ephemeral=True
                     )
@@ -421,6 +464,8 @@ class AdminOverviewStopAllButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Ask for confirmation before stopping all containers."""
+        if await _admin_button_braked(interaction, "admin_overview_stop_all"):
+            return
         # Edge case: Immediately defer to avoid timeout
         try:
             await interaction.response.defer(ephemeral=True)
@@ -477,8 +522,11 @@ class AdminOverviewStopAllButton(Button):
         except (discord.errors.DiscordException, ImportError, KeyError, RuntimeError) as e:
             logger.error(f"Error in stop all button: {e}", exc_info=True)
             try:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(
+                # followup, not response: every one of these callbacks DEFERS
+                # at the top, so is_done() is already True by the time an error
+                # gets here and the whole branch was unreachable - the operator
+                # was left on a spinner with only a log line.
+                await interaction.followup.send(
                         _("❌ Error processing stop all request."),
                         ephemeral=True
                     )
@@ -504,6 +552,8 @@ class AdminOverviewRestartStackButton(Button):
         )
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        if await _admin_button_braked(interaction, "admin_overview_restart_stack"):
+            return
         try:
             await interaction.response.defer(ephemeral=True)
         except (discord.errors.NotFound, discord.errors.HTTPException) as e:
@@ -529,6 +579,8 @@ class AdminOverviewDonateButton(Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Execute /donate command when clicked."""
+        if await _admin_button_braked(interaction, "admin_overview_donate"):
+            return
         # Edge case: Immediately defer to avoid timeout
         try:
             await interaction.response.defer(ephemeral=True)
@@ -592,8 +644,11 @@ class AdminOverviewDonateButton(Button):
         except (discord.errors.DiscordException, ImportError, AttributeError) as e:
             logger.error(f"Error in donate button: {e}", exc_info=True)
             try:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(
+                # followup, not response: every one of these callbacks DEFERS
+                # at the top, so is_done() is already True by the time an error
+                # gets here and the whole branch was unreachable - the operator
+                # was left on a spinner with only a log line.
+                await interaction.followup.send(
                         _("❌ Error processing donate request."),
                         ephemeral=True
                     )

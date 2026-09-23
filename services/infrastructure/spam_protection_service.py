@@ -484,6 +484,16 @@ class SpamProtectionService:
                 "restart": 15
             },
             button_cooldowns={
+                # The five buttons of the /control admin overview. They asked
+                # for no cooldown at all until 2026-09-23 - including the two
+                # bulk actions that restart or stop every running container.
+                # Named here AND in the modal's save list, so the operator can
+                # see and change them instead of getting the silent fallback.
+                "admin_overview_admin": 5,
+                "admin_overview_restart_all": 30,
+                "admin_overview_stop_all": 30,
+                "admin_overview_restart_stack": 20,
+                "admin_overview_donate": 10,
                 "start": 10,
                 "stop": 10,
                 "restart": 20,

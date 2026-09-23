@@ -71,6 +71,15 @@ def world(monkeypatch, tmp_path):
     from services.config import group_service
 
     group_service.reset_group_service()
+    # Since 2026-09-23 the admin overview's buttons ask the spam service, and
+    # this file presses the same button as the same user several times - the
+    # second press would be refused, which is the BRAKE working, not the button
+    # failing. The brake has its own test
+    # (tests/spec/test_the_admin_overview_buttons_brake_too.py); here it is out
+    # of the way.
+    monkeypatch.setattr(
+        "services.infrastructure.spam_protection_service.get_spam_protection_service",
+        lambda: SimpleNamespace(is_enabled=lambda: False))
     acted = []
 
     async def _action(docker_name, action):
