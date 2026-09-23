@@ -65,7 +65,10 @@ def test_the_task_list_still_marks_a_group():
     assert "tasks.group_badge" in source
 
 
-@pytest.mark.parametrize("template", ["tasks/form.html", "tasks/list.html"])
+# tasks/_edit_modal.html, not tasks/list.html: the edit dialog moved out of the
+# list on 2026-09-23, because inside the settings form its own <form> was a
+# nested one and the browser dropped it.
+@pytest.mark.parametrize("template", ["tasks/form.html", "tasks/_edit_modal.html"])
 def test_both_task_target_pickers_head_the_groups(template):
     """A <select> cannot carry an icon, so the heading is the marker."""
     source = _read(TEMPLATES / template)

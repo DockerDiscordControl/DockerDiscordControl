@@ -253,7 +253,11 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ _t('web.common.close') }}"></button>
             </div>
             <div class="modal-body">
-                <form id="containerInfoForm">
+                {# Not a <form>: this sits inside #config-form, and a browser throws
+                   away a nested form start tag - so this element never existed in
+                   the DOM anyway. Nothing in the JavaScript ever looked for it.
+                   The FIELDS must stay here: saveConfigAjax collects #config-form. #}
+                <div id="containerInfoForm">
                     <input type="hidden" id="modal-container-name" name="container_name">
 
                     {# IP and Port Settings - Top Row #}
@@ -391,7 +395,7 @@
                             </div>
                         </div>
                     </div>
-                </form>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.cancel') }}</button>

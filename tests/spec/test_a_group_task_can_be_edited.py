@@ -24,7 +24,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 JS = (ROOT / "app" / "static" / "js" / "tasks.js").read_text(encoding="utf-8")
-LIST = (ROOT / "app" / "templates" / "tasks" / "list.html").read_text(encoding="utf-8")
+# The edit dialog moved to its own partial on 2026-09-23: it lived at the end
+# of list.html, which config.html includes INSIDE <form id="config-form">, so
+# its own <form id="editTaskForm"> was a form inside a form - which a browser
+# throws away. It sits beside the other modals now, outside that form.
+LIST = (ROOT / "app" / "templates" / "tasks" / "_edit_modal.html").read_text(encoding="utf-8")
 
 
 def test_the_edit_modal_has_a_place_for_the_groups():

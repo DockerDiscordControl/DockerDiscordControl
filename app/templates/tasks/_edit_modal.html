@@ -1,0 +1,136 @@
+{# The task edit dialog, kept OUT of the settings form.
+
+   It used to live at the end of tasks/list.html, which config.html includes
+   inside <form id="config-form">. Its own <form id="editTaskForm"> was then a
+   form inside a form: invalid HTML, and the parser does not merely dislike it -
+   it ignores the inner start tag, so the element never existed in the DOM.
+   tasks.js:688 calls document.getElementById('editTaskForm')?.reset(), and the
+   ?. turned that into a silent no-op. populateEditForm's cron branch does not
+   touch the time, day, month or year fields, so they kept whatever the
+   previously edited task left in them.
+
+   Included beside the eight other modals config.html keeps outside the form -
+   which is where a modal belongs, and which also stops its eleven named fields
+   being posted with every settings save. #}
+<!-- Edit Task Modal -->
+<div class="modal fade edit-task-modal" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTaskModalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>{{ _t('web.tasks.edit_modal_title') }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTaskForm">
+                    <div class="field-group">
+                        <div class="field-group-title">{{ _t('web.tasks.basic_settings') }}</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="editTaskContainer" class="form-label">{{ _t('web.tasks.col_container') }}</label>
+                                <select class="form-select" id="editTaskContainer" name="container" required>
+                                    <option selected disabled value="">{{ _t('web.tasks.select_container') }}</option>
+                                    {% if active_containers %}
+                                        {% for container_name in active_containers %}
+                                            <option value="{{ container_name }}">{{ container_name }}</option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option disabled>{{ _t('web.tasks.no_active_containers') }}</option>
+                                    {% endif %}
+                                    {# The groups, filled from /api/groups before a task is put
+                                       into this form. Without them a group task could not be
+                                       edited at all: a select cannot hold a value that has no
+                                       option, so saving asked for a container that was there
+                                       all along. #}
+                                    <optgroup id="edit-target-group" label="{{ _t('web.groups.title') }}" hidden></optgroup>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editTaskAction" class="form-label">{{ _t('web.tasks.col_action') }}</label>
+                                <select class="form-select" id="editTaskAction" name="action" required>
+                                    <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
+                                    <option value="start">{{ _t('web.tasks.action_start') }}</option>
+                                    <option value="stop">{{ _t('web.tasks.action_stop') }}</option>
+                                    <option value="restart">{{ _t('web.tasks.action_restart') }}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <div class="field-group-title">{{ _t('web.tasks.schedule_config') }}</div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="editTaskCycle" class="form-label">{{ _t('web.tasks.col_cycle') }}</label>
+                                <select class="form-select" id="editTaskCycle" name="cycle" required>
+                                    <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
+                                    <option value="once">{{ _t('web.tasks.cycle_once') }}</option>
+                                    <option value="daily">{{ _t('web.tasks.cycle_daily') }}</option>
+                                    <option value="weekly">{{ _t('web.tasks.cycle_weekly') }}</option>
+                                    <option value="monthly">{{ _t('web.tasks.cycle_monthly') }}</option>
+                                    <option value="yearly">{{ _t('web.tasks.cycle_yearly') }}</option>
+                                    <option value="cron">{{ _t('web.tasks.cycle_cron') }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="editTaskTime" class="form-label">{{ _t('web.tasks.time_label') }}</label>
+                                <input type="time" class="form-control" id="editTaskTime" name="time" required>
+                            </div>
+                            <div class="col-md-4" id="editDateFieldsContainer">
+                                <label class="form-label">{{ _t('web.tasks.date_label') }}</label>
+                                <div class="row g-2">
+                                    <div class="col-4" id="editDayFieldContainer">
+                                        <input type="text" class="form-control" id="editTaskDay" name="day" placeholder="{{ _t('web.tasks.day_placeholder') }}">
+                                        <select class="form-control" id="editTaskWeekday" name="weekday" style="display: none;">
+                                            <option value="Mon">{{ _t('web.tasks.monday') }}</option>
+                                            <option value="Tue">{{ _t('web.tasks.tuesday') }}</option>
+                                            <option value="Wed">{{ _t('web.tasks.wednesday') }}</option>
+                                            <option value="Thu">{{ _t('web.tasks.thursday') }}</option>
+                                            <option value="Fri">{{ _t('web.tasks.friday') }}</option>
+                                            <option value="Sat">{{ _t('web.tasks.saturday') }}</option>
+                                            <option value="Sun">{{ _t('web.tasks.sunday') }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="text" class="form-control" id="editTaskMonth" name="month" placeholder="{{ _t('web.tasks.month_placeholder') }}">
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="number" class="form-control" id="editTaskYear" name="year" placeholder="{{ _t('web.tasks.year_placeholder') }}" min="2025">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-12" id="editTaskCronStringRow" style="display: none;">
+                                <label for="editTaskCronString" class="form-label">{{ _t('web.tasks.cron_string_label') }}</label>
+                                <input type="text" class="form-control" id="editTaskCronString" name="cron_string" placeholder="0 0 * * *">
+                                <div class="form-text">{{ _t('web.tasks.cron_format_help') }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <div class="field-group-title">{{ _t('web.tasks.task_status') }}</div>
+                        <div class="form-check">
+                            <input class="form-check-input task-checkbox" type="checkbox" id="editTaskActive" name="is_active">
+                            <label class="form-check-label" for="editTaskActive">
+                                <strong>{{ _t('web.tasks.task_is_active') }}</strong>
+                                <small class="d-block text-muted">{{ _t('web.tasks.inactive_note') }}</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="editTaskId" name="task_id">
+                </form>
+                <div id="editTaskMessage" class="task-message" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>{{ _t('web.common.cancel') }}
+                </button>
+                <button type="button" class="btn btn-primary" id="saveTaskChanges">
+                    <i class="bi bi-check-circle me-1"></i>{{ _t('web.common.save_changes') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
