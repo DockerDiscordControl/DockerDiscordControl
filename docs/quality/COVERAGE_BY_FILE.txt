@@ -215,7 +215,7 @@ services/member_count/__init__.py	17	pass1:s25:1-17
 services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a package]
 services/scheduling/__init__.py	36	pass1:s25:1-36
 services/scheduling/cron_check.py	40	NONE
-services/scheduling/donation_message_service.py	228	pass1:s25:1-196  [19 of 215 lines never in a package]
+services/scheduling/donation_message_service.py	243	pass1:s25:1-196  [19 of 215 lines never in a package]
 services/scheduling/group_tasks.py	118	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248

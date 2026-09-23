@@ -193,7 +193,7 @@ services/mech/speed_levels.py:1-427
 services/member_count/__init__.py:1-17
 services/member_count/service.py:1-296
 services/scheduling/__init__.py:1-36
-services/scheduling/donation_message_service.py:1-228
+services/scheduling/donation_message_service.py:1-243
 services/scheduling/runtime.py:1-231
 services/scheduling/schedule_helpers.py:1-67
 # cron_check.py joined on 2026-09-23: the cron validator, in a module of its

@@ -214,8 +214,23 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
                     logger.error(f"Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
             logger.info(f"Donation message sent to {sent_count} channels ({failed_count} failed)")
+            if sent_count == 0:
+                # NOT a success. The scheduler believes this answer and writes a
+                # green badge plus "Result: Success" into the action log, and
+                # this is a MONTHLY task - so an appeal nobody received is not
+                # tried again for a month.
+                if failed_count:
+                    logger.error(f"The donation appeal reached nobody: {failed_count} "
+                                 f"status channel(s) could not be used")
+                    return False
+                # Nothing FAILED - there simply is no status channel. That is
+                # the operator's own configuration, so it stays a success, but
+                # it is said out loud instead of hidden in a debug line.
+                logger.warning("The donation appeal went nowhere: no channel is "
+                               "configured for the status overview")
         else:
-            logger.warning("Bot instance not available - cannot send messages to channels")
+            logger.error("Bot instance not available - the donation appeal was not sent")
+            return False
 
         logger.info("Donation message task completed successfully")
         return True

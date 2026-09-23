@@ -540,8 +540,11 @@ class TestDonationMessageService:
 
     @pytest.mark.asyncio
     async def test_task_handles_missing_channel_gracefully(self):
-        # The bot returns ``None`` for unknown channels – that branch should
-        # be counted as a failure but not raise.
+        # The bot returns ``None`` for unknown channels. It must not raise -
+        # and since 2026-09-23 it must not be called a success either: the
+        # appeal reached nobody, and it is a MONTHLY task, so there is no
+        # retry for a month. See
+        # tests/spec/test_a_donation_appeal_that_reached_nobody_says_so.py
         bot = MagicMock()
         bot.get_channel.return_value = None
 
@@ -560,7 +563,7 @@ class TestDonationMessageService:
         ):
             ok = await dms.execute_donation_message_task(bot=bot)
 
-        assert ok is True
+        assert ok is False
         bot.get_channel.assert_called_once()
 
     @pytest.mark.asyncio
@@ -576,8 +579,9 @@ class TestDonationMessageService:
 
     @pytest.mark.asyncio
     async def test_task_runs_without_bot(self):
-        """When no bot is supplied the task must still complete the
-        progress checks and return ``True``."""
+        """Without a bot the task completes its progress checks and does NOT
+        raise - but it answers False: nothing was sent, and the scheduler
+        would otherwise write a green badge for an appeal nobody received."""
         progress_service = Mock()
         progress_service.get_state.return_value = self._state(power=5.0)
 
@@ -593,7 +597,7 @@ class TestDonationMessageService:
         ):
             ok = await dms.execute_donation_message_task(bot=None)
 
-        assert ok is True
+        assert ok is False
 
     def test_set_and_get_bot_instance(self, monkeypatch):
         monkeypatch.setattr(dms, "_bot_instance", None)
