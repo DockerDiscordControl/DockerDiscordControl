@@ -1,0 +1,45 @@
+<hr class="my-4">
+<div id="container-groups" class="mb-3 card p-3">
+    <h4>{{ _t('web.groups.title') }}</h4>
+    <p class="form-text">{{ _t('web.groups.description') }}</p>
+
+    <div id="groups-list" class="mb-3">
+        <div class="text-muted" id="groups-empty">{{ _t('web.groups.none_yet') }}</div>
+    </div>
+
+    <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <label for="group-name" class="form-label">{{ _t('web.groups.name') }}</label>
+            <input type="text" class="form-control" id="group-name" maxlength="80"
+                   placeholder="{{ _t('web.groups.name_placeholder') }}">
+        </div>
+        <div class="col-12 col-md-6">
+            <label for="group-containers" class="form-label">{{ _t('web.groups.containers') }}</label>
+            <select multiple class="form-select" id="group-containers" size="6">
+                {% for container in all_containers or [] %}
+                <option value="{{ container.name }}">{{ container.display_name or container.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">{{ _t('web.groups.containers_hint') }}</div>
+        </div>
+        <div class="col-12 col-md-2">
+            <button type="button" class="btn btn-primary w-100" id="group-save-btn">
+                {{ _t('web.groups.save') }}
+            </button>
+        </div>
+    </div>
+    <div id="group-message" class="mt-2"></div>
+</div>
+
+<script>
+// Texts for app/static/js/container_groups.js, translated server-side.
+window.DDC_GROUP_TEXTS = {
+    missing: {{ _t('web.groups.missing') | tojson }},
+    empty: {{ _t('web.groups.empty') | tojson }},
+    saved: {{ _t('web.groups.saved') | tojson }},
+    deleted: {{ _t('web.groups.deleted') | tojson }},
+    delete: {{ _t('web.groups.delete') | tojson }},
+    needs_name: {{ _t('web.groups.needs_name') | tojson }},
+    load_failed: {{ _t('web.groups.load_failed') | tojson }}
+};
+</script>

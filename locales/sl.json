@@ -1740,5 +1740,20 @@
   "web.aas.resource_minutes": "for at least (minutes)",
   "🔄 Restarts: {count}": "🔄 Restarts: {count}",
   "🩺 Health check: {status}": "🩺 Health check: {status}",
-  "web.aas.state_image_update": "has a newer image in the registry (checked every 6 hours; notify only)"
+  "web.aas.state_image_update": "has a newer image in the registry (checked every 6 hours; notify only)",
+  "web.groups.title": "Container Groups",
+  "web.groups.description": "Group containers so a task, a rule or a button can act on all of them at once. A group is yours to name - it does not depend on Docker labels.",
+  "web.groups.none_yet": "No groups yet.",
+  "web.groups.name": "Group name",
+  "web.groups.name_placeholder": "e.g. Gameserver",
+  "web.groups.containers": "Containers",
+  "web.groups.containers_hint": "Hold Ctrl (Cmd on a Mac) to select several.",
+  "web.groups.save": "Save group",
+  "web.groups.delete": "Delete",
+  "web.groups.saved": "Group saved.",
+  "web.groups.deleted": "Group deleted.",
+  "web.groups.needs_name": "A group needs a name.",
+  "web.groups.missing": "Not found any more: {names}",
+  "web.groups.empty": "No containers in this group yet - it does nothing until you add some.",
+  "web.groups.load_failed": "The groups could not be loaded - see the DDC log."
 }

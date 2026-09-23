@@ -1740,5 +1740,20 @@
   "web.aas.resource_minutes": "mindestens (Minuten)",
   "🔄 Restarts: {count}": "🔄 Neustarts: {count}",
   "🩺 Health check: {status}": "🩺 Healthcheck: {status}",
-  "web.aas.state_image_update": "ein neueres Image in der Registry hat (alle 6 Stunden geprüft; nur Meldung)"
+  "web.aas.state_image_update": "ein neueres Image in der Registry hat (alle 6 Stunden geprüft; nur Meldung)",
+  "web.groups.title": "Container-Gruppen",
+  "web.groups.description": "Fasse Container zusammen, damit eine Aufgabe, eine Regel oder ein Knopf alle auf einmal steuern kann. Den Namen bestimmst du - Docker-Labels spielen keine Rolle.",
+  "web.groups.none_yet": "Noch keine Gruppen.",
+  "web.groups.name": "Gruppenname",
+  "web.groups.name_placeholder": "z. B. Gameserver",
+  "web.groups.containers": "Container",
+  "web.groups.containers_hint": "Mit Strg (Cmd am Mac) mehrere auswählen.",
+  "web.groups.save": "Gruppe speichern",
+  "web.groups.delete": "Löschen",
+  "web.groups.saved": "Gruppe gespeichert.",
+  "web.groups.deleted": "Gruppe gelöscht.",
+  "web.groups.needs_name": "Eine Gruppe braucht einen Namen.",
+  "web.groups.missing": "Nicht mehr vorhanden: {names}",
+  "web.groups.empty": "Noch keine Container in dieser Gruppe - sie bewirkt nichts, bis du welche hinzufügst.",
+  "web.groups.load_failed": "Die Gruppen konnten nicht geladen werden - siehe DDC-Log."
 }
