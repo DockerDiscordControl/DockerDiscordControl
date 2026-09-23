@@ -40,6 +40,7 @@ class BackgroundLoopsMixin:
 
     # --- Status Watchdog (Heartbeat) Loop ---
     @tasks.loop(minutes=5)
+    @survives_one_bad_cycle
     async def heartbeat_send_loop(self):
         """
         Status Watchdog: Pings an external monitoring URL periodically.
@@ -621,6 +622,7 @@ class BackgroundLoopsMixin:
 
     # --- Performance Cache Clear Loop ---
     @tasks.loop(minutes=5)
+    @survives_one_bad_cycle
     async def performance_cache_clear_loop(self):
         """Clears performance caches every 5 minutes to prevent memory buildup."""
         try:
@@ -643,7 +645,14 @@ class BackgroundLoopsMixin:
 
             logger.debug("Performance cache clear completed")
 
-        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+        except (discord.errors.DiscordException, RuntimeError, ValueError,
+                ImportError, TypeError, AttributeError) as e:
+            # ImportError for the deferred import of _clear_caches, and
+            # TypeError/AttributeError for len()/.clear() on an _embed_cache
+            # entry that is not a mapping - the three this body can actually
+            # produce and did not name. The decorator above is the second
+            # answer: even something not listed here costs one cycle, not the
+            # loop.
             logger.error(f"Error in performance_cache_clear_loop: {e}", exc_info=True)
 
     @performance_cache_clear_loop.before_loop

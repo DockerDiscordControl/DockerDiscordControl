@@ -73,6 +73,11 @@ def survives_one_bad_cycle(coro):
                          "run again at the next interval",
                          coro.__name__, type(e).__name__, e, exc_info=True)
             return None
+    # A mark the ratchet can see: tests/spec/test_every_recurring_loop_carries_its_guard.py
+    # checks that every loop which REPEATS carries this guard, and it
+    # reads the loops off the class so one added tomorrow is covered.
+    wrapper._ddc_survives_one_bad_cycle = True
+
     return wrapper
 
 
