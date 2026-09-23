@@ -70,6 +70,63 @@ class TriggerContext:
         """Discord message link."""
         return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
 
+GROUP_PREFIX = "group:"
+
+
+def _members_of_group(name: str) -> list:
+    """The containers of a group, or an empty list when it is gone.
+
+    A group that was deleted resolves to nothing - never to "all", which is
+    what an empty trigger list means. See rule_listens_to.
+    """
+    try:
+        from services.config.group_service import get_group_service
+
+        members = get_group_service().members_of(name)
+    except OSError as e:
+        logger.error(f"Groups could not be read for a rule: {e}")
+        return []
+    if not members.exists:
+        logger.warning(f"A rule names the group '{name}', which does not exist any more")
+    return list(members.containers)
+
+
+def _resolved(names) -> list:
+    """Container names, with every "group:<name>" replaced by its members.
+
+    Order is kept and a container named twice - directly and through a group -
+    is acted on once.
+    """
+    resolved = []
+    for entry in names or []:
+        if isinstance(entry, str) and entry.startswith(GROUP_PREFIX):
+            candidates = _members_of_group(entry[len(GROUP_PREFIX):])
+        else:
+            candidates = [entry]
+        for container in candidates:
+            if container not in resolved:
+                resolved.append(container)
+    return resolved
+
+
+def rule_listens_to(rule, container: str) -> bool:
+    """Whether a container-state rule is about this container.
+
+    An EMPTY trigger list means every container - that is the meaning it has
+    always had. A list that names only groups which no longer exist resolves
+    to nothing and the rule listens to NOTHING, because the alternative is a
+    rule written for five containers quietly firing on all of them.
+    """
+    if not rule.trigger.containers:
+        return True
+    return container in _resolved(rule.trigger.containers)
+
+
+def containers_of_action(rule) -> list:
+    """The containers a rule's action is about, groups resolved."""
+    return _resolved(rule.action.containers)
+
+
 class AutomationService:
     """Core logic for Auto-Actions."""
 
@@ -134,7 +191,10 @@ class AutomationService:
                     # opposite of what happened, and the container stayed locked
                     # for up to the rule cooldown unnoticed (SPEC.md Z8).
                     still_locked = []
-                    for container in rule.action.containers:
+                    # The same list _execute_rule locked: groups resolved, or the
+                    # release would look for a container named "group:<name>" and
+                    # leave the real ones locked for the rule cooldown.
+                    for container in containers_of_action(rule):
                         try:
                             self.state_service.release_execution_lock(rule.id, container, success=False)
                         except Exception:  # never mask the original error
@@ -341,7 +401,10 @@ class AutomationService:
         
         # 1. Check Protected Containers (Question 18)
         protected = global_settings.get('protected_containers', [])
-        target_containers = rule.action.containers
+        # Groups resolved: a rule may target "group:<name>", and asking Docker
+        # to restart a container of that name would simply fail. A group that
+        # is gone resolves to nothing, and nothing is what happens.
+        target_containers = containers_of_action(rule)
         
         for container in target_containers:
             if container.lower() in [p.lower() for p in protected]:
@@ -502,7 +565,7 @@ class AutomationService:
             for rule in rules:
                 if event.kind not in rule.trigger.states:
                     continue
-                if rule.trigger.containers and event.container not in rule.trigger.containers:
+                if not rule_listens_to(rule, event.container):
                     continue
                 if not self._measured_by_this_rule(event, rule):
                     continue  # measured with another rule's threshold/window

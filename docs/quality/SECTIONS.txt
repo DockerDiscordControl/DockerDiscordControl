@@ -70,16 +70,18 @@ services/admin/admin_service.py:1-379
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-813
 
-## Section 11  (1987 lines, 7 pieces)
+## Section 11  (1852 lines, 6 pieces)
 services/automation/auto_action_state_service.py:1-364
-services/automation/automation_service.py:1-676
+services/automation/automation_service.py:1-739
 services/automation/container_watch.py:1-157
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576
-services/config/config_cache_service.py:1-177
 
-## Section 12  (1667 lines, 4 pieces)
+## Section 12  (1844 lines, 5 pieces)
 services/config/channel_roles.py:1-38
+# config_cache_service.py followed on 2026-09-23: section 11 went over 2,000
+# when automation_service.py grew with the group resolution.
+services/config/config_cache_service.py:1-177
 # channel_roles.py and own_actions.py sit here, not with the rest of their
 # directories:
 # section 11 is at the 2,000 lines a section may hold.
