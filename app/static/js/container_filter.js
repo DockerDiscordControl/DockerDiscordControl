@@ -25,18 +25,34 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 
         const rows = () => Array.from(table.querySelectorAll('tr[data-container-name]'));
 
+        // Seven rows to a page. The pager is handed the rows that MATCH, so the
+        // pages are pages of the search result rather than of everything with
+        // the misses left as gaps.
+        const pager = typeof window.ddcPager === 'function'
+            ? window.ddcPager('container-pager', 7) : null;
+
         const apply = () => {
             const match = window.matchingContainers;
             if (typeof match !== 'function') { return; }
             const names = rows().map(row => row.dataset.containerName);
-            const visible = new Set(match(names, field.value));
+            const wanted = new Set(match(names, field.value));
+            const matching = [];
             for (const row of rows()) {
-                row.hidden = !visible.has(row.dataset.containerName);
+                const hit = wanted.has(row.dataset.containerName);
+                row.hidden = !hit;
+                if (hit) { matching.push(row); }
             }
-            if (noMatch) { noMatch.hidden = visible.size > 0; }
+            if (noMatch) { noMatch.hidden = matching.length > 0; }
+            if (pager) { pager.show(matching); }
         };
 
-        field.addEventListener('input', apply);
+        // A new search starts at the first page: staying on page 4 while the
+        // result shrank to five rows shows an empty table (paging.js clamps it,
+        // but landing on the last page is not what the operator asked for).
+        field.addEventListener('input', () => {
+            if (pager) { pager.reset(); }
+            apply();
+        });
         apply();
     });
 }

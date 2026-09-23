@@ -97,13 +97,21 @@ if (typeof document !== 'undefined') {
             }
         };
 
+        // Seven to a page here too, over the search result (paging.js).
+        const pager = typeof window.ddcPager === 'function'
+            ? window.ddcPager('group-pager', 7) : null;
+
         const applySearch = () => {
-            const visible = new Set(matchingContainers(
+            const wanted = new Set(matchingContainers(
                 boxes().map(box => box.value), searchField ? searchField.value : ''));
+            const matching = [];
             for (const item of containerField.querySelectorAll('.group-container-item')) {
-                item.hidden = !visible.has(item.dataset.containerName);
+                const hit = wanted.has(item.dataset.containerName);
+                item.hidden = !hit;
+                if (hit) { matching.push(item); }
             }
-            if (noMatch) { noMatch.hidden = visible.size > 0; }
+            if (noMatch) { noMatch.hidden = matching.length > 0; }
+            if (pager) { pager.show(matching); }
         };
 
         // All / none act on what the search SHOWS, not on everything: with a
@@ -238,7 +246,11 @@ if (typeof document !== 'undefined') {
         }
 
         document.getElementById('group-save-btn')?.addEventListener('click', save);
-        searchField?.addEventListener('input', applySearch);
+        searchField?.addEventListener('input', () => {
+            if (pager) { pager.reset(); }
+            applySearch();
+        });
+        applySearch();   // the first page, before anything is typed
         document.getElementById('group-select-all')?.addEventListener(
             'click', () => setVisible(true));
         document.getElementById('group-select-none')?.addEventListener(

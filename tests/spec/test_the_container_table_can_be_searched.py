@@ -12,16 +12,21 @@ this one is Stop or Restart. Finding one container means reading 26 names.
 WHAT CHANGES: a search box above the table that hides the rows that do not
 match, and a header that stays visible while the rows scroll under it.
 
-THE STICKY TRAP, and why the table gets a height: `position: sticky` is
-relative to the nearest SCROLLING ancestor. The table sits in
-`<div class="table-responsive">`, which is `overflow-x: auto` - and CSS
-computes `overflow-y: visible` next to an `auto` to `auto`, so that div is a
-scroll container whether or not anyone meant it to be. A sticky `thead` inside
-it therefore sticks to the top of that div, not to the viewport, and with the
-div as tall as its content that top is never reached. So the div gets a
-max-height and scrolls: the header pins to the box, and the box stays on
-screen. Removing `.table-responsive` instead would take the horizontal scroll
-with it, which is what makes ten columns usable on a laptop.
+THE HEADER PROBLEM, and how it was solved twice. The first answer, the same
+morning, was a 70vh scroll box with a sticky `thead`: the rows moved under
+the column names instead of past them. It worked, and it needed a paragraph to
+explain why the box had to have a height at all (`position: sticky` follows
+the nearest SCROLLING ancestor, and `.table-responsive` is one whether or not
+anyone meant it to be - `overflow-x: auto` makes CSS compute the adjacent
+`overflow-y: visible` to `auto`).
+
+The operator looked at the result and said the inner scrolling is not nice:
+seven rows and a page switcher. That is the second answer, and it dissolves
+the problem rather than solving it - with seven rows the column names never
+leave the screen, so there is nothing to pin. The box, its height and the
+sticky rule went together; see
+tests/spec/test_long_lists_are_paged_not_scrolled.py. The two tests that
+pinned the first answer are below, saying what they used to require.
 
 THE SEARCH REUSES matchingContainers: the groups section already has a search
 box over the same container names (`#group-search`,
@@ -76,24 +81,28 @@ def test_a_search_that_matches_nothing_says_so():
     assert "web.server.search_no_match" in section
 
 
-def test_the_scroll_box_has_a_height_so_the_header_can_pin():
-    """THE STICKY TRAP: .table-responsive is a scroll container whether or not
-    anyone meant it to be, so a sticky header pins to a box that is as tall as
-    its content - i.e. never."""
-    section = _without_comments(SECTION.read_text(encoding="utf-8"))
-    position = section.index("table-responsive")
-    box = section[position:section.index(">", position)]
-
-    assert "max-height" in box, (
-        "the scroll box is as tall as its content, so a sticky header has "
-        "nothing to stick to")
-
-
-def test_the_column_headers_stay_put():
+def test_the_table_keeps_its_sideways_scroll():
+    """What survived the rewrite. This test used to require a max-height on the
+    box so a sticky header had something to pin to; paging removed the need for
+    both. `.table-responsive` itself stays, because ten columns on a laptop are
+    only usable with a sideways scroll - and removing it was the other way this
+    could have gone.
+    """
     section = _without_comments(SECTION.read_text(encoding="utf-8"))
 
-    assert "position: sticky" in section, "the column headers scroll away"
-    assert "thead" in section
+    assert "table-responsive" in section, (
+        "the table lost its sideways scroll, so ten columns no longer fit")
+
+
+def test_the_column_headers_are_reachable_without_pinning_them():
+    """This used to require position: sticky on the thead. Seven rows to a page
+    means the header is on screen with the rows it labels, which is what the
+    pinning was for."""
+    section = _without_comments(SECTION.read_text(encoding="utf-8"))
+
+    assert 'data-per-page="7"' in section, (
+        "nothing limits the page, so the headers scroll away again")
+    assert "<thead>" in section
 
 
 def test_the_filter_uses_the_matching_rule_that_is_already_tested():
