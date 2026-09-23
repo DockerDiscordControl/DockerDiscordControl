@@ -259,8 +259,46 @@ class AdminService:
             logger.error(f"Error in get_admin_data: {e}", exc_info=True)
             return {'discord_admin_users': [], 'admin_notes': {}, 'admin_containers': {}}
 
+    def add_admin_user(self, user_id: str, note: str = "") -> bool:
+        """Add one admin, reading and writing as ONE step. False if already there.
+
+        admins.json has two writers - the /addadmin modal in Discord and the
+        panel's admin editor - and save_admin_data REPLACES the whole document.
+        The write is atomic; the CYCLE around it was not, so:
+
+            /addadmin reads the list      (A, B)
+            the operator saves the panel  (A, B, C)
+            /addadmin appends and writes  (A, B, D)   -> C is gone
+
+        Both sides answered success and nothing was logged, because from each
+        writer's own point of view nothing went wrong. The lock spans the read,
+        the duplicate check and the write, so the list that is written is the
+        list that was read.
+        """
+        from utils.atomic_io import cross_process_lock
+
+        with cross_process_lock(_admins_file()):
+            data = self.get_admin_data(force_refresh=True)
+            current = list(data.get('discord_admin_users', []))
+            if user_id in current:
+                return False
+            notes = dict(data.get('admin_notes', {}))
+            if note:
+                notes[user_id] = note
+            current.append(user_id)
+            return self._save_admin_data_unlocked(
+                current, notes, data.get('admin_containers'))
+
     def save_admin_data(self, admin_users: List[str], admin_notes: Dict[str, str] = None,
                         admin_containers: Optional[Dict[str, List[str]]] = None) -> bool:
+        """Save the admin document, under the file lock. See _save_admin_data_unlocked."""
+        from utils.atomic_io import cross_process_lock
+
+        with cross_process_lock(_admins_file()):
+            return self._save_admin_data_unlocked(admin_users, admin_notes, admin_containers)
+
+    def _save_admin_data_unlocked(self, admin_users: List[str], admin_notes: Dict[str, str] = None,
+                                  admin_containers: Optional[Dict[str, List[str]]] = None) -> bool:
         """Save admin users, notes and container assignments to file.
 
         Args:

@@ -111,7 +111,7 @@ cogs/control_helpers.py	284	pass1:s01:plan pass2:s01:1-205  [79 of 284 lines nev
 cogs/control_ui.py	3777	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
 cogs/ddc_ui.py	94	passE:written-2026-09-21
 cogs/docker_control.py	1309	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
-cogs/donation_ui.py	646	NONE
+cogs/donation_ui.py	645	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	786	v3rev2:1-786
@@ -125,7 +125,7 @@ cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	97	passE:E32:read-in-full
 services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
-services/admin/admin_service.py	379	passE:F1-feature-read:87-160,262-330
+services/admin/admin_service.py	417	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/auto_action_config_service.py	847	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25

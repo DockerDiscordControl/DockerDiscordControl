@@ -600,23 +600,22 @@ class AddAdminModal(DDCModal):
             # Get admin service and current admins
             from services.admin.admin_service import get_admin_service
             admin_service = get_admin_service()
-            admin_data = admin_service.get_admin_data(force_refresh=True)
-            current_admins = admin_data.get('discord_admin_users', [])
-            admin_notes = admin_data.get('admin_notes', {})
-
-            # Check if user is already an admin
-            if user_id in current_admins:
+            # ONE step: read, check and write under the file lock. Doing the
+            # cycle here meant a panel save could land between the read and the
+            # write, and the list written had never seen it - both sides
+            # answered success and one admin was gone. add_admin_user answers
+            # False when the user is already there, which is the same check,
+            # only inside the lock where it cannot go stale.
+            note = f"Added via Discord by {interaction.user.name}"
+            if not admin_service.add_admin_user(user_id, note):
                 await interaction.response.send_message(
                     _("⚠️ This user is already an admin."),
                     ephemeral=True
                 )
                 return
-
-            # Add the new admin
-            current_admins.append(user_id)
-
-            # Save the updated admin list
-            success = admin_service.save_admin_data(current_admins, admin_notes)
+            current_admins = admin_service.get_admin_data(
+                force_refresh=True).get('discord_admin_users', [])
+            success = True
 
             if success:
                 logger.info(f"Admin added successfully: {user_id} by {interaction.user.id}")
