@@ -10,70 +10,6 @@
         </button>
     </div>
     {% endif %}
-    {# Act on one of the operator's own container groups (app/static/js/group_bulk.js).
-       Not the Compose stack the sort button above uses - these are the groups from
-       services/config/group_service.py, the same ones the tasks and the rules target. #}
-    <fieldset class="p-3 mb-3 rounded border border-secondary" id="bulk-group-bar">
-        <legend class="form-label mb-2" style="float: none; width: auto; font-size: 1rem;">
-            <i class="bi bi-collection text-warning" aria-hidden="true"></i> {{ _t('web.server.bulk_group') }}
-        </legend>
-        <div class="row g-3 align-items-end">
-            <div class="col-12 col-md-4">
-                <label for="bulk-group" class="form-label">{{ _t('web.server.bulk_pick_group') }}</label>
-                <select class="form-select" id="bulk-group">
-                    <option value="">{{ _t('web.server.bulk_pick_group') }}</option>
-                </select>
-            </div>
-            <div class="col-12 col-md-5">
-                {# A fieldset, so a screen reader hears what the four boxes belong to
-                   instead of "Status, Start, Stop, Restart" on their own. The legend
-                   carries the subtraction: apply() sets each box to
-                   `active && wanted(action)`, so an unticked one is REMOVED. That
-                   used to be the last clause of a hint below the buttons. #}
-                <fieldset>
-                    <legend class="form-label" style="float: none; width: auto; font-size: inherit;">
-                        {{ _t('web.server.bulk_permissions_legend') }}
-                    </legend>
-                    <div class="d-flex flex-wrap gap-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="bulk-allow-status" checked>
-                            <label class="form-check-label" for="bulk-allow-status">{{ _t('web.server.col_status') }}</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="bulk-allow-start" checked>
-                            <label class="form-check-label" for="bulk-allow-start">{{ _t('web.server.col_start') }}</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="bulk-allow-stop" checked>
-                            <label class="form-check-label" for="bulk-allow-stop">{{ _t('web.server.col_stop') }}</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="bulk-allow-restart" checked>
-                            <label class="form-check-label" for="bulk-allow-restart">{{ _t('web.server.col_restart') }}</label>
-                        </div>
-                    </div>
-                </fieldset>
-            </div>
-            <div class="col-12 col-md-3">
-                {# gap-2, not the whitespace between the tags: at md this column is a
-                   quarter of the row and the two buttons wrap. Amber, not
-                   btn-outline-secondary: #6c757d on this card is 3.45:1, under the
-                   4.5:1 a normal text needs, which is the "washed out" the operator
-                   reported. Amber is 9.91:1. #}
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-primary" id="bulk-apply-btn">{{ _t('web.server.bulk_apply') }}</button>
-                    <button type="button" class="btn btn-outline-warning" id="bulk-remove-btn">{{ _t('web.server.bulk_remove') }}</button>
-                </div>
-            </div>
-            {# The attributes sit on the WRAPPER: group_bulk.js assigns
-               line.className wholesale, so anything on the message div itself is
-               wiped by the first message it shows. #}
-            <div class="col-12" role="status" aria-live="polite">
-                <div id="bulk-group-message" class="mt-2"></div>
-            </div>
-            <div class="col-12 form-text">{{ _t('web.server.bulk_hint') }}</div>
-        </div>
-    </fieldset>
     {# "New" annotation in the free space above the table, pointing down at the Spieler column #}
     <div class="d-none d-lg-flex justify-content-end" style="padding-right: 6%; margin-bottom: 4px; position: relative; z-index: 2;">
         <span class="handwritten-note" style="font-size: 1.15em;">{{ _t('web.server.new_query_hint') }}</span>
@@ -240,6 +176,76 @@
         </small>
         <div class="form-text mt-1" id="cache-status-text" style="display: none;">{{ _t('web.server.cache_initializing') }}</div>
     </div>
+
+    {# Act on one of the operator's own container groups (app/static/js/group_bulk.js).
+       BELOW the table, by the operator's decision on 2026-09-23: the section that
+       MAKES the groups is the next thing on the page, so the bar sits between the
+       table it fills in and the groups it offers. Picking a group, noticing it is
+       missing a container and fixing that is one short scroll rather than the
+       length of a 26-row table.
+       Not the Compose stack the sort button above uses - these are the groups from
+       services/config/group_service.py, the same ones the tasks and the rules target. #}
+    <fieldset class="p-3 mb-3 rounded border border-secondary" id="bulk-group-bar">
+        <legend class="form-label mb-2" style="float: none; width: auto; font-size: 1rem; color: #dee2e6;">
+            <i class="bi bi-collection text-warning" aria-hidden="true"></i> {{ _t('web.server.bulk_group') }}
+        </legend>
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label for="bulk-group" class="form-label">{{ _t('web.server.bulk_pick_group') }}</label>
+                <select class="form-select" id="bulk-group">
+                    <option value="">{{ _t('web.server.bulk_pick_group') }}</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-5">
+                {# A fieldset, so a screen reader hears what the four boxes belong to
+                   instead of "Status, Start, Stop, Restart" on their own. The legend
+                   carries the subtraction: apply() sets each box to
+                   `active && wanted(action)`, so an unticked one is REMOVED. That
+                   used to be the last clause of a hint below the buttons. #}
+                <fieldset>
+                    <legend class="form-label" style="float: none; width: auto; font-size: inherit; color: #adb5bd;">
+                        {{ _t('web.server.bulk_permissions_legend') }}
+                    </legend>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bulk-allow-status" checked>
+                            <label class="form-check-label" for="bulk-allow-status">{{ _t('web.server.col_status') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bulk-allow-start" checked>
+                            <label class="form-check-label" for="bulk-allow-start">{{ _t('web.server.col_start') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bulk-allow-stop" checked>
+                            <label class="form-check-label" for="bulk-allow-stop">{{ _t('web.server.col_stop') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bulk-allow-restart" checked>
+                            <label class="form-check-label" for="bulk-allow-restart">{{ _t('web.server.col_restart') }}</label>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="col-12 col-md-3">
+                {# gap-2, not the whitespace between the tags: at md this column is a
+                   quarter of the row and the two buttons wrap. Amber, not
+                   btn-outline-secondary: #6c757d on this card is 3.45:1, under the
+                   4.5:1 a normal text needs, which is the "washed out" the operator
+                   reported. Amber is 9.91:1. #}
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-primary" id="bulk-apply-btn">{{ _t('web.server.bulk_apply') }}</button>
+                    <button type="button" class="btn btn-outline-warning" id="bulk-remove-btn">{{ _t('web.server.bulk_remove') }}</button>
+                </div>
+            </div>
+            {# The attributes sit on the WRAPPER: group_bulk.js assigns
+               line.className wholesale, so anything on the message div itself is
+               wiped by the first message it shows. #}
+            <div class="col-12" role="status" aria-live="polite">
+                <div id="bulk-group-message" class="mt-2"></div>
+            </div>
+            <div class="col-12 form-text">{{ _t('web.server.bulk_hint') }}</div>
+        </div>
+    </fieldset>
 </div>
 
 {# Container Info Modal #}

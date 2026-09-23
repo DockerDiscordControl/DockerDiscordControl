@@ -34,6 +34,7 @@ translation key; the section could not act on a group at all.
 """
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -209,3 +210,49 @@ def test_the_result_message_is_announced():
     assert 'role="status"' in wrapper and 'aria-live="polite"' in wrapper, (
         "the bulk result is announced to nobody, and putting the attributes on "
         "the message div itself would be wiped by group_bulk.js")
+
+
+def test_the_bar_sits_below_the_table_next_to_the_groups_it_uses():
+    """WHERE IT BELONGS, decided by the operator on 2026-09-23.
+
+    It was built above the table, on the reasoning that a tool acts on what
+    follows it. He moved it below, and his reason is better: the section that
+    MAKES the groups - Container groups - is the next thing on the page, so
+    the bar now sits between the table it fills in and the groups it offers.
+    Picking a group, seeing it is missing a container, and fixing that is one
+    short scroll instead of the length of a 26-row table.
+    """
+    section = SECTION.read_text(encoding="utf-8")
+
+    assert section.index('id="docker-container-list"') < section.index('id="bulk-group-bar"'), (
+        "the group bar is still above the table")
+    assert section.index('id="cache-timestamp"') < section.index('id="bulk-group-bar"'), (
+        "the bar is inside the table's own footer rather than after it")
+
+
+def test_the_page_puts_the_groups_section_straight_after_it():
+    """The other half of the operator's reason: the bar is next to the section
+    that makes the groups, with nothing between them."""
+    page = (ROOT / "app" / "templates" / "config.html").read_text(encoding="utf-8")
+
+    containers = page.index("_server_selection.html")
+    groups = page.index("_container_groups.html")
+    # From just after the table's include to the groups' name. The slice still
+    # holds the opening of the groups' own {% include %}, so one is expected.
+    between = page[containers:groups]
+
+    assert between.count("{% include") == 1, (
+        f"something is included between the container table and the groups "
+        f"section: {between.strip()[:160]}")
+
+
+def test_the_bars_own_labels_are_readable():
+    """From the operator's screenshot: the two legends sat in the fieldset's
+    border cut-out and came out nearly black on a dark card. A legend inherits
+    nothing useful here, so both say what colour they are."""
+    section = SECTION.read_text(encoding="utf-8")
+    legends = re.findall(r"<legend[^>]*>", section)
+
+    assert len(legends) >= 2, f"expected the bar's two legends, found {legends}"
+    for legend in legends:
+        assert "color:" in legend, f"this legend has no colour of its own: {legend}"
