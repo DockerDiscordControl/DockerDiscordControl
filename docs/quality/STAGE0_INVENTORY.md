@@ -534,7 +534,6 @@ This section is the most important one, and it is deliberately uncomfortable.
 
 **Not looked at at all:**
 - `app/static/vendor/bootstrap/js/bootstrap.bundle.min.js` (minified, third-party code).
-- `docker/entrypoint.sh` (not used, but its content is unread).
 - The workflows `dependency-checks.yml` and `dockerhub-readme-sync.yml`.
 - Seven diagnostic scripts were classified as write-free only by grep, not read.
 - `config/` itself — not readable over SMB (mode 700); on the host only checked for file names.

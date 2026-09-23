@@ -40,7 +40,7 @@ services:
     # Capability hardening (currently disabled — kept here as a tested-but-
     # unverified configuration). The entrypoint needs root caps to chown the
     # data dirs and switch users via su-exec / setpriv. The minimal set below
-    # has been derived from docker/entrypoint.sh; enable & test on staging
+    # has been derived from scripts/entrypoint.sh; enable & test on staging
     # before promoting to production:
     #
     # cap_drop:

@@ -80,7 +80,7 @@
 | # | Item | Status | What was done |
 |---|---|---|---|
 | S3 | Pin docker version in `requirements-test.txt` to prod | ✅ | `docker>=6.1.0,<7.0.0` → `docker==7.1.0`. Tests now exercise the same SDK version as prod |
-| S10 | `cap_drop: [ALL]` + minimal `cap_add` | ⏸️ | **Prepared, not activated.** In `docker-compose.yml` the config is stored as a commented-out block with a recommended cap list (CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, SETPCAP) — derived from the operations in `docker/entrypoint.sh`. Risk: if the set is too small, the container does not start. **Recommendation:** test on a staging container, then enable |
+| S10 | `cap_drop: [ALL]` + minimal `cap_add` | ⏸️ | **Prepared, not activated.** In `docker-compose.yml` the config is stored as a commented-out block with a recommended cap list (CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, SETPCAP) — derived from the operations in `scripts/entrypoint.sh`. Risk: if the set is too small, the container does not start. **Recommendation:** test on a staging container, then enable |
 | S14 | Evaluate `read_only: true` + tmpfs | ⏸️ | Only makes sense after a successful S10 test |
 
 ---
