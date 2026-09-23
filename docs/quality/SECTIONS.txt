@@ -79,7 +79,7 @@ services/automation/container_watch.py:1-157
 services/automation/own_actions.py:1-70
 services/config/__init__.py:1-16
 services/config/channel_roles.py:1-38
-services/config/channel_config_service.py:1-576
+services/config/channel_config_service.py:1-585
 
 ## Section 12  (1912 lines, 4 pieces)
 # config_cache_service.py followed on 2026-09-23: section 11 went over 2,000

@@ -502,17 +502,26 @@ class ChannelConfigService:
             channels: Dict with channel IDs as keys and configs as values
         """
         try:
-            # Load main config
-            main_config = {}
-            if self.config_file.exists():
-                with open(self.config_file, 'r') as f:
-                    main_config = json.load(f)
+            # THE SAME lock ConfigService.save_config takes. This is the second
+            # writer of config.json, and it rewrites the WHOLE file: without the
+            # lock, two overlapping saves - two tabs, a double-click - could
+            # have this write land on top of a main save and lose it entirely.
+            # An RLock, so a save already holding it on this thread nests.
+            from services.config.config_service import get_config_service
 
-            # Replace entire channel_permissions section
-            main_config['channel_permissions'] = channels
+            with get_config_service()._save_lock:
+                # Load main config
+                main_config = {}
+                if self.config_file.exists():
+                    with open(self.config_file, 'r') as f:
+                        main_config = json.load(f)
 
-            # Save back atomically
-            self._atomic_write_json(self.config_file, main_config)
+                # Replace entire channel_permissions section. This is what keeps
+                # the copy CURRENT; save_config only preserves what is there.
+                main_config['channel_permissions'] = channels
+
+                # Save back atomically
+                self._atomic_write_json(self.config_file, main_config)
 
             logger.info(f"Updated main config with {len(channels)} channels")
             return True

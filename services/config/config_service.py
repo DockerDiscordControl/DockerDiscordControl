@@ -400,10 +400,8 @@ class ConfigService:
                 # Prepare main config (exclude modular data saved separately)
                 main_config = config.copy()
 
-                # Remove fields that are saved separately in modular structure
-                fields_saved_separately = ['servers', 'channel_permissions']
-                for field in fields_saved_separately:
-                    main_config.pop(field, None)
+                # 'servers' lives in config/containers/*.json; the channel copy is KEPT.
+                main_config.pop('servers', None)
 
                 # Remove runtime-only keys added by get_config() (plaintext token). The
                 # values are only used by the token self-repair below.
@@ -415,8 +413,10 @@ class ConfigService:
                 # is saved (e.g. from the setup handler).
                 # web_ui_password_hash included: losing it drops the panel back into first-run
                 # setup mode, where admin/setup is accepted on every route (app/auth.py).
+                # channel_permissions too: a save silent about channels must not
+                # erase the copy. Preserved, never invented - see the spec test.
                 _critical_fields = ('bot_token', 'guild_id', 'encrypted_bot_token',
-                                    'web_ui_password_hash')
+                                    'web_ui_password_hash', 'channel_permissions')
                 existing = {}
                 if self.main_config_file.exists():
                     try:
