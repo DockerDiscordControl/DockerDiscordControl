@@ -1187,6 +1187,10 @@ def setup(bot):
 
                         # Send to configured Status and Control channels from Web UI (like /donate command)
                         sent_count = 0
+                        # Channels that WANT the announcement. A channel with
+                        # broadcasts switched off is not one of them, so turning
+                        # them all off never becomes a recurring error.
+                        wanted_count = 0
                         config = load_config()
                         channels_config = config.get('channel_permissions', {})
 
@@ -1211,6 +1215,8 @@ def setup(bot):
 
                                 logger.info(f"🔔 Channel {channel_id_str}: found={channel is not None}, broadcasts={donation_broadcasts}")
 
+                                if donation_broadcasts:
+                                    wanted_count += 1
                                 if channel and donation_broadcasts:
                                     await channel.send(embed=embed)
                                     sent_count += 1
@@ -1225,6 +1231,19 @@ def setup(bot):
                                 logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
                         logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
+                        if sent_count == 0 and wanted_count:
+                            # The notification file is already gone - reading it
+                            # deletes it, so a crash cannot announce twice - and
+                            # the panel already answered published_to_discord,
+                            # which only ever meant "the file was written". A
+                            # donor paid, the operator saw a green tick, and
+                            # nobody heard anything. SPEC.md Z8: not an INFO line.
+                            # Channels with broadcasts switched OFF are not
+                            # counted here: nothing went wrong there.
+                            logger.error(
+                                f"🔔 The thank-you for {donor_name} ${amount} reached NONE of "
+                                f"the {wanted_count} channel(s) that wanted it - the "
+                                f"announcement is gone, it cannot be sent again")
 
                     except (discord.errors.DiscordException, RuntimeError, ValueError) as embed_error:
                         logger.error(f"🔔 Error creating/sending donation embed: {embed_error}", exc_info=True)
