@@ -38,6 +38,10 @@ def list_groups():
                 "name": group.name,
                 "containers": group.containers,
                 "missing": members.missing,
+                # The group's OWN permissions, not its members' - a group is a
+                # control of its own (services/config/group_service.py).
+                "active": group.active,
+                "allowed_actions": group.allowed_actions,
             })
         return jsonify({"groups": groups})
     except OSError as e:
@@ -50,9 +54,16 @@ def list_groups():
 @group_bp.route('/api/groups', methods=['POST'])
 @auth.login_required
 def save_group():
-    """Create a group, or replace the containers of the one with that name."""
+    """Create a group, or replace what the one with that name holds."""
     data = request.get_json(silent=True) or {}
-    result = get_group_service().save_group(data.get("name"), data.get("containers") or [])
+    # None, not a default, when the caller says nothing: the service then keeps
+    # what the group has instead of quietly resetting its permissions. An empty
+    # list IS an answer - every box ticked off - and must survive as one.
+    result = get_group_service().save_group(
+        data.get("name"), data.get("containers") or [],
+        active=data.get("active"),
+        allowed_actions=(data.get("allowed_actions")
+                         if isinstance(data.get("allowed_actions"), list) else None))
     if result.success:
         return jsonify({"success": True})
     return jsonify({"success": False, "error": result.error}), 400

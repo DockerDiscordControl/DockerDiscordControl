@@ -47,6 +47,11 @@ MAX_NAME_LENGTH = 80  # Discord shows a select option's label up to 100 characte
 # a log line the same way.
 FORBIDDEN_IN_NAME = ("/", "\\", "\n", "\r", "\t")
 
+# What a group may be allowed to do. The same four a container offers, because
+# they are the four buttons Discord can press - an action outside this list
+# would be stored, drawn as a tick and do nothing when pressed.
+KNOWN_ACTIONS = ("status", "start", "stop", "restart")
+
 
 def _normalised(name: str) -> str:
     """The name in one unicode spelling, for comparing.
@@ -60,9 +65,25 @@ def _normalised(name: str) -> str:
 
 @dataclass(frozen=True)
 class ContainerGroup:
-    """A group as the operator wrote it down."""
+    """A group as the operator wrote it down.
+
+    OPERATOR DECISION (2026-09-24): a group is NOT a shortcut for ticking boxes
+    on its containers, and not a view of them either - it is a control of its
+    own. ``active`` and ``allowed_actions`` are the group's, exactly as a
+    container has its own, and a member's settings neither limit them nor are
+    changed by them. A container switched off in DDC, or allowed only to be
+    stopped, can sit in a group that may do all four.
+
+    A group from a file written before that decision carries neither field. It
+    reads as Active with the four standard actions, because that is what it
+    could do yesterday: the Discord restart menu offered every group a restart
+    whatever its members said. Reading it as powerless would take a working
+    button away from an operator who changed nothing.
+    """
     name: str
     containers: List[str] = field(default_factory=list)
+    active: bool = True
+    allowed_actions: List[str] = field(default_factory=lambda: list(KNOWN_ACTIONS))
 
 
 @dataclass(frozen=True)
@@ -97,7 +118,10 @@ class GroupService:
 
     def get_groups(self) -> List[ContainerGroup]:
         """Every group, in the order they were written."""
-        return [ContainerGroup(name=entry["name"], containers=list(entry.get("containers", [])))
+        return [ContainerGroup(name=entry["name"],
+                               containers=list(entry.get("containers", [])),
+                               active=entry["active"],
+                               allowed_actions=list(entry["allowed_actions"]))
                 for entry in self._read()]
 
     def find(self, name: str) -> Optional[ContainerGroup]:
@@ -122,8 +146,16 @@ class GroupService:
 
     # ----------------------------------------------------------------- write
 
-    def save_group(self, name: str, containers: List[str]) -> GroupResult:
-        """Create the group, or replace the containers of the one with that name."""
+    def save_group(self, name: str, containers: List[str],
+                   active: Optional[bool] = None,
+                   allowed_actions: Optional[List[str]] = None) -> GroupResult:
+        """Create the group, or replace what the one with that name holds.
+
+        ``active`` and ``allowed_actions`` are the GROUP's own permissions. Left
+        out, an existing group keeps what it has and a new one gets the four
+        standard actions - a caller that does not know about permissions must
+        not silently take them away.
+        """
         name = _normalised(name).strip()
         if not name:
             return GroupResult(False, "A group needs a name.")
@@ -145,6 +177,19 @@ class GroupService:
             if container not in cleaned:
                 cleaned.append(container)
         containers = cleaned
+
+        # Checked before the file is opened: a name the panel invented, or one
+        # left over from a renamed action, would be stored, drawn as a tick and
+        # do nothing when Discord pressed it.
+        wanted_actions: List[str] = []
+        if allowed_actions is not None:
+            unknown = [a for a in allowed_actions if a not in KNOWN_ACTIONS]
+            if unknown:
+                return GroupResult(False, f"A group cannot be allowed to {', '.join(unknown)}.")
+            for action in allowed_actions:
+                if action not in wanted_actions:
+                    wanted_actions.append(action)
+
         try:
             with cross_process_lock(self._path):
                 entries = self._read()
@@ -157,8 +202,18 @@ class GroupService:
                         False, f"A group called '{same_name[0]['name']}' already exists.")
                 if same_name:
                     same_name[0]["containers"] = containers
+                    if active is not None:
+                        same_name[0]["active"] = bool(active)
+                    if allowed_actions is not None:
+                        same_name[0]["allowed_actions"] = wanted_actions
                 else:
-                    entries.append({"name": name, "containers": containers})
+                    entries.append({
+                        "name": name,
+                        "containers": containers,
+                        "active": True if active is None else bool(active),
+                        "allowed_actions": (list(KNOWN_ACTIONS) if allowed_actions is None
+                                            else wanted_actions),
+                    })
                 self._write(entries)
         except OSError as e:
             logger.error(f"Could not save group '{name}': {e}", exc_info=True)
@@ -198,7 +253,13 @@ class GroupService:
         entries = data.get("groups") if isinstance(data, dict) else None
         if not isinstance(entries, list):
             return []
-        return [{"name": str(e["name"]), "containers": list(e.get("containers", []))}
+        return [{"name": str(e["name"]),
+                 "containers": list(e.get("containers", [])),
+                 # A group from before 2026-09-24 has neither field; see
+                 # ContainerGroup for why the answer is not "nothing".
+                 "active": bool(e.get("active", True)),
+                 "allowed_actions": [a for a in e.get("allowed_actions", KNOWN_ACTIONS)
+                                     if a in KNOWN_ACTIONS]}
                 for e in entries if isinstance(e, dict) and e.get("name")]
 
     def _write(self, entries: List[dict]) -> None:
