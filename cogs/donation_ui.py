@@ -108,6 +108,17 @@ class DonationView(DDCView):
     async def broadcast_clicked(self, interaction: discord.Interaction):
         """Handle Broadcast Donation button click."""
         try:
+            # /donate posts this view NON-ephemerally for 890 seconds, so everyone
+            # in the channel can press this. Each press opens a modal that books a
+            # real DonationAdded event with a FRESH interaction.id, so the ledger's
+            # idempotency never bites - it was the one mech button the operator's
+            # donate slider did not reach. Under mech_donate, the same bucket as
+            # the Power/Donate button: get_button_cooldown derives the slider only
+            # from a name starting with "mech_".
+            from cogs.control_ui import _mech_button_braked
+
+            if await _mech_button_braked(interaction, f"mech_donate_{interaction.channel_id}"):
+                return
             # Show modal for donation details
             modal = DonationBroadcastModal(self.donation_manager_available, interaction.user.name, self.bot)
             await interaction.response.send_modal(modal)
