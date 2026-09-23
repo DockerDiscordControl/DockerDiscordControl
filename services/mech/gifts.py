@@ -27,7 +27,7 @@ from typing import Optional, Tuple, TYPE_CHECKING
 
 from services.mech.progress_service import (
     LOCK, Event, ProgressState, apply_decay_on_demand, apply_power_event,
-    compute_ui_state, current_power_cents, decay_per_day, load_snapshot,
+    battery_capacity_cents, compute_ui_state, current_power_cents, decay_per_day, load_snapshot,
     next_seq, now_utc_iso, persist_snapshot, read_events, append_event,
 )
 
@@ -93,6 +93,20 @@ def grant_power_gift(service: "ProgressService", campaign_id: str,
 
         if gift_cents is None:
             gift_cents = deterministic_gift_1_3(service.mech_id, campaign_id)
+        # Only what FITS is given: the ledger entry is what the history, the
+        # totals and the average are built from, so a gift written as $15.00
+        # when $10.00 landed overstates every one of them.
+        capacity = battery_capacity_cents(snap)
+        if capacity is not None:
+            gift_cents = min(gift_cents, max(0, capacity - current_power_cents(snap)))
+        if gift_cents <= 0:
+            # Three days of a level that consumes nothing is nothing. Writing
+            # the event anyway put a "🎁 Power Gift - $0.00" row in the donation
+            # history, dragged the average down, and spent the campaign - so
+            # that version could never grant anything again.
+            logger.info(f"Power gift skipped: nothing would fit (level {snap.level})")
+            _persist_if_decay_day_changed()
+            return compute_ui_state(snap), None
 
         evt = Event(
             seq=next_seq(),
@@ -104,11 +118,15 @@ def grant_power_gift(service: "ProgressService", campaign_id: str,
         append_event(evt)
 
         # Power is 0 here: fold any decay debt and restart the decay clock before adding
+        power_before = snap.power_acc
         apply_power_event(snap, evt)
         snap.version += 1
         snap.last_event_seq = evt.seq
         persist_snapshot(snap)
 
-        gift_dollars = gift_cents / 100.0
+        # What LANDED, not what was asked for: the battery has a lid, and
+        # reporting the requested amount made the log read "$15.00 (power is
+        # now $10.00)" and the donation statistics count the difference.
+        gift_dollars = (snap.power_acc - power_before) / 100.0
         logger.info(f"Power gift granted: ${gift_dollars:.2f}")
         return compute_ui_state(snap), gift_dollars

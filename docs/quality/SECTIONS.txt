@@ -168,7 +168,7 @@ services/mech/mech_defaults.py:1-34
 services/mech/mech_evolutions.py:1-449
 # gifts.py split out of progress_service.py on 2026-09-23 (that file may only
 # shrink); it sits with the other small mech pieces.
-services/mech/gifts.py:1-114
+services/mech/gifts.py:1-132
 services/mech/mech_high_res_service.py:1-248
 
 ## Section 23  (1932 lines, 9 pieces)
@@ -262,7 +262,7 @@ app/bot/startup_steps/__init__.py:1-52
 app/bot/startup_steps/commands.py:1-120
 app/bot/startup_steps/member_count.py:1-126
 app/bot/startup_steps/notifications.py:1-35
-app/bot/startup_steps/power.py:1-70
+app/bot/startup_steps/power.py:1-77
 app/bot/startup_steps/scheduler.py:1-27
 app/bot/token.py:1-123
 app/constants.py:1-17

@@ -146,3 +146,53 @@ def test_three_days_follows_the_level(module, monkeypatch):
 
     assert gifts.three_days_of_energy(5) == 750
     assert gifts.three_days_of_energy(1) == 300
+
+
+def test_the_last_level_is_not_given_nothing(module, mech, monkeypatch):
+    """Three days of nothing is not a gift, and it must not burn the campaign.
+
+    THE FINDING (independent review, 2026-09-23): the final level consumes 0,
+    so three days of it is 0. gift_cents=0 is not None, so the deterministic
+    $1-$3 did not step in either: a PowerGiftGranted event with power_units 0
+    was written, the donation history gained a "🎁 Power Gift — $0.00" row that
+    drags the average down, one log line said "granted: $0.00" while the next
+    said "not needed" - and the campaign was spent, so the version could never
+    grant anything again.
+    """
+    from services.mech import gifts
+
+    # The shipped table: the final level consumes nothing
+    monkeypatch.setattr(gifts, "decay_per_day", lambda level: 0 if level == 11 else 100)
+    snap = module.load_snapshot("main")
+    snap.level = 11
+    snap.goal_requirement = 0
+    module.persist_snapshot(snap)
+
+    _state, gift = mech.release_gift("3.0.0")
+
+    assert gift is None, f"the last level was given {gift}"
+    assert [e for e in module.read_events() if e.type == "PowerGiftGranted"] == [], (
+        "an empty gift was written into the ledger")
+
+
+def test_a_gift_bigger_than_the_battery_reports_what_landed(module, mech, monkeypatch):
+    """The amount in the log and the history is the amount that arrived.
+
+    COUNTER-CHECK (2026-09-23): red before - three days at an operator-raised
+    rate ($5/day = $15) against a $10 battery was reported as $15 while $10
+    landed, and the donation statistics counted the $15.
+    """
+    from services.mech import gifts
+
+    monkeypatch.setattr(gifts, "decay_per_day", lambda level: 500)
+
+    _state, gift = mech.release_gift("3.0.0")
+
+    snap = module.load_snapshot("main")
+    assert gift == snap.power_acc / 100.0, (
+        f"reported {gift}, the mech has {snap.power_acc / 100.0}")
+
+    # The ledger entry is what the donation history, the total and the average
+    # are built from - it must be the amount that landed, not the one asked for.
+    written = [e for e in module.read_events() if e.type == "PowerGiftGranted"]
+    assert written[-1].payload["power_units"] == snap.power_acc, written[-1].payload

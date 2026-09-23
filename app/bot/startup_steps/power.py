@@ -24,7 +24,13 @@ async def grant_power_gift_step(context: StartupContext) -> None:
         from services.mech.mech_service_adapter import get_mech_service
 
         adapter = get_mech_service()
+        # Both calls can grant, and only one of them usually does: on a fresh
+        # install the welcome gift lands and the release gift is refused right
+        # after (the mech has power now). Keeping only the LAST state reported
+        # "not needed" on the one boot where a gift really happened.
+        granted = []
         state = adapter.power_gift("startup_gift_v1")
+        granted.append(getattr(state, "gift", None))
 
         # Every release refuels a mech that has run dry: three days of the
         # energy its level consumes, on the energy account only. The campaign
@@ -35,12 +41,13 @@ async def grant_power_gift_step(context: StartupContext) -> None:
         version = (os.environ.get("DDC_VERSION") or "").strip().lstrip("vV")
         if version:
             state = adapter.release_gift(version)
+            granted.append(getattr(state, "gift", None))
 
         # state.power_level is the power the mech HAS; `gift` is what was just
         # given. Reporting the first under the word "granted" told the operator
         # about a gift on every restart of a mech that simply had power - I read
         # the line on the running installation and believed it myself.
-        gift = getattr(state, "gift", None)
+        gift = sum(amount for amount in granted if amount) or None
         if gift:
             logger.info("✅ Power gift granted: $%.2f (power is now $%.2f)",
                         gift, state.power_level)
