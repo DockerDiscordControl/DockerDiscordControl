@@ -62,7 +62,10 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   the way a yearly task on 29 February has always fallen back to the 28th. If you were relying
   on the skip, use a cron expression instead.
 - **Going back to v2.4.1 is safe:** measured with `scripts/check_upgrade_downgrade.sh` - 2FA and
-  the TLS certificate survive a downgrade and a second upgrade.
+  the TLS certificate survive a downgrade and a second upgrade. Re-measured on 2026-09-23 against
+  the image that carries the form login, together with the script's own counter-check
+  (`DDC_CHECK_SIMULATE_LOSS=1`), which fails step 4 as it should - a check that cannot fail
+  proves nothing.
 
 ### 🔒 Security
 
