@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import time
+import unicodedata
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -37,6 +38,24 @@ from utils.logging_utils import get_module_logger
 logger = get_module_logger('group_service')
 
 MAX_NAME_LENGTH = 80  # Discord shows a select option's label up to 100 characters
+
+# Characters a name may not contain. "/" is the one that matters: the delete
+# route takes the name as a path segment, Flask's converter does not match a
+# slash, and %2F is decoded before routing - so a group called "Media/TV" could
+# be created and never deleted again (verified against Flask: 404, with an HTML
+# body the panel shows as a bare "Error"). The rest would break a menu line or
+# a log line the same way.
+FORBIDDEN_IN_NAME = ("/", "\\", "\n", "\r", "\t")
+
+
+def _normalised(name: str) -> str:
+    """The name in one unicode spelling, for comparing.
+
+    "Café" typed as NFC and as NFD look identical in every menu; without this
+    they are two groups, and find() on the other spelling answers "there is no
+    group called Café".
+    """
+    return unicodedata.normalize("NFC", name or "")
 
 
 @dataclass(frozen=True)
@@ -83,8 +102,9 @@ class GroupService:
 
     def find(self, name: str) -> Optional[ContainerGroup]:
         """The group of that name, ignoring case, or None."""
-        wanted = (name or "").strip().casefold()
-        return next((g for g in self.get_groups() if g.name.casefold() == wanted), None)
+        wanted = _normalised(name).strip().casefold()
+        return next((g for g in self.get_groups()
+                     if _normalised(g.name).casefold() == wanted), None)
 
     def members_of(self, name: str) -> GroupMembers:
         """The containers of the group that DDC still has, and the ones it does not."""
@@ -104,17 +124,32 @@ class GroupService:
 
     def save_group(self, name: str, containers: List[str]) -> GroupResult:
         """Create the group, or replace the containers of the one with that name."""
-        name = (name or "").strip()
+        name = _normalised(name).strip()
         if not name:
             return GroupResult(False, "A group needs a name.")
         if len(name) > MAX_NAME_LENGTH:
             return GroupResult(False, f"A group name may be at most {MAX_NAME_LENGTH} characters.")
+        bad = [c for c in FORBIDDEN_IN_NAME if c in name]
+        if bad:
+            return GroupResult(False, "A group name may not contain a slash, a backslash or a "
+                                      "line break - the name is part of a web address when the "
+                                      "group is deleted.")
 
-        containers = [c for c in (containers or []) if isinstance(c, str) and c.strip()]
+        # Stripped as they are stored, and each one once: a padded name never
+        # matches a container, and a doubled one would be acted on twice.
+        cleaned = []
+        for container in containers or []:
+            if not isinstance(container, str) or not container.strip():
+                continue
+            container = container.strip()
+            if container not in cleaned:
+                cleaned.append(container)
+        containers = cleaned
         try:
             with cross_process_lock(self._path):
                 entries = self._read()
-                same_name = [e for e in entries if e["name"].casefold() == name.casefold()]
+                same_name = [e for e in entries
+                             if _normalised(e["name"]).casefold() == _normalised(name).casefold()]
                 if same_name and same_name[0]["name"] != name:
                     # Two groups whose names differ only in case make every later
                     # choice ambiguous - in a select menu, in a task, in a rule.
@@ -132,11 +167,12 @@ class GroupService:
 
     def delete_group(self, name: str) -> GroupResult:
         """Remove the group. The containers themselves are not touched."""
-        wanted = (name or "").strip().casefold()
+        wanted = _normalised(name).strip().casefold()
         try:
             with cross_process_lock(self._path):
                 entries = self._read()
-                remaining = [e for e in entries if e["name"].casefold() != wanted]
+                remaining = [e for e in entries
+                             if _normalised(e["name"]).casefold() != wanted]
                 if len(remaining) == len(entries):
                     return GroupResult(False, f"There is no group called '{name}'.")
                 self._write(remaining)
