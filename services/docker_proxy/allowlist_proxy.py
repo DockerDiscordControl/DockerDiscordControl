@@ -123,14 +123,26 @@ DRAIN_LIMIT_BYTES = 1 << 20  # what a refusal reads away before it hangs up
 
 
 def _refuse(conn: socket.socket, status: str, message: str) -> None:
+    """Answer a request this proxy will not pass on.
+
+    A client that asks for something forbidden and hangs up without waiting -
+    a script, a timeout, a killed container - leaves a broken socket here, and
+    this write used to raise out of handle(). socketserver then printed its own
+    traceback to stderr, which under supervisord is not the log the operator
+    reads. There is no one left to tell, so the refusal is simply over.
+    """
     body = ('{"message": "%s (DDC docker proxy)"}' % message).encode()
-    conn.sendall(
-        (
-            f"HTTP/1.1 {status}\r\nContent-Type: application/json\r\n"
-            f"Content-Length: {len(body)}\r\nConnection: close\r\n\r\n"
-        ).encode()
-        + body
-    )
+    try:
+        conn.sendall(
+            (
+                f"HTTP/1.1 {status}\r\nContent-Type: application/json\r\n"
+                f"Content-Length: {len(body)}\r\nConnection: close\r\n\r\n"
+            ).encode()
+            + body
+        )
+    except OSError as error:
+        logger.info(f"docker proxy: the client was gone before the refusal ({error})")
+        return
     _drain(conn)
 
 
@@ -234,10 +246,7 @@ class _Handler(socketserver.BaseRequestHandler):
             # that had already started, the 502 was a second HTTP response inside
             # the body of the first, and the client read the two as one.
             if not relayed:
-                try:
-                    _refuse(conn, "502 Bad Gateway", "docker daemon unreachable")
-                except OSError:
-                    pass
+                _refuse(conn, "502 Bad Gateway", "docker daemon unreachable")
         finally:
             upstream.close()
 
