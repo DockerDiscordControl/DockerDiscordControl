@@ -138,3 +138,74 @@ def test_the_rules_hold_in_node():
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.count("ok   - ") == 8, result.stdout
+
+
+# --- What the operator saw on 2026-09-23: "does not look perfect yet" -------
+
+
+def test_the_remove_button_does_not_sound_like_stopping_containers():
+    """THE WORST THING ON THE BAR, and it was not the looks.
+
+    The old wording said "switch the group off". Next to a table of 26 running
+    containers that reads as "stop them". It does nothing of the kind: it
+    unticks Active and clears the four permission boxes IN THE FORM, and saves
+    nothing at all. The operator picked the new wording on 2026-09-23 - it now
+    says the control takes the group out of the selection.
+
+    The KEY name stays web.server.bulk_remove, so group_bulk.js and the rest of
+    this file are untouched - only the text behind it changed.
+    """
+    import json
+
+    for language in ("en", "de"):
+        text = json.loads((ROOT / "locales" / f"{language}.json").read_text(
+            encoding="utf-8"))["web.server.bulk_remove"].lower()
+        for forbidden in ("abschalt", "stopp", "switch off", "turn off", "stop "):
+            assert forbidden not in text, (language, text)
+
+
+def test_the_remove_button_can_actually_be_read():
+    """MEASURED, not taste: btn-outline-secondary is #6c757d on the card's
+    #1E2125, which is 3.45:1 - under the 4.5:1 a normal text needs. That is the
+    "washed out" the operator saw. btn-outline-warning is 9.91:1."""
+    section = SECTION.read_text(encoding="utf-8")
+    position = section.index('id="bulk-remove-btn"')
+    button = section[section.rindex("<button", 0, position):position]
+
+    assert "btn-outline-secondary" not in button, (
+        "the button that takes permissions away is drawn at 3.45:1 on this "
+        "background, which is under the readable minimum")
+
+
+def test_applying_does_not_silently_strip_the_other_permissions():
+    """THE TRAP UNDERNEATH THE LOOKS: apply() sets every box to
+    `active && wanted(action)`, so a bar that ships with only Status ticked
+    REMOVES start, stop and restart from the whole group on the first press -
+    and said so in the last clause of a hint below the buttons.
+
+    All four ship ticked now, and the subtraction is stated where the boxes
+    are, not in a footnote.
+    """
+    section = SECTION.read_text(encoding="utf-8")
+
+    for action in ("status", "start", "stop", "restart"):
+        position = section.index(f'id="bulk-allow-{action}"')
+        box = section[section.rindex("<input", 0, position):section.index(">", position)]
+        assert "checked" in box, f"{action} does not ship ticked - applying would remove it"
+
+    assert "web.server.bulk_permissions_legend" in section, (
+        "nothing beside the boxes says that unticked means removed")
+
+
+def test_the_result_message_is_announced():
+    """The only feedback a bulk apply gives, and it was silent to a screen
+    reader. The attributes go on a WRAPPER: group_bulk.js assigns
+    line.className wholesale, so anything put on the message div itself is
+    wiped by the first message it shows."""
+    section = SECTION.read_text(encoding="utf-8")
+    position = section.index('id="bulk-group-message"')
+    wrapper = section[max(0, position - 300):position]
+
+    assert 'role="status"' in wrapper and 'aria-live="polite"' in wrapper, (
+        "the bulk result is announced to nobody, and putting the attributes on "
+        "the message div itself would be wiped by group_bulk.js")
