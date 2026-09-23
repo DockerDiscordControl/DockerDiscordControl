@@ -1497,15 +1497,15 @@ def _format_task_time(task: ScheduledTask, timestamp: Optional[float]) -> str:
 def reschedule_missed_task(task: ScheduledTask) -> bool:
     """Handle a task whose scheduled time passed longer ago than the grace period.
 
-    Missed runs (host down, scheduler delayed) are not executed retroactively.
-    Recurring tasks move to their next future occurrence; one-time tasks are
-    deactivated with an explanatory error instead of staying active forever.
+    Missed runs are not executed retroactively, and BOTH kinds are marked
+    not-successful with the reason (last_run_ts stays put - no run happened):
+    the last REAL result otherwise kept a green badge on a week-dead task.
     """
     missed_at = _format_task_time(task, task.next_run_ts)
+    task.last_run_success = False
+    task.last_run_error = f"Missed scheduled time {missed_at} (scheduler not running); not executed"
     if task.cycle == CYCLE_ONCE:
         task.is_active = False
-        task.last_run_success = False
-        task.last_run_error = f"Missed scheduled time {missed_at} (scheduler not running); not executed"
         logger.warning(f"One-time task {task.task_id} ({task.container_name} {task.action}) missed its time {missed_at}; deactivated")
     else:
         if task.is_donation_task():
