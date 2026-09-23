@@ -190,7 +190,11 @@
                 <!-- Donation System Control -->
                 <div class="card bg-secondary mb-3">
                     <div class="card-header text-light">
-                        <h6 class="mb-0">
+                        {# Addressed by id, not by class: the script below used to reach
+                           for the first .card-header h6 in the DOCUMENT, and this modal is
+                           included after every settings section - so the badge landed on
+                           the spam-protection card three includes earlier. #}
+                        <h6 class="mb-0" id="donationCardHeader">
                             <i class="bi bi-shield-check"></i> {{ _t('web.advanced.donation_system_control') }}
                             {% if config.donation_disable_key and donations_disabled %}
                             <span class="badge bg-success ms-2" id="donationHeaderBadge">
@@ -199,7 +203,7 @@
                             {% endif %}
                         </h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" id="donationCardBody">
                         {% if config.donation_disable_key and donations_disabled %}
                         <div class="alert alert-success mb-3" role="alert" id="donationStatusAlert">
                             <i class="bi bi-check-circle-fill"></i> <strong>{{ _t('web.advanced.donation_system_disabled') }}</strong><br>
@@ -490,7 +494,7 @@ function updateDonationStatus(isValid) {
                     <i class="bi bi-check-circle-fill"></i> <strong>${t('web.advanced.donation_system_will_disable')}</strong><br>
                     <small>${t('web.advanced.donation_save_to_apply')}</small>
                 </div>`;
-            const cardBody = document.querySelector('.card-body');
+            const cardBody = document.getElementById('donationCardBody');
             if (cardBody) {
                 cardBody.insertAdjacentHTML('afterbegin', alertHtml);
             }
@@ -499,7 +503,7 @@ function updateDonationStatus(isValid) {
             const badgeHtml = `<span class="badge bg-success ms-2" id="donationHeaderBadge">
                 <i class="bi bi-check-circle-fill"></i> ${t('web.advanced.premium_active')}
             </span>`;
-            const header = document.querySelector('.card-header h6');
+            const header = document.getElementById('donationCardHeader');
             if (header && !header.querySelector('#donationHeaderBadge')) {
                 header.insertAdjacentHTML('beforeend', badgeHtml);
             }
