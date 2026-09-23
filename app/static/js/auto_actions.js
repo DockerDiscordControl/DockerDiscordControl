@@ -6,6 +6,7 @@
 // State
 let currentRuleId = null;
 let allContainers = [];
+let allGroups = [];    // the operator's container groups, offered next to them
 let allChannels = [];  // {id, name, type} for feedback channel selection
 let currentRuleData = null;  // Preserve full rule data for editing
 
@@ -13,6 +14,7 @@ let currentRuleData = null;  // Preserve full rule data for editing
 document.addEventListener('DOMContentLoaded', function() {
     // Load available containers and channels for dropdowns
     loadContainersForAAS();
+    loadGroupsForAAS();
     loadChannelsForAAS();
 
     // Load rules immediately for preview list
@@ -83,6 +85,18 @@ function loadContainersForAAS() {
     }
 
     console.warn('AAS: No active containers found - container selection will be empty');
+}
+
+function loadGroupsForAAS() {
+    // A failure here costs the groups, not the editor: the containers are still
+    // offered and a rule can still be written.
+    fetch('/api/groups')
+        .then(answer => answer.ok ? answer.json() : { groups: [] })
+        .then(body => { allGroups = body.groups || []; })
+        .catch(error => {
+            console.error('AAS: groups could not be loaded', error);
+            allGroups = [];
+        });
 }
 
 function loadChannelsForAAS() {
@@ -263,9 +277,27 @@ async function openRuleEditor(ruleId = null) {
     }
 
     // Populate containers as checkboxes
+    // The operator's groups first. A ticked group is saved as "group:<name>",
+    // which is what the rule resolves (services/automation/automation_service.py).
+    // Without this the feature would only exist for someone who knows the prefix.
     const containerWrapper = document.getElementById('aasRuleTargetContainersWrapper');
+    const groupHtml = allGroups.length === 0 ? '' : `
+        <div class="fw-bold small text-muted mb-1">${t('aas.groups_heading')}</div>
+        ${allGroups.map((g, idx) => `
+            <div class="form-check">
+                <input class="form-check-input aas-group-checkbox" type="checkbox"
+                       value="group:${escapeHtml(g.name)}" id="aasGroup_${idx}">
+                <label class="form-check-label" for="aasGroup_${idx}">
+                    <i class="bi bi-collection text-warning"></i>
+                    <code class="text-warning">${escapeHtml(g.name)}</code>
+                    <span class="text-muted small">(${(g.containers || []).length})</span>
+                </label>
+            </div>
+        `).join('')}
+        <hr class="my-2">
+    `;
     if (allContainers.length > 0) {
-        containerWrapper.innerHTML = allContainers.map((c, idx) => `
+        containerWrapper.innerHTML = groupHtml + allContainers.map((c, idx) => `
             <div class="form-check">
                 <input class="form-check-input aas-container-checkbox" type="checkbox" value="${escapeHtml(c)}" id="aasContainer_${idx}">
                 <label class="form-check-label" for="aasContainer_${idx}">
@@ -273,6 +305,8 @@ async function openRuleEditor(ruleId = null) {
                 </label>
             </div>
         `).join('');
+    } else if (groupHtml) {
+        containerWrapper.innerHTML = groupHtml;
     } else {
         containerWrapper.innerHTML = `<div class="text-muted text-center py-2"><i class="bi bi-exclamation-triangle"></i> ${t('aas.no_active_containers')}</div>`;
         console.error('AAS: No containers loaded for rule editor');
@@ -404,7 +438,8 @@ function populateRuleForm(rule) {
     // Check container checkboxes: the watched containers of a container-state
     // rule, the action targets of a message rule
     const ticked = containerState ? (rule.trigger.containers || []) : rule.action.containers;
-    const containerCheckboxes = document.querySelectorAll('.aas-container-checkbox');
+    const containerCheckboxes = document.querySelectorAll(
+        '.aas-container-checkbox, .aas-group-checkbox');
     containerCheckboxes.forEach(cb => {
         cb.checked = ticked.includes(cb.value);
     });
@@ -429,7 +464,8 @@ async function saveAASRule() {
     }
 
     // Gather selected containers from checkboxes
-    const containers = Array.from(document.querySelectorAll('.aas-container-checkbox:checked')).map(cb => cb.value);
+    const containers = Array.from(document.querySelectorAll(
+        '.aas-container-checkbox:checked, .aas-group-checkbox:checked')).map(cb => cb.value);
 
     if (isContainerStateRule()) {
         return saveContainerStateRule(ruleName, containers);
