@@ -15,9 +15,14 @@
         </div>
         <div class="col-12 col-md-6">
             <label for="group-containers" class="form-label">{{ _t('web.groups.containers') }}</label>
+            {# The containers DDC steers, not every container on the host: a group
+               resolves its members against config/containers/*.json, so anything
+               else would be "not found any more" the moment it is saved. #}
             <select multiple class="form-select" id="group-containers" size="6">
-                {% for container in all_containers or [] %}
-                <option value="{{ container.name }}">{{ container.display_name or container.name }}</option>
+                {% for docker_name, server in (configured_servers or {}).items() %}
+                    {% if server.docker_name == docker_name %}
+                <option value="{{ docker_name }}">{{ server.name or docker_name }}</option>
+                    {% endif %}
                 {% endfor %}
             </select>
             <div class="form-text">{{ _t('web.groups.containers_hint') }}</div>
