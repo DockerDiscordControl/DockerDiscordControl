@@ -112,7 +112,12 @@ what it burns per day - so it no longer resets on a level-up.
   once per version, and only when the energy has run out.
 - **A changed decay rate no longer rewrites the past.** Editing `decay.json` used to recompute
   the whole span since the last power change; the rate that a span was measured at now stays
-  with it.
+  with it. A rate of 0 means 0 - the final level has one, and you may set one for any level.
+- **Worth knowing after the update:** the mech's state is rebuilt from its event log whenever you
+  delete a donation or DDC repairs a lagging snapshot. A log written before this release is then
+  replayed under the new rules - energy surviving each level-up - so the power shown can jump
+  once, upwards for most installations. Nothing is lost: the ledger is unchanged and the totals
+  stay the same.
 
 ### 🐛 Fixed (behaviour you may have seen before v3.0)
 

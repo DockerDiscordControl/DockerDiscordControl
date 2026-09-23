@@ -57,7 +57,9 @@ NOT protect.
   surplus, it holds the level's goal, and every new DDC release gives an empty mech three days
   of energy. The $1 bonus for hitting a goal exactly is gone - it only ever made up for the
   energy the level-up wiped out. What you will see: after climbing a level the mech keeps
-  running instead of standing at zero.
+  running instead of standing at zero. The first time the state is rebuilt from the event log
+  (deleting a donation, or a repair) the displayed power may jump once, because the history is
+  replayed under the new rule; the ledger and the totals do not change.
 
 - **A container watchdog.** Rules can react when a container stops on its own, turns unhealthy,
   restarts several times in a few minutes, or stays above a CPU or memory threshold. Notify, or
