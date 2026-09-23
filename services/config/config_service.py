@@ -25,7 +25,7 @@ import tempfile
 from datetime import datetime
 from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path
-from threading import Lock
+from threading import Lock, RLock
 from dataclasses import dataclass, asdict
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
@@ -226,8 +226,9 @@ class ConfigService:
         self.web_config_file = self.config_dir / "web_config.json"
         self.channels_config_file = self.config_dir / "channels_config.json"
 
-        # Save lock
-        self._save_lock = Lock()
+        # An RLock, so a read-modify-write can hold it across its own
+        # save_config call - see the spec test of update_config_fields.
+        self._save_lock = RLock()
 
         # Initialize refactored services
         self._migration_service = ConfigMigrationService(
@@ -563,8 +564,9 @@ class ConfigService:
                     message=f"Failed to read existing config: {e}"
                 )
 
-        # Delegate to save_config (which handles backup + atomic write)
-        return self.save_config(existing)
+            # INSIDE the lock: a save landing between the read and this write
+            # was silently rolled back. Nests because the lock is an RLock.
+            return self.save_config(existing)
 
     def change_web_ui_password(self, new_password: str, *, enforce_min_length: bool = True) -> None:
         """Set a new Web UI password and re-encrypt the stored bot token.
