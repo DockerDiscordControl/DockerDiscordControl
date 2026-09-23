@@ -594,7 +594,7 @@ class TestValidateNewTaskInput:
         )
         assert ok is False
 
-    def test_yearly_feb_29_rejected(self):
+    def test_yearly_feb_29_is_accepted(self):
         ok, msg = validate_new_task_input(
             container_name="x",
             action="start",
@@ -604,18 +604,13 @@ class TestValidateNewTaskInput:
             month=2,
             day=29,
         )
-        # February 29 is rejected unless the *current* year is a leap year.
-        # We assert behaviourally: either it's rejected with an explanatory
-        # message, or accepted only when current year is a leap year. The
-        # test is robust either way.
-        from datetime import datetime as _dt
-        import calendar as _cal
-
-        if _cal.isleap(_dt.now().year):
-            assert ok is True
-        else:
-            assert ok is False
-            assert "leap" in msg.lower() or "february" in msg.lower() or "29" in msg
+        # This used to depend on whether the CURRENT year happened to be a
+        # leap year - the same task was accepted in 2028 and refused in 2026.
+        # 29 February is a real date, and _calculate_yearly_next_run clamps it
+        # to the 28th in ordinary years and gives the 29th back in leap ones.
+        # Operator decision 2026-09-23; see
+        # tests/spec/test_a_monthly_task_runs_every_month.py
+        assert ok is True, msg
 
 
 # ---------------------------------------------------------------------------

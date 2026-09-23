@@ -641,16 +641,15 @@ class ScheduledTask:
 
         calc_month, calc_year = now.month, now.year
         for _ in range(24):  # Max 2 years ahead
-            try:
-                naive_dt = datetime(calc_year, calc_month, day_int, task_hour, task_minute)
-                localized_dt = tz.localize(naive_dt)
-                if localized_dt > now:
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Task {self.task_id} - MONTHLY - Calculated time: {localized_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-                    return localized_dt
-            except ValueError:
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Task {self.task_id} - MONTHLY - Invalid day {day_int} in month {calc_month}/{calc_year}, trying next month")
+            # Clamped per month, WITHOUT touching the stored day - "the 31st"
+            # in a 30-day month is that month's last day. Skipping the short
+            # months made a task the panel calls monthly run seven times a
+            # year, said only at DEBUG. Operator decision 2026-09-23.
+            day_in_month = min(day_int, calendar.monthrange(calc_year, calc_month)[1])
+            localized_dt = _localize(tz, datetime(calc_year, calc_month, day_in_month,
+                                                  task_hour, task_minute))
+            if localized_dt > now:
+                return localized_dt
             calc_month += 1
             if calc_month > 12:
                 calc_month = 1
@@ -2051,11 +2050,12 @@ def _validate_yearly_cycle(month: Optional[int], day: Optional[int],
     if day is None or not (1 <= day <= 31):
         return False, "Day must be between 1 and 31 for yearly tasks."
     try:
-        current_year = datetime.now(timezone.utc).year
-        datetime(current_year, month, day, hour, minute)
+        # Checked against a LEAP year, so 29 February passes: it is a real
+        # date, and _calculate_yearly_next_run clamps it to the 28th in
+        # ordinary years. Refusing it made Discord stricter than the panel
+        # about the one date the calculation handles on purpose.
+        datetime(2024, month, day, hour, minute)
     except ValueError as e:
-        if month == 2 and day == 29:
-            return False, "February 29 is only valid in leap years. Use day 28 for yearly tasks."
         return False, f"Invalid date for yearly task: {e}"
     return True, ""
 

@@ -22,6 +22,11 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`. **While it is on, the
   panel answers only over HTTPS** - the session marker is the passed second factor, and it must
   not travel in the clear. Without 2FA nothing changes: plain HTTP works as before.
+- **A monthly task on the 29th, 30th or 31st now runs EVERY month.** It used to skip the months
+  that have no such day, so "monthly on the 31st" ran seven times a year while the panel called
+  it monthly - and said so only in a debug line. It now falls on the last day of a short month,
+  the way a yearly task on 29 February has always fallen back to the 28th. If you were relying
+  on the skip, use a cron expression instead.
 - **Going back to v2.4.1 is safe:** measured with `scripts/check_upgrade_downgrade.sh` - 2FA and
   the TLS certificate survive a downgrade and a second upgrade.
 
@@ -118,6 +123,39 @@ what it burns per day - so it no longer resets on a level-up.
   replayed under the new rules - energy surviving each level-up - so the power shown can jump
   once, upwards for most installations. Nothing is lost: the ledger is unchanged and the totals
   stay the same.
+
+### ⏰ Scheduled tasks
+
+The scheduler had never been read end to end by someone other than its author. Nine findings,
+all of them about tasks quietly doing something other than what the panel showed.
+
+- **A task interrupted by a DDC restart is not carried out twice.** The next run only moved
+  after the Docker call returned, so a nightly restart at 03:00 that was cut short by DDC's own
+  image update at 03:00:20 was started again at 03:01 - on a database that was still booting.
+  A begun run is now written down before the action and is not repeated.
+- **An edit made while a task runs survives the run.** The scheduler wrote the task it had
+  loaded at the top of its cycle back over whatever was in the file by then: moving a task from
+  03:00 to 05:00 while it ran left it at 03:00, and switching one off during its run switched it
+  back on. Only what the run produced is written now.
+- **A missed run no longer looks like a successful one.** When a recurring task's time passed
+  while DDC was down, it was moved to its next occurrence - and the list went on showing the
+  green badge of the last run that really happened, every morning, for as long as it kept being
+  missed. It now says it was missed, and the time of the last real run stays put.
+- **A donation message that was skipped is no longer recorded as sent.** With donations switched
+  off by a premium key the task wrote itself down "as if it ran successfully", so the panel
+  claimed a message nobody received, every second Sunday.
+- **The task list no longer reports a state that was never saved.** The row was built before the
+  write and sent whatever the write did, so a task whose deactivation could not be written
+  appeared switched off while the scheduler went on holding it as active.
+- **A broken cron expression no longer freezes a task.** `*/5 * * *` (four fields) was stored,
+  and the panel explained that the task was off "because the time given is in the past" - about
+  an expression that carries no time at all. It is refused at the save, with the reason.
+- **The bot keeps answering while a task is saved.** Every write-back ran on the bot's own event
+  loop - load, save and a lock, twice per task, on config directories that are often network
+  mounts. For as long as the disk took, no button and no Discord heartbeat was answered.
+- **Discord accepts 29 February for a yearly task.** It used to refuse it, or not, depending on
+  whether the current year happened to be a leap year - while the calculation behind it has
+  always handled the date properly.
 
 ### 🐛 Fixed (behaviour you may have seen before v3.0)
 

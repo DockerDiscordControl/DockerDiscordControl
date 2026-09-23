@@ -384,9 +384,11 @@ class TestMonthlyNextRun:
         task.day_val = 99  # Out of 1..31.
         assert task.calculate_next_run() is None
 
-    def test_monthly_skips_months_when_day_invalid(self):
-        # Day 31 doesn't exist in some months → loop should skip to the
-        # next month with day 31 (lines 597-604).
+    def test_monthly_clamps_to_the_last_day_of_a_short_month(self):
+        # Day 31 doesn't exist in some months. This used to SKIP them, so a
+        # task the panel calls monthly ran seven times a year; the operator
+        # decided on 2026-09-23 that it clamps instead, like yearly does.
+        # See tests/spec/test_a_monthly_task_runs_every_month.py
         task = ScheduledTask(
             container_name="x",
             action="start",
@@ -398,9 +400,9 @@ class TestMonthlyNextRun:
         )
         ts = task.calculate_next_run()
         assert ts is not None
-        # Next run is on day 31 of some month.
+        # The last day of whatever month it lands in - never a month skipped.
         next_dt = datetime.fromtimestamp(ts, pytz.UTC)
-        assert next_dt.day == 31
+        assert next_dt.day == calendar.monthrange(next_dt.year, next_dt.month)[1]
 
 
 # ---------------------------------------------------------------------------

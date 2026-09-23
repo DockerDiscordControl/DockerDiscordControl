@@ -23,6 +23,10 @@ NOT protect.
   `DOCKER_HOST`. If yours is set to something else, DDC says so once in the log.
 - **Started with `--user`?** Then no proxy can run, and DDC says so and uses the raw socket.
   Start without `--user` and use `PUID`/`PGID` instead.
+- **A monthly task on the 29th, 30th or 31st now runs every month.** It used to skip the months
+  that have no such day - "monthly on the 31st" meant seven runs a year, and only a debug line
+  said so. It now falls on the last day of a short month, the way a yearly task on 29 February
+  has always fallen back to the 28th. If you were relying on the skip, use a cron expression.
 - **Going back to v2.4.1 is safe.** Measured with both images: 2FA state, the TLS certificate
   and the new container-state rules survive a downgrade and a second upgrade.
 
@@ -92,6 +96,14 @@ a test that was red against the old code.
 - **Honest numbers:** data older than one and a half refresh cycles says how old it is, a
   container Docker says does not exist is not counted as "offline", and details you switched off
   say so instead of showing "—%".
+- **Scheduled tasks, read end to end for the first time.** A task cut short by DDC's own restart
+  was carried out a second time on the way back up - at 03:01, on a database still booting. An
+  edit made while a task ran was thrown away without a word. A run missed while DDC was down
+  went on showing the green badge of the last run that really happened, every morning. A
+  donation message skipped because donations are off was recorded as sent. A broken cron
+  expression froze a task and the panel blamed "a time in the past". And every write-back ran on
+  the bot's own event loop, so the bot answered nothing - not even Discord's heartbeat - for as
+  long as the disk took.
 - **The panel says when a save did not work** - a container file it could not write, a mistyped
   channel ID (which silently deleted that channel's permissions), a heartbeat URL without https.
   The info of containers the page did not show is no longer cleared, and a changed language takes
