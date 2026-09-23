@@ -174,10 +174,31 @@ def _restart_summary(counts) -> str:
     return description
 
 
+def _there_is_a_group_or_a_stack() -> bool:
+    """True when the group/stack button has something to offer.
+
+    Read on every render of the overview, so it never raises: a failure here
+    must not cost the admin the whole view, only this one button.
+    """
+    try:
+        from cogs.stack_restart import current_targets
+
+        return bool(current_targets())
+    except Exception as e:  # noqa: BLE001 - one button is not worth a broken overview
+        logger.error(f"Could not tell whether there are groups or stacks: {e}", exc_info=True)
+        return False
+
+
 class AdminOverviewView(DDCView):
     """View for admin overview in control channels with bulk container management."""
 
-    def __init__(self, cog_instance, channel_id: int, has_running_containers: bool):
+    def __init__(self, cog_instance, channel_id: int, has_running_containers: bool,
+                 every_button: bool = False):
+        """``every_button`` is for bot.add_view: a message posted while a group
+        existed still carries that button, and py-cord answers a click only for
+        the custom_ids it was registered with. Drawing skips it, routing must
+        not (tests/spec/test_buttons_on_old_messages_keep_working.py).
+        """
         super().__init__(timeout=None)
         self.cog = cog_instance
         self.channel_id = channel_id
@@ -187,7 +208,12 @@ class AdminOverviewView(DDCView):
         self.add_item(AdminOverviewAdminButton(cog_instance, channel_id))
         self.add_item(AdminOverviewRestartAllButton(cog_instance, channel_id, enabled=has_running_containers))
         self.add_item(AdminOverviewStopAllButton(cog_instance, channel_id, enabled=has_running_containers))
-        self.add_item(AdminOverviewRestartStackButton(cog_instance, channel_id, enabled=has_running_containers))
+        # Only when there is something to offer - a group the operator defined or
+        # a Compose stack DDC found. A button that can do nothing still takes a
+        # place in a row that holds five.
+        if every_button or _there_is_a_group_or_a_stack():
+            self.add_item(AdminOverviewRestartStackButton(cog_instance, channel_id,
+                                                          enabled=has_running_containers))
         self.add_item(AdminOverviewDonateButton(cog_instance, channel_id))
 
 class AdminOverviewAdminButton(Button):
@@ -466,8 +492,10 @@ class AdminOverviewRestartStackButton(Button):
 
         super().__init__(
             style=discord.ButtonStyle.primary,
-            label=_("Stack"),
-            emoji="🔄",
+            # No label: with one, this was the only wide button in the row and
+            # the whole overview grew with it (operator, 2026-09-23).
+            label=None,
+            emoji="🗂️",
             custom_id=f"admin_overview_restart_stack_{channel_id}",
             row=0,
             disabled=not enabled

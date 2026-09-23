@@ -1755,5 +1755,8 @@
   "web.groups.needs_name": "Eine Gruppe braucht einen Namen.",
   "web.groups.missing": "Nicht mehr vorhanden: {names}",
   "web.groups.empty": "Noch keine Container in dieser Gruppe - sie bewirkt nichts, bis du welche hinzufügst.",
-  "web.groups.load_failed": "Die Gruppen konnten nicht geladen werden - siehe DDC-Log."
+  "web.groups.load_failed": "Die Gruppen konnten nicht geladen werden - siehe DDC-Log.",
+  "Choose the group or Compose stack to restart.": "Wähle die Gruppe oder den Compose-Stack zum Neustarten.",
+  "ℹ️ There is no container group yet, and none of the active containers belongs to a Compose stack.": "ℹ️ Es gibt noch keine Container-Gruppe, und keiner der aktiven Container gehört zu einem Compose-Stack.",
+  "❌ **{stack}** has no active containers any more.": "❌ **{stack}** hat keine aktiven Container mehr."
 }

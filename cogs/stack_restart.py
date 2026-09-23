@@ -63,6 +63,46 @@ def current_stacks() -> Dict[str, List[dict]]:
     return stacks_of(ao.get_server_config_service().get_all_servers(), ao.get_status_cache_service())
 
 
+def current_targets() -> Dict[str, List[str]]:
+    """{name: [container, ...]} - the operator's groups first, then Compose stacks.
+
+    Two sources, one menu. The groups are what an Unraid server has (measured:
+    0 of 37 containers carry a Compose label there); the stacks are what an
+    installation built with docker-compose has. Dropping either would take a
+    working button away from somebody.
+
+    A group may name containers DDC no longer has - those are left out here, so
+    the menu never offers to restart something that is not there.
+    """
+    targets: Dict[str, List[str]] = {}
+    try:
+        from services.config.group_service import get_group_service
+
+        service = get_group_service()
+        for group in service.get_groups():
+            members = service.members_of(group.name)
+            if members.containers:
+                targets[group.name] = members.containers
+    except OSError as e:
+        # The button still offers the stacks; the groups are said to be missing
+        # in the log rather than silently treated as "none defined".
+        logger.error(f"Groups could not be read for the restart menu: {e}")
+
+    for stack, servers in current_stacks().items():
+        targets.setdefault(stack, [s['docker_name'] for s in servers])
+    return targets
+
+
+def _servers_of(name: str) -> List[dict]:
+    """The active server entries of a group or a Compose stack, in server order."""
+    wanted = current_targets().get(name)
+    if not wanted:
+        return []
+    by_name = {s.get('docker_name'): s for s in ao.get_server_config_service().get_all_servers()
+               if isinstance(s, dict) and s.get('active', True)}
+    return [by_name[container] for container in wanted if container in by_name]
+
+
 async def _is_admin(interaction) -> bool:
     """The admin list at the moment of this press. Closed if it cannot be read -
     and then said in those words: "no permission" sends an admin looking for a
@@ -83,13 +123,13 @@ async def offer_stacks(cog, channel_id: int, interaction) -> None:
     """The first press: the stacks to choose from, for an admin."""
     if not await _is_admin(interaction):
         return
-    stacks = current_stacks()
-    if not stacks:
+    names = current_targets()
+    if not names:
         await interaction.followup.send(
-            _("ℹ️ None of the active containers belongs to a Compose stack."), ephemeral=True)
+            _("ℹ️ There is no container group yet, and none of the active containers "
+              "belongs to a Compose stack."), ephemeral=True)
         return
-    names = {stack: [s['docker_name'] for s in members] for stack, members in stacks.items()}
-    description = _("Choose the Compose stack to restart.")
+    description = _("Choose the group or Compose stack to restart.")
     if len(names) > MAX_OPTIONS:
         # A menu holds 25 options; say which part of the list is shown instead of
         # leaving the admin to wonder where their stack went.
@@ -169,10 +209,13 @@ class ConfirmRestartStackButton(Button):
             return
         self.cog._bulk_operation_in_progress = True
         try:
-            members = current_stacks().get(self.stack, [])
+            # Both sources, like the menu: a group the operator defined is not in
+            # current_stacks(), and looking only there told the admin "the stack
+            # has no active containers any more" about a group full of them.
+            members = _servers_of(self.stack)
             if not members:
                 await interaction.followup.send(
-                    _("❌ The stack **{stack}** has no active containers any more.").format(stack=self.stack),
+                    _("❌ **{stack}** has no active containers any more.").format(stack=self.stack),
                     ephemeral=True)
                 return
             from services.docker_service.docker_action_service import docker_action_service_first

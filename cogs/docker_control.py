@@ -1073,7 +1073,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                     if tracked.get('overview'):
                         self.bot.add_view(MechView(self, channel_id), message_id=int(tracked['overview']))
                     if tracked.get('admin_overview'):
-                        self.bot.add_view(AdminOverviewView(self, channel_id, True),
+                        self.bot.add_view(AdminOverviewView(self, channel_id, True,
+                                                            every_button=True),
                                           message_id=int(tracked['admin_overview']))
                 except (discord.errors.DiscordException, RuntimeError, ValueError, TypeError) as e:
                     logger.warning(f"⚠️ Could not register persistent views for channel {channel_id}: {e}")
