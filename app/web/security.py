@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 
@@ -20,6 +21,8 @@ try:
     _SESSION_IDLE_TIMEOUT_SECONDS = max(60, int(os.environ.get("DDC_SESSION_IDLE_TIMEOUT", "1800")))
 except (TypeError, ValueError):
     _SESSION_IDLE_TIMEOUT_SECONDS = 1800
+
+logger = logging.getLogger("ddc.web.security")
 
 _IDLE_EXEMPT_PATHS = ("/static/", "/health", "/logout")
 
@@ -51,9 +54,21 @@ def install_security_handlers(app: Flask) -> None:
             session.clear()
             if csrf_token:
                 session["csrf_token"] = csrf_token
+            # NOT "please re-authenticate". The panel's login is HTTP Basic,
+            # and a browser replays those credentials for the same realm by
+            # itself - there is no way for a server to make it ask again. With
+            # 2FA switched ON this timeout is real: session.clear() also drops
+            # two_factor_ok and the guard sends the operator to /security/2fa/
+            # verify for a fresh code. Without 2FA it costs exactly one 401.
+            # Saying otherwise would be reporting a control that did not
+            # happen, which is worse here than anywhere else.
+            logger.info("Session went idle after %ss; the session state was cleared",
+                        _SESSION_IDLE_TIMEOUT_SECONDS)
             response = jsonify({
                 "error": "session_idle_timeout",
-                "message": "Session expired due to inactivity. Please re-authenticate.",
+                "message": ("This session was idle for too long and its state was "
+                            "cleared. With two-factor authentication switched on, "
+                            "the next page asks for a fresh code."),
             })
             response.status_code = 401
             response.headers["WWW-Authenticate"] = 'Basic realm="DDC"'
