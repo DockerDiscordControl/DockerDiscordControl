@@ -112,6 +112,12 @@ a test that was red against the old code.
   brake at all, a donation the ledger had already taken was reported as failed and the
   retry booked it twice, a donor called Müller was thanked as "Mller", and a thank-you
   that reached nobody looked like a success.
+- **The Docker layer and the bot's commands, read end to end.** Two more passes, thirteen
+  findings. A Docker query that timed out emptied the panel's container list and marked it
+  fresh with no error. Switching the Status Watchdog on did nothing until the next restart -
+  the one feature whose job is to tell you DDC has stopped. A container DDC could not reach
+  was announced as "not found" and its automation skipped. /donate said nothing at all when
+  it failed. The two buttons that restart or stop every container had no brake.
 - **The panel says when a save did not work** - a container file it could not write, a mistyped
   channel ID (which silently deleted that channel's permissions), a heartbeat URL without https.
   The info of containers the page did not show is no longer cleared, and a changed language takes

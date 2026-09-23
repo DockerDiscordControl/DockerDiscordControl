@@ -193,6 +193,44 @@ donation path. Seventeen findings; these are the ones you can see.
   two-factor authentication switched on the timeout is real, and the message now
   says that instead.
 
+### 🔍 The Docker layer and the bot's own commands, read end to end
+
+Two more independent passes, over the Docker client and status cache (rebuilt
+for v3.0 and never read by anyone but its author) and over the modules that
+came out of the cog split. Thirteen findings.
+
+- **A Docker query that timed out no longer empties the container list.** The
+  panel showed no containers at all, with no error banner, and did it again
+  after every refresh - DDC had not learned there were none, it had failed to
+  ask.
+- **Switching the Status Watchdog on now works without a restart.** Ticking the
+  box and saving did nothing until the next restart, with no hint that one was
+  needed - so the monitoring service alerted "DDC is down" about a bot that was
+  running perfectly.
+- **A container DDC cannot reach is no longer announced as "not found".** An
+  auto-action rule firing while Docker was unreachable told you your container
+  was gone and skipped the action.
+- **"Not found" now means the last query said so**, not that one once did. After
+  a container was recreated - which is what an Unraid auto-update does - a later
+  unanswerable query could still be shown as a definite "not found".
+- **The status display no longer blinks to "Loading".** The cache expired at the
+  exact moment the refresh that replaces it started.
+- **If more than 50 containers have to be left out, the same ones are left out.**
+  The cut followed Docker's own listing order, so a container could vanish from
+  the panel and come back without anything about it having changed - and the log
+  now names what is missing.
+- **/donate always answers.** It was the only command that said nothing at all
+  when it failed - in a channel where the bot may not embed links, you saw
+  Discord's "thinking" state and nothing else.
+- **/donate with donations switched off** says so privately, instead of a "."
+  flickering in the channel while you wait on a spinner.
+- **The admin overview's buttons brake**, including the two that restart or stop
+  every running container, and each has a slider in the panel.
+- **Background loops that repeat survive a bad cycle.** Two did not, including
+  the watchdog loop itself.
+- **Adding an admin in Discord** no longer writes a list that a panel save has
+  already overtaken.
+
 ### 🐛 Fixed (behaviour you may have seen before v3.0)
 
 - **A container DDC could not ask is no longer reported as offline.** A Docker query that timed
