@@ -36,30 +36,34 @@
            The name column stays put while the rest scrolls. Only on phones and
            tablets: on a wide screen there is no sideways scroll to anchor to, and
            a sticky cell there would only add a seam. */
+/* The settings tabs travel with the page: they scroll normally until they reach
+   the top, then stay there. The operator asked for it after seeing them scroll
+   away on a long pane - the container table alone is 26 rows.
+
+   It applies at every width. The first version pinned it only below 992px,
+   arguing that the floating dots already do this job on a wide screen; they do
+   not. The dots are thirteen circles at the edge of the window, the tabs are
+   four labelled buttons at the top of what they switch. On a phone the dots
+   are hidden entirely (floating_nav.css), so there the tabs are the only
+   navigation there is.
+
+   z-index above the container table's own sticky header (3 and 4 inside its
+   70vh box): both are pinned, to different things, and where they meet the
+   navigation has to win. Opaque, or the rows scroll through it. */
+#settings-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background-color: #030603;
+    padding-top: 0.5rem;
+    padding-bottom: 0.25rem;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
         @media (max-width: 991.98px) {
-            /* On a phone the floating dots are gone (base.html hides them below
-               768px), so these four tabs are the only way from one part of the
-               settings to another - and they scrolled away with the page. By the
-               bottom of a 26-row container table, reaching System meant scrolling
-               all the way back up past the whole table.
-
-               z-index above the container table's own sticky header (3 and 4
-               inside its 70vh box): both are pinned, to different things, and
-               where they meet the navigation has to win. Opaque, or the rows
-               scroll through it. */
-            #settings-tabs {
-                position: sticky;
-                top: 0;
-                z-index: 6;
-                background-color: #030603;
-                padding-top: 0.5rem;
-                padding-bottom: 0.25rem;
-                margin-left: -0.5rem;
-                margin-right: -0.5rem;
-                padding-left: 0.5rem;
-                padding-right: 0.5rem;
-            }
-
             .sticky-name-column {
                 position: sticky;
                 left: 0;

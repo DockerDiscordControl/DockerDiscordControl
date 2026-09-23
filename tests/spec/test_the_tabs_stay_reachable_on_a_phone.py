@@ -10,9 +10,17 @@ of 26 rows; by the time the operator is at the bottom of it, getting to System
 means scrolling all the way back up past the whole table. On a desktop the
 floating dots make that one click; on a phone there was nothing.
 
-The bar sticks to the top of the screen on small screens. Not on large ones:
-there the dots already do this job, and a bar pinned across a wide window
-takes a strip of the page for something that is one click away anyway.
+The bar sticks to the top of the screen.
+
+REVISITED the same evening, and the earlier reasoning was wrong. The first
+version pinned it only below 992 pixels, arguing that on a wide screen the
+floating dots already do this job. The operator looked at it and asked for the
+bar to travel down the page with him there too - and he is right about his own
+panel: the dots are thirteen small circles at the edge of the window, the tabs
+are four labelled buttons at the top of the thing they switch. They are not
+the same control, and "one is nearby" is not a reason to make the other one
+scroll away. The restriction is gone; the test that pinned it is below, saying
+what it used to say and why that changed.
 
 THE Z-INDEX IS PART OF IT, not decoration. The container table has a sticky
 header of its own inside a 70vh scroll box. Both are pinned, to different
@@ -56,16 +64,30 @@ def test_the_tab_bar_sticks_on_a_small_screen():
     assert "position: sticky" in body, "the tab bar scrolls away with the page"
 
 
-def test_it_sticks_only_where_the_dots_are_gone():
-    """Counter-check: on a wide screen the floating dots already do this, and a
-    pinned bar would take a strip of the page for nothing."""
+def test_it_sticks_at_every_width():
+    """THE REVISIT: this test used to assert the opposite.
+
+    It read "it sticks only where the dots are gone" and required the rule to
+    sit inside a max-width media query. The operator asked for the bar to
+    travel with him on the desktop as well, and the argument for the
+    restriction does not survive the question: the floating dots are thirteen
+    circles at the edge of the window, the tabs are four labelled buttons at
+    the top of what they switch. Nearby is not the same as equivalent.
+
+    Kept rather than deleted, pointing the other way, so the next reader can
+    see that the narrow-screen-only version was a decision and not an
+    oversight.
+    """
     base = BASE.read_text(encoding="utf-8")
     position = base.index("#settings-tabs")
-    opening = base.rindex("@media", 0, position)
-    query = base[opening:base.index("{", opening)]
+    before = base[:position]
+    # The rule must not be inside a media query: count the braces that are
+    # still open where it starts.
+    depth = before.count("{") - before.count("}")
 
-    assert "max-width" in query, (
-        f"the tab bar is sticky on every screen size: {query.strip()}")
+    assert depth == 0, (
+        "the tab bar's rule is nested inside a media query, so it stops "
+        "sticking outside that range")
 
 
 def test_the_tab_bar_outranks_the_tables_own_sticky_header():
