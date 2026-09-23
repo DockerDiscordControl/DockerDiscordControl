@@ -741,6 +741,10 @@ def test_check_and_execute_runs_due_task_via_mocked_execute_task(fresh_service):
     task.container_name = "ctr-due"
     task.next_run_ts = time.time()
     task.is_system_task.return_value = False  # System tasks are not re-saved
+    # Never begun. A MagicMock answers every comparison truthily, so without
+    # this the "this occurrence was already begun" guard skips the task - see
+    # tests/spec/test_a_restart_does_not_run_a_task_twice.py
+    task.last_run_ts = None
 
     async def _ok_execute(t):
         return None
