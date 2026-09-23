@@ -514,17 +514,21 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
 
             # Member count updates moved to on-demand (during level-ups only)
 
-            # Start Status Watchdog loop if enabled
-            try:
-                heartbeat_enabled = _heartbeat_enabled(load_config() or {})
-            except (OSError, KeyError, ValueError):
-                heartbeat_enabled = False
-
-            if heartbeat_enabled:
-                heartbeat_task = self.bot.loop.create_task(
-                    self._start_loop_safely(self.heartbeat_send_loop, "Heartbeat Loop")
-                )
-                self.bot.loop.create_task(self._track_task(heartbeat_task))
+            # Status Watchdog: ALWAYS started, whether it is switched on or not.
+            # This used to run only when the watchdog was already enabled at
+            # boot, and _setup_background_loops runs exactly once - so ticking
+            # the box in the panel did nothing until the next restart, with no
+            # hint that one was needed. The monitoring service then alerted
+            # "DDC is down" about a bot that was running perfectly; the one
+            # feature whose job is to report a dead DDC was silently off.
+            # Safe because the loop body reads the configuration on EVERY cycle
+            # and returns at once when the watchdog is off - so switching it on
+            # AND off now takes effect within one interval. The cost when unused
+            # is one config read every five minutes.
+            heartbeat_task = self.bot.loop.create_task(
+                self._start_loop_safely(self.heartbeat_send_loop, "Heartbeat Loop")
+            )
+            self.bot.loop.create_task(self._track_task(heartbeat_task))
 
             # Schedule initial status send with simple delay
             logger.info("Scheduling initial status send...")

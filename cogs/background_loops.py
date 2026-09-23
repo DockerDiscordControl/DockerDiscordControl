@@ -57,17 +57,17 @@ class BackgroundLoopsMixin:
             current_config = load_config() or self.config or {}
             heartbeat_config = current_config.get('heartbeat', {})
 
-            if not isinstance(heartbeat_config, dict):
+            # ONE decision, shared with the startup banner: switched on AND
+            # carrying a URL. It used to be made here a second time, so the two
+            # could drift - and _heartbeat_enabled already survives a config
+            # that holds null instead of an empty string (review B11), which
+            # this copy did not.
+            from cogs.docker_control import _heartbeat_enabled
+
+            if not _heartbeat_enabled(current_config):
                 return
 
-            # Check if enabled
-            if not heartbeat_config.get('enabled', False):
-                return
-
-            # Get ping URL
-            ping_url = heartbeat_config.get('ping_url', '').strip()
-            if not ping_url:
-                return
+            ping_url = (heartbeat_config.get('ping_url') or '').strip()
 
             # Security: Only allow HTTPS
             if not ping_url.startswith('https://'):
