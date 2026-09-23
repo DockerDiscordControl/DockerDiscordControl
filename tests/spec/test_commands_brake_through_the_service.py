@@ -136,7 +136,7 @@ async def test_a_recorded_command_is_refused(tmp_path, monkeypatch, name, route)
     the duration of the command slider and can be checked (otherwise a
     message "try again in 0 seconds" would survive every test).
     """
-    monkeypatch.setattr(time, "time", lambda: NOW)
+    monkeypatch.setattr(time, "monotonic", lambda: NOW)
     service = _service(tmp_path)
     duration = service._real.get_command_cooldown(name)
     assert duration > 0, f"/{name} has no cooldown - the test would prove nothing."

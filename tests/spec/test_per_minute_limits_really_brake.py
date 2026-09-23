@@ -29,15 +29,17 @@ WHAT IS COUNTED IS THE ACCEPTED PRESS, not the query - so in
 counted, a refused repetition would use up further quota, and
 legitimate use would be throttled. The test below records both.
 
-THE CLOCK: the window uses ``time.time()`` - the same clock as the rest of the
-file. ``time.monotonic()`` would be cleaner technically and is what
-``SlidingWindowRateLimiter`` (translation_service.py:353) uses, but is
-WRONG here: the existing tests freeze the clock via
-``monkeypatch.setattr(time, "time", ...)``
-(test_infrastructure_services.py:822, test_docker_infra_gaps.py:1594). With
-``monotonic`` ONE service would run two clocks - ``_user_cooldowns``
-frozen, the window real. A bug that only occurs under mocks
-and stays invisible in operation.
+THE CLOCK, and a decision REVISITED on 2026-09-23: this file used to argue for
+``time.time()`` on the grounds that a switch would leave ONE service running
+two clocks - ``_user_cooldowns`` frozen by the existing tests, the window real.
+That argument was against a PARTIAL switch, and it was right about that.
+
+The whole service moved to ``time.monotonic()`` instead, because the wall clock
+steps backwards: after an NTP correction of minus an hour, every button the
+user had touched was on cooldown and the refusal read "please wait 3610.0
+seconds", for the size of the jump, with nothing in the log
+(test_a_clock_correction_does_not_lock_every_button.py). There is still only
+one clock; the tests freeze ``monotonic`` now.
 
 DIFFERENT BUTTON NAMES IN THE TEST, and that is no coincidence: every ``probe_N``
 falls to the 5-second fallback rule (``get_button_cooldown:186``), and none
@@ -156,11 +158,11 @@ def test_the_window_slides(tmp_path, monkeypatch):
     service = _service(tmp_path)
     limit = service._get_default_config().max_buttons_per_minute
 
-    monkeypatch.setattr(time, "time", lambda: 1000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1000.0)
     _fill(service, USER, limit)
     assert service.is_on_cooldown(USER, "probe_fresh") is True
 
-    monkeypatch.setattr(time, "time", lambda: 1061.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1061.0)
     assert service.is_on_cooldown(USER, "probe_fresh") is False, (
         "61 seconds later the per-minute limit still brakes - then it is "
         "not a sliding window but a grand total, and the user "

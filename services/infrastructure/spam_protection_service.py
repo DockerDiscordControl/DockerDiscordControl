@@ -363,7 +363,13 @@ class SpamProtectionService:
         if not self.is_enabled():
             return False
 
-        current_time = time.time()
+        # MONOTONIC, not the wall clock. An NTP correction backwards made
+        # (current_time - last_used) negative, so every button the user had
+        # touched was on cooldown and the refusal read "please wait 3660.0
+        # seconds" - for the size of the jump, with nothing in the log. Neither
+        # store here is persisted or compared across restarts, so a clock that
+        # only ever moves forward is all this arithmetic needs.
+        current_time = time.monotonic()
 
         # The per-minute limit from the panel. Until now max_commands_per_minute
         # and max_buttons_per_minute were saved, shown in the panel and passed
@@ -391,7 +397,7 @@ class SpamProtectionService:
         if not self.is_enabled():
             return 0.0
 
-        current_time = time.time()
+        current_time = time.monotonic()  # see is_on_cooldown
 
         cooldown_key = self._key(user_id, action_type, is_command)
         last_used = self._user_cooldowns.get(cooldown_key, 0)
@@ -417,7 +423,7 @@ class SpamProtectionService:
         if not self.is_enabled():
             return
 
-        current_time = time.time()
+        current_time = time.monotonic()  # see is_on_cooldown
         cooldown_key = self._key(user_id, action_type, is_command)
         self._user_cooldowns[cooldown_key] = current_time
 

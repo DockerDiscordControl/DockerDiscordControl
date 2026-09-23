@@ -59,7 +59,7 @@ NOW = 50_000.0
 
 
 def _service(tmp_path, monkeypatch):
-    monkeypatch.setattr(time, "time", lambda: NOW)
+    monkeypatch.setattr(time, "monotonic", lambda: NOW)
     return SpamProtectionService(config_dir=str(tmp_path))
 
 
@@ -102,12 +102,12 @@ def test_a_button_is_free_again_after_its_button_slider(tmp_path, monkeypatch, n
 
     service.add_user_cooldown(USER, name)
 
-    monkeypatch.setattr(time, "time", lambda: NOW + duration - 0.5)
+    monkeypatch.setattr(time, "monotonic", lambda: NOW + duration - 0.5)
     assert service.is_on_cooldown(USER, name) is True, (
         f"{name!r} is already free again {duration - 0.5} s after the press, although "
         f"the button slider demands {duration} s."
     )
-    monkeypatch.setattr(time, "time", lambda: NOW + duration + 0.5)
+    monkeypatch.setattr(time, "monotonic", lambda: NOW + duration + 0.5)
     assert service.is_on_cooldown(USER, name) is False, (
         f"{name!r} is still locked {duration + 0.5} s after the press, although the "
         f"button slider only demands {duration} s."
