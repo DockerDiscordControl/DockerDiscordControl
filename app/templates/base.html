@@ -40,10 +40,30 @@
     <a href="#log-section" class="nav-dot" data-tooltip="{{ _t('web.nav.logs') }}">
         <i class="bi bi-terminal"></i>
     </a>
+    <div class="nav-divider"></div>
+    {# A form, not a link: logging out changes state, and a GET that changes
+       state is fetched by anything that walks links - a browser prefetch, a
+       link checker. CSRFProtect covers POST and not GET, so a link would also
+       carry no token. The route still takes GET, for a browser holding HTTP
+       Basic credentials that has to reach the 401 by typing the address. #}
+    <form method="POST" action="{{ url_for('login.logout') }}" class="d-contents">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="nav-dot nav-dot-logout" data-tooltip="{{ _t('web.nav.logout') }}">
+            <i class="bi bi-box-arrow-right"></i>
+        </button>
+    </form>
 </nav>
 
 <style>
 /* Floating Navigation - Glassmorphism */
+.floating-nav form.d-contents {
+    display: contents;   /* the button stays a nav dot, the form adds no box */
+}
+.floating-nav .nav-dot-logout {
+    background: none;
+    border: none;
+    padding: 0;
+}
 .floating-nav {
     position: fixed;
     right: 12px;

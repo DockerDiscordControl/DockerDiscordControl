@@ -1195,6 +1195,7 @@
   "web.nav.heartbeat": "Heartbeat",
   "web.nav.language": "ภาษา",
   "web.nav.logs": "บันทึก",
+  "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",
   "web.nav.permissions": "สิทธิ์",
   "web.nav.scheduler": "ตัวกำหนดเวลา",

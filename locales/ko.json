@@ -1195,6 +1195,7 @@
   "web.nav.heartbeat": "하트비트",
   "web.nav.language": "언어",
   "web.nav.logs": "로그",
+  "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",
   "web.nav.permissions": "권한",
   "web.nav.scheduler": "스케줄러",

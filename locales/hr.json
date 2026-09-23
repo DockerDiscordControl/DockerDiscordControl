@@ -1195,6 +1195,7 @@
   "web.nav.heartbeat": "Heartbeat",
   "web.nav.language": "Jezik",
   "web.nav.logs": "Zapisi",
+  "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",
   "web.nav.permissions": "Dozvole",
   "web.nav.scheduler": "Planer",

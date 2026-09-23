@@ -1195,6 +1195,7 @@
   "web.nav.heartbeat": "Surveillance",
   "web.nav.language": "Langue",
   "web.nav.logs": "Journaux",
+  "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",
   "web.nav.permissions": "Permissions",
   "web.nav.scheduler": "Planificateur",

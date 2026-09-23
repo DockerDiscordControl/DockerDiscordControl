@@ -1195,6 +1195,7 @@
   "web.nav.heartbeat": "心跳",
   "web.nav.language": "語言",
   "web.nav.logs": "日誌",
+  "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",
   "web.nav.permissions": "權限",
   "web.nav.scheduler": "排程器",

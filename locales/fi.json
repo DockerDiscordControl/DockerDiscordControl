@@ -1195,6 +1195,7 @@
   "web.nav.heartbeat": "Heartbeat",
   "web.nav.language": "Kieli",
   "web.nav.logs": "Lokit",
+  "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",
   "web.nav.permissions": "Oikeudet",
   "web.nav.scheduler": "Ajastin",
