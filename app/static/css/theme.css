@@ -36,31 +36,62 @@
            The name column stays put while the rest scrolls. Only on phones and
            tablets: on a wide screen there is no sideways scroll to anchor to, and
            a sticky cell there would only add a seam. */
-/* The settings tabs travel with the page: they scroll normally until they reach
-   the top, then stay there. The operator asked for it after seeing them scroll
-   away on a long pane - the container table alone is 26 rows.
+/* The settings tabs: one segmented control, not four links on a line.
 
-   It applies at every width. The first version pinned it only below 992px,
-   arguing that the floating dots already do this job on a wide screen; they do
-   not. The dots are thirteen circles at the edge of the window, the tabs are
-   four labelled buttons at the top of what they switch. On a phone the dots
-   are hidden entirely (floating_nav.css), so there the tabs are the only
-   navigation there is.
+   Spread across the full width on a black page, only the active tab had a box
+   and the other three floated with nothing around them or between them - four
+   separate links that happen to share a line. It gets the surface the floating
+   navigation already uses, so both navigation controls speak the same visual
+   language and the strip reads as one thing with four positions.
+
+   It also travels with the page: it scrolls normally until it reaches the top,
+   then stays there, at EVERY width. An earlier version pinned it only below
+   992px on the grounds that the floating dots do this job on a wide screen;
+   they do not - they are thirteen circles at the edge of the window, these are
+   four labelled buttons at the top of what they switch.
 
    z-index above the container table's own sticky header (3 and 4 inside its
    70vh box): both are pinned, to different things, and where they meet the
-   navigation has to win. Opaque, or the rows scroll through it. */
+   navigation has to win. */
 #settings-tabs {
     position: sticky;
     top: 0;
     z-index: 6;
-    background-color: #030603;
-    padding-top: 0.5rem;
-    padding-bottom: 0.25rem;
-    margin-left: -0.5rem;
-    margin-right: -0.5rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    background-color: #1a1d21;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 6px;
+    gap: 4px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+/* The buttons inside it. Resting: readable but quiet, with a shape of their
+   own so the pointer has somewhere to land. Hovering lifts the surface rather
+   than only the text - that is what makes a strip feel like a control. */
+#settings-tabs .nav-link {
+    color: #adb5bd;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#settings-tabs .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+}
+
+#settings-tabs .nav-link:focus-visible {
+    outline: 2px solid #63b3ed;
+    outline-offset: 2px;
+}
+
+/* The filled pill stays the obvious one. Dark text on it, for the same
+   measured reason as every other .btn-primary on this page: white on #4299e1
+   is 3.05:1. */
+#settings-tabs .nav-link.active {
+    background-color: #4299e1;
+    color: #10243a;
 }
 
         @media (max-width: 991.98px) {
