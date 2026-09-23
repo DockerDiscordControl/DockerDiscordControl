@@ -30,6 +30,13 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   and the bot removes a leftover one when it comes back. The panel stays what it was - something
   that appears, is used and disappears.
 
+- **The settings sit behind four tabs.** Discord, Containers, Automation, System. Thirteen card
+  sections used to scroll past between the mech panel and the log; the container table is one
+  click away now instead of five screens down. One Save button for all four tabs, and it stays
+  visible - the tabs only hide fields, they never take them out of the form, so a save still
+  writes every setting on every tab. The floating navigation opens the right tab before it
+  scrolls, and the tab you were on survives a reload.
+
 - **The container table can be searched, and its headers stay put.** With 26 containers the
   column headers scrolled off the top by row fifteen, so you were ticking boxes in unlabelled
   columns and counting across to tell Stop from Restart; and finding one container meant reading

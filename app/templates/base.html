@@ -206,6 +206,25 @@
         }
     });
 
+    function scrollToTarget(target) {
+        const offset = 20;
+        window.scrollTo({
+            top: target.getBoundingClientRect().top + window.scrollY - offset,
+            behavior: 'smooth'
+        });
+    }
+
+    // Shows the tab pane a target sits in, if it is not the open one.
+    // Answers true when it had to switch, so the caller can wait for the layout.
+    function showPaneOf(target) {
+        const pane = target.closest ? target.closest('.tab-pane') : null;
+        if (!pane || pane.classList.contains('active')) { return false; }
+        const trigger = document.querySelector('[data-bs-target="#' + pane.id + '"]');
+        if (!trigger || !window.bootstrap || !window.bootstrap.Tab) { return false; }
+        window.bootstrap.Tab.getOrCreateInstance(trigger).show();
+        return true;
+    }
+
     // Smooth scroll to sections
     nav.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -217,9 +236,15 @@
             } else {
                 const target = document.querySelector(targetId);
                 if (target) {
-                    const offset = 20;
-                    const targetPosition = target.getBoundingClientRect().top + window.scrollY - offset;
-                    window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+                    // The settings live in tab panes now. A hidden pane has no
+                    // position to scroll to, so the pane is shown FIRST and the
+                    // scroll happens after Bootstrap has laid it out - otherwise
+                    // half the dots do nothing at all.
+                    if (showPaneOf(target)) {
+                        setTimeout(() => scrollToTarget(target), 200);
+                    } else {
+                        scrollToTarget(target);
+                    }
                 }
             }
         });
@@ -229,8 +254,9 @@
     function updateActiveSection() {
         const sections = [
             'donationSection', 'discord-settings', 'channel-settings',
-            'permissions-table', 'server-selection', 'task-scheduler',
-            'aas-section', 'language-settings', 'auth-settings',
+            'permissions-table', 'server-selection', 'container-groups',
+            'task-scheduler', 'task-list', 'aas-section',
+            'language-settings', 'auth-settings',
             'heartbeat-section', 'log-section'
         ];
 
@@ -239,10 +265,14 @@
 
         sections.forEach(id => {
             const section = document.getElementById(id);
+            // offsetTop was 0 for anything inside a hidden tab pane, so every
+            // section in a closed tab looked like it was at the top of the page.
+            // The rectangle is document-relative whatever is displayed, and a
+            // hidden pane measures 0 height - which simply never matches.
             if (section) {
-                const top = section.offsetTop;
-                const height = section.offsetHeight;
-                if (scrollPos >= top && scrollPos < top + height) {
+                const box = section.getBoundingClientRect();
+                const top = box.top + window.scrollY;
+                if (box.height > 0 && scrollPos >= top && scrollPos < top + box.height) {
                     activeId = id;
                 }
             }

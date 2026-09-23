@@ -1818,8 +1818,49 @@
     {# Flash Messages #}
     {% include '_flash_messages.html' %}
 
-    {# Main form starts here #}
+    {# Main form starts here.
+
+       EVERY TAB PANE BELOW STAYS INSIDE THIS FORM. saveConfigAjax() collects
+       #config-form fields and posts them, and the save handler reads an absent
+       checkbox as OFF - the heartbeat section was once moved out of the form and
+       every save from then on wrote heartbeat.enabled=False. Switching tabs HIDES
+       fields; a hidden input still submits. Guarded by
+       tests/spec/test_the_settings_are_behind_four_tabs.py #}
     <form method="POST" id="config-form">
+
+        <ul class="nav nav-pills mb-3" id="settings-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-discord" data-bs-toggle="pill"
+                        data-bs-target="#pane-discord" type="button" role="tab"
+                        aria-controls="pane-discord" aria-selected="true">
+                    <i class="bi bi-discord" aria-hidden="true"></i> {{ _t('web.tabs.discord') }}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-containers" data-bs-toggle="pill"
+                        data-bs-target="#pane-containers" type="button" role="tab"
+                        aria-controls="pane-containers" aria-selected="false">
+                    <i class="bi bi-box-seam" aria-hidden="true"></i> {{ _t('web.tabs.containers') }}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-automation" data-bs-toggle="pill"
+                        data-bs-target="#pane-automation" type="button" role="tab"
+                        aria-controls="pane-automation" aria-selected="false">
+                    <i class="bi bi-lightning-charge" aria-hidden="true"></i> {{ _t('web.tabs.automation') }}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-system" data-bs-toggle="pill"
+                        data-bs-target="#pane-system" type="button" role="tab"
+                        aria-controls="pane-system" aria-selected="false">
+                    <i class="bi bi-sliders" aria-hidden="true"></i> {{ _t('web.tabs.system') }}
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="settings-panes">
+        <div class="tab-pane fade show active" id="pane-discord" role="tabpanel" aria-labelledby="tab-discord">
 
         {# Discord Bot Settings (Token) #}
         {% include '_discord_settings.html' %}
@@ -1830,11 +1871,17 @@
         {# Command Permissions Table #}
         {% include '_permissions_table.html' %}
 
+        </div>{# /pane-discord #}
+        <div class="tab-pane fade" id="pane-containers" role="tabpanel" aria-labelledby="tab-containers">
+
         {# Server Selection Table #}
         {% include '_server_selection.html' %}
 
         {# Container groups: chosen by the operator, used by tasks, rules and buttons #}
         {% include '_container_groups.html' %}
+
+        </div>{# /pane-containers #}
+        <div class="tab-pane fade" id="pane-automation" role="tabpanel" aria-labelledby="tab-automation">
 
         {# NEW: Task Scheduler Form #}
         <hr class="my-4">
@@ -1878,6 +1925,9 @@
         {# Scheduler Section - OLD, replaced by tasks/form.html #}
         {# {% include '_scheduler_section.html' %} #}
 
+        </div>{# /pane-automation #}
+        <div class="tab-pane fade" id="pane-system" role="tabpanel" aria-labelledby="tab-system">
+
         {# Language and Timezone Settings #}
         {% include '_language_timezone_settings.html' %}
 
@@ -1889,6 +1939,12 @@
            collects #config-form fields, outside it every save wrote heartbeat.enabled=False #}
         {% include '_heartbeat_section.html' %}
 
+        </div>{# /pane-system #}
+        </div>{# /tab-content #}
+
+        {# One Save for all four tabs, inside the form but outside the panes, so it
+           is always visible. A per-tab save would invite the half-save the form's
+           own comment warns about. #}
         {# Save Button #}
         {% include '_save_button.html' %}
 
@@ -1908,6 +1964,29 @@
     {% include '_donation_management_modal.html' %}
     {% include '_auto_actions_modal.html' %}
     {% include '_channel_translation_modal.html' %}
+
+
+<script>
+// Which tab was open. Saving does not reload the page, but F5 does, and landing
+// back on the first tab every time is its own small annoyance. Wrapped because
+// localStorage throws in a private window or with site data blocked, and a
+// forgotten tab must never keep the settings from rendering.
+(function rememberOpenTab() {
+    const KEY = 'ddc.settings.tab';
+    document.addEventListener('DOMContentLoaded', () => {
+        const bar = document.getElementById('settings-tabs');
+        if (!bar || !window.bootstrap || !window.bootstrap.Tab) { return; }
+        try {
+            const wanted = window.location.hash || localStorage.getItem(KEY);
+            const trigger = wanted && bar.querySelector('[data-bs-target="' + wanted + '"]');
+            if (trigger) { window.bootstrap.Tab.getOrCreateInstance(trigger).show(); }
+        } catch (error) { /* no storage: the first tab is a fine place to start */ }
+        bar.addEventListener('shown.bs.tab', event => {
+            try { localStorage.setItem(KEY, event.target.dataset.bsTarget); } catch (error) { /* ignore */ }
+        });
+    });
+})();
+</script>
 
 {% endblock %} {# --- End content block --- #}
 
