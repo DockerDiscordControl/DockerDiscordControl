@@ -144,11 +144,15 @@ services/infrastructure/action_log_service.py:1-387
 services/infrastructure/action_logger.py:1-127
 services/infrastructure/container_info_service.py:1-332
 
-## Section 19  (1970 lines, 5 pieces)
-services/infrastructure/container_status_service.py:1-861
+## Section 19  (1450 lines, 4 pieces)
+services/infrastructure/container_status_service.py:1-870
 services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-193
 services/infrastructure/event_manager.py:1-118
+
+## Section 19b  (553 lines, 1 piece)
+# Split off Section 19 on 2026-09-23: container_status_service.py grew past the
+# 2000-line section limit with the cache-lifetime fix.
 services/infrastructure/game_query_service.py:1-553
 
 ## Section 20  (1546 lines, 5 pieces)

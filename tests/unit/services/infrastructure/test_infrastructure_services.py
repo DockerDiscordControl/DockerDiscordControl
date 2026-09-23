@@ -114,12 +114,17 @@ class TestContainerStatusServiceCache:
         svc = ContainerStatusService()
         assert svc._cache == {}
         assert svc._formatted_cache == {}
-        assert svc._cache_ttl == 30.0
+        # 2.5x the refresh interval since 2026-09-23. At exactly 1x an entry
+        # expired the moment the pass that replaces it started, so every
+        # container showed "Loading" until that pass finished. The status loop
+        # already computed the same margin for its own cache. See
+        # tests/spec/test_the_status_cache_outlives_its_own_refresh.py
+        assert svc._cache_ttl == 30.0 * 2.5
 
     def test_cache_ttl_from_env(self, monkeypatch):
         monkeypatch.setenv("DDC_DOCKER_CACHE_DURATION", "120")
         svc = ContainerStatusService()
-        assert svc._cache_ttl == 120.0
+        assert svc._cache_ttl == 120.0 * 2.5
 
     def test_store_and_get_from_cache(self):
         svc = ContainerStatusService()

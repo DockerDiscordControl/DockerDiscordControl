@@ -120,7 +120,16 @@ class ContainerStatusService:
         # Make TTL configurable from environment
         from utils.settings import get_setting
         cache_duration = get_setting('DDC_DOCKER_CACHE_DURATION', 30)
-        self._cache_ttl = float(cache_duration)  # Now configurable!
+        # 2.5x the refresh interval, the SAME margin the status loop already
+        # computes for its own cache (background_loops.py, calculated_ttl).
+        # Exactly one interval meant an entry expired at the moment the pass
+        # that replaces it STARTED, and only came back when it FINISHED - so
+        # every container fell back to "🔄 Fetching container data…" for the
+        # length of a pass. Measured here on 2026-09-23: about 2 s in every
+        # 120, and it grows with the number of containers.
+        # Longer is not the same as lying: the overviews already mark anything
+        # older than one and a half cycles as aged and say so.
+        self._cache_ttl = float(cache_duration) * 2.5
 
         # Performance tracking
         self._performance_history: Dict[str, List[float]] = {}
