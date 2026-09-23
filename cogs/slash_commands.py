@@ -505,11 +505,23 @@ class SlashCommandsMixin:
         try:
             from services.donation.donation_utils import is_donations_disabled
             if is_donations_disabled():
-                # Send minimal response via followup since we deferred
+                # The SAME answer the donate BUTTON gives for the same state
+                # (_handle_donate_interaction below). This used to be
+                # `followup.send(".")` WITHOUT ephemeral - which after an
+                # ephemeral defer is a PUBLIC message, so a "." flickered in the
+                # channel while the caller's own response was never filled and
+                # they were left on Discord's "thinking" state. One state, one
+                # answer. The way in is ordinary: entering the premium key while
+                # DDC runs leaves /donate registered until the next restart.
                 try:
-                    await ctx.followup.send(".", delete_after=0.1)
-                except (RuntimeError, ValueError, KeyError, OSError) as e:
-                    logger.debug(f"Followup cleanup failed: {e}")
+                    await ctx.followup.send(embed=discord.Embed(
+                        title=_("🔐 Premium Features Active"),
+                        description=_("Donations are disabled via premium key. "
+                                      "Thank you for supporting DDC!"),
+                        color=0xFFD700), ephemeral=True)
+                except (RuntimeError, ValueError, KeyError, OSError,
+                        discord.errors.DiscordException) as e:
+                    logger.debug(f"Could not tell the caller donations are off: {e}")
                 return
         except (ImportError, AttributeError, RuntimeError) as e:
             logger.debug(f"Donation check failed: {e}")

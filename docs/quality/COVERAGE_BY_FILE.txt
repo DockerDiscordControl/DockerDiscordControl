@@ -116,7 +116,7 @@ cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
 cogs/loop_safety.py	98	v3rev2:1-98
 cogs/message_updates.py	786	v3rev2:1-786
 cogs/overview_embeds.py	965	v3rev2:1-964
-cogs/slash_commands.py	828	NONE
+cogs/slash_commands.py	840	NONE
 cogs/stack_restart.py	290	v3rev:1-196
 cogs/status_handlers.py	1400	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1252	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1252
