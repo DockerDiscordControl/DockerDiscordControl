@@ -72,7 +72,7 @@ services/automation/auto_action_config_service.py:1-813
 
 ## Section 11  (1960 lines, 8 pieces)
 services/automation/auto_action_state_service.py:1-364
-services/automation/automation_service.py:1-739
+services/automation/automation_service.py:1-746
 services/automation/container_watch.py:1-157
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
 # config_cache_service.py left for section 12; both are small.

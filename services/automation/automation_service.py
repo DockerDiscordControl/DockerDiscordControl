@@ -22,6 +22,7 @@ from .auto_action_state_service import get_auto_action_state_service
 # Import Docker Control (we reuse existing utils to ensure consistency)
 from services.docker_service.docker_utils import docker_action, is_container_exists, get_docker_info
 from cogs.translation_manager import _
+from services.discord.embed_helper_service import fit_lines
 
 logger = logging.getLogger('ddc.automation_service')
 
@@ -438,6 +439,21 @@ class AutomationService:
         success_count = 0
         skipped_not_running = []  # targets skipped by only_if_running -> one Discord notice
 
+        # One announcement for the whole rule, not one per container: a ticked
+        # group of 200 members was 200 messages into one channel, and Discord's
+        # rate limit stops them long before the containers are done. The
+        # only_if_running notices were consolidated for the same reason.
+        if not rule.action.silent and bot and target_containers:
+            delay_info = (f" ({rule.action.delay_seconds}s delay)"
+                          if rule.action.delay_seconds > 0 else "")
+            named = fit_lines([f"**{name}**" for name in target_containers], separator=", ",
+                              limit=1500,
+                              more=lambda count: _("… and {count} more").format(count=count))
+            await self._send_feedback(
+                bot, rule.action.notification_channel_id or ctx.channel_id,
+                f"⚡ `{action_type}` {named}{delay_info} — *{rule.name}* · "
+                f"[Trigger]({ctx.message_link})")
+
         for container in target_containers:
             logger.info(f"AAS: Executing {action_type} on {container}...")
             
@@ -470,16 +486,7 @@ class AutomationService:
                     skipped_not_running.append(container)
                     continue
 
-            # Send Feedback Message (Question 12)
             notification_channel_id = rule.action.notification_channel_id or ctx.channel_id
-            if not rule.action.silent and bot:
-                # Professional compact format with trigger link
-                delay_info = f" ({rule.action.delay_seconds}s delay)" if rule.action.delay_seconds > 0 else ""
-                await self._send_feedback(
-                    bot,
-                    notification_channel_id,
-                    f"⚡ `{action_type}` **{container}**{delay_info} — *{rule.name}* · [Trigger]({ctx.message_link})"
-                )
 
             # Handle Delay
             if rule.action.delay_seconds > 0:
