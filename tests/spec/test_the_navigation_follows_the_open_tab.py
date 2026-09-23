@@ -1,32 +1,49 @@
 # -*- coding: utf-8 -*-
-"""The tab bar fills its width, and the dots show only what is on screen.
+"""Every dot stays visible, and the dots are grouped the way the tabs are.
 
-TWO THINGS THE OPERATOR ASKED FOR after seeing the tabs (2026-09-23).
+THE OPERATOR'S DECISION, and it reverses mine from an hour earlier
+(2026-09-23). I had made the dots follow the open tab: a dot whose section sat
+in a closed pane was hidden, because the navigation was "describing a page
+that no longer exists". He looked at it and said the opposite is what he
+wants - the bar fully visible at all times, with the tabs shown as GROUPS
+inside it, so that one click from the right-hand edge always lands on the
+function he means.
 
-ONE. The four tabs sat bunched against the left edge while the cards below
-them run the full width of the page. They fill it now.
+He is right, and the reason my version was wrong is worth writing down: a dot
+click already opens its pane before scrolling. So hiding the dot removed the
+one thing that made the navigation better than the tabs - reaching anything on
+the page in a single click, without first working out which tab it lives
+behind. I had optimised the bar for describing the page instead of for using
+it.
 
-TWO, and it is the one that was actually wrong: the floating navigation on the
-right still listed all thirteen sections. Since this morning ten of them are
-inside a tab pane, and three panes are hidden at any moment - so ten of the
-thirteen dots pointed at something not on screen. Clicking one still worked,
-because a dot opens its pane before scrolling, but the navigation was
-describing a page that no longer exists: one long scroll of everything.
+WHAT THE GROUPING IS. Dividers separate the four tabs and the two sections
+that belong to no tab:
 
-The dots now show the sections of the OPEN pane, plus the ones that belong to
-no pane at all - the mech panel above the tabs and the log below them. Switch
-tabs and the list changes with it.
+    top
+    ---
+    mech panel                          (above the tabs, in no pane)
+    ---
+    Discord:    token, guild, permissions
+    ---
+    Containers: the table, the groups
+    ---
+    Automation: task form, task list, rules
+    ---
+    System:     language, panel password, heartbeat
+    ---
+    log                                 (below the tabs, in no pane)
+    ---
+    log out
 
-HOW IT KNOWS: each dot asks the DOM which pane its target sits in. No second
-list of which section belongs to which tab - a second list is a second thing
-to keep in step, and the one in updateActiveSection already has to be
-maintained by hand.
+The order follows the tab bar left to right, so the two controls agree about
+where things are.
 
-HOW THIS TEST CAN FAIL: the tab bar losing its full width, or the dots being
-shown without regard to which pane is open.
+HOW THIS TEST CAN FAIL: hiding dots again, or letting the grouping drift out
+of step with the tabs - a section moving to another tab without its dot moving
+with it.
 
-COUNTER-CHECK (2026-09-23): red before - nav-pills with no fill class, and
-nothing in the navigation knew about panes except the click handler.
+COUNTER-CHECK (2026-09-23): red before - updateVisibleDots hid the dots of
+closed panes, and the dividers cut across the tabs rather than between them.
 """
 
 import re
@@ -34,10 +51,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGE = ROOT / "app" / "templates" / "config.html"
-# The navigation's script moved to app/static/js/floating_nav.js on
-# 2026-09-23, when it grew past the inline budget. The markup stayed in
-# base.html.
-NAV = ROOT / "app" / "static" / "js" / "floating_nav.js"
+MARKUP = ROOT / "app" / "templates" / "base.html"
+SCRIPT = ROOT / "app" / "static" / "js" / "floating_nav.js"
+
+# The groups, in the order the bar shows them. Each inner tuple is what sits
+# between two dividers.
+GROUPS = (
+    ("top",),
+    ("donationSection",),
+    ("discord-settings", "channel-settings", "permissions-table"),
+    ("server-selection", "container-groups"),
+    ("task-scheduler", "task-list", "aas-section"),
+    ("language-settings", "auth-settings", "heartbeat-section"),
+    ("log-section",),
+)
 
 
 def _without_comments(text):
@@ -46,8 +73,8 @@ def _without_comments(text):
 
 
 def test_the_tab_bar_fills_the_width_of_the_cards_below_it():
-    """THE FIRST ASK: four pills bunched left under cards that run the full
-    width."""
+    """The other thing the operator asked for: four pills bunched left under
+    cards that run the full width."""
     page = _without_comments(PAGE.read_text(encoding="utf-8"))
     position = page.index('id="settings-tabs"')
     tag = page[page.rindex("<ul", 0, position):page.index(">", position)]
@@ -56,34 +83,67 @@ def test_the_tab_bar_fills_the_width_of_the_cards_below_it():
         f"the tab bar does not fill its width: {tag}")
 
 
-def test_the_dots_follow_the_open_tab():
-    """THE SECOND ASK, and the real defect: ten of the thirteen dots pointed
-    into panes that are not on screen."""
-    nav = _without_comments(NAV.read_text(encoding="utf-8"))
+def test_no_dot_is_ever_hidden():
+    """THE DECISION: the bar is fully visible, always."""
+    script = _without_comments(SCRIPT.read_text(encoding="utf-8"))
 
-    assert "updateVisibleDots" in nav, (
-        "nothing hides the dots whose section is in a closed tab")
-    assert "shown.bs.tab" in nav, (
-        "the dot list is never recomputed, so it is right only until the first "
-        "tab change")
+    assert "updateVisibleDots" not in script, (
+        "the dots are filtered again - the operator asked for all of them, all "
+        "the time")
+    assert ".hidden = " not in script, "something still hides a dot"
 
 
-def test_it_asks_the_page_rather_than_keeping_a_second_list():
-    """A map of section-to-tab would be a second thing to keep in step with the
-    markup, and updateActiveSection's list already has to be maintained by
-    hand. The DOM knows the answer."""
-    nav = _without_comments(NAV.read_text(encoding="utf-8"))
-    block = nav[nav.index("updateVisibleDots"):]
+def test_a_dot_still_opens_the_tab_it_points_into():
+    """What makes the full bar work: a click lands on the function, whichever
+    tab it lives behind. Without this, ten of the thirteen dots would scroll to
+    something that is not displayed."""
+    script = _without_comments(SCRIPT.read_text(encoding="utf-8"))
 
-    assert "closest('.tab-pane')" in block, (
-        "the dot list does not ask the DOM which pane a section is in")
+    assert "showPaneOf" in script
+    assert "closest('.tab-pane')" in script
 
 
-def test_a_section_outside_every_pane_always_shows():
-    """The mech panel sits above the tabs and the log below them. They belong
-    to no pane, and a dot for them must not vanish because some tab is open."""
-    nav = _without_comments(NAV.read_text(encoding="utf-8"))
-    block = nav[nav.index("updateVisibleDots"):]
+def test_the_dots_are_grouped_the_way_the_tabs_are():
+    """THE GROUPING: dividers between the tabs, not across them."""
+    markup = _without_comments(MARKUP.read_text(encoding="utf-8"))
+    nav = markup[markup.index('id="floatingNav"'):markup.index("</nav>")]
 
-    assert "!pane" in block or "pane === null" in block or "if (!pane)" in block, (
-        "a section that is in no pane is treated like one in a closed pane")
+    found = []
+    for piece in nav.split("nav-divider"):
+        ids = re.findall(r'href="#([\w-]+)"', piece)
+        if ids:
+            found.append(tuple(ids))
+
+    assert tuple(found) == GROUPS, (
+        f"the dots are grouped {found}, and the tabs group them {GROUPS}")
+
+
+def test_every_grouped_section_is_where_the_grouping_says():
+    """Counter-check on the grouping: it is a claim about the page, so it is
+    checked against the page. A section moving to another tab without its dot
+    moving with it is red."""
+    # Rendered, not read: the sections live in the included partials, so
+    # config.html itself does not contain their ids at all.
+    from flask import Flask, render_template
+    from jinja2 import ChainableUndefined
+
+    app = Flask(__name__, template_folder=str(ROOT / "app" / "templates"))
+    app.jinja_env.undefined = ChainableUndefined
+    app.jinja_env.globals["_t"] = lambda key, **kwargs: key
+    app.jinja_env.globals["csrf_token"] = lambda: "test-token"
+    app.jinja_env.globals["url_for"] = lambda endpoint, **values: "/static/x"
+    with app.test_request_context("/"):
+        page = render_template(
+            "config.html", config={}, all_containers=[], configured_servers={},
+            container_info_data={}, active_container_names=[],
+            DEFAULT_CONFIG={"default_channel_permissions": {}})
+
+    panes = ("pane-discord", "pane-containers", "pane-automation", "pane-system")
+    bounds = [page.index(f'id="{pane}"') for pane in panes] + [page.index('id="save-notification"')]
+
+    for index, pane_group in enumerate(GROUPS[2:6]):
+        for section in pane_group:
+            position = page.index(f'id="{section}"')
+            assert bounds[index] < position < bounds[index + 1], (
+                f"{section} has a dot in the {panes[index]} group but does not "
+                f"sit in that pane")

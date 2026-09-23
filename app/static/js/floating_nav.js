@@ -1,5 +1,11 @@
-// The floating navigation: which dot is active, which dots make sense, and
-// what a click does.
+// The floating navigation: which dot is active, and what a click does.
+//
+// EVERY dot stays visible, whichever tab is open. An earlier version this
+// evening hid the dots of closed panes - the navigation was "describing a page
+// that no longer exists" - and the operator asked for the opposite. He is
+// right: a dot click already opens its pane before scrolling, so hiding the
+// dot removed the one thing the bar is for, which is reaching anything on the
+// page in one click without first working out which tab it lives behind.
 //
 // Moved out of base.html on 2026-09-23 - it grew past the inline budget when
 // the dots learned to follow the open tab, and the rule that caught it is the
@@ -66,36 +72,6 @@
             }
         });
     });
-
-    // Which dots make sense right now.
-    //
-    // Ten of the thirteen sections live in a tab pane since the settings were
-    // split, and three panes are hidden at any moment - so most of the dots
-    // pointed at something not on screen. Clicking one still worked (a dot
-    // opens its pane first), but the navigation was describing a page that no
-    // longer exists: one long scroll of everything.
-    //
-    // It asks the DOM which pane each target is in rather than keeping a map of
-    // section-to-tab. A map would be a second thing to keep in step with the
-    // markup, and the list in updateActiveSection already has to be maintained
-    // by hand. A section in NO pane - the mech panel above the tabs, the log
-    // below them - always shows.
-    function updateVisibleDots() {
-        nav.querySelectorAll('.nav-dot').forEach(dot => {
-            const href = dot.getAttribute('href');
-            if (!href || href === '#top') { return; }
-            const target = document.querySelector(href);
-            const pane = target && target.closest ? target.closest('.tab-pane') : null;
-            if (!pane) {
-                dot.hidden = false;
-                return;
-            }
-            dot.hidden = !pane.classList.contains('active');
-        });
-    }
-
-    document.addEventListener('shown.bs.tab', updateVisibleDots);
-    updateVisibleDots();
 
     // Update active section indicator
     function updateActiveSection() {

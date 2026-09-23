@@ -1,6 +1,11 @@
 {% block navbar %}
 {# Floating Mini-Nav - Appears on scroll #}
 <nav id="floatingNav" class="floating-nav">
+    {# Grouped the way the tabs are, in the same left-to-right order, so the
+       two controls agree about where things live. Every dot stays visible:
+       a click opens its pane before scrolling (app/static/js/floating_nav.js),
+       which is what lets one click from this edge land on any function
+       without first working out which tab it is behind. #}
     <a href="#top" class="nav-dot" data-tooltip="{{ _t('web.nav.top') }}">
         <i class="bi bi-chevron-up"></i>
     </a>
@@ -8,6 +13,7 @@
     <a href="#donationSection" class="nav-dot" data-tooltip="{{ _t('web.nav.mech') }}">
         <i class="bi bi-robot"></i>
     </a>
+    <div class="nav-divider"></div>
     <a href="#discord-settings" class="nav-dot" data-tooltip="{{ _t('web.nav.discord') }}">
         <i class="bi bi-discord"></i>
     </a>
@@ -17,6 +23,7 @@
     <a href="#permissions-table" class="nav-dot" data-tooltip="{{ _t('web.nav.permissions') }}">
         <i class="bi bi-shield-lock"></i>
     </a>
+    <div class="nav-divider"></div>
     <a href="#server-selection" class="nav-dot" data-tooltip="{{ _t('web.nav.containers') }}">
         <i class="bi bi-box-seam"></i>
     </a>
@@ -43,6 +50,7 @@
     <a href="#heartbeat-section" class="nav-dot" data-tooltip="{{ _t('web.nav.heartbeat') }}">
         <i class="bi bi-heart-pulse"></i>
     </a>
+    <div class="nav-divider"></div>
     <a href="#log-section" class="nav-dot" data-tooltip="{{ _t('web.nav.logs') }}">
         <i class="bi bi-terminal"></i>
     </a>
