@@ -1190,6 +1190,8 @@
   "web.nav.discord": "Discord",
   "web.nav.heartbeat": "Heartbeat",
   "web.nav.language": "Taal",
+  "web.nav.groups": "Container groups",
+  "web.nav.task_list": "Scheduled tasks",
   "web.nav.logs": "Logs",
   "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",

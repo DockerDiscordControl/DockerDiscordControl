@@ -1190,6 +1190,8 @@
   "web.nav.discord": "Discord",
   "web.nav.heartbeat": "نبض القلب",
   "web.nav.language": "اللغة",
+  "web.nav.groups": "Container groups",
+  "web.nav.task_list": "Scheduled tasks",
   "web.nav.logs": "السجلات",
   "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",

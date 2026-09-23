@@ -1190,6 +1190,8 @@
   "web.nav.discord": "Discord",
   "web.nav.heartbeat": "Südamelöök",
   "web.nav.language": "Keel",
+  "web.nav.groups": "Container groups",
+  "web.nav.task_list": "Scheduled tasks",
   "web.nav.logs": "Logid",
   "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",

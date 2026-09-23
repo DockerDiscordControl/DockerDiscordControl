@@ -1190,6 +1190,8 @@
   "web.nav.discord": "Discord",
   "web.nav.heartbeat": "하트비트",
   "web.nav.language": "언어",
+  "web.nav.groups": "Container groups",
+  "web.nav.task_list": "Scheduled tasks",
   "web.nav.logs": "로그",
   "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",

@@ -1190,6 +1190,8 @@
   "web.nav.discord": "Discord",
   "web.nav.heartbeat": "心跳",
   "web.nav.language": "语言",
+  "web.nav.groups": "Container groups",
+  "web.nav.task_list": "Scheduled tasks",
   "web.nav.logs": "日志",
   "web.nav.logout": "Log out",
   "web.nav.mech": "机甲",

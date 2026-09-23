@@ -1190,6 +1190,8 @@
   "web.nav.discord": "Discord",
   "web.nav.heartbeat": "Širdies plakimas",
   "web.nav.language": "Kalba",
+  "web.nav.groups": "Container groups",
+  "web.nav.task_list": "Scheduled tasks",
   "web.nav.logs": "Žurnalai",
   "web.nav.logout": "Log out",
   "web.nav.mech": "Mech",
