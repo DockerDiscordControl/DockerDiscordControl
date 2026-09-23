@@ -72,6 +72,33 @@ Add Docker containers to control via Discord:
 | Custom Port | Port to display | No |
 | Custom Text | Additional info text | No |
 
+### Container Groups (v3.0+)
+
+Access: Web UI → Container Groups (under Container Management)
+
+A group is a name you choose and the containers that belong to it. It is yours, not Docker's -
+containers created without `docker-compose` have no stack, which on Unraid is usually all of
+them.
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| Group name | Free text, up to 80 characters, unique | Yes |
+| Containers | Any number of your configured containers | No (a group may start empty) |
+
+A group can be used wherever a single container can:
+
+- **Scheduled tasks** — pick the group in the task form's container list, under "Container
+  groups". The members are acted on one after another. If the group is gone, empty, or has lost a
+  member, the task is reported as FAILED rather than as a success over the rest.
+- **Auto-actions** — tick the group in the rule editor. It counts twice over: as the containers
+  the rule watches, and as the containers it acts on. A rule whose group was deleted watches
+  **nothing** (it does not fall back to "every container").
+- **Discord** — the Admin Overview's group button offers your groups and any Compose stacks DDC
+  finds. It only appears when there is at least one of them.
+
+A container that is renamed or removed stays in the group until you edit it; every place that
+uses the group says so rather than quietly acting on fewer containers.
+
 ### Channel Permissions
 
 Access: Web UI → Channel Configuration
@@ -235,7 +262,8 @@ config/
 ├── info/           # Container information cache
 ├── progress/       # Donation/evolution system data
 ├── tasks/          # Scheduled tasks (empty until tasks created)
-└── tasks.json      # Task definitions
+├── tasks.json      # Task definitions
+└── groups.json     # Container groups (v3.0+, empty until you make one)
 ```
 
 **Note:** Configuration is managed internally by DDC. Manual editing of config files is not recommended.
