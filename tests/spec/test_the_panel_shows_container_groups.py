@@ -80,7 +80,7 @@ def test_the_rules_hold_in_node():
                             capture_output=True, text=True, timeout=60)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok   - ") == 5, result.stdout
+    assert result.stdout.count("ok   - ") == 8, result.stdout
 
 
 def test_meta_json_holds_language_metadata_only():
@@ -98,3 +98,30 @@ def test_meta_json_holds_language_metadata_only():
 
     assert not_objects == [], f"meta.json holds non-metadata entries: {not_objects}"
     assert "en" in meta and meta["en"].get("name"), "meta.json lost its language list"
+
+
+def test_saving_over_a_group_asks_first():
+    """Saving REPLACES the containers of a group with that name.
+
+    THE FINDING (independent review, 2026-09-23): adding an eighth container to
+    a group of seven the obvious way - type the name, pick the container, save -
+    left a group of ONE and reported "Group saved." in green. There was no
+    confirmation on delete either.
+
+    COUNTER-CHECK: the node cases cover the warning and the two cases that must
+    NOT warn (a new name, and a group loaded into the form for editing).
+    """
+    js = (ROOT / "app" / "static" / "js" / "container_groups.js").read_text(encoding="utf-8")
+
+    assert "replacementWarning(" in js, "saving over a group still replaces it silently"
+    assert "confirm(question)" in js, "a group is deleted without asking"
+    assert "loadIntoForm" in js, "a group cannot be opened for editing"
+
+
+@pytest.mark.parametrize("key", ["web.groups.edit", "web.groups.replace",
+                                 "web.groups.confirm_delete"])
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_the_new_texts_exist(language, key):
+    catalogue = json.loads((ROOT / "locales" / f"{language}.json").read_text(encoding="utf-8"))
+
+    assert catalogue.get(key), f"{language}.json has no text for {key}"

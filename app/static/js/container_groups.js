@@ -23,9 +23,25 @@ function canSaveGroup(name, containers) {
     return typeof name === 'string' && name.trim().length > 0 && name.trim().length <= 80;
 }
 
+// Saving REPLACES the containers of a group with that name. Adding an eighth
+// container to a group of seven by typing the name and picking one would
+// therefore leave a group of one - and say "Saved" in green. This decides when
+// to ask, and what to say.
+function replacementWarning(name, existingGroups, editing, texts) {
+    const wanted = (name || '').trim().toLowerCase();
+    if (!wanted || editing) return null;      // editing a loaded group is not a surprise
+    const existing = (existingGroups || []).find(
+        g => (g.name || '').trim().toLowerCase() === wanted);
+    if (!existing) return null;
+    return (texts.replace || '')
+        .replace('{name}', existing.name)
+        .replace('{count}', String((existing.containers || []).length));
+}
+
 if (typeof window !== 'undefined') {
     window.groupWarning = groupWarning;
     window.canSaveGroup = canSaveGroup;
+    window.replacementWarning = replacementWarning;
 }
 
 // --- the page itself -------------------------------------------------------
@@ -49,6 +65,21 @@ if (typeof document !== 'undefined') {
         const chosenContainers = () =>
             Array.from(containerField.selectedOptions).map(option => option.value);
 
+        let knownGroups = [];
+        let editing = null;       // the group loaded into the form, if any
+
+        const loadIntoForm = (group) => {
+            // Clicking a group EDITS it: without this the only way to change a
+            // group was to type its name again, which replaces its containers.
+            editing = group.name;
+            nameField.value = group.name;
+            const members = new Set(group.containers || []);
+            for (const option of containerField.options) {
+                option.selected = members.has(option.value);
+            }
+            nameField.focus();
+        };
+
         async function load() {
             let answer;
             try {
@@ -62,6 +93,7 @@ if (typeof document !== 'undefined') {
                 return;
             }
             const groups = (await answer.json()).groups || [];
+            knownGroups = groups;
             list.innerHTML = '';
             if (groups.length === 0) {
                 list.innerHTML = '<div class="text-muted" id="groups-empty">' +
@@ -71,9 +103,12 @@ if (typeof document !== 'undefined') {
             for (const group of groups) {
                 const row = document.createElement('div');
                 row.className = 'd-flex align-items-center gap-2 mb-2';
-                const label = document.createElement('span');
-                label.className = 'fw-bold';
+                const label = document.createElement('button');
+                label.type = 'button';
+                label.className = 'btn btn-link fw-bold p-0 text-decoration-none';
                 label.textContent = group.name;
+                label.title = texts.edit || '';
+                label.addEventListener('click', () => loadIntoForm(group));
                 const members = document.createElement('span');
                 members.className = 'text-muted small';
                 members.textContent = (group.containers || []).join(', ');
@@ -81,7 +116,13 @@ if (typeof document !== 'undefined') {
                 remove.type = 'button';
                 remove.className = 'btn btn-sm btn-outline-danger ms-auto';
                 remove.textContent = texts.delete || 'Delete';
-                remove.addEventListener('click', () => del(group.name));
+                remove.addEventListener('click', () => {
+                    // Asked, not just done: a group is quick to make and easy
+                    // to hit by accident next to the name.
+                    const question = (texts.confirm_delete || '{name}?')
+                        .replace('{name}', group.name);
+                    if (confirm(question)) del(group.name);
+                });
                 row.append(label, members, remove);
                 list.appendChild(row);
 
@@ -102,6 +143,10 @@ if (typeof document !== 'undefined') {
                 say(texts.needs_name || 'A group needs a name', 'warning');
                 return;
             }
+            const warning = replacementWarning(name, knownGroups, editing === name.trim(), texts);
+            if (warning && !confirm(warning)) {
+                return;
+            }
             const answer = await fetch('/api/groups', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -111,6 +156,8 @@ if (typeof document !== 'undefined') {
             if (answer.ok) {
                 say(texts.saved || 'Saved', 'success');
                 nameField.value = '';
+                editing = null;
+                for (const option of containerField.options) option.selected = false;
                 await load();
             } else {
                 say(body.error || 'Error', 'danger');

@@ -1763,5 +1763,8 @@
   "js.tasks.group_badge": "Group",
   "js.aas.target_missing": "not found",
   "js.aas.confirm_widen_to_all": "Nothing is selected. This rule will then watch EVERY container. Continue?",
-  "Not touched (not in DDC, or switched off): {names}": "Not touched (not in DDC, or switched off): {names}"
+  "Not touched (not in DDC, or switched off): {names}": "Not touched (not in DDC, or switched off): {names}",
+  "web.groups.edit": "Click to edit this group",
+  "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
+  "web.groups.confirm_delete": "Delete the group {name}?"
 }

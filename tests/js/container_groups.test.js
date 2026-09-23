@@ -11,7 +11,7 @@ sandbox.window = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'app', 'static', 'js',
   'container_groups.js'), 'utf8'), sandbox);
-const { groupWarning, canSaveGroup } = sandbox;
+const { groupWarning, canSaveGroup, replacementWarning } = sandbox;
 
 const TEXTS = { missing: 'Not found any more: {names}', empty: 'No containers yet' };
 
@@ -36,6 +36,23 @@ const cases = {
   'a name longer than the service accepts is refused here too'() {
     assert.strictEqual(canSaveGroup('x'.repeat(81), []), false);
     assert.strictEqual(canSaveGroup('x'.repeat(80), []), true);
+  },
+  'typing the name of an existing group warns that it is replaced'() {
+    // THE FINDING: saving replaces the members. Adding one container to a
+    // group of seven this way left a group of one, with a green "Saved".
+    const groups = [{ name: 'Gameserver', containers: ['a', 'b', 'c'] }];
+    const warning = replacementWarning('gameserver', groups, false,
+                                       { replace: '{name} has {count} containers' });
+    assert.ok(warning && warning.includes('Gameserver'), warning);
+    assert.ok(warning.includes('3'), warning);
+  },
+  'editing a group that was loaded into the form does not warn'() {
+    const groups = [{ name: 'Gameserver', containers: ['a'] }];
+    assert.strictEqual(replacementWarning('Gameserver', groups, true, { replace: 'x' }), null);
+  },
+  'a new name does not warn'() {
+    const groups = [{ name: 'Gameserver', containers: ['a'] }];
+    assert.strictEqual(replacementWarning('Infrastruktur', groups, false, { replace: 'x' }), null);
   },
 };
 

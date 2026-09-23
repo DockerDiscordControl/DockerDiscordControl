@@ -1763,5 +1763,8 @@
   "js.tasks.group_badge": "Gruppe",
   "js.aas.target_missing": "nicht gefunden",
   "js.aas.confirm_widen_to_all": "Nichts ausgewählt. Diese Regel gilt dann für JEDEN Container. Fortfahren?",
-  "Not touched (not in DDC, or switched off): {names}": "Nicht angefasst (nicht in DDC oder ausgeschaltet): {names}"
+  "Not touched (not in DDC, or switched off): {names}": "Nicht angefasst (nicht in DDC oder ausgeschaltet): {names}",
+  "web.groups.edit": "Zum Bearbeiten anklicken",
+  "web.groups.replace": "Die Gruppe {name} gibt es schon, mit {count} Container(n). Speichern ersetzt ihre Container durch die ausgewählten. Fortfahren?",
+  "web.groups.confirm_delete": "Gruppe {name} löschen?"
 }
