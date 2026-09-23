@@ -15,6 +15,7 @@ import os
 import time
 import json
 import re
+import unicodedata
 import logging
 from datetime import datetime
 from typing import Dict, Any, Tuple, Optional
@@ -54,7 +55,16 @@ class DonationService:
     # Business rules constants
     MAX_DONATION_AMOUNT = 999999.0
     MAX_DONOR_NAME_LENGTH = 50
-    DONOR_NAME_PATTERN = r'[^a-zA-Z0-9\s\-_\.]'  # Remove anything not alphanumeric, space, dash, underscore, dot
+    # Letters of ANY alphabet, not just ASCII. The old pattern was
+    # r'[^a-zA-Z0-9\s\-_\.]', which turned Mueller written with an umlaut into
+    # "Mller" and a Japanese name into "Anonymous" - silently, into a payload
+    # that is append-only and replayed on every rebuild. The strip is not what
+    # makes a name safe to show: the panel writes it with textContent and a
+    # Discord embed is markdown, not HTML. What a name must not carry is a line
+    # break (it would break the embed layout) and the invisible characters that
+    # make text read backwards or hide inside another name - those are removed
+    # by _CONTROL_CHARACTERS below, before this pattern is applied.
+    DONOR_NAME_PATTERN = r'[^\w\s\-_\.]'
     # None = the config directory via utils/config_paths.py (DDC_CONFIG_DIR).
     # Was hard-wired to "/app/config": blind to the variable, and outside the
     # container creating it failed and the announcement was lost. Kept as a
@@ -149,7 +159,15 @@ class DonationService:
 
         request.donor_name = request.donor_name.strip() or 'Anonymous'
 
-        # Remove potentially dangerous characters (HTML, scripts, etc.)
+        # NFC first, so a letter written as "u" plus a combining umlaut counts
+        # as one character and survives the filter as one.
+        request.donor_name = unicodedata.normalize('NFC', request.donor_name)
+        # Control and format characters (Unicode category C) go first and
+        # unconditionally: line breaks, NUL, escape sequences, the
+        # right-to-left override and the zero-width space.
+        request.donor_name = ''.join(
+            ch for ch in request.donor_name if unicodedata.category(ch)[0] != 'C')
+        # Then anything that is not a letter, a digit, a space or - _ .
         request.donor_name = re.sub(self.DONOR_NAME_PATTERN, '', request.donor_name)
         request.donor_name = request.donor_name[:self.MAX_DONOR_NAME_LENGTH]
 
