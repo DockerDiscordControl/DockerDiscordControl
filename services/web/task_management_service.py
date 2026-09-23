@@ -269,8 +269,15 @@ class TaskManagementService:
 
                 tasks_list.append(task_data)
 
-            # Step 3: Save changes for tasks that need updating
-            self._save_updated_tasks(tasks_to_update)
+            # Step 3: save the changes. The rows above were built BEFORE this
+            # write, and a refused one leaves the task ACTIVE in the file - the
+            # page drew the switch as off for a task the scheduler still held
+            # as on. Those rows go back to what tasks.json says ("id", not
+            # "task_id": to_dict renames it for the Web UI).
+            unsaved = self._save_updated_tasks(tasks_to_update)
+            for task_data in tasks_list:
+                if task_data.get("id") in unsaved:
+                    task_data["is_active"] = True
 
             return ListTasksResult(
                 success=True,
@@ -799,10 +806,15 @@ class TaskManagementService:
             self.logger.error(f"Error formatting timestamp: {e}", exc_info=True)
             return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
-    def _save_updated_tasks(self, tasks_to_update: List):
-        """Save multiple updated tasks."""
-        if not tasks_to_update:
-            return
+    def _save_updated_tasks(self, tasks_to_update: List) -> set:
+        """Save multiple updated tasks; answer with the ids that were NOT saved.
+
+        The caller has already built rows saying those tasks are off, and one
+        whose write was refused is still on in the file. An id leaves this set
+        only when update_task said yes, so an exception halfway through the
+        loop still answers truthfully for the ones it never reached.
+        """
+        unsaved = {task.task_id for task in tasks_to_update}
 
         try:
             from services.scheduling.scheduler import update_task
@@ -813,6 +825,7 @@ class TaskManagementService:
                 # the task stayed active in the file and came back on the next
                 # page load. SPEC.md Z3.
                 if update_task(task):
+                    unsaved.discard(task.task_id)
                     self.logger.info(
                         f"Task {task.task_id} was marked as expired and deactivated. Changes saved.")
                 else:
@@ -825,6 +838,7 @@ class TaskManagementService:
         except (ValueError, TypeError) as e:
             # Data errors (task update failed)
             self.logger.error(f"Data error saving updated tasks: {e}", exc_info=True)
+        return unsaved
 
     def _find_task_by_id(self, task_id: str):
         """Find task by ID using scheduler."""
