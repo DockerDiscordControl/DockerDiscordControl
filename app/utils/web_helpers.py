@@ -326,12 +326,29 @@ def update_docker_cache(logger):
             new_timestamps = {}
             new_hashes = {}
 
-            # Apply both background refresh limit and max cache limit
-            # Use the smaller of the two limits
+            # Apply both background refresh limit and max cache limit.
+            # SORTED FIRST, and that is the point: the cut used to take the
+            # first N of Docker's OWN listing order, which is roughly newest
+            # first and shifts whenever a container is created, removed or
+            # restarted. Two refreshes of the same host could therefore keep
+            # DIFFERENT containers - one could vanish from the panel and come
+            # back later without anything about it having changed. By name the
+            # cut is reproducible.
+            # The cap itself is deliberate: every container in the loop below
+            # costs a Docker call.
             effective_limit = min(BACKGROUND_REFRESH_LIMIT, MAX_CACHED_CONTAINERS)
+            containers_to_process = sorted(containers_to_process,
+                                           key=lambda c: (c.name or '').lower())
             containers_limited = containers_to_process[:effective_limit] if len(containers_to_process) > effective_limit else containers_to_process
             if len(containers_to_process) > effective_limit:
-                logger.warning(f"Docker cache: Limiting to {effective_limit} containers (found {len(containers_to_process)}, refresh_limit={BACKGROUND_REFRESH_LIMIT}, cache_limit={MAX_CACHED_CONTAINERS})")
+                # NAMED, not counted: a number does not tell the operator which
+                # containers they cannot see or configure in the panel.
+                left_out = [c.name for c in containers_to_process[effective_limit:]]
+                logger.warning(
+                    f"Docker cache: Limiting to {effective_limit} containers "
+                    f"(found {len(containers_to_process)}, refresh_limit={BACKGROUND_REFRESH_LIMIT}, "
+                    f"cache_limit={MAX_CACHED_CONTAINERS}). NOT shown in the panel: "
+                    f"{', '.join(left_out)}. Raise DDC_BACKGROUND_REFRESH_LIMIT to see them.")
 
             current_time = time.time()
             for container in containers_limited:

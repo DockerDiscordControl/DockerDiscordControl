@@ -295,7 +295,7 @@ app/bot/startup_steps/cooldowns.py:1-29
 app/bot/startup_steps/diagnostics.py:1-26
 app/utils/port_diagnostics.py:1-600
 app/utils/shared_data.py:1-105
-app/utils/web_helpers.py:1-925
+app/utils/web_helpers.py:1-942
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-68
