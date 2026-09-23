@@ -17,8 +17,29 @@ from services.exceptions import ConfigServiceError
 
 logger = logging.getLogger('ddc.config_form_parser')
 
-# The panel's channel table has at most this many rows (it numbers them from 1).
-MAX_CHANNEL_ROWS = 50
+def _submitted_rows(form_data: Dict[str, Any], prefix: str) -> List[int]:
+    """The row numbers this form actually carries, in order.
+
+    NOT a fixed range. The parser used to walk range(1, 51) while the panel's
+    own getNextRowIndex just returns max+1, so it numbers a row 51 or 137
+    without a second thought. A row the parser never read was absent from the
+    parsed set - and save_all_channels DELETES every <channel_id>.json that is
+    not in that set. Those channels lost their permissions, and the panel said
+    "saved successfully".
+
+    Two ways to reach it: 51 channels of one kind, or about fifty
+    add-and-delete cycles in one page session, because the next index keeps
+    climbing while the row count does not.
+    """
+    numbers = []
+    marker = f"{prefix}_channel_id_"
+    for key in form_data:
+        if not isinstance(key, str) or not key.startswith(marker):
+            continue
+        tail = key[len(marker):]
+        if tail.isdigit():
+            numbers.append(int(tail))
+    return sorted(numbers)
 
 
 # What process_config_form answers when everything ELSE was saved and only the
@@ -182,7 +203,7 @@ class ConfigFormParserService:
         # bigger gap, and the channels behind it never reached the parser - saving
         # then deleted exactly their permission files (save_all_channels removes every
         # <channel_id>.json that is not in the parsed set). Review B, section 11 F4.
-        for count in range(1, MAX_CHANNEL_ROWS + 1):
+        for count in _submitted_rows(form_data, prefix):
             channel_id_key = f'{prefix}_channel_id_{count}'
             raw = form_data.get(channel_id_key, '')
             channel_id = raw.strip() if isinstance(raw, str) else str(raw).strip()
@@ -256,7 +277,9 @@ class ConfigFormParserService:
         """
         unusable = []
         for prefix in ('status', 'control'):
-            for count in range(1, MAX_CHANNEL_ROWS + 1):
+            # The same rows the parser reads, or a mistyped ID in a high row
+            # would be skipped without ever being named.
+            for count in _submitted_rows(form_data, prefix):
                 raw = form_data.get(f'{prefix}_channel_id_{count}', '')
                 channel_id = raw.strip() if isinstance(raw, str) else str(raw).strip()
                 if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
