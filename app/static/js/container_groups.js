@@ -38,7 +38,26 @@ function replacementWarning(name, existingGroups, editing, texts) {
         .replace('{count}', String((existing.containers || []).length));
 }
 
+// The picker: 26 containers in a Ctrl-click multi-select was one stray click
+// away from losing the whole selection, so it is a checkbox list with a search
+// box. These two decide what the box shows and what the count says.
+function matchingContainers(names, query) {
+    const wanted = (query || '').trim().toLowerCase();
+    if (!wanted) return (names || []).slice();   // empty search shows everything
+    return (names || []).filter(name => name.toLowerCase().includes(wanted));
+}
+
+// The picked containers can be scrolled out of sight, or filtered out of the
+// box entirely, so this number is the only thing that says what will be saved.
+function selectionSummary(chosen, total, texts) {
+    return (texts.chosen_count || '{chosen}/{total}')
+        .replace('{chosen}', String(chosen))
+        .replace('{total}', String(total));
+}
+
 if (typeof window !== 'undefined') {
+    window.matchingContainers = matchingContainers;
+    window.selectionSummary = selectionSummary;
     window.groupWarning = groupWarning;
     window.canSaveGroup = canSaveGroup;
     window.replacementWarning = replacementWarning;
@@ -62,8 +81,41 @@ if (typeof document !== 'undefined') {
             message.className = 'mt-2 alert alert-' + (level || 'info');
         };
 
+        const boxes = () => Array.from(
+            containerField.querySelectorAll('input.group-container-box'));
         const chosenContainers = () =>
-            Array.from(containerField.selectedOptions).map(option => option.value);
+            boxes().filter(box => box.checked).map(box => box.value);
+
+        const searchField = document.getElementById('group-search');
+        const counter = document.getElementById('group-chosen-count');
+        const noMatch = document.getElementById('group-no-match');
+
+        const showCount = () => {
+            if (counter) {
+                counter.textContent = selectionSummary(
+                    chosenContainers().length, boxes().length, texts);
+            }
+        };
+
+        const applySearch = () => {
+            const visible = new Set(matchingContainers(
+                boxes().map(box => box.value), searchField ? searchField.value : ''));
+            for (const item of containerField.querySelectorAll('.group-container-item')) {
+                item.hidden = !visible.has(item.dataset.containerName);
+            }
+            if (noMatch) { noMatch.hidden = visible.size > 0; }
+        };
+
+        // All / none act on what the search SHOWS, not on everything: with a
+        // filter typed in, a button that silently ticked the hidden ones too
+        // would be the opposite of what the box says.
+        const setVisible = (checked) => {
+            for (const box of boxes()) {
+                const item = box.closest('.group-container-item');
+                if (item && !item.hidden) { box.checked = checked; }
+            }
+            showCount();
+        };
 
         let knownGroups = [];
         let editing = null;       // the group loaded into the form, if any
@@ -74,9 +126,8 @@ if (typeof document !== 'undefined') {
             editing = group.name;
             nameField.value = group.name;
             const members = new Set(group.containers || []);
-            for (const option of containerField.options) {
-                option.selected = members.has(option.value);
-            }
+            for (const box of boxes()) { box.checked = members.has(box.value); }
+            showCount();
             nameField.focus();
         };
 
@@ -157,7 +208,8 @@ if (typeof document !== 'undefined') {
                 say(texts.saved || 'Saved', 'success');
                 nameField.value = '';
                 editing = null;
-                for (const option of containerField.options) option.selected = false;
+                for (const box of boxes()) box.checked = false;
+                showCount();
                 await load();
             } else {
                 say(body.error || 'Error', 'danger');
@@ -177,6 +229,13 @@ if (typeof document !== 'undefined') {
         }
 
         document.getElementById('group-save-btn')?.addEventListener('click', save);
+        searchField?.addEventListener('input', applySearch);
+        document.getElementById('group-select-all')?.addEventListener(
+            'click', () => setVisible(true));
+        document.getElementById('group-select-none')?.addEventListener(
+            'click', () => setVisible(false));
+        containerField.addEventListener('change', showCount);
+        showCount();
         load();
     });
 }

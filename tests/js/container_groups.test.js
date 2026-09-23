@@ -11,9 +11,11 @@ sandbox.window = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'app', 'static', 'js',
   'container_groups.js'), 'utf8'), sandbox);
-const { groupWarning, canSaveGroup, replacementWarning } = sandbox;
+const { groupWarning, canSaveGroup, replacementWarning, matchingContainers,
+  selectionSummary } = sandbox;
 
-const TEXTS = { missing: 'Not found any more: {names}', empty: 'No containers yet' };
+const TEXTS = { missing: 'Not found any more: {names}', empty: 'No containers yet',
+  chosen_count: '{chosen} of {total} picked' };
 
 const cases = {
   'a group that lost a container says which one'() {
@@ -53,6 +55,31 @@ const cases = {
   'a new name does not warn'() {
     const groups = [{ name: 'Gameserver', containers: ['a'] }];
     assert.strictEqual(replacementWarning('Infrastruktur', groups, false, { replace: 'x' }), null);
+  },
+
+  // The picker: 26 containers as a Ctrl-click multi-select was easy to lose by
+  // one stray click, so it is a checkbox list with a search box now.
+  'the search matches anywhere in the name'() {
+    assert.deepStrictEqual(matchingContainers(['Icarus', 'Icarus2', 'Valheim'], 'car'),
+      ['Icarus', 'Icarus2']);
+  },
+  'the search ignores case, because the names do not agree on one'() {
+    assert.deepStrictEqual(matchingContainers(['Icarus', 'valheim'], 'VAL'), ['valheim']);
+  },
+  'an empty search shows everything, not nothing'() {
+    assert.deepStrictEqual(matchingContainers(['Icarus', 'Valheim'], '   '),
+      ['Icarus', 'Valheim']);
+  },
+  'a search nothing matches is empty, not everything'() {
+    assert.deepStrictEqual(matchingContainers(['Icarus'], 'zzz'), []);
+  },
+  'the count says how many of how many are picked'() {
+    // With the checkbox list the picked ones can be scrolled out of sight, so
+    // the number is the only thing that says what will be saved.
+    assert.strictEqual(selectionSummary(3, 26, TEXTS), '3 of 26 picked');
+  },
+  'the count is shown for none picked too - that is a real group'() {
+    assert.strictEqual(selectionSummary(0, 26, TEXTS), '0 of 26 picked');
   },
 };
 

@@ -42,8 +42,13 @@ def test_the_list_really_renders_the_containers():
     """A template variable that is not in the context renders as nothing.
 
     COUNTER-CHECK: with `configured_servers` renamed in the template, the page
-    shows an empty multi-select and nobody can put a container into a group -
+    shows an empty picker and nobody can put a container into a group -
     silently, because Jinja treats an unknown name as undefined.
+
+    REVISITED 2026-09-23: this counted <option> elements. The picker is a
+    checkbox list now - 26 containers behind Ctrl-click was one stray click
+    away from losing the whole selection - so it counts the boxes instead. What
+    it checks is unchanged: each container once, and the alias key not twice.
     """
     from flask import Flask, render_template
 
@@ -60,5 +65,5 @@ def test_the_list_really_renders_the_containers():
 
     assert 'value="Valheim"' in html, "a configured container is not offered"
     assert 'value="plex"' in html
-    assert html.count("<option") == 2, (
-        f"the alias key was rendered as a second container: {html.count('<option')} options")
+    boxes = html.count('class="form-check-input group-container-box"')
+    assert boxes == 2, f"the alias key was rendered as a second container: {boxes} boxes"

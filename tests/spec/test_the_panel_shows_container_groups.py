@@ -31,7 +31,9 @@ KEYS = ("web.groups.title", "web.groups.description", "web.groups.none_yet",
         "web.groups.name", "web.groups.containers", "web.groups.save",
         "web.groups.delete", "web.groups.saved", "web.groups.deleted",
         "web.groups.needs_name", "web.groups.missing", "web.groups.empty",
-        "web.groups.load_failed")
+        "web.groups.load_failed", "web.groups.search_placeholder",
+        "web.groups.select_all", "web.groups.select_none",
+        "web.groups.chosen_count", "web.groups.no_match")
 
 
 def test_the_section_is_on_the_configuration_page():
@@ -80,7 +82,10 @@ def test_the_rules_hold_in_node():
                             capture_output=True, text=True, timeout=60)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok   - ") == 8, result.stdout
+    # 14 since 2026-09-23: six cases came with the picker (the search and the
+    # count). The number is listed so a rule that quietly disappears from
+    # container_groups.js fails here.
+    assert result.stdout.count("ok   - ") == 14, result.stdout
 
 
 def test_meta_json_holds_language_metadata_only():
@@ -116,6 +121,31 @@ def test_saving_over_a_group_asks_first():
     assert "replacementWarning(" in js, "saving over a group still replaces it silently"
     assert "confirm(question)" in js, "a group is deleted without asking"
     assert "loadIntoForm" in js, "a group cannot be opened for editing"
+
+
+def test_the_containers_are_picked_with_checkboxes():
+    """REVISITED 2026-09-23: the picker was a <select multiple>, where 26
+    containers had to be Ctrl-clicked (Cmd on the operator's Mac) and one stray
+    click cleared the whole selection without saying so. It is a checkbox list
+    with a search box now, so a pick survives the next click.
+
+    COUNTER-CHECK: the multi-select must be GONE, not merely hidden beside the
+    new list - two pickers would disagree about what is chosen.
+    """
+    section = SECTION.read_text(encoding="utf-8")
+
+    assert "<select multiple" not in section, "the old multi-select is still there"
+    assert 'class="form-check-input group-container-box"' in section
+    assert 'id="group-search"' in section
+    assert 'id="group-chosen-count"' in section, "nothing says how many are picked"
+
+
+def test_all_and_none_act_on_what_the_search_shows():
+    """A button that ticked the containers the search hid would be a trap: the
+    box says two names and the group gets twenty-six."""
+    js = (ROOT / "app" / "static" / "js" / "container_groups.js").read_text(encoding="utf-8")
+
+    assert "item && !item.hidden" in js, "All/None ignores the search"
 
 
 @pytest.mark.parametrize("key", ["web.groups.edit", "web.groups.replace",

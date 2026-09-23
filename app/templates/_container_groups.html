@@ -7,30 +7,59 @@
         <div class="text-muted" id="groups-empty">{{ _t('web.groups.none_yet') }}</div>
     </div>
 
-    <div class="row g-2 align-items-end">
-        <div class="col-12 col-md-4">
+    <div class="row g-3">
+        <div class="col-12 col-lg-4">
             <label for="group-name" class="form-label">{{ _t('web.groups.name') }}</label>
             <input type="text" class="form-control" id="group-name" maxlength="80"
                    placeholder="{{ _t('web.groups.name_placeholder') }}">
+            <div class="d-grid mt-3">
+                <button type="button" class="btn btn-primary" id="group-save-btn">
+                    {{ _t('web.groups.save') }}
+                </button>
+            </div>
         </div>
-        <div class="col-12 col-md-6">
-            <label for="group-containers" class="form-label">{{ _t('web.groups.containers') }}</label>
+        <div class="col-12 col-lg-8">
+            <div class="d-flex justify-content-between align-items-end mb-1">
+                <label class="form-label mb-0" for="group-search">{{ _t('web.groups.containers') }}</label>
+                {# The picked ones can be scrolled or filtered out of sight, so this
+                   number is the only thing that says what will be saved. #}
+                <span class="text-muted small" id="group-chosen-count"></span>
+            </div>
+            <div class="input-group input-group-sm mb-2">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" class="form-control" id="group-search"
+                       placeholder="{{ _t('web.groups.search_placeholder') }}">
+                <button type="button" class="btn btn-outline-secondary" id="group-select-all">
+                    {{ _t('web.groups.select_all') }}
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="group-select-none">
+                    {{ _t('web.groups.select_none') }}
+                </button>
+            </div>
             {# The containers DDC steers, not every container on the host: a group
                resolves its members against config/containers/*.json, so anything
                else would be "not found any more" the moment it is saved. #}
-            <select multiple class="form-select" id="group-containers" size="6">
-                {% for docker_name, server in (configured_servers or {}).items() %}
-                    {% if server.docker_name == docker_name %}
-                <option value="{{ docker_name }}">{{ server.name or docker_name }}</option>
-                    {% endif %}
-                {% endfor %}
-            </select>
+            <div id="group-containers" class="border rounded p-2"
+                 style="max-height: 232px; overflow-y: auto;">
+                <div class="row g-1">
+                    {% for docker_name, server in (configured_servers or {}).items() %}
+                        {% if server.docker_name == docker_name %}
+                    <div class="col-12 col-md-6 group-container-item" data-container-name="{{ docker_name }}">
+                        <div class="form-check">
+                            <input class="form-check-input group-container-box" type="checkbox"
+                                   value="{{ docker_name }}" id="group_pick_{{ loop.index }}">
+                            <label class="form-check-label text-truncate d-block" for="group_pick_{{ loop.index }}"
+                                   title="{{ docker_name }}">{{ server.name or docker_name }}</label>
+                        </div>
+                    </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="text-muted small p-2" id="group-no-match" hidden>
+                    {{ _t('web.groups.no_match') }}
+                </div>
+            </div>
             <div class="form-text">{{ _t('web.groups.containers_hint') }}</div>
-        </div>
-        <div class="col-12 col-md-2">
-            <button type="button" class="btn btn-primary w-100" id="group-save-btn">
-                {{ _t('web.groups.save') }}
-            </button>
         </div>
     </div>
     <div id="group-message" class="mt-2"></div>
@@ -48,6 +77,7 @@ window.DDC_GROUP_TEXTS = {
     load_failed: {{ _t('web.groups.load_failed') | tojson }},
     edit: {{ _t('web.groups.edit') | tojson }},
     replace: {{ _t('web.groups.replace') | tojson }},
-    confirm_delete: {{ _t('web.groups.confirm_delete') | tojson }}
+    confirm_delete: {{ _t('web.groups.confirm_delete') | tojson }},
+    chosen_count: {{ _t('web.groups.chosen_count') | tojson }}
 };
 </script>
