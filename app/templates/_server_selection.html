@@ -192,9 +192,21 @@
         <div class="row g-3 align-items-end">
             <div class="col-12 col-md-4">
                 <label for="bulk-group" class="form-label">{{ _t('web.server.bulk_pick_group') }}</label>
-                <select class="form-select" id="bulk-group">
-                    <option value="">{{ _t('web.server.bulk_pick_group') }}</option>
-                </select>
+                <div class="input-group">
+                    <select class="form-select" id="bulk-group">
+                        <option value="">{{ _t('web.server.bulk_pick_group') }}</option>
+                    </select>
+                    {# Beside the picker, because this is where the operator is when he
+                       notices a group is missing or wrong. type="button" is not
+                       decoration: without it the button submits the settings form it
+                       sits in. #}
+                    <button type="button" class="btn btn-outline-warning" id="bulk-group-new"
+                            data-bs-toggle="modal" data-bs-target="#containerGroupsModal"
+                            title="{{ _t('web.groups.title') }}"
+                            aria-label="{{ _t('web.groups.title') }}">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                    </button>
+                </div>
             </div>
             <div class="col-12 col-md-5">
                 {# A fieldset, so a screen reader hears what the four boxes belong to

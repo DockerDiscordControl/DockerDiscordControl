@@ -40,7 +40,9 @@ SECTIONS = (
     "channel-settings",
     "permissions-table",
     "server-selection",
-    "container-groups",
+    # container-groups left this list on 2026-09-24: the group editor became a
+    # dialog, opened by the + in the bulk bar. A dot for an id that nothing
+    # renders scrolls nowhere and explains nothing.
     "task-scheduler",
     "task-list",
     "aas-section",

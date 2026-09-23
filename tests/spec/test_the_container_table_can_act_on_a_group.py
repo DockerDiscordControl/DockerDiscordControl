@@ -230,20 +230,21 @@ def test_the_bar_sits_below_the_table_next_to_the_groups_it_uses():
         "the bar is inside the table's own footer rather than after it")
 
 
-def test_the_page_puts_the_groups_section_straight_after_it():
-    """The other half of the operator's reason: the bar is next to the section
-    that makes the groups, with nothing between them."""
-    page = (ROOT / "app" / "templates" / "config.html").read_text(encoding="utf-8")
+def test_the_bar_can_reach_the_group_editor_without_scrolling():
+    """REVISITED 2026-09-24, one day after it was written.
 
-    containers = page.index("_server_selection.html")
-    groups = page.index("_container_groups.html")
-    # From just after the table's include to the groups' name. The slice still
-    # holds the opening of the groups' own {% include %}, so one is expected.
-    between = page[containers:groups]
+    It used to require the groups SECTION to be included straight after the
+    container table, so that the bar and the editor were neighbours. The
+    operator then moved the editor into a dialog, opened by a + beside the
+    group picker - which serves the same need better: the path from "this
+    group is missing something" to "fixed" no longer involves scrolling at
+    all. Adjacency stopped being the question, so the test asks the new one.
+    """
+    section = SECTION.read_text(encoding="utf-8")
 
-    assert between.count("{% include") == 1, (
-        f"something is included between the container table and the groups "
-        f"section: {between.strip()[:160]}")
+    assert 'id="bulk-group-new"' in section, (
+        "the bar cannot reach the group editor at all")
+    assert "containerGroupsModal" in section
 
 
 def test_the_bars_own_labels_are_readable():

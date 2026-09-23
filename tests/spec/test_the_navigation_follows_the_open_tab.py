@@ -60,7 +60,9 @@ GROUPS = (
     ("top",),
     ("donationSection",),
     ("discord-settings", "channel-settings", "permissions-table"),
-    ("server-selection", "container-groups"),
+    # Containers: just the table since 2026-09-24 - the group editor became a
+    # dialog opened from the bulk bar, so it is no longer a section of the page.
+    ("server-selection",),
     ("task-scheduler", "task-list", "aas-section"),
     ("language-settings", "auth-settings", "heartbeat-section"),
     ("log-section",),

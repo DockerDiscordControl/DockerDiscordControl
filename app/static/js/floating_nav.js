@@ -77,7 +77,7 @@
     function updateActiveSection() {
         const sections = [
             'donationSection', 'discord-settings', 'channel-settings',
-            'permissions-table', 'server-selection', 'container-groups',
+            'permissions-table', 'server-selection',
             'task-scheduler', 'task-list', 'aas-section',
             'language-settings', 'auth-settings',
             'heartbeat-section', 'log-section'

@@ -226,8 +226,6 @@
         {# Server Selection Table #}
         {% include '_server_selection.html' %}
 
-        {# Container groups: chosen by the operator, used by tasks, rules and buttons #}
-        {% include '_container_groups.html' %}
 
         </div>{# /pane-containers #}
         <div class="tab-pane fade" id="pane-automation" role="tabpanel" aria-labelledby="tab-automation">
@@ -305,6 +303,8 @@
 
     
     {# Modals #}
+    {# The group editor is a dialog now, opened by the + in the bulk bar. #}
+    {% include '_container_groups.html' %}
     {% include 'tasks/_edit_modal.html' %}
     {% include '_spam_protection_modal.html' %}
     {% include '_token_security_modal.html' %}
