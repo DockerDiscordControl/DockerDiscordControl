@@ -1,0 +1,210 @@
+/* Moved out of _base.html on 2026-09-23.
+   It was 207 lines inside a template that every panel page includes, and _base.html sends those pages with Cache-Control: no-cache - so it crossed the wire again on every load.
+   A static file is not covered by that meta tag.
+   No Jinja in here; pinned by tests/spec/test_the_page_is_not_mostly_one_script.py */
+
+:root {
+            --primary-color: #36cfff;
+        }
+        
+        .force-hide {
+            display: none !important;
+        }
+        body { background-color: #030603; color: #ffffff; padding-top: 20px; padding-bottom: 80px; }
+        .form-control, .form-select { background-color: #1E2125; color: #ffffff; border-color: #4a5568; }
+        .form-control:focus, .form-select:focus { background-color: #1E2125; color: #ffffff; border-color: #4299e1; box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25); }
+        .form-control::placeholder { color: #6c757d; }
+        .form-text, .form-check-label small, .text-muted { color: #adb5bd !important; font-size: 0.9em; } 
+        a { color: #61dafb; }
+        hr { border-top: 1px solid #495057; opacity: 0.5; }
+        label, h4, h5 { font-weight: bold; color: #dee2e6; } 
+        /* Dark text on this blue, not Bootstrap's white: white on #4299e1 is
+           3.05:1, under the 4.5:1 a normal text needs, and these are the
+           buttons the operator presses most - Save, group Save, bulk Apply.
+           #10243a on the same blue is well over the minimum. Checked by
+           tests/spec/test_the_panel_can_be_read_and_reached.py, which computes
+           the ratio rather than trusting this comment. */
+        .btn-primary { background-color: #4299e1; border-color: #4299e1; color: #10243a; font-weight: bold; }
+        .btn-primary:hover, .btn-primary:focus { background-color: #63b3ed; border-color: #63b3ed; color: #10243a; }
+        .btn-secondary { background-color: #6c757d; border-color: #6c757d; }
+
+        /* Wide tables on a narrow screen. The container table has ten columns and
+           the permissions table eighteen; .table-responsive gives them a sideways
+           scrollbar, and the NAME is the first or third column. Scrolling far
+           enough to reach Stop, Restart or a channel permission took the name off
+           screen, so a box was ticked for a row nobody could identify any more.
+           The name column stays put while the rest scrolls. Only on phones and
+           tablets: on a wide screen there is no sideways scroll to anchor to, and
+           a sticky cell there would only add a seam. */
+        @media (max-width: 991.98px) {
+            /* On a phone the floating dots are gone (base.html hides them below
+               768px), so these four tabs are the only way from one part of the
+               settings to another - and they scrolled away with the page. By the
+               bottom of a 26-row container table, reaching System meant scrolling
+               all the way back up past the whole table.
+
+               z-index above the container table's own sticky header (3 and 4
+               inside its 70vh box): both are pinned, to different things, and
+               where they meet the navigation has to win. Opaque, or the rows
+               scroll through it. */
+            #settings-tabs {
+                position: sticky;
+                top: 0;
+                z-index: 6;
+                background-color: #030603;
+                padding-top: 0.5rem;
+                padding-bottom: 0.25rem;
+                margin-left: -0.5rem;
+                margin-right: -0.5rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            .sticky-name-column {
+                position: sticky;
+                left: 0;
+                z-index: 2;
+                background-color: #1E2125;
+                box-shadow: 2px 0 4px rgba(0, 0, 0, 0.45);
+            }
+            thead .sticky-name-column { z-index: 4; }
+        }
+        
+        .logo-header img {
+            max-height: 200px;
+            width: auto;
+            margin-bottom: -1rem;
+            position: relative;
+            z-index: 5;
+            /* Neon glow effect matching the DDC text style */
+            filter:
+                drop-shadow(0 0 8px rgba(0, 195, 255, 1))
+                drop-shadow(0 0 20px rgba(0, 195, 255, 0.7))
+                drop-shadow(0 0 45px rgba(0, 195, 255, 0.5))
+                drop-shadow(0 0 80px rgba(0, 120, 255, 0.35));
+            transition: filter 0.3s ease;
+        }
+        .logo-header img:hover {
+            filter:
+                drop-shadow(0 0 12px rgba(0, 195, 255, 1))
+                drop-shadow(0 0 30px rgba(0, 195, 255, 0.85))
+                drop-shadow(0 0 60px rgba(0, 195, 255, 0.6))
+                drop-shadow(0 0 100px rgba(0, 120, 255, 0.45));
+        } 
+        .alert { margin-top: 15px; }
+        .help-icon { cursor: help; margin-left: 5px; color: #6c757d; font-size: 0.9em; }
+        
+        .table { border-color: #495057; margin-bottom: 0.5rem !important; }
+        .table th { color: #adb5bd; border-color: #495057 !important; font-weight: bold; background-color: #212529; font-size: 0.9em; padding: 0.5rem;}
+        .table td { border-color: #495057 !important; vertical-align: middle; padding: 0.4rem 0.5rem;}
+        .table thead th { border-bottom-width: 2px; }
+        .table-hover tbody tr:hover { background-color: #2c3034; color: #fff; }
+        .table td .form-check { display: flex; justify-content: center; align-items: center; min-height: 31px; width: 100%; margin: 0; padding: 0; }
+        .table td .form-check-input { float: none; margin: 0; position: relative; left: 0; }
+        .table td input.form-control-sm { background-color: #343a40; height: calc(1.5em + 0.5rem + 2px); padding: 0.25rem 0.5rem; font-size: 0.875rem;}
+        
+        .tooltip-inner { background-color: #000; color: #fff; border: 1px solid #dee2e6; max-width: 300px; text-align: left; padding: 8px; font-size: 0.9em;}
+        .tooltip.bs-tooltip-top .tooltip-arrow::before { border-top-color: #000; }
+        .tooltip.bs-tooltip-end .tooltip-arrow::before { border-right-color: #000; }
+        .tooltip.bs-tooltip-bottom .tooltip-arrow::before { border-bottom-color: #000; }
+        .tooltip.bs-tooltip-start .tooltip-arrow::before { border-left-color: #000; }
+        
+        #save-notification { position: fixed; top: 20px; right: 20px; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 1050; font-weight: bold; display: none; }
+        
+        .card { background-color: #1E2125; border-color: #4a5568; margin-bottom: 1.5rem; }
+        .card-header { background-color: #212529; }
+        .card-header h5 { color: #f8f9fa !important; } 
+
+        .alert-success { background-color: #198754; color: #fff; border-color: #198754; }
+        .alert-danger { background-color: #dc3545; color: #fff; border-color: #dc3545; }
+        .alert-warning { background-color: #ffc107; color: #000; border-color: #ffc107; }
+        .alert-info { background-color: #0dcaf0; color: #000; border-color: #0dcaf0; }
+        
+        .bg-dark { background-color: #212529 !important; }
+        .text-light { color: #f8f9fa !important; }
+        .border-bottom { border-bottom: 1px solid #495057 !important; }
+        .text-white { color: #fff !important; }
+        
+        .modal-content { background-color: #1a1d24; color: #f8f9fa; }
+        .modal-header, .modal-footer { border-color: #323840; }
+        
+        .list-group-item { background-color: transparent; border-color: #495057; color: #f8f9fa; }
+        .list-group-item-action:hover, .list-group-item-action:focus { background-color: #2a2e34; color: #fff; }
+        
+        /* Neon Text Effect for MAX in the footer */
+        .neon-text {
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color), 0 0 40px var(--primary-color);
+            font-weight: bold;
+            transition: all 0.1s ease;
+        }
+        
+        /* Red Neon Text Effect for version in footer - INVERTED: Default is black */
+        #neon-version {
+            color: #000;  /* Black by default */
+            text-shadow: none;
+            font-weight: bold;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+        
+        /* Active red glow state for version */
+        #neon-version.glow {
+            color: #ff4d4d !important;
+            text-shadow: 0 0 10px #ff4d4d, 0 0 20px #ff4d4d, 0 0 40px #ff4d4d !important;
+        }
+        
+        /* Large Neon Text Effect for DDC under logo */
+        .neon-text-large {
+            color: #ff4d4d;
+            text-shadow: 0 0 20px #ff4d4d, 0 0 40px #ff4d4d, 0 0 80px #ff4d4d, 0 0 120px #ff4d4d;
+            font-weight: bold;
+            font-size: 6rem;
+            letter-spacing: 0.2em;
+            margin-top: -1rem;
+            display: block;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .ddc-title {
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* Flicker effect class - used by JavaScript to simulate neon light flickering */
+        .neon-text.flicker {
+            color: #000;
+            text-shadow: none;
+            transition: color 0.05s, text-shadow 0.05s;
+        }
+        
+        .neon-text-large.flicker {
+            color: #000;
+            text-shadow: none;
+            transition: color 0.05s, text-shadow 0.05s;
+        }
+        
+        .donation-section {
+            background-color: #1E2125;
+            border: 1px solid #4a5568;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .bmc-button img {
+            border-radius: 5px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            pointer-events: none; /* Allow hover events to pass through to parent */
+        }
+        
+        /* Make Buy Me A Coffee button hover like PayPal button */
+        .bmc-button:hover img {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .bmc-button:active img {
+            transform: translateY(0px);
+        }

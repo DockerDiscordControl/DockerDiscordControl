@@ -87,10 +87,13 @@ def test_the_form_shows_what_the_server_said():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]
-    form = (root / "app" / "templates" / "tasks" / "form.html").read_text(encoding="utf-8")
+    form = ((root / "app" / "templates" / "tasks" / "form.html").read_text(encoding="utf-8")
+            + (root / "app" / "static" / "js" / "task_form.js").read_text(encoding="utf-8"))
 
     assert "taskAddedNotice(data.body" in form, "the form still writes its own message"
     assert "'alert', 'alert-success'" not in form, "a 201 is still always green"
+    # The <script src> tag, which is markup: _scripts.html keeps its tags and
+    # only its own inline code moved to app/static on 2026-09-23.
     assert "task_added_notice.js" in (
         root / "app" / "templates" / "_scripts.html").read_text(encoding="utf-8"), (
         "the page does not load the helper it calls")

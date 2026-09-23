@@ -4,7 +4,7 @@
 TWO FINDINGS from the design pass over the panel (2026-09-23), both measured
 here rather than taken on trust.
 
-ONE - the primary button fails its own contrast. `_base.html:126` sets
+ONE - the primary button fails its own contrast. `app/static/css/theme.css` sets
 `.btn-primary { background-color: #4299e1 }` and Bootstrap puts white text on
 it. That is **3.05 : 1**, computed below from the sRGB luminance rather than
 quoted: WCAG wants 4.5 : 1 for normal text. Black on the same blue is 6.88 : 1.
@@ -20,7 +20,7 @@ here across every template, with the tooltip attribute as the marker, it is
 as `<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip"
 title="...">` in _discord_settings, _channel_settings, _heartbeat_section,
 _server_selection and _permissions_table. An `<i>` is not focusable and none
-of them carries `tabindex`, so the text is mouse-only - `_base.html:151` even
+of them carries `tabindex`, so the text is mouse-only - the theme even
 styles them `cursor: help`. Everything those tooltips explain (what "Active"
 means, what a channel permission does) is unreadable without a mouse.
 
@@ -43,7 +43,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = ROOT / "app" / "templates"
-BASE = TEMPLATES / "_base.html"
+# The theme moved to app/static/css/theme.css on 2026-09-23 - it was 207
+# lines inline in a template every page includes, and those pages are sent
+# no-cache. The tooltips are markup and stayed in the templates.
+THEME = ROOT / "app" / "static" / "css" / "theme.css"
 
 TOOLTIP = re.compile(r'<i[^>]*data-bs-toggle="tooltip"[^>]*>')
 
@@ -73,7 +76,7 @@ def test_the_contrast_maths_is_right():
 def test_the_primary_button_can_be_read():
     """THE FINDING: white on #4299e1 is 3.05:1, under the 4.5:1 a normal text
     needs. These are the buttons the operator presses most."""
-    base = BASE.read_text(encoding="utf-8")
+    base = THEME.read_text(encoding="utf-8")
     rule = re.search(r"\.btn-primary\s*\{([^}]*)\}", base)
 
     assert rule, ".btn-primary is no longer styled here - re-read this test"

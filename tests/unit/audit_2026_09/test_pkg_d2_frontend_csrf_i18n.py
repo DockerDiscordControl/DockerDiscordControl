@@ -241,7 +241,8 @@ def test_only_referenced_web_keys_are_embedded(i18n_service):
 
 
 def test_config_form_submit_is_routed_to_ajax_save():
-    scripts = (TEMPLATES_DIR / "_scripts.html").read_text(encoding="utf-8")
+    # Its script moved to app/static on 2026-09-23; the markup stayed.
+    scripts = (TEMPLATES_DIR.parent / "static" / "js" / "panel.js").read_text(encoding="utf-8")
     assert re.search(
         r"configForm\.addEventListener\('submit',\s*function\(event\)\s*\{\s*"
         r"event\.preventDefault\(\);\s*saveConfigAjax\(\);",
@@ -258,7 +259,9 @@ def test_permissions_table_always_sends_channel_marker():
 
 
 def test_scheduler_interval_placeholder_matches_default():
-    modal = (TEMPLATES_DIR / "_advanced_settings_modal.html").read_text(encoding="utf-8")
+    # Its script moved to app/static on 2026-09-23; the markup stayed.
+    modal = ((TEMPLATES_DIR / "_advanced_settings_modal.html").read_text(encoding="utf-8")
+             + (TEMPLATES_DIR.parent / "static" / "js" / "advanced_settings_modal.js").read_text(encoding="utf-8"))
     field = re.search(r'<input[^>]*name="env_DDC_SCHEDULER_CHECK_INTERVAL"[^>]*>', modal).group(0)
     assert 'placeholder="60"' in field
 

@@ -15,7 +15,8 @@ from types import SimpleNamespace
 
 import pytest
 
-MODAL = Path(__file__).resolve().parents[3] / "app" / "templates" / "_advanced_settings_modal.html"
+# The modal's script moved to app/static on 2026-09-23; the markup stayed.
+MODAL = Path(__file__).resolve().parents[3] / "app" / "static" / "js" / "advanced_settings_modal.js"
 
 
 def _function_body(name: str) -> str:

@@ -286,7 +286,9 @@ def test_e10_history_skips_corrupt_event_line(event_log):
 # ---------------------------------------------------------------------------
 
 def test_e11_modal_uses_data_attributes_and_delegation():
-    html = (REPO_ROOT / "app" / "templates" / "_donation_management_modal.html").read_text(encoding="utf-8")
+    # Its script moved to app/static on 2026-09-23; the markup stayed.
+    html = ((REPO_ROOT / "app" / "templates" / "_donation_management_modal.html").read_text(encoding="utf-8")
+            + (REPO_ROOT / "app" / "static" / "js" / "donation_management_modal.js").read_text(encoding="utf-8"))
     assert 'onclick="deleteDonation(' not in html
     assert 'onclick="restoreDonation(' not in html
     assert 'data-donation-action="delete" data-seq="${seq}"' in html

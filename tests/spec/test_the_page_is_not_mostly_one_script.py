@@ -36,7 +36,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PAGE = ROOT / "app" / "templates" / "config.html"
+TEMPLATES = ROOT / "app" / "templates"
+PAGE = TEMPLATES / "config.html"
 STATIC = ROOT / "app" / "static"
 
 # A budget, not a target. The page keeps small page-specific scripts - the one
@@ -51,18 +52,37 @@ def _blocks(text, tag):
     return re.findall(rf"<{tag}[^>]*>(.*?)</{tag}>", text, re.S)
 
 
-def test_the_page_carries_no_block_that_belongs_in_a_file():
-    """THE FINDING: one script of 1222 lines and one style of 444."""
-    page = PAGE.read_text(encoding="utf-8")
+def test_no_template_carries_a_block_that_belongs_in_a_file():
+    """THE FINDING, widened after config.html was cleared: the same weight was
+    sitting in six more templates, all of them included in the same no-cache
+    page. Measured 2026-09-23, before this pass:
 
-    oversized = [len(block.splitlines())
-                 for block in _blocks(page, "script") + _blocks(page, "style")
+        _scripts.html                    2560 lines   (19 Jinja expressions)
+        _advanced_settings_modal.html     501           0
+        tasks/form.html                   326          13
+        _donation_management_modal.html   297           0
+        _token_security_modal.html        269           0
+        _secure_token_modal.html          134           0
+        _spam_protection_modal.html       128           0
+
+    4,215 lines of JavaScript re-sent on every single load of the panel. The
+    ones with Jinja in them keep a small inline object with the URLs and read
+    it from the file - the pattern tasks/list.html already used for
+    window.DDC_CONFIG.urls.
+    """
+    oversized = {}
+    for path in sorted(TEMPLATES.rglob("*.html")):
+        text = path.read_text(encoding="utf-8")
+        sizes = [len(block.splitlines())
+                 for block in _blocks(text, "script") + _blocks(text, "style")
                  if len(block.splitlines()) > INLINE_BUDGET]
+        if sizes:
+            oversized[str(path.relative_to(TEMPLATES))] = sizes
 
-    assert oversized == [], (
-        f"inline block(s) of {oversized} lines in config.html; over "
-        f"{INLINE_BUDGET} it belongs in app/static, where the browser can "
-        f"cache it - the page itself is sent no-cache")
+    assert oversized == {}, (
+        f"inline block(s) over {INLINE_BUDGET} lines: {oversized}. They belong "
+        f"in app/static, where the browser caches them - every page that "
+        f"includes them is sent no-cache")
 
 
 def test_the_two_files_exist_and_are_referenced():

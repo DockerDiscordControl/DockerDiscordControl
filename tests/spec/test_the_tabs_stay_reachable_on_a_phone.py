@@ -36,7 +36,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-BASE = ROOT / "app" / "templates" / "_base.html"
+# The theme moved to app/static/css/theme.css on 2026-09-23.
+BASE = ROOT / "app" / "static" / "css" / "theme.css"
 SECTION = ROOT / "app" / "templates" / "_server_selection.html"
 
 

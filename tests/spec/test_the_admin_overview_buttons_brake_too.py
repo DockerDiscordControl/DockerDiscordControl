@@ -135,7 +135,8 @@ def test_the_panel_can_save_that_slider(name):
     A slider the panel renders but drops on save would look adjustable and
     reset itself on the next save.
     """
-    modal = Path(__file__).resolve().parents[2] / "app/templates/_spam_protection_modal.html"
+    # The modal's script moved to app/static on 2026-09-23; the markup stayed.
+    modal = Path(__file__).resolve().parents[2] / "app/static/js/spam_protection_modal.js"
     markup = modal.read_text(encoding="utf-8")
 
     assert f"button_{name}" in markup, (

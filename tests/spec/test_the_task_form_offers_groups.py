@@ -89,7 +89,8 @@ def test_a_task_from_an_older_version_is_not_a_group():
 
 
 def test_the_form_offers_the_choice():
-    form = (ROOT / "app" / "templates" / "tasks" / "form.html").read_text(encoding="utf-8")
+    form = ((ROOT / "app" / "templates" / "tasks" / "form.html").read_text(encoding="utf-8")
+            + (ROOT / "app" / "static" / "js" / "task_form.js").read_text(encoding="utf-8"))
 
     assert "task-target-group" in form, "the form has no way to pick a group"
     assert "target_is_group" in form, "the form does not send which kind of target it is"

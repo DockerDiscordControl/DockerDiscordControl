@@ -56,7 +56,26 @@ import pytest
 from services.infrastructure.spam_protection_service import SpamProtectionService
 
 PROJECT = Path(__file__).resolve().parents[2]
-TEMPLATE = PROJECT / "app" / "templates" / "_spam_protection_modal.html"
+# The scripts and styles moved out of the templates into app/static on
+# 2026-09-23: 4,215 lines of JavaScript and CSS were inline in templates
+# the panel includes, and those pages are sent Cache-Control: no-cache, so
+# all of it crossed the wire on every load. The markup stayed put.
+# The modal's SCRIPT moved to app/static on 2026-09-23 and its MARKUP stayed,
+# and this file asks about both - so it reads both.
+SCRIPT = PROJECT / "app" / "static" / "js" / "spam_protection_modal.js"
+MARKUP = PROJECT / "app" / "templates" / "_spam_protection_modal.html"
+
+
+class _Both:
+    """The modal as one text: the markup and the script it drives."""
+
+    @staticmethod
+    def read_text(encoding="utf-8"):
+        return (MARKUP.read_text(encoding=encoding)
+                + SCRIPT.read_text(encoding=encoding))
+
+
+TEMPLATE = _Both
 DIRECTORIES = ("cogs", "services", "app")
 
 # The four call families that take a BUTTON key.

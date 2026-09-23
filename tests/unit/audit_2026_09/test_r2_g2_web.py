@@ -181,7 +181,8 @@ def test_client_translates_every_csrf_reason():
         assert f"{reason}: ['csrf.{reason}'," in base
     assert "tr('csrf.hint'," in base
 
-    scripts = _template("_scripts.html")
+    # Its script moved to app/static on 2026-09-23; the markup stayed.
+    scripts = (Path(__file__).resolve().parents[3] / "app" / "static" / "js" / "panel.js").read_text(encoding="utf-8")
     save_fn = scripts[scripts.index("function saveConfigAjax()"):]
     assert "window.ddcServerErrorMessage(errData" in save_fn
     config_ui = (JS_DIR / "config-ui.js").read_text(encoding="utf-8")

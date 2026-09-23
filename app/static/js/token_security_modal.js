@@ -1,0 +1,273 @@
+// Moved out of _token_security_modal.html on 2026-09-23.
+// It was 269 lines inside a template that every panel page includes, and _base.html sends those pages with Cache-Control: no-cache - so it crossed the wire again on every load.
+// A static file is not covered by that meta tag.
+// No Jinja in here; pinned by tests/spec/test_the_page_is_not_mostly_one_script.py
+
+// Token security modal management
+async function refreshTokenStatusModal() {
+    const contentDiv = document.getElementById('tokenSecurityContent');
+
+    // Show loading state
+    contentDiv.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">${t('web.common.loading')}</span>
+            </div>
+            <span class="ms-2">${t('web.token_security.checking_status')}</span>
+        </div>
+    `;
+
+    try {
+        const response = await fetch('/api/token-security-status');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        displayTokenStatusModal(data);
+
+    } catch (error) {
+        console.error('Error fetching token status:', error);
+        contentDiv.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>${t('web.common.error')}:</strong> ${t('web.token_security.error_checking_status')}
+                <br><small>${error.message}</small>
+            </div>
+        `;
+    }
+}
+
+function displayTokenStatusModal(status) {
+    const contentDiv = document.getElementById('tokenSecurityContent');
+
+    let html = '';
+
+    // Main status indicator (larger in modal)
+    if (status.environment_token_used) {
+        html += `
+            <div class="alert alert-success mb-4">
+                <h6><i class="bi bi-check-circle-fill"></i> ${t('web.token_security.status_excellent')}</h6>
+                <p class="mb-0">${t('web.token_security.status_excellent_desc')}</p>
+            </div>
+        `;
+    } else if (status.is_encrypted && status.token_exists) {
+        html += `
+            <div class="alert alert-success mb-4">
+                <h6><i class="bi bi-shield-check"></i> ${t('web.token_security.status_good')}</h6>
+                <p class="mb-0">${t('web.token_security.status_good_desc')}</p>
+            </div>
+        `;
+    } else if (status.token_exists && !status.is_encrypted) {
+        html += `
+            <div class="alert alert-warning mb-4">
+                <h6><i class="bi bi-exclamation-triangle"></i> ${t('web.token_security.status_risk')}</h6>
+                <p class="mb-0">${t('web.token_security.status_risk_desc')}</p>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="alert alert-info mb-4">
+                <h6><i class="bi bi-info-circle"></i> ${t('web.token_security.status_no_token')}</h6>
+                <p class="mb-0">${t('web.token_security.status_no_token_desc')}</p>
+            </div>
+        `;
+    }
+
+    // Environment variable upgrade warning (always visible unless already using env var)
+    if (!status.environment_token_used) {
+        html += `
+            <div class="alert alert-warning border-warning mb-4" style="border-left: 4px solid #ffc107;">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-3" style="font-size: 1.5rem; margin-top: 0.125rem;"></i>
+                    <div class="flex-grow-1">
+                        <h6 class="alert-heading mb-2">
+                            <strong>🌟 ${t('web.token_security.upgrade_available')}</strong>
+                        </h6>
+                        <p class="mb-3">
+                            <strong>${t('web.token_security.recommended')}:</strong> ${t('web.token_security.upgrade_desc')}
+                        </p>
+                        <div class="mb-3">
+                            <strong>${t('web.token_security.benefits')}:</strong>
+                            <ul class="mb-0 mt-1">
+                                <li>✅ ${t('web.token_security.benefit_1')}</li>
+                                <li>✅ ${t('web.token_security.benefit_2')}</li>
+                                <li>✅ ${t('web.token_security.benefit_3')}</li>
+                                <li>✅ ${t('web.token_security.benefit_4')}</li>
+                            </ul>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button type="button" class="btn btn-warning btn-sm" onclick="showMigrationHelpModal()">
+                                <i class="bi bi-arrow-up-right-circle"></i> <strong>${t('web.token_security.migrate_now')}</strong>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="showSecurityGuideModal()">
+                                <i class="bi bi-info-circle"></i> ${t('web.token_security.learn_more')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Security details grid
+    html += '<div class="row mb-4">';
+    html += '<div class="col-md-6">';
+    html += `<h6>${t('web.token_security.security_status')}:</h6>`;
+    html += '<div class="list-group list-group-flush">';
+
+    const checks = [
+        {
+            label: t('web.token_security.check_env_var'),
+            status: status.environment_token_used,
+            icon: status.environment_token_used ? 'check-circle text-success' : 'circle text-muted'
+        },
+        {
+            label: t('web.token_security.check_encryption'),
+            status: status.is_encrypted,
+            icon: status.is_encrypted ? 'check-circle text-success' : (status.token_exists ? 'x-circle text-warning' : 'circle text-muted')
+        },
+        {
+            label: t('web.token_security.check_password'),
+            status: status.password_hash_available,
+            icon: status.password_hash_available ? 'check-circle text-success' : 'x-circle text-warning'
+        },
+        {
+            label: t('web.token_security.check_token_configured'),
+            status: status.token_exists,
+            icon: status.token_exists ? 'check-circle text-success' : 'x-circle text-danger'
+        }
+    ];
+
+    checks.forEach(check => {
+        html += `
+            <div class="list-group-item border-0 px-0 py-2">
+                <i class="bi bi-${check.icon}"></i>
+                <span class="ms-2">${check.label}</span>
+            </div>
+        `;
+    });
+
+    html += '</div></div>';
+
+    // Recommendations
+    if (status.recommendations && status.recommendations.length > 0) {
+        html += '<div class="col-md-6">';
+        html += `<h6>${t('web.token_security.recommendations')}:</h6>`;
+        html += '<div class="list-group list-group-flush">';
+
+        status.recommendations.forEach(recommendation => {
+            const iconMap = {
+                '✅': 'check-circle text-success',
+                '⚠️': 'exclamation-triangle text-warning',
+                '🔒': 'lock text-primary',
+                '💡': 'lightbulb text-info',
+                '❌': 'x-circle text-danger'
+            };
+
+            const emoji = recommendation.charAt(0);
+            const icon = iconMap[emoji] || 'info-circle';
+            const text = recommendation.replace(/^[✅⚠️🔒💡❌]\s*/, '');
+
+            html += `
+                <div class="list-group-item border-0 px-0 py-2">
+                    <i class="bi bi-${icon}"></i>
+                    <span class="ms-2">${text}</span>
+                </div>
+            `;
+        });
+
+        html += '</div></div>';
+    }
+
+    html += '</div>';
+
+    // Action buttons (larger in modal)
+    if (!status.environment_token_used) {
+        html += '<div class="border-top pt-4">';
+        html += `<h6>${t('web.token_security.available_actions')}:</h6>`;
+        html += '<div class="d-grid gap-2 d-md-block">';
+
+        if (status.token_exists && !status.is_encrypted && status.can_encrypt) {
+            html += `
+                <button type="button" class="btn btn-success me-2" onclick="encryptTokenModal()">
+                    <i class="bi bi-lock"></i> ${t('web.token_security.encrypt_now')}
+                </button>
+            `;
+        }
+
+        if (status.is_encrypted) {
+            html += `
+                <button type="button" class="btn btn-info me-2" onclick="showMigrationHelpModal()">
+                    <i class="bi bi-arrow-up-right-circle"></i> ${t('web.token_security.migrate_to_env')}
+                </button>
+            `;
+        }
+
+        html += `
+            <button type="button" class="btn btn-outline-secondary" onclick="showSecurityGuideModal()">
+                <i class="bi bi-book"></i> ${t('web.token_security.security_docs')}
+            </button>
+        `;
+
+        html += '</div></div>';
+    }
+
+    contentDiv.innerHTML = html;
+}
+
+async function encryptTokenModal() {
+    if (!confirm(t('web.token_security.confirm_encrypt'))) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/encrypt-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('✅ ' + t('web.token_security.encrypt_success'));
+            refreshTokenStatusModal();
+        } else {
+            alert('❌ ' + t('web.token_security.encrypt_failed') + ': ' + (result.error || t('web.common.unknown_error')));
+        }
+    } catch (error) {
+        alert('❌ ' + t('web.token_security.encrypt_failed') + ': ' + error.message);
+    }
+}
+
+async function showMigrationHelpModal() {
+    try {
+        const response = await fetch('/api/migration-help');
+        const result = await response.json();
+
+        if (result.success && result.token) {
+            // 🔒 SECURITY FIX: Use secure modal instead of alert()
+            showSecureTokenModal(result.token);
+        } else {
+            alert('❌ ' + t('web.token_security.migration_failed') + ': ' + (result.error || t('web.token_security.cannot_decrypt')));
+        }
+    } catch (error) {
+        alert('❌ ' + t('web.token_security.migration_failed') + ': ' + error.message);
+    }
+}
+
+function showSecurityGuideModal() {
+    // The guide lives in docs/ and is not served by the panel; the old
+    // '/static/SECURITY.md' target was a 404.
+    window.open('https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/docs/SECURITY.md', '_blank', 'noopener');
+}
+
+// Initialize modal when opened
+document.addEventListener('DOMContentLoaded', function() {
+    const tokenSecurityModal = document.getElementById('tokenSecurityModal');
+    if (tokenSecurityModal) {
+        tokenSecurityModal.addEventListener('shown.bs.modal', function () {
+            refreshTokenStatusModal();
+        });
+    }
+});

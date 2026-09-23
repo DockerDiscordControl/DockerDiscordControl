@@ -41,7 +41,12 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+# The scripts and styles moved out of the templates into app/static on
+# 2026-09-23: 4,215 lines of JavaScript and CSS were inline in templates
+# the panel includes, and those pages are sent Cache-Control: no-cache, so
+# all of it crossed the wire on every load. The markup stayed put.
 MODAL = ROOT / "app" / "templates" / "_advanced_settings_modal.html"
+SCRIPT = ROOT / "app" / "static" / "js" / "advanced_settings_modal.js"
 TEMPLATES = ROOT / "app" / "templates"
 
 
@@ -55,7 +60,7 @@ def _without_comments(text):
 
 def test_it_does_not_reach_for_the_first_card_in_the_document():
     """THE FINDING: it did, and the first one is in another section entirely."""
-    modal = _without_comments(MODAL.read_text(encoding="utf-8"))
+    modal = _without_comments(SCRIPT.read_text(encoding="utf-8"))
 
     assert "document.querySelector('.card-body')" not in modal, (
         "the donation confirmation is inserted into whatever .card-body comes "
@@ -68,11 +73,12 @@ def test_the_targets_it_uses_exist_in_this_template():
     """Counter-check: addressing an id that is not there fails the same way,
     silently, because both insertions are behind an `if`."""
     modal = MODAL.read_text(encoding="utf-8")
+    script = SCRIPT.read_text(encoding="utf-8")
 
     for element_id in ("donationCardBody", "donationCardHeader"):
         assert f'id="{element_id}"' in modal, f"{element_id} is addressed but never rendered"
-        assert f"getElementById('{element_id}')" in modal or \
-               f'getElementById("{element_id}")' in modal
+        assert f"getElementById('{element_id}')" in script or \
+               f'getElementById("{element_id}")' in script
 
 
 def test_those_ids_are_unique_across_the_whole_page():

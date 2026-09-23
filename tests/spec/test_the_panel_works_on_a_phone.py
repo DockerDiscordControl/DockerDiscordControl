@@ -42,7 +42,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = ROOT / "app" / "templates"
-BASE = TEMPLATES / "_base.html"
+THEME = ROOT / "app" / "static" / "css" / "theme.css"
+NAV_CSS = ROOT / "app" / "static" / "css" / "floating_nav.css"
 NAV = TEMPLATES / "base.html"
 
 
@@ -55,7 +56,7 @@ def _without_comments(text):
 def test_the_floating_navigation_is_still_hidden_on_a_phone():
     """Not a defect - thirteen dots down a 390-pixel screen would cover the
     page. It is pinned because the logout fix below depends on it being true."""
-    nav = NAV.read_text(encoding="utf-8")
+    nav = NAV_CSS.read_text(encoding="utf-8")
 
     assert re.search(r"@media\s*\(max-width:\s*768px\)\s*\{\s*\.floating-nav\s*\{\s*display:\s*none",
                      nav), "the navigation is no longer hidden on phones - re-read this test"
@@ -102,9 +103,10 @@ def test_the_channel_name_stays_visible_in_the_permissions_table():
 def test_the_sticky_column_is_defined_once():
     """Counter-check: two tables, one rule. A copy in each template is two
     things to keep in step, and they would drift."""
-    defined_in = [path.name for path in TEMPLATES.rglob("*.html")
+    defined_in = [path.name
+                  for path in list(TEMPLATES.rglob("*.html")) + list((ROOT / "app" / "static" / "css").glob("*.css"))
                   if ".sticky-name-column" in path.read_text(encoding="utf-8")]
 
-    assert defined_in == ["_base.html"], (
+    assert defined_in == ["theme.css"], (
         f"the sticky column rule is defined in {defined_in}; it belongs in the "
         f"one stylesheet both tables already share")
