@@ -15,6 +15,11 @@
                 {% else %}
                     <option disabled>{{ _t('web.tasks.no_active_containers') }}</option>
                 {% endif %}
+                {# The operator's groups, filled from /api/groups below. A group
+                   is chosen in the same list as a container, so there is no
+                   second way of picking a target - only the label says which
+                   kind it is, and data-group tells the form. #}
+                <optgroup id="task-target-group" label="{{ _t('web.groups.title') }}" hidden></optgroup>
             </select>
             <div class="form-text">{{ _t('web.tasks.container_help') }}</div>
         </div>
@@ -343,6 +348,12 @@ document.getElementById('createTaskButton').addEventListener('click', function()
     responseMessageDiv.textContent = '';
     responseMessageDiv.className = 'mt-3'; 
     
+    // A group and a container are chosen from the same list; this is the bit
+    // that says which one it was, and the scheduler needs it (a group task
+    // would otherwise look for a container of that name).
+    const chosen = document.getElementById('taskContainer').selectedOptions[0];
+    data.target_is_group = chosen ? chosen.dataset.group === '1' : false;
+
     console.log('Sending data:', JSON.stringify(data)); // Debugging
 
     // Send API request
@@ -385,10 +396,29 @@ document.getElementById('createTaskButton').addEventListener('click', function()
 // Cancel-Button Event-Listener
 document.getElementById('cancelTaskButton').addEventListener('click', resetTaskForm);
 
-// Pre-fill current date/time when form loads
+// Pre-fill current date/time when form loads, and offer the operator's groups
 document.addEventListener('DOMContentLoaded', function() {
     const timeField = document.getElementById('taskTime');
     const dateTime = getCurrentDateTime();
     timeField.value = dateTime.time;
+
+    const groupOptions = document.getElementById('task-target-group');
+    if (!groupOptions) return;
+    fetch('/api/groups')
+        .then(answer => answer.ok ? answer.json() : { groups: [] })
+        .then(body => {
+            const groups = body.groups || [];
+            if (groups.length === 0) return;   // nothing to group: stays hidden
+            for (const group of groups) {
+                const option = document.createElement('option');
+                option.value = group.name;
+                option.textContent = group.name +
+                    ' (' + (group.containers || []).length + ')';
+                option.dataset.group = '1';
+                groupOptions.appendChild(option);
+            }
+            groupOptions.hidden = false;
+        })
+        .catch(() => {});        // no groups offered is better than a broken form
 });
 </script> 

@@ -41,7 +41,8 @@ def add_task():
             schedule_details=data.get('schedule_details', {}),
             timezone_str=data.get('timezone_str'),
             status=data.get('status', 'pending'),
-            description=data.get('description')
+            description=data.get('description'),
+            target_is_group=bool(data.get('target_is_group', False))
         )
 
         # Add task through service

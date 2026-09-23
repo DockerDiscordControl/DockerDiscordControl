@@ -231,7 +231,7 @@ services/web/performance_stats_service.py:1-181
 services/web/security_service.py:1-350
 
 ## Section 31  (1914 lines, 5 pieces)
-services/web/task_management_service.py:1-1117
+services/web/task_management_service.py:1-1126
 app/__init__.py:1-13
 app/auth.py:1-270
 app/blueprints/automation_routes.py:1-272
@@ -239,7 +239,7 @@ app/blueprints/log_routes.py:1-242
 
 ## Section 32  (1989 lines, 4 pieces)
 app/blueprints/main_routes.py:1-1507
-app/blueprints/tasks_bp.py:1-314
+app/blueprints/tasks_bp.py:1-315
 app/blueprints/action_log_routes.py:1-91
 # group_routes.py joined on 2026-09-23 (new: the operator's container groups)
 app/blueprints/group_routes.py:1-70

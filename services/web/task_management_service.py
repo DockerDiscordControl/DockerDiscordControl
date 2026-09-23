@@ -31,6 +31,8 @@ class AddTaskRequest:
     timezone_str: Optional[str] = None
     status: str = 'pending'
     description: Optional[str] = None
+    # True when `container` names a group the operator defined, not a container
+    target_is_group: bool = False
 
 
 @dataclass
@@ -519,7 +521,8 @@ class TaskManagementService:
                 # Marks admin tasks: they skip the Discord allowed_actions check at run time
                 created_by=WEB_UI_CREATOR,
                 timezone_str=timezone_str,
-                is_active=True
+                is_active=True,
+                target_is_group=bool(request.target_is_group)
             )
 
             self.logger.debug(f"Created task object: container={scheduled_task.container_name}, "
@@ -938,6 +941,12 @@ class TaskManagementService:
 
             # Update basic fields
             self._update_basic_task_fields(task, data)
+
+            # Only when the edit says so: an edit form that does not know about
+            # groups must not turn a group task into one looking for a container
+            # of that name.
+            if 'target_is_group' in data:
+                task.target_is_group = bool(data['target_is_group'])
 
             # Update schedule details
             if 'schedule_details' in data:
