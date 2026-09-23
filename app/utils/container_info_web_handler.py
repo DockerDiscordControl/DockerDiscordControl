@@ -136,6 +136,10 @@ def load_container_info_for_web(container_names: list) -> Dict[str, Dict[str, An
             logger.debug(f"Loaded container info for {container_name}: {info_data}")
         except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Error loading container info for {container_name}: {e}", exc_info=True)
+            # DELIBERATELY no _version here. The info could not be read, so there
+            # is nothing to compare against; a marker taken from these defaults
+            # would refuse every save of this container until the read works
+            # again. Without one the save behaves as it always did.
             results[container_name] = {
                 'enabled': False,
                 'show_ip': False,

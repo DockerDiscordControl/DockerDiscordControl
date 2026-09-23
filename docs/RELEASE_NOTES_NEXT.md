@@ -104,6 +104,14 @@ a test that was red against the old code.
   expression froze a task and the panel blamed "a time in the past". And every write-back ran on
   the bot's own event loop, so the bot answered nothing - not even Discord's heartbeat - for as
   long as the disk took.
+- **The panel and the donations, read end to end.** Two more review passes, seventeen
+  findings. A tab opened before a change made in Discord used to overwrite it without a
+  word; a failed channel-permission write threw your container edits away; more than 50
+  channels were dropped and their permissions deleted; a rule you had just created could
+  vanish when another one fired. On the donation side: the public broadcast button had no
+  brake at all, a donation the ledger had already taken was reported as failed and the
+  retry booked it twice, a donor called Müller was thanked as "Mller", and a thank-you
+  that reached nobody looked like a success.
 - **The panel says when a save did not work** - a container file it could not write, a mistyped
   channel ID (which silently deleted that channel's permissions), a heartbeat URL without https.
   The info of containers the page did not show is no longer cleared, and a changed language takes

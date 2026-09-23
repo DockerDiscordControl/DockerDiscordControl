@@ -157,6 +157,42 @@ all of them about tasks quietly doing something other than what the panel showed
   whether the current year happened to be a leap year - while the calculation behind it has
   always handled the date properly.
 
+### 🖥️ The panel and the donations, read end to end
+
+Two more independent review passes, over the web panel's core and the whole
+donation path. Seventeen findings; these are the ones you can see.
+
+- **A panel tab opened before a change made in Discord no longer overwrites it.**
+  The form carries the container info the page was rendered with, so saving
+  anything in an old tab wrote that back - an info text edited in Discord in the
+  meantime was reverted without a word. The panel now notices and leaves that
+  container alone, and says which one.
+- **A failed channel-permission write no longer discards your container edits.**
+  Everything that can be written is written, and the message names both halves.
+- **More than 50 channels are no longer silently dropped** - and their
+  permission files are no longer deleted along with them.
+- **A rule you just created no longer disappears** when an auto-action fires at
+  the same moment.
+- **Changing one setting no longer rolls a whole save back** when two requests
+  overlap.
+- **config.json keeps a current copy of the channel permissions again**, so the
+  recovery path for lost channel files has something to recover from.
+- **Donations**: the public "Broadcast Donation" button brakes like every other;
+  a donation the ledger already took is never reported as failed (that invited a
+  retry, which booked it twice); a retry is announced once, not twice; a donor
+  called Müller is thanked as Müller and no longer as "Mller"; a donation that
+  reached no channel, and a monthly appeal that reached nobody, say so instead
+  of showing a green tick; one damaged line in the ledger no longer takes the
+  whole donation history page down with it; and a too-large amount is refused
+  with the actual limit instead of a bare error.
+- **A clock correction backwards no longer locks the buttons.** After an NTP
+  step back, every button you had used answered "please wait 3610 seconds" for
+  the size of the jump.
+- **The idle timeout says what it does.** It told you to log in again; with HTTP
+  Basic a browser simply replays your credentials, so nothing was asked. With
+  two-factor authentication switched on the timeout is real, and the message now
+  says that instead.
+
 ### 🐛 Fixed (behaviour you may have seen before v3.0)
 
 - **A container DDC could not ask is no longer reported as offline.** A Docker query that timed

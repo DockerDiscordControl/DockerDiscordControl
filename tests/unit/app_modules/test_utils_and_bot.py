@@ -456,6 +456,11 @@ class TestContainerInfoWebHandler:
         _INFO_SERVICE_MOCK.get_container_info.return_value = MagicMock(success=False)
 
         result = container_info_web_handler.load_container_info_for_web(["alpha"])
+        # _version is the marker the page renders so a save can tell whether the
+        # info was changed elsewhere meanwhile (2026-09-23). Compared against the
+        # function that computes it, not against a copied string.
+        assert result["alpha"].pop("_version") == \
+            container_info_web_handler.info_version_marker(result["alpha"])
         assert result == {
             "alpha": {
                 "enabled": False,
