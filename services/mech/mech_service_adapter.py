@@ -89,6 +89,15 @@ class MechStateServiceResult:
     error: Optional[str] = None
 
 
+def _speed_of(prog_state) -> float:
+    """Speed from power, with the final level's missing maximum (see _convert_state)."""
+    if prog_state.power_max is None:
+        return 100.0 if prog_state.power_current > 0 else 0.0
+    if prog_state.power_max > 0:
+        return min(100, (prog_state.power_current / prog_state.power_max) * 100)
+    return 0.0
+
+
 class MechServiceAdapter:
     """
     Adapter that implements the old mech_service interface
@@ -103,8 +112,15 @@ class MechServiceAdapter:
     def _convert_state(self, prog_state: ProgressState) -> MechState:
         """Convert ProgressState to legacy MechState"""
         # Calculate speed level from power (0-100 scale)
-        # At max power, speed = 100; at 0 power, speed = 0
-        if prog_state.power_max > 0:
+        # At max power, speed = 100; at 0 power, speed = 0.
+        # The FINAL level has no next goal, so power_max is None - the honest
+        # answer, and `None > 0` raised TypeError out of this conversion. Every
+        # caller then got "Error", level 1, power 0: the OMEGA MECH shown as a
+        # broken level-1 mech. A mech with no maximum and power in it is not
+        # standing still; it is running at full speed.
+        if prog_state.power_max is None:
+            speed_level = 100 if prog_state.power_current > 0 else 0
+        elif prog_state.power_max > 0:
             speed_level = min(100, (prog_state.power_current / prog_state.power_max) * 100)
         else:
             speed_level = 0
@@ -229,7 +245,7 @@ class MechServiceAdapter:
                 total_donated=prog_state.total_donated,
                 name=level_name,
                 threshold=prog_state.evo_max,
-                speed=min(100, (prog_state.power_current / prog_state.power_max) * 100) if prog_state.power_max > 0 else 0,
+                speed=_speed_of(prog_state),
                 error=None
             )
         except (ImportError, AttributeError, RuntimeError) as e:

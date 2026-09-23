@@ -115,7 +115,7 @@ cogs/donation_ui.py	628	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
 cogs/loop_safety.py	98	v3rev2:1-98
 cogs/message_updates.py	786	v3rev2:1-786
-cogs/overview_embeds.py	964	v3rev2:1-964
+cogs/overview_embeds.py	965	v3rev2:1-964
 cogs/slash_commands.py	813	NONE
 cogs/stack_restart.py	290	v3rev:1-196
 cogs/status_handlers.py	1400	passE:E15,E16:80-200,560-700 v3rev2:1-1400
@@ -202,7 +202,7 @@ services/mech/mech_evolutions.py	449	pass1:s22:1-417  [32 of 449 lines never in 
 services/mech/mech_high_res_service.py	248	pass1:s22:1-248
 services/mech/mech_reset_service.py	378	pass1:s23:1-376  [2 of 378 lines never in a package]
 services/mech/mech_service.py	32	pass1:s23:1-32
-services/mech/mech_service_adapter.py	320	pass1:s23:1-300
+services/mech/mech_service_adapter.py	336	pass1:s23:1-300
 services/mech/mech_state_manager.py	221	pass1:s23:1-152  [9 of 161 lines never in a package]
 services/mech/mech_status_cache_service.py	466	pass1:s23:1-439  [25 of 464 lines never in a package]
 services/mech/mech_story_service.py	204	pass1:s23:1-194  [10 of 204 lines never in a package]

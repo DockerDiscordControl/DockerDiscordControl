@@ -350,7 +350,8 @@ class OverviewEmbedsMixin:
                 logger.info(f"CACHE BARS: Power={Power_current}/{Power_max}, evolution={evolution_current}/{evolution_max}")
 
                 # Calculate percentages from clean data
-                if Power_max > 0:
+                # None at the final level, where there is no next goal
+                if Power_max and Power_max > 0:
                     Power_percentage = min(100, max(0, (Power_current / Power_max) * 100))
                     Power_bar = self._create_progress_bar(Power_percentage)
                     logger.info(f"NEW SERVICE: Power bar {Power_percentage:.1f}% ({Power_current}/{Power_max})")
