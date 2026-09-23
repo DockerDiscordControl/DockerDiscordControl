@@ -34,6 +34,18 @@ def _own_nodes(function):
     return [node for node in ast.walk(function) if id(node) not in skip]
 
 
+def _is_bound(name) -> bool:
+    """True when this ``_`` is BOUND, not merely read.
+
+    ``targets[_("x")] = value`` has a Name node for ``_`` inside the target -
+    but in Load context: it is the translation call that produces the key, and
+    ``_`` stays the function. Only a Store context shadows it. Without this
+    distinction the scan reported its own false positive (2026-09-23), which
+    would have been "fixed" by rewriting perfectly good code.
+    """
+    return isinstance(name, ast.Name) and name.id == "_" and isinstance(name.ctx, ast.Store)
+
+
 def _assigned_and_called(function):
     """Lines where ``_`` is bound and lines where ``_`` is called, same scope."""
     assigned, called = [], []
@@ -41,11 +53,11 @@ def _assigned_and_called(function):
         if isinstance(node, ast.Assign):
             for target in node.targets:
                 for name in ast.walk(target):
-                    if isinstance(name, ast.Name) and name.id == "_":
+                    if _is_bound(name):
                         assigned.append(node.lineno)
         elif isinstance(node, (ast.For, ast.AsyncFor)):
             for name in ast.walk(node.target):
-                if isinstance(name, ast.Name) and name.id == "_":
+                if _is_bound(name):
                     assigned.append(node.lineno)
         elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
                 and node.func.id == "_":
@@ -108,3 +120,17 @@ def test_the_translation_function_is_not_shadowed():
         "_ is the translation function here; bound as a throwaway it turns every "
         f"_() in the same scope into an UnboundLocalError: {shadowed}"
     )
+
+
+def test_the_scan_tells_a_key_from_a_binding():
+    """Counter-check for the scan itself, after it reported a false positive.
+
+    `targets[_("x")] = value` reads `_`; `_, b = pair` binds it. The first is
+    what the group menu does with a translated key, the second is the mistake
+    this file exists for.
+    """
+    reads = ast.parse('def f():\n    targets[_("x")] = 1\n    return _("y")\n').body[0]
+    binds = ast.parse('def g():\n    _, b = (1, 2)\n    return _("y")\n').body[0]
+
+    assert _assigned_and_called(reads)[0] == [], "a translated key was read as a binding"
+    assert _assigned_and_called(binds)[0] != [], "a real shadowing is no longer caught"

@@ -128,7 +128,6 @@ WITHOUT_A_NOTE = {
     "test_the_log_service_has_no_unreachable_helper.py",
     "test_the_panel_can_assign_containers.py",
     "test_the_task_file_keeps_its_permissions.py",
-    "test_the_translation_function_is_not_shadowed.py",
     "test_toggle_button_has_a_cooldown_again.py",
     "test_toggle_button_slider_in_panel.py",
     "test_toggle_reports_a_config_failure.py",

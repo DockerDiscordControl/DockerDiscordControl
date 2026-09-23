@@ -98,7 +98,16 @@ def current_targets(want_stacks: bool = True) -> Dict[str, List[str]]:
             return targets
 
     for stack, servers in current_stacks().items():
-        targets.setdefault(stack, [s['docker_name'] for s in servers])
+        members = [s['docker_name'] for s in servers]
+        if stack in targets:
+            # A group and a Compose project of one name are two different sets
+            # of containers. setdefault kept the group and dropped the stack,
+            # so the button quietly restarted something else than the day
+            # before. Both are offered, and both say which one they are.
+            targets[_("{name} (group)").format(name=stack)] = targets.pop(stack)
+            targets[_("{name} (stack)").format(name=stack)] = members
+        else:
+            targets[stack] = members
     return targets
 
 
@@ -116,7 +125,11 @@ def _servers_of(name: str) -> Tuple[List[dict], List[str]]:
     try:
         from services.config.group_service import get_group_service
 
-        members = get_group_service().members_of(name)
+        # A menu entry may carry "(group)" when a Compose project has the same
+        # name; the group itself is called what the operator called it.
+        suffix = _("{name} (group)").format(name="")
+        plain = name[:-len(suffix)] if suffix and name.endswith(suffix) else name
+        members = get_group_service().members_of(plain)
         if members.exists:
             group_members = members.containers
             missing = list(members.missing)

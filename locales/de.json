@@ -1766,5 +1766,7 @@
   "Not touched (not in DDC, or switched off): {names}": "Nicht angefasst (nicht in DDC oder ausgeschaltet): {names}",
   "web.groups.edit": "Zum Bearbeiten anklicken",
   "web.groups.replace": "Die Gruppe {name} gibt es schon, mit {count} Container(n). Speichern ersetzt ihre Container durch die ausgewählten. Fortfahren?",
-  "web.groups.confirm_delete": "Gruppe {name} löschen?"
+  "web.groups.confirm_delete": "Gruppe {name} löschen?",
+  "{name} (group)": "{name} (Gruppe)",
+  "{name} (stack)": "{name} (Stack)"
 }
