@@ -1760,5 +1760,7 @@
   "ℹ️ There is no container group yet, and none of the active containers belongs to a Compose stack.": "ℹ️ There is no container group yet, and none of the active containers belongs to a Compose stack.",
   "❌ **{stack}** has no active containers any more.": "❌ **{stack}** has no active containers any more.",
   "js.aas.groups_heading": "Container groups",
-  "js.tasks.group_badge": "Group"
+  "js.tasks.group_badge": "Group",
+  "js.aas.target_missing": "not found",
+  "js.aas.confirm_widen_to_all": "Nothing is selected. This rule will then watch EVERY container. Continue?"
 }

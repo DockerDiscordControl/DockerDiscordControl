@@ -87,6 +87,60 @@ function loadContainersForAAS() {
     console.warn('AAS: No active containers found - container selection will be empty');
 }
 
+function ticksOfCurrentRule() {
+    // What the rule being edited holds right now; empty for a new rule.
+    const rule = currentRuleData;
+    if (!rule) return [];
+    const containerState = rule.trigger && rule.trigger.type === 'container_state';
+    return (containerState ? (rule.trigger.containers || [])
+                           : ((rule.action && rule.action.containers) || []));
+}
+
+function renderTargetCheckboxes(wrapper, ticked) {
+    if (!wrapper) return;
+    const boxes = targetCheckboxes(allGroups, allContainers, ticked);
+    if (boxes.length === 0) {
+        wrapper.innerHTML = `<div class="text-muted text-center py-2">` +
+            `<i class="bi bi-exclamation-triangle"></i> ${t('aas.no_active_containers')}</div>`;
+        return;
+    }
+    let html = '';
+    let headingWritten = false;
+    boxes.forEach((box, idx) => {
+        if (box.kind === 'group' && !headingWritten) {
+            html += `<div class="fw-bold small text-muted mb-1">${t('aas.groups_heading')}</div>`;
+            headingWritten = true;
+        }
+        if (box.kind === 'container' && headingWritten) {
+            html += '<hr class="my-2">';
+            headingWritten = false;   // only one separator
+        }
+        const cssClass = box.kind === 'group' ? 'aas-group-checkbox' : 'aas-container-checkbox';
+        const colour = box.missing ? 'text-danger' : (box.kind === 'group' ? 'text-warning' : 'text-info');
+        const icon = box.kind === 'group' ? '<i class="bi bi-collection"></i> ' : '';
+        const count = box.kind === 'group' && !box.missing ?
+            ` <span class="text-muted small">(${box.count})</span>` : '';
+        const gone = box.missing ? ` <span class="badge bg-danger">${t('aas.target_missing')}</span>` : '';
+        html += `
+            <div class="form-check">
+                <input class="form-check-input ${cssClass}" type="checkbox"
+                       value="${escapeAttribute(box.value)}" id="aasTarget_${idx}"
+                       ${box.checked ? 'checked' : ''}>
+                <label class="form-check-label" for="aasTarget_${idx}">
+                    ${icon}<code class="${colour}">${escapeHtml(box.label)}</code>${count}${gone}
+                </label>
+            </div>`;
+    });
+    wrapper.innerHTML = html;
+}
+
+function escapeAttribute(text) {
+    // escapeHtml() leaves the double quote alone (innerHTML of a text node
+    // does), and this value sits inside a quoted attribute. A group called
+    // Plex "4K" would end the attribute early - and worse.
+    return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function loadGroupsForAAS() {
     // A failure here costs the groups, not the editor: the containers are still
     // offered and a rule can still be written.
@@ -277,40 +331,12 @@ async function openRuleEditor(ruleId = null) {
     }
 
     // Populate containers as checkboxes
-    // The operator's groups first. A ticked group is saved as "group:<name>",
-    // which is what the rule resolves (services/automation/automation_service.py).
-    // Without this the feature would only exist for someone who knows the prefix.
+    // Groups and containers in one list, built by
+    // app/static/js/rule_targets.js - including anything the rule already
+    // holds that has no checkbox any more. Losing such a tick would save an
+    // EMPTY trigger list, and DDC reads that as "every container".
     const containerWrapper = document.getElementById('aasRuleTargetContainersWrapper');
-    const groupHtml = allGroups.length === 0 ? '' : `
-        <div class="fw-bold small text-muted mb-1">${t('aas.groups_heading')}</div>
-        ${allGroups.map((g, idx) => `
-            <div class="form-check">
-                <input class="form-check-input aas-group-checkbox" type="checkbox"
-                       value="group:${escapeHtml(g.name)}" id="aasGroup_${idx}">
-                <label class="form-check-label" for="aasGroup_${idx}">
-                    <i class="bi bi-collection text-warning"></i>
-                    <code class="text-warning">${escapeHtml(g.name)}</code>
-                    <span class="text-muted small">(${(g.containers || []).length})</span>
-                </label>
-            </div>
-        `).join('')}
-        <hr class="my-2">
-    `;
-    if (allContainers.length > 0) {
-        containerWrapper.innerHTML = groupHtml + allContainers.map((c, idx) => `
-            <div class="form-check">
-                <input class="form-check-input aas-container-checkbox" type="checkbox" value="${escapeHtml(c)}" id="aasContainer_${idx}">
-                <label class="form-check-label" for="aasContainer_${idx}">
-                    <code class="text-info">${escapeHtml(c)}</code>
-                </label>
-            </div>
-        `).join('');
-    } else if (groupHtml) {
-        containerWrapper.innerHTML = groupHtml;
-    } else {
-        containerWrapper.innerHTML = `<div class="text-muted text-center py-2"><i class="bi bi-exclamation-triangle"></i> ${t('aas.no_active_containers')}</div>`;
-        console.error('AAS: No containers loaded for rule editor');
-    }
+    renderTargetCheckboxes(containerWrapper, ticksOfCurrentRule());
 
     // Reload channels if list is empty (for feedback channel selection)
     if (allChannels.length === 0) {
@@ -435,14 +461,10 @@ function populateRuleForm(rule) {
     }
     updateTriggerTypeFields();
 
-    // Check container checkboxes: the watched containers of a container-state
-    // rule, the action targets of a message rule
+    // The checkboxes are drawn from the rule itself (renderTargetCheckboxes),
+    // so a target that no longer exists keeps its tick instead of being lost.
     const ticked = containerState ? (rule.trigger.containers || []) : rule.action.containers;
-    const containerCheckboxes = document.querySelectorAll(
-        '.aas-container-checkbox, .aas-group-checkbox');
-    containerCheckboxes.forEach(cb => {
-        cb.checked = ticked.includes(cb.value);
-    });
+    renderTargetCheckboxes(document.getElementById('aasRuleTargetContainersWrapper'), ticked);
     
     // Safety
     document.getElementById('aasRuleCooldown').value = rule.safety.cooldown_minutes;
@@ -468,6 +490,13 @@ async function saveAASRule() {
         '.aas-container-checkbox:checked, .aas-group-checkbox:checked')).map(cb => cb.value);
 
     if (isContainerStateRule()) {
+        // An empty list means EVERY container. That is allowed, but it must be
+        // a decision: a rule that watched a group and lost its tick would
+        // otherwise widen itself in silence.
+        if (saveWidensToEveryContainer(true, containers, ticksOfCurrentRule()) &&
+            !confirm(t('aas.confirm_widen_to_all'))) {
+            return;
+        }
         return saveContainerStateRule(ruleName, containers);
     }
 
