@@ -21,6 +21,13 @@ logger = logging.getLogger('ddc.config_form_parser')
 MAX_CHANNEL_ROWS = 50
 
 
+# What process_config_form answers when everything ELSE was saved and only the
+# channel permission files could not be written. ConfigurationSaveService
+# compares against it, so the two sides cannot drift apart.
+CHANNELS_NOT_SAVED_MESSAGE = ("The channel permissions could not be saved - the bot keeps the "
+                              "previous channel rights. See the log for the reason.")
+
+
 class ConfigFormParserService:
     """
     Handles all web form parsing operations.
@@ -559,10 +566,10 @@ class ConfigFormParserService:
             if not channels_saved:
                 # Z3: the main configuration may well have been saved, but the channel
                 # permission files were not - the bot keeps the old rights. Do not call
-                # that a success (review B5).
-                return updated_config, False, (
-                    "The channel permissions could not be saved - the bot keeps the "
-                    "previous channel rights. See the log for the reason.")
+                # that a success (review B5). The SHARED constant, so the caller can
+                # tell this from a failure that wrote nothing and still save the
+                # container settings (see the spec test of the same name).
+                return updated_config, False, CHANNELS_NOT_SAVED_MESSAGE
 
             return updated_config, result.success, message
 

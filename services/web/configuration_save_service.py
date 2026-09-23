@@ -108,7 +108,15 @@ class ConfigurationSaveService:
 
             # Step 3: Process configuration through ConfigService
             processed_data, success, message = self._process_configuration(cleaned_form_data)
-            if not success:
+            # The channel permissions failing is NOT "nothing was saved": config.json
+            # has already been written by then. Returning here left the operator's
+            # container settings, container info and server order unwritten while the
+            # message spoke only of channels - so the two disagreed about what had
+            # just been saved, and pressing Save again changed nothing.
+            from services.config.config_form_parser_service import CHANNELS_NOT_SAVED_MESSAGE
+
+            channels_only = not success and message == CHANNELS_NOT_SAVED_MESSAGE
+            if not success and not channels_only:
                 return ConfigurationSaveResult(
                     success=False,
                     message=message or "Configuration processing failed"
@@ -131,6 +139,17 @@ class ConfigurationSaveService:
                 return ConfigurationSaveResult(
                     success=False,
                     error=save_result.error or "Failed to save configuration files",
+                    config_files=save_result.config_files
+                )
+
+            # Everything that COULD be written is written; now say what was not.
+            # Still a failed save (Z3) - the channel permission files really did
+            # not get written - but the operator now knows the rest did.
+            if channels_only:
+                return ConfigurationSaveResult(
+                    success=False,
+                    message=(f"{CHANNELS_NOT_SAVED_MESSAGE} The container settings and the "
+                             "server order WERE saved."),
                     config_files=save_result.config_files
                 )
 

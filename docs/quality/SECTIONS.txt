@@ -85,7 +85,7 @@ services/config/channel_config_service.py:1-576
 # config_cache_service.py followed on 2026-09-23: section 11 went over 2,000
 # when automation_service.py grew with the group resolution.
 services/config/config_cache_service.py:1-177
-services/config/config_form_parser_service.py:1-576
+services/config/config_form_parser_service.py:1-583
 services/config/config_loader_service.py:1-481
 services/config/config_migration_service.py:1-466
 # group_service.py joined on 2026-09-23 (new: the operator's own container
@@ -220,7 +220,7 @@ services/translation/translation_config_service.py:1-687
 services/translation/translation_service.py:1-762
 services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-554
-services/web/configuration_save_service.py:1-616
+services/web/configuration_save_service.py:1-635
 
 ## Section 29  (1842 lines, 7 pieces)
 services/web/container_log_service.py:1-432
