@@ -22,6 +22,16 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`. **While it is on, the
   panel answers only over HTTPS** - the session marker is the passed second factor, and it must
   not travel in the clear. Without 2FA nothing changes: plain HTTP works as before.
+- **Your container groups now work in the container table too.** A group could already be the
+  target of a scheduled task and of an auto-action rule; the table where each container's Active
+  flag and its four allowed actions are set knew nothing about them. With 26 containers, giving a
+  group of seven the same permissions meant 35 tick boxes one at a time. There is now a bar above
+  the table: pick a group, tick the permissions, Apply - every container of that group on the page
+  is switched active with exactly those permissions, and "Switch group off" reverses it. A
+  container the group names but the table does not show is named in the message instead of being
+  skipped quietly. Nothing is saved until you press Save, as before. These are your own groups,
+  not Compose stacks.
+
 - **Changing the panel's timezone now asks about your existing tasks.** A task carries the
   timezone it was made in, so switching the panel never moved it: "daily 10:00" went on firing
   at 10:00 in the old zone while the same page rendered its next run in the new one - the row
