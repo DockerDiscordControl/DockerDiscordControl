@@ -457,8 +457,18 @@ class AutomationService:
         for container in target_containers:
             logger.info(f"AAS: Executing {action_type} on {container}...")
             
-            # Check if container exists
-            if not await is_container_exists(container):
+            # Three answers, not two: True, False, or None when DDC could not
+            # ask. Only a definite False is "not found" - an unreachable Docker
+            # used to produce the same verdict, so the operator was told their
+            # container was gone and the action was skipped. An unknown falls
+            # THROUGH to the action, exactly as an unknown running state does
+            # below (review E25): if the container really is gone, the Docker
+            # call says so with Docker's own reason.
+            exists = await is_container_exists(container)
+            if exists is None:
+                logger.warning(f"AAS: could not check whether '{container}' exists - "
+                               f"attempting {action_type} anyway")
+            if exists is False:
                 logger.warning(f"AAS: Container '{container}' not found")
                 self.state_service.record_trigger(
                     rule.id, rule.name, container, rule.action.type, "FAILED", "Container not found"

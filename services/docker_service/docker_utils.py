@@ -779,7 +779,15 @@ async def list_docker_containers() -> List[Dict[str, Any]]:
         logger.error(f"Docker error listing containers: {e}", exc_info=True)
         return []
 
-async def is_container_exists(docker_container_name: str) -> bool:
+async def is_container_exists(docker_container_name: str) -> Optional[bool]:
+    """True, False, or None when DDC could not ask.
+
+    Three states, and they used to share two return values: a Docker that was
+    unreachable answered False, and the caller announced "Container not found"
+    about a container that is fine - and skipped the action it was meant to
+    take. Unknown is its own answer now, the way _get_running_state already
+    keeps it.
+    """
     if not docker_container_name:
         return False
 
@@ -797,8 +805,10 @@ async def is_container_exists(docker_container_name: str) -> bool:
     except docker.errors.NotFound:
         return False
     except (DockerServiceError, docker.errors.DockerException, OSError, RuntimeError) as e:
+        # NOT False: this is "could not ask", and saying "does not exist" here
+        # is an answer DDC does not have.
         logger.error(f"Docker error checking existence of '{docker_container_name}': {e}", exc_info=True)
-        return False
+        return None
 
 async def get_containers_data() -> List[Dict[str, Any]]:
     global _containers_cache, _cache_timestamp

@@ -129,7 +129,7 @@ services/admin/admin_service.py	379	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/auto_action_config_service.py	847	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
-services/automation/automation_service.py	746	passE:bothscans+E25 v3rev:1-676
+services/automation/automation_service.py	756	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	157	v3rev:1-157
 services/automation/image_updates.py	164	v3rev:1-164
 services/automation/own_actions.py	70	NONE
@@ -156,7 +156,7 @@ services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	105	v3rev:1-105
 services/docker_service/docker_action_service.py	298	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
-services/docker_service/docker_utils.py	1220	pass1:s16:1-1404  [28 of 1432 lines never in a package]
+services/docker_service/docker_utils.py	1230	pass1:s16:1-1404  [28 of 1432 lines never in a package]
 services/docker_service/reachability.py	87	v3rev:1-87
 services/docker_service/server_order.py	111	pass1:s16:1-111
 services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101

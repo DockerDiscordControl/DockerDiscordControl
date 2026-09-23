@@ -864,7 +864,10 @@ class TestListAndExists:
             "get_docker_client_async",
             _make_async_client_cm(fake_docker_client),
         )
-        assert await docker_utils.is_container_exists("nginx") is False
+        # None, not False: a DockerException means DDC could not ask, and False
+        # would be a verdict it does not have. The automation used to announce
+        # "Container not found" on the strength of this (2026-09-23).
+        assert await docker_utils.is_container_exists("nginx") is None
 
     @pytest.mark.asyncio
     async def test_get_containers_data_returns_cached_when_fresh(

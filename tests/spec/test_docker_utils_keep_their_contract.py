@@ -67,9 +67,18 @@ async def test_listing_containers_answers_a_list(docker_is_gone):
 
 
 @pytest.mark.asyncio
-async def test_container_existence_answers_a_bool(docker_is_gone):
+async def test_container_existence_answers_the_unknown(docker_is_gone):
+    """It must ANSWER - and since 2026-09-23 the answer is None, not False.
+
+    The contract of this file is unchanged: with Docker gone these functions
+    return a value instead of raising. What changed is WHICH value this one
+    returns. False meant "the container does not exist", and the automation
+    announced exactly that to the operator and skipped the action. Unknown is
+    its own answer now. See
+    tests/spec/test_a_container_we_could_not_ask_about_is_not_called_missing.py
+    """
     result = await docker_is_gone.is_container_exists("minecraft")
-    assert result is False
+    assert result is None
 
 
 @pytest.mark.asyncio
