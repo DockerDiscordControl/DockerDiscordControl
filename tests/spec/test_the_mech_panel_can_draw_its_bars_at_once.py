@@ -58,13 +58,18 @@ def _without_comments(text):
 
 
 def test_the_helper_is_loaded_before_it_is_called():
-    """THE POINT: no race between a fetch and the rest of the page."""
+    """THE POINT: no race between a fetch and the rest of the page.
+
+    The caller moved into app/static/js/mech_panel.js on 2026-09-23, so the
+    question became an ORDER OF SCRIPT TAGS rather than a position inside one
+    file - which is the same question, and a clearer one.
+    """
     page = _without_comments(PAGE.read_text(encoding="utf-8"))
     loaded = page.index("js/progress_bars.js")
-    called = page.index("barWidth(")
+    called = page.index("js/mech_panel.js")
 
     assert loaded < called, (
-        "progress_bars.js is loaded after the code that calls barWidth() - "
+        "progress_bars.js is loaded after the script that calls barWidth() - "
         "whether the mech bars are drawn is then a race the page can lose, "
         "silently")
 

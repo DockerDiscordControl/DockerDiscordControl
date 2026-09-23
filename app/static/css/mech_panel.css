@@ -1,0 +1,448 @@
+/* The mech panel's styling. Moved out of config.html on 2026-09-23: it was 444
+   of the page's 1996 lines and 12 KB of its 89 KB, and _base.html sends the page
+   with Cache-Control: no-cache, so all of it went over the wire on every load.
+   A static file is not covered by that meta tag. No Jinja in here - checked
+   before the move and pinned by
+   tests/spec/test_the_page_is_not_mostly_one_script.py */
+/* Donation Button Animations */
+        .donation-button {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .donation-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .donation-button:active {
+            transform: scale(0.95);
+        }
+
+        /* MATRIX TERMINAL OVERLAY */
+        .matrix-terminal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000000;
+            z-index: 2500;
+            display: block;
+            font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+            animation: terminalFadeIn 0.3s ease-out;
+            overflow: hidden;
+        }
+        
+        @keyframes terminalFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        
+        .terminal-content {
+            padding: 20px;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .terminal-text {
+            color: #00ff00;
+            font-size: 18px;
+            font-weight: bold;
+            line-height: 1.2;
+            text-align: left;
+        }
+        
+        .cursor {
+            color: #00ff00;
+            font-size: 18px;
+            font-weight: bold;
+            animation: cursorBlink 1s infinite;
+        }
+        
+        @keyframes cursorBlink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        /* Matrix Terminal Complete */
+        
+        /* Donator Mech Status */
+        .donator-mech-container {
+            padding: 16px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 12px;
+            max-width: 620px;
+            margin: 0 auto;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mech-section {
+            min-width: 180px;
+            margin-right: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .mech-display {
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 4px;
+        }
+        
+        .power-consumption-overlay {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: transparent;
+            color: #ff4444;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            text-align: center;
+        }
+        
+        .speed-status-overlay {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: transparent;
+            color: #888888;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 10;
+            pointer-events: none;
+            text-align: left;
+            max-width: 120px;
+            word-wrap: break-word;
+            line-height: 1.1;
+        }
+        
+        /* Donation Modal Styles */
+        .donation-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: modalFadeIn 0.3s ease;
+        }
+        
+        .donation-modal {
+            background: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.4s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+        
+        .donation-modal-header {
+            padding: 20px 20px 10px;
+            border-bottom: 1px solid #333;
+            text-align: center;
+        }
+        
+        .donation-modal-header h4 {
+            color: #ffcc00;
+            margin: 0 0 10px 0;
+            font-size: 1.4em;
+        }
+        
+        .donation-modal-header p {
+            color: #adb5bd;
+            margin: 0;
+            font-size: 0.95em;
+        }
+        
+        .donation-modal-body {
+            padding: 20px;
+        }
+        
+        .donation-modal-footer {
+            padding: 10px 20px 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .donation-modal .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .donation-modal label {
+            display: block;
+            color: #fff;
+            font-weight: 500;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        .donation-modal .form-control {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            padding: 10px 12px;
+            font-size: 0.95em;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+        
+        .donation-modal .form-control:focus {
+            outline: none;
+            border-color: #ffcc00;
+            box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.2);
+        }
+        
+        .donation-modal .form-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .donation-modal .form-check-input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+        }
+        
+        .donation-modal .form-check-label {
+            color: #adb5bd;
+            margin: 0;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes modalSlideIn {
+            from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        .gauge-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 320px;
+            flex: 1;
+            gap: 16px;
+            height: 120px;
+        }
+        
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .bar-wrapper {
+            flex: 0 0 150px;
+            margin-right: 0;
+        }
+        
+        .bar-label {
+            flex: 0 0 auto;
+            font-size: 11px;
+            white-space: nowrap;
+            margin-left: 0;
+        }
+        
+        .power-bar, .evolution-bar {
+            width: 150px;
+            height: 28px;
+            background: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .power-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #cc0000 0%, #ff3333 50%, #ff6666 100%);
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+        
+        .evolution-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700 0%, #ffed4e 25%, #c0c0c0 50%, #ffed4e 75%, #ffd700 100%);
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+        
+        .evolution-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #cc00ff;
+            text-align: center;
+            text-shadow: 0 0 3px rgba(204, 0, 255, 0.5);
+        }
+        
+        .next-evolution-info {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dotted #444;
+        }
+        
+        .Power-amount {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffcc00;
+            margin-top: 4px;
+            text-align: center;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
+        }
+        
+        /* Gray state (inactive/old donation) - NO PULSE */
+        .donator-heart.inactive {
+            color: #6c757d;
+            text-shadow: none;
+            animation: none; /* No pulsing when inactive */
+        }
+        
+        /* Neon active state (recent donation) - animation set by JavaScript */
+        .donator-heart.active {
+            color: #36cfff;
+            text-shadow: 0 0 10px #36cfff, 0 0 20px #36cfff, 0 0 40px #36cfff;
+            /* Animation set dynamically by JavaScript */
+        }
+        
+        /* Fading state - NO PULSE, color set by JavaScript */
+        .donator-heart.fading {
+            animation: none; /* No pulsing during fade */
+            /* Color and text-shadow set dynamically by JavaScript */
+        }
+        
+        /* Dynamic heart pulse animations - generated by JavaScript */
+        @keyframes heartPulseFast {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        
+        @keyframes heartPulseMedium {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes heartPulseSlow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        
+        @keyframes heartPulseVerySlow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .terminal-text, .cursor {
+                font-size: 14px;
+            }
+            .terminal-content {
+                padding: 15px;
+            }
+
+            /* Mech Container: Stack vertically on mobile */
+            .donator-mech-container {
+                flex-direction: column !important;
+                padding: 12px;
+                max-width: 100%;
+            }
+
+            .mech-section {
+                min-width: unset;
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 16px;
+            }
+
+            .gauge-container {
+                min-width: unset;
+                width: 100%;
+                padding: 0 8px;
+            }
+
+            .bar-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .bar-wrapper {
+                flex: unset;
+                width: 100%;
+            }
+
+            .power-bar, .evolution-bar {
+                width: 100%;
+            }
+
+            .bar-label {
+                width: 100%;
+                text-align: center;
+            }
+
+            .bar-label span {
+                flex-direction: row !important;
+                gap: 8px;
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 480px) {
+            .donator-mech-container {
+                padding: 8px;
+            }
+
+            .mech-display img {
+                max-height: 80px !important;
+                max-width: 160px !important;
+            }
+
+            .donation-button img {
+                height: 35px !important;
+            }
+
+            /* Donation buttons: stack with gap on mobile */
+            .donation-section > span.d-inline-block {
+                display: block !important;
+                margin: 8px auto !important;
+            }
+        }

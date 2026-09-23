@@ -151,12 +151,14 @@ def test_web_same_token_twice_books_once(marker):
 # ---------------------------------------------------------------------------
 
 CONFIG_HTML = (
-    Path(__file__).resolve().parents[2] / "app" / "templates" / "config.html"
+    Path(__file__).resolve().parents[2] / "app" / "static" / "js" / "mech_panel.js"
 )
 
 
 def _function_body(source: str, name: str) -> str:
-    """Cut out the body of a top-level function from ``config.html``.
+    """Cut out the body of a top-level function from ``mech_panel.js``.
+
+    It was in an inline <script> in config.html until 2026-09-23.
 
     Top-level functions there are indented by 8 spaces, nested ones by 12. A
     naive cut at the next ``function `` therefore ends at the nested

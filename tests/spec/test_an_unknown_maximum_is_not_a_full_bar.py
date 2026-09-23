@@ -33,7 +33,12 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+# The mech panel's script moved to app/static/js/mech_panel.js on
+# 2026-09-23: it was 1222 of config.html's 1996 lines and 60 KB of its
+# 89 KB, re-sent on every load because the page is no-cache. The
+# markup stayed in the template; only the code moved.
 TEMPLATE = (ROOT / "app" / "templates" / "config.html").read_text(encoding="utf-8")
+SCRIPT = (ROOT / "app" / "static" / "js" / "mech_panel.js").read_text(encoding="utf-8")
 
 
 def test_the_width_rule_in_node():
@@ -47,8 +52,8 @@ def test_the_width_rule_in_node():
 
 
 def test_the_panel_uses_it_for_both_bars():
-    assert TEMPLATE.count("barWidth(") >= 2, "the bars still divide on their own"
-    assert "Math.min(100, percentage)" not in TEMPLATE
+    assert SCRIPT.count("barWidth(") >= 2, "the bars still divide on their own"
+    assert "Math.min(100, percentage)" not in SCRIPT
 
 
 def test_the_panel_loads_the_file():
