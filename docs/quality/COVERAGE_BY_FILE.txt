@@ -219,8 +219,9 @@ services/scheduling/donation_message_service.py	228	pass1:s25:1-196  [19 of 215 
 services/scheduling/group_tasks.py	117	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
-services/scheduling/scheduler.py	2260	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]
+services/scheduling/scheduler.py	2259	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]
 services/scheduling/scheduler_service.py	566	pass1:s27:1-539  [13 of 552 lines never in a package]
+services/scheduling/task_writeback.py	78	NONE
 services/status/__init__.py	13	pass1:s27:1-13
 services/status/status_cache_service.py	225	pass1:s27:1-225
 services/translation/__init__.py	12	pass1:s27:1-12

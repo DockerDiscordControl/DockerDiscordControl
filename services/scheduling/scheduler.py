@@ -1494,15 +1494,14 @@ def _store_system_task_state(task: ScheduledTask) -> None:
     })
 
 def _persist_executed_task(task: ScheduledTask) -> bool:
-    """Save the result and reschedule of an executed (or missed) task.
-
-    No collision check: the new next_run comes from the task's own schedule, and
-    a refused update would keep the old next_run (double execution, then stuck).
-    """
+    """Save an executed (or missed) task; rules in task_writeback.py, which
+    writes only what the RUN produced so an edit during it survives."""
     if task.is_system_task():
         _store_system_task_state(task)
         return True
-    return update_task(task, check_collision=False)
+    from services.scheduling.task_writeback import save_run_result
+    return save_run_result(task)
+
 
 def _format_task_time(task: ScheduledTask, timestamp: Optional[float]) -> str:
     """Format a timestamp in the task's timezone for log and error messages."""
