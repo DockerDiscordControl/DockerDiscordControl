@@ -65,6 +65,19 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 
+/* Pinned, it is a band rather than a card: square against the top of the
+   window, open at the top so content can slide out from under it, a hairline
+   below instead, and a shadow that puts it above the page rather than in it.
+   The class comes from the sentinel in config.html. */
+#settings-tabs.is-stuck {
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
+}
+
 /* The buttons inside it. Resting: readable but quiet, with a shape of their
    own so the pointer has somewhere to land. Hovering lifts the surface rather
    than only the text - that is what makes a strip feel like a control. */

@@ -177,6 +177,12 @@
        tests/spec/test_the_settings_are_behind_four_tabs.py #}
     <form method="POST" id="config-form">
 
+        {# CSS cannot ask a sticky element whether it is stuck - the :stuck
+           selector is in the specification and in no browser here. This empty
+           element sits immediately above the bar: while it is on screen the bar
+           is at rest, and the moment it scrolls out the bar is pinned. Watched
+           by an IntersectionObserver below, so nothing runs on every frame. #}
+        <div id="settings-tabs-sentinel" aria-hidden="true"></div>
         <ul class="nav nav-pills nav-justified mb-3" id="settings-tabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="tab-discord" data-bs-toggle="pill"
@@ -317,6 +323,22 @@
 
 
 <script>
+// Is the tab bar pinned? A card and a toolbar are not the same object: at rest
+// the bar is rounded all round with a hairline and no shadow, which reads as a
+// card among cards; pinned, the top rounding has nothing to be rounded away
+// from, the border closes a box whose content is sliding out from under it, and
+// without a shadow the rows scroll up to its edge and stop dead.
+(function markPinnedTabBar() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const bar = document.getElementById('settings-tabs');
+        const sentinel = document.getElementById('settings-tabs-sentinel');
+        if (!bar || !sentinel || !window.IntersectionObserver) { return; }
+        new IntersectionObserver(([entry]) => {
+            bar.classList.toggle('is-stuck', !entry.isIntersecting);
+        }, { threshold: 0 }).observe(sentinel);
+    });
+})();
+
 // Which tab was open. Saving does not reload the page, but F5 does, and landing
 // back on the first tab every time is its own small annoyance. Wrapped because
 // localStorage throws in a private window or with site data blocked, and a
