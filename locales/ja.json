@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ すべて停止リクエストの処理中にエラーが発生しました。",
   "❌ Error regenerating control panel. Check logs for details.": "❌ コントロールパネルの再生成中にエラーが発生しました。詳細はログを確認してください。",
   "❌ Error sending donation broadcast. Please try again later.": "❌ 寄付の公開送信中にエラーが発生しました。後でもう一度お試しください。",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ コントロール概要の表示中にエラーが発生しました。",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ タスク **{task_description}** を削除できませんでした。既に存在しない可能性があります。",
   "❌ Failed to save admin data. Please try again.": "❌ 管理者データの保存に失敗しました。もう一度お試しください。",

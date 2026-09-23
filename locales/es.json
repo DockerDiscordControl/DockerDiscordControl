@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Error al procesar la solicitud de detención de todo.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Error al regenerar el panel de control. Consulte los registros para más detalles.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Error al enviar la difusión de donación. Por favor, inténtelo de nuevo más tarde.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Error al mostrar el resumen de control.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ No se pudo eliminar la tarea **{task_description}**. Es posible que ya no exista.",
   "❌ Failed to save admin data. Please try again.": "❌ Error al guardar los datos de administrador. Por favor, inténtelo de nuevo.",

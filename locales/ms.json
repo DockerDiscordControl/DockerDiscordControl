@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Ralat memproses permintaan hentikan semua.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Ralat semasa menjana semula panel kontrol. Sila periksa log untuk butiran.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Ralat mengirim siaran derma. Sila coba lagi nanti.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Ralat memaparkan gambaran keseluruhan kontrol.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Gagal memadamkan tugasan **{task_description}**. Ia mungkin tidak wujud lagi.",
   "❌ Failed to save admin data. Please try again.": "❌ Gagal menyimpan data admin. Sila coba lagi.",

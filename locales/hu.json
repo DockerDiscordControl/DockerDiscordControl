@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Hiba az összes leállítás kérés feldolgozásakor.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Hiba a vezérlőpanel újragenerálásakor. A részletekért ellenőrizd a naplókat.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Hiba az adomány értesítés küldésekor. Kérjük, próbáld újra később.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Hiba a vezérlő áttekintés megjelenítésekor.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Nem sikerült törölni a(z) **{task_description}** feladatot. Lehet, hogy már nem létezik.",
   "❌ Failed to save admin data. Please try again.": "❌ Nem sikerült az admin adatok mentése. Kérjük, próbáld újra.",

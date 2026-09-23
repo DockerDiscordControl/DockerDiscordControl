@@ -50,7 +50,7 @@ cogs/slash_commands.py:1-813
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:884-1273
 cogs/background_loops.py:1-652
-cogs/donation_ui.py:1-639
+cogs/donation_ui.py:1-646
 
 ## Section 07  (694 lines, 1 piece)
 cogs/enhanced_info_modal_simple.py:1-694

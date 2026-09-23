@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Грешка при обради захтева за заустављање свих.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Грешка при поновном генерисању контролне табле. Проверите дневнике за детаље.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Грешка при слању објаве донације. Покушајте поново касније.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Грешка при приказивању прегледа контроле.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Брисање задатка **{task_description}** није успело. Можда више не постоји.",
   "❌ Failed to save admin data. Please try again.": "❌ Чување администраторских података није успело. Покушајте поново.",

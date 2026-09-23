@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ เกิดข้อผิดพลาดในการประมวลผลคำขอหยุดทั้งหมด",
   "❌ Error regenerating control panel. Check logs for details.": "❌ เกิดข้อผิดพลาดในการสร้างแผงควบคุมใหม่ กรุณาตรวจสอบบันทึกเพื่อดูรายละเอียด",
   "❌ Error sending donation broadcast. Please try again later.": "❌ เกิดข้อผิดพลาดในการส่งการประกาศบริจาค กรุณาลองใหม่ภายหลัง",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ เกิดข้อผิดพลาดในการแสดงภาพรวมการควบคุม",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ ไม่สามารถลบงาน **{task_description}** ได้ งานนี้อาจไม่มีอยู่แล้ว",
   "❌ Failed to save admin data. Please try again.": "❌ ไม่สามารถบันทึกข้อมูลผู้ดูแลระบบ กรุณาลองใหม่",

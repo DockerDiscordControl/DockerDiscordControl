@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Tümünü durdurma isteği işlenirken hata.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Kontrol paneli yeniden oluşturulurken hata oluştu. Ayrıntılar için günlükleri kontrol edin.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Bağış duyurusu gönderilirken hata. Lütfen daha sonra tekrar deneyin.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Kontrol genel bakışı gösterilirken hata.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ **{task_description}** görevi silinemedi. Artık mevcut olmayabilir.",
   "❌ Failed to save admin data. Please try again.": "❌ Yönetici verileri kaydedilemedi. Lütfen tekrar deneyin.",

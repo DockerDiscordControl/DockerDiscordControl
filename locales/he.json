@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ שגיאה בעיבוד בקשת עצירת הכל.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ שגיאה ביצירה מחדש של לוח הבקרה. בדוק את היומנים לפרטים.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ שגיאה בשליחת שידור תרומה. אנא נסה שוב מאוחר יותר.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ שגיאה בהצגת סקירת בקרה.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ מחיקת המשימה **{task_description}** נכשלה. ייתכן שהיא כבר לא קיימת.",
   "❌ Failed to save admin data. Please try again.": "❌ נכשל בשמירת נתוני מנהל. אנא נסה שוב.",

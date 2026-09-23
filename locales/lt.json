@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Klaida apdorojant visų sustabdymo užklausą.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Klaida generuojant valdymo pultą iš naujo. Išsamiau žr. žurnaluose.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Klaida siunčiant aukos paskelbimą. Bandykite vėliau.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Klaida rodant valdymo apžvalgą.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Nepavyko ištrinti užduoties **{task_description}**. Galbūt ji nebeegzistuoja.",
   "❌ Failed to save admin data. Please try again.": "❌ Nepavyko išsaugoti administratoriaus duomenų. Bandykite dar kartą.",

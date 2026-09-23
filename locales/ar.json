@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ خطأ في معالجة طلب إيقاف الكل.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ خطأ في إعادة إنشاء لوحة التحكم. راجع السجلات للتفاصيل.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ خطأ في إرسال بث التبرع. يرجى المحاولة لاحقاً.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ خطأ في عرض نظرة التحكم العامة.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ فشل حذف المهمة **{task_description}**. ربما لم تعد موجودة.",
   "❌ Failed to save admin data. Please try again.": "❌ فشل حفظ بيانات المشرف. يرجى المحاولة مرة أخرى.",

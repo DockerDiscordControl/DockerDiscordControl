@@ -536,10 +536,17 @@ class DonationBroadcastModal(DDCModal):
                 except Exception:
                     pass
 
+            # "Please try again later" is the one thing that must NOT be said for
+            # money the ledger already took: the Discord path keys its idempotency
+            # on interaction.id, and resubmitting the modal is a NEW interaction -
+            # so a second attempt books the same donation a second time.
+            if locals().get('donation_booked'):
+                message = _("⚠️ Your donation **was recorded** - only the announcement "
+                            "failed. Please do NOT submit it again.")
+            else:
+                message = _("❌ Error sending donation broadcast. Please try again later.")
             try:
-                await interaction.edit_original_response(
-                    content=_("❌ Error sending donation broadcast. Please try again later.")
-                )
+                await interaction.edit_original_response(content=message)
             except (discord.errors.HTTPException, discord.errors.Forbidden) as edit_error:
                 logger.error(f"Could not send error response: {edit_error}", exc_info=True)
 

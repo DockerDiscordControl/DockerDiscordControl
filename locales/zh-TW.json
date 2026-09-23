@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ 處理全部停止請求時發生錯誤。",
   "❌ Error regenerating control panel. Check logs for details.": "❌ 重新產生控制面板時發生錯誤。請檢查日誌以取得詳細資訊。",
   "❌ Error sending donation broadcast. Please try again later.": "❌ 發送捐款廣播時發生錯誤。請稍後再試。",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ 顯示控制總覽時發生錯誤。",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ 無法刪除任務 **{task_description}**。它可能已不存在。",
   "❌ Failed to save admin data. Please try again.": "❌ 儲存管理員資料失敗。請再試一次。",

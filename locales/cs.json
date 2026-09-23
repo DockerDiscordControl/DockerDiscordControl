@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Chyba při zpracování žádosti o zastavení všech.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Chyba při opětovném generování ovládacího panelu. Podrobnosti najdete v protokolech.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Chyba při odesílání oznámení o příspěvku. Zkuste to prosím později.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Chyba při zobrazování přehledu ovládání.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Úlohu **{task_description}** se nepodařilo smazat. Možná už neexistuje.",
   "❌ Failed to save admin data. Please try again.": "❌ Nepodařilo se uložit data správce. Zkuste to prosím znovu.",

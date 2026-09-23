@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ सभी रोकने का अनुरोध प्रसंस्करण में त्रुटि।",
   "❌ Error regenerating control panel. Check logs for details.": "❌ कंट्रोल पैनल पुनः उत्पन्न करने में त्रुटि। विवरण के लिए लॉग जाँचें।",
   "❌ Error sending donation broadcast. Please try again later.": "❌ दान प्रसारण भेजने में त्रुटि। कृपया बाद में पुनः प्रयास करें।",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ नियंत्रण अवलोकन दिखाने में त्रुटि।",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ कार्य **{task_description}** हटाया नहीं जा सका। हो सकता है कि यह अब मौजूद न हो।",
   "❌ Failed to save admin data. Please try again.": "❌ व्यवस्थापक डेटा सहेजने में विफल। कृपया पुनः प्रयास करें।",

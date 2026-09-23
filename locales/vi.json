@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Lỗi xử lý yêu cầu dừng tất cả.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Lỗi khi tạo lại bảng điều khiển. Vui lòng kiểm tra nhật ký để biết chi tiết.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Lỗi gửi thông báo đóng góp. Vui lòng thử lại sau.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Lỗi hiển thị tổng quan điều khiển.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Không thể xóa tác vụ **{task_description}**. Có thể tác vụ không còn tồn tại.",
   "❌ Failed to save admin data. Please try again.": "❌ Không thể lưu dữ liệu quản trị. Vui lòng thử lại.",

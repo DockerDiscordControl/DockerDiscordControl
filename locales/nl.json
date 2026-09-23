@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Fout bij verwerking van alles-stoppen-verzoek.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Fout bij het opnieuw genereren van het bedieningspaneel. Controleer de logbestanden voor details.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Fout bij verzenden van donatie-uitzending. Probeer het later opnieuw.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Fout bij tonen van besturingsoverzicht.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Kan taak **{task_description}** niet verwijderen. Mogelijk bestaat deze niet meer.",
   "❌ Failed to save admin data. Please try again.": "❌ Beheerdersgegevens opslaan mislukt. Probeer het opnieuw.",

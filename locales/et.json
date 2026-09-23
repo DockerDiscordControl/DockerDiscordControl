@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Viga kõigi peatamise päringu töötlemisel.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Viga juhtpaneeli taasloomisel. Üksikasjad leiad logidest.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Viga annetuse teate saatmisel. Palun proovi hiljem uuesti.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Viga juhtimise ülevaate kuvamisel.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Ülesannet **{task_description}** ei õnnestunud kustutada. See ei pruugi enam olemas olla.",
   "❌ Failed to save admin data. Please try again.": "❌ Administraatori andmete salvestamine ebaõnnestus. Palun proovi uuesti.",

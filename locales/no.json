@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Feil ved behandling av stopp alle-forespørsel.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Feil ved gjengenerering av kontrollpanelet. Sjekk loggene for detaljer.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Feil ved sending av donasjonskunngjøring. Prøv igjen senere.",
+  "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Feil ved visning av kontrolloversikt.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Kunne ikke slette oppgaven **{task_description}**. Den finnes kanskje ikke lenger.",
   "❌ Failed to save admin data. Please try again.": "❌ Kunne ikke lagre admindata. Prøv igjen.",
