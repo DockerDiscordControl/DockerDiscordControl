@@ -17,6 +17,7 @@ from app.blueprints.main_routes import main_bp
 from app.blueprints.security_routes import security_bp
 from app.blueprints.tasks_bp import tasks_bp
 from app.blueprints.automation_routes import automation_bp
+from app.blueprints.group_routes import group_bp
 from app.blueprints.translation_routes import translation_bp
 from app.blueprints.two_factor_routes import two_factor_bp
 
@@ -29,5 +30,6 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(tasks_bp)
     app.register_blueprint(security_bp)
     app.register_blueprint(automation_bp)
+    app.register_blueprint(group_bp)
     app.register_blueprint(translation_bp)
     app.register_blueprint(two_factor_bp)

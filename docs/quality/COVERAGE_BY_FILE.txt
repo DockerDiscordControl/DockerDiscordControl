@@ -51,6 +51,7 @@ app/__init__.py	13	pass1:s31:plan pass2:s31:1-13
 app/auth.py	270	pass1:s31:plan pass2:s31:1-249 v3rev2:1-270
 app/blueprints/action_log_routes.py	91	pass1:s31:plan pass2:s31:1-86  [5 of 91 lines never in a package]
 app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
+app/blueprints/group_routes.py	70	NONE
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
 app/blueprints/main_routes.py	1507	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
 app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
@@ -88,7 +89,7 @@ app/web/__init__.py	12	pass1:s34:1-12
 app/web/action_logger.py	20	pass1:s34:1-20
 app/web/app_factory.py	68	pass1:s34:1-61 v3rev2:1-68
 app/web/background.py	85	pass1:s34:1-85
-app/web/blueprints.py	33	pass1:s34:1-31
+app/web/blueprints.py	35	pass1:s34:1-31
 app/web/compat.py	102	pass1:s34:1-102
 app/web/config.py	169	pass1:s35:1-169
 app/web/csrf.py	125	pass1:s35:1-125
