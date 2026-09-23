@@ -29,26 +29,26 @@ cogs/control_ui.py:1-1832
 ## Section 03  (1948 lines, 1 piece)
 cogs/control_ui.py:1833-3777
 
-## Section 04  (1535 lines, 3 pieces)
+## Section 04  (1612 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
 # Step 5 (2026-09-22): channel setup/teardown/regeneration moved to channel_lifecycle.py.
 cogs/channel_lifecycle.py:1-646
 cogs/docker_control.py:1-863
 cogs/loop_safety.py:1-103
 
-## Section 05  (1705 lines, 3 pieces)
+## Section 05  (1833 lines, 3 pieces)
 # Phase 3 cog split, 2026-09-22: the three overview embed builders (856 lines)
 # moved from this range of docker_control.py into overview_embeds.py, which
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:864-883
 cogs/overview_embeds.py:1-965
-cogs/slash_commands.py:1-840
+cogs/slash_commands.py:1-848
 
-## Section 06  (1635 lines, 3 pieces)
+## Section 06  (1790 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
-cogs/docker_control.py:884-1309
+cogs/docker_control.py:884-1326
 cogs/background_loops.py:1-702
 cogs/donation_ui.py:1-645
 
@@ -261,7 +261,7 @@ app/blueprints/main_routes.py:1-1510
 app/blueprints/tasks_bp.py:1-348
 app/blueprints/action_log_routes.py:1-91
 
-## Section 33  (1773 lines, 22 pieces)
+## Section 33  (1848 lines, 23 pieces)
 # group_routes.py joined on 2026-09-23 (new: the operator's container
 # groups) and moved on the same day: section 32 reached 2,019 lines when
 # tasks_bp.py grew with the timezone answer. It is the smallest piece
@@ -279,8 +279,11 @@ app/bot/factory.py:1-44
 app/bot/runtime.py:1-62
 app/bot/startup.py:1-39
 app/bot/startup_context.py:1-57
-app/bot/startup_steps/__init__.py:1-52
+app/bot/startup_steps/__init__.py:1-56
 app/bot/startup_steps/commands.py:1-120
+# donation_panels.py is new on 2026-09-23: the startup step that clears a
+# donation panel a restart left behind. It sits with the other steps.
+app/bot/startup_steps/donation_panels.py:1-71
 app/bot/startup_steps/member_count.py:1-126
 app/bot/startup_steps/notifications.py:1-35
 app/bot/startup_steps/power.py:1-81

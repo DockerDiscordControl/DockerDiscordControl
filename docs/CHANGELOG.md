@@ -22,6 +22,14 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`. **While it is on, the
   panel answers only over HTTPS** - the session marker is the passed second factor, and it must
   not travel in the clear. Without 2FA nothing changes: plain HTTP works as before.
+- **A donation panel left behind by a restart is cleared away.** `/donate` posts its panel for
+  about fifteen minutes and then deletes it. The timer lives in the bot's memory, the message does
+  not - so a restart inside that window (a rebuild takes the bot offline for 60-90 seconds) left
+  the panel standing in the channel with a "Broadcast Donation" button that looked live, did
+  nothing and logged nothing. The panel's message id is now remembered the way the overviews' are,
+  and the bot removes a leftover one when it comes back. The panel stays what it was - something
+  that appears, is used and disappears.
+
 - **Your container groups now work in the container table too.** A group could already be the
   target of a scheduled task and of an auto-action rule; the table where each container's Active
   flag and its four allowed actions are set knew nothing about them. With 26 containers, giving a

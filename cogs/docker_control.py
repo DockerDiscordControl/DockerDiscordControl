@@ -68,6 +68,33 @@ from .ddc_ui import DDCModal, DDCView
 # Configure logger for the cog using utility (INFO for release)
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
+# The message roles kept across a restart. 'overview' and 'admin_overview' are
+# deleted by id before a fresh one is posted, so a long-lived one does not end
+# up duplicated. 'donation' is deleted at startup instead: /donate's panel is
+# meant to live about fifteen minutes and delete itself, and a restart inside
+# that window leaves it standing with a button that does nothing.
+TRACKED_MESSAGE_KINDS = ('overview', 'admin_overview', 'donation')
+
+
+def _restored_tracked_message_ids(state_data) -> Dict[int, Dict[str, int]]:
+    """{channel id: {role: message id}} out of the persisted mech state.
+
+    A role nobody knows is dropped rather than carried: the map is a fixed set
+    of roles, and anything else in it would never be deleted by anything.
+    """
+    restored: Dict[int, Dict[str, int]] = {}
+    for cid_str, msgs in (state_data.get("channel_overview_message_ids", {}) or {}).items():
+        if not isinstance(msgs, dict):
+            continue
+        try:
+            kept = {k: int(v) for k, v in msgs.items() if k in TRACKED_MESSAGE_KINDS and v}
+            if kept:
+                restored[int(cid_str)] = kept
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid persisted message id entry for channel {cid_str}")
+    return restored
+
+
 # DonationView will be defined in this file
 
 # CRITICAL DEBUG: Log at module load time to verify new code is being executed
@@ -169,18 +196,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
         # FIX C: Restore persisted overview/admin_overview message ids. This lets the bot
         # delete a long-lived (possibly >30-day-old) overview by ID after a restart before
         # re-posting, preventing a duplicate that the age-limited cleanup would otherwise miss.
-        self.channel_server_message_ids: Dict[int, Dict[str, int]] = {}
-        for cid_str, msgs in state_data.get("channel_overview_message_ids", {}).items():
-            if not isinstance(msgs, dict):
-                continue
-            try:
-                cid = int(cid_str)
-                restored = {k: int(v) for k, v in msgs.items()
-                            if k in ('overview', 'admin_overview') and v}
-                if restored:
-                    self.channel_server_message_ids[cid] = restored
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid persisted overview id entry for channel {cid_str}")
+        self.channel_server_message_ids: Dict[int, Dict[str, int]] = \
+            _restored_tracked_message_ids(state_data)
         if self.channel_server_message_ids:
             logger.info(f"Restored persisted overview message ids for {len(self.channel_server_message_ids)} channel(s)")
         self.last_message_update_time: Dict[int, Dict[str, datetime]] = {}
@@ -859,7 +876,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
             snapshot = {}
             for cid, msgs in self.channel_server_message_ids.items():
                 kept = {k: v for k, v in msgs.items()
-                        if k in ('overview', 'admin_overview') and v}
+                        if k in TRACKED_MESSAGE_KINDS and v}
                 if kept:
                     snapshot[str(cid)] = kept
             self.mech_state_manager.set_state("channel_overview_message_ids", snapshot)

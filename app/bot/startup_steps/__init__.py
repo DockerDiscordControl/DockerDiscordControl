@@ -19,6 +19,7 @@ from .commands import (
 )
 from .cooldowns import apply_dynamic_cooldowns_step
 from .diagnostics import run_port_diagnostics_step
+from .donation_panels import remove_stale_donation_panels_step
 from .member_count import initialize_member_count_step
 from .notifications import send_update_notification_step
 from .power import grant_power_gift_step
@@ -31,6 +32,8 @@ STARTUP_STEPS: Sequence[StartupStep] = (
     load_extensions_step,
     prepare_schedule_commands_step,
     synchronize_commands_step,
+    # After the extensions: it asks for the cog they load.
+    remove_stale_donation_panels_step,
     apply_dynamic_cooldowns_step,
     start_scheduler_step,
     send_update_notification_step,
@@ -48,5 +51,6 @@ __all__ = [
     "start_scheduler_step",
     "send_update_notification_step",
     "initialize_member_count_step",
+    "remove_stale_donation_panels_step",
     "grant_power_gift_step",
 ]

@@ -69,10 +69,11 @@ app/bot/factory.py	44	pass1:s33:1-44
 app/bot/runtime.py	62	pass1:s33:1-62
 app/bot/startup.py	39	pass1:s33:1-39
 app/bot/startup_context.py	57	pass1:s33:1-57
-app/bot/startup_steps/__init__.py	52	pass1:s33:1-52
+app/bot/startup_steps/__init__.py	56	pass1:s33:1-52
 app/bot/startup_steps/commands.py	120	pass1:s33:1-120
 app/bot/startup_steps/cooldowns.py	29	pass1:s33:1-29
 app/bot/startup_steps/diagnostics.py	26	pass1:s33:1-26
+app/bot/startup_steps/donation_panels.py	71	new 2026-09-23 (clears a donation panel a restart left behind), written test-first
 app/bot/startup_steps/member_count.py	126	pass1:s33:1-120
 app/bot/startup_steps/notifications.py	35	pass1:s33:1-35
 app/bot/startup_steps/power.py	81	pass1:s33:1-36
@@ -110,13 +111,13 @@ cogs/channel_lifecycle.py	646	v3rev2:1-646
 cogs/control_helpers.py	284	pass1:s01:plan pass2:s01:1-205  [79 of 284 lines never in a package]
 cogs/control_ui.py	3777	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
 cogs/ddc_ui.py	94	passE:written-2026-09-21
-cogs/docker_control.py	1309	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
+cogs/docker_control.py	1326	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	645	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	786	v3rev2:1-786
 cogs/overview_embeds.py	965	v3rev2:1-964
-cogs/slash_commands.py	840	NONE
+cogs/slash_commands.py	848	NONE
 cogs/stack_restart.py	290	v3rev:1-196
 cogs/status_handlers.py	1404	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1252	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1252

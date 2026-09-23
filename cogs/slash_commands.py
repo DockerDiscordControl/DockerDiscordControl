@@ -564,6 +564,14 @@ class SlashCommandsMixin:
                 # Update view with message reference and start auto-delete timer
                 view.message = message
                 view.auto_delete_task = asyncio.create_task(view.start_auto_delete_timer())
+                # Both of those live in memory only. A restart inside the ~15
+                # minutes would leave this message standing with a button that
+                # does nothing, so the id is remembered and the next start
+                # clears it away (app/bot/startup_steps/donation_panels.py).
+                if ctx.channel_id not in self.channel_server_message_ids:
+                    self.channel_server_message_ids[ctx.channel_id] = {}
+                self.channel_server_message_ids[ctx.channel_id]["donation"] = message.id
+                self._persist_tracked_message_ids()
             except Exception:
                 await ctx.followup.send(embed=embed)
 
