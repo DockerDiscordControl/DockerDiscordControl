@@ -3,6 +3,14 @@
 {% block title %}DDC Configuration{% endblock %}
 
 {% block content %}
+    {# barWidth() lives here and the inline power system below calls it while the
+       page is still being parsed. Loaded with the rest of the scripts at the end,
+       whether it existed in time was a race against a fetch to localhost - and a
+       lost race left the mech reading OFFLINE with empty bars and level 1's
+       texts, silently. It is one pure function and touches nothing on the page,
+       so it is safe this early. See
+       tests/spec/test_the_mech_panel_can_draw_its_bars_at_once.py #}
+    <script src="{{ url_for('static', filename='js/progress_bars.js') }}"></script>
     <div class="text-center logo-header">
         <img src="{{ url_for('static', filename='ddc_web.png') }}" alt="DDC Logo">
         <div class="ddc-title">

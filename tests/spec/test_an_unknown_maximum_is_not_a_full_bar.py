@@ -13,6 +13,14 @@ The width is computed in one place now, which answers "unknown" for a
 maximum that is missing or zero, and the panel then shows an empty bar with
 a title saying the value could not be read.
 
+REVISITED 2026-09-23: this checked that _scripts.html loads progress_bars.js.
+That WAS the place, and it was the wrong place - _scripts.html is included at
+the very bottom of config.html, about 800 lines after the inline code that
+calls barWidth, so whether the helper existed in time was a race. It now loads
+at the top of config.html, and the order is pinned in
+tests/spec/test_the_mech_panel_can_draw_its_bars_at_once.py. This still asks
+the same question - is the file loaded at all - and asks it where the tag is.
+
 COUNTER-CHECK (2026-09-22): the node cases are red against the old
 expression - `Math.min(100, (5 / null) * 100)` is 100.
 """
@@ -44,5 +52,5 @@ def test_the_panel_uses_it_for_both_bars():
 
 
 def test_the_panel_loads_the_file():
-    scripts = (ROOT / "app" / "templates" / "_scripts.html").read_text(encoding="utf-8")
-    assert "js/progress_bars.js" in scripts
+    """In config.html, not _scripts.html - see the revisit note above."""
+    assert "js/progress_bars.js" in TEMPLATE
