@@ -233,7 +233,7 @@ services/web/configuration_save_service.py	635	pass1:s28:1-531  [34 of 565 lines
 services/web/container_log_service.py	432	pass1:s29:1-439  [31 of 470 lines never in a package]
 services/web/container_refresh_service.py	207	pass1:s29:1-201  [6 of 207 lines never in a package]
 services/web/diagnostics_service.py	263	pass1:s29:1-263
-services/web/donation_service.py	353	pass1:s29:1-290  [24 of 314 lines never in a package]
+services/web/donation_service.py	360	pass1:s29:1-290  [24 of 314 lines never in a package]
 services/web/donation_status_service.py	251	pass1:s29:1-245  [6 of 251 lines never in a package]
 services/web/donation_tracking_service.py	164	pass1:s29:1-163
 services/web/i18n_service.py	214	pass1:s29:1-214

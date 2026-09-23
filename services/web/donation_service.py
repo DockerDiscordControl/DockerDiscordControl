@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from utils.atomic_io import atomic_write_json
 
 from services.donation.donation_utils import donation_is_already_recorded
+from services.donation.unified.validation import MAX_DONATION_DOLLARS
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +53,14 @@ class DonationResult:
 class DonationService:
     """Service for processing donations with validation, sanitization, and notifications."""
 
-    # Business rules constants
-    MAX_DONATION_AMOUNT = 999999.0
+    # Business rules constants.
+    # ONE number, taken from the ledger's own gate. There used to be a second,
+    # 999999.0, so $50,000 passed the panel, was refused by validate_request
+    # with a sentence written to be read - "Amount exceeds the maximum allowed
+    # value (10,000.00)" - and came back to the operator as a bare 500 saying
+    # "Failed to process donation". Two ways to say the same thing always
+    # drift; this pair had drifted by a factor of a hundred.
+    MAX_DONATION_AMOUNT = MAX_DONATION_DOLLARS
     MAX_DONOR_NAME_LENGTH = 50
     # Letters of ANY alphabet, not just ASCII. The old pattern was
     # r'[^a-zA-Z0-9\s\-_\.]', which turned Mueller written with an umlaut into
