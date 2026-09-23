@@ -112,3 +112,41 @@ def test_with_donations_on_the_panel_is_still_built(monkeypatch):
 
     assert ctx.sent, "the donation panel was not sent at all"
     assert any(message["embed"] is not None for message in ctx.sent)
+
+
+def test_the_admin_overview_button_does_the_same(monkeypatch):
+    """The SAME dot, in the same situation, one file along.
+
+    The review pointed at both places; the command was fixed first. This is
+    the admin overview's donate button, which reaches the identical branch:
+    `followup.send(".")` after an ephemeral defer is a public message, and the
+    operator's own response is never filled.
+    """
+    monkeypatch.setattr("services.donation.donation_utils.is_donations_disabled",
+                        lambda: True)
+    import cogs.admin_overview as ao
+
+    monkeypatch.setattr(
+        "services.infrastructure.spam_protection_service.get_spam_protection_service",
+        lambda: MagicMock(is_enabled=lambda: False))
+
+    interaction = MagicMock()
+    interaction.user.id = 4242
+    interaction.channel_id = 99
+    interaction.response.defer = AsyncMock()
+    sent = []
+
+    async def followup_send(*args, **kwargs):
+        sent.append({
+            "content": args[0] if args else kwargs.get("content"),
+            "embed": kwargs.get("embed"),
+            "ephemeral": kwargs.get("ephemeral", False),
+        })
+
+    interaction.followup.send = followup_send
+
+    asyncio.run(ao.AdminOverviewDonateButton(MagicMock(), 99).callback(interaction))
+
+    public = [message for message in sent if not message["ephemeral"]]
+    assert public == [], f"a public message was sent into the channel: {public}"
+    assert sent, "the operator was left on the spinner"

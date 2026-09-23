@@ -597,8 +597,16 @@ class AdminOverviewDonateButton(Button):
                 from services.donation.donation_utils import is_donations_disabled
                 if is_donations_disabled():
                     # Donations disabled, send minimal response
+                    # The SAME answer the /donate command gives (slash_commands.py).
+                    # A followup WITHOUT ephemeral after an ephemeral defer is a
+                    # PUBLIC message, so a "." flickered in the channel while the
+                    # operator's own response was never filled.
                     try:
-                        await interaction.followup.send(".", delete_after=0.1)
+                        await interaction.followup.send(embed=discord.Embed(
+                            title=_("🔐 Premium Features Active"),
+                            description=_("Donations are disabled via premium key. "
+                                          "Thank you for supporting DDC!"),
+                            color=0xFFD700), ephemeral=True)
                     except (discord.errors.HTTPException, discord.errors.NotFound) as e:
                         logger.debug(f"Failed to send donation disabled response: {e}")
                     return
