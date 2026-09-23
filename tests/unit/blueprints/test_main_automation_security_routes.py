@@ -202,7 +202,7 @@ class TestSaveConfigApi:
             success=True,
             message="saved",
             config_files=["config.json"],
-            critical_settings_changed=False,
+            critical_settings_changed=False, timezone_question=None,
             error=None,
         )
         monkeypatch.setattr(
@@ -227,7 +227,7 @@ class TestSaveConfigApi:
             success=True,
             message="saved",
             config_files=[],
-            critical_settings_changed=False,
+            critical_settings_changed=False, timezone_question=None,
             error=None,
         )
         monkeypatch.setattr(
@@ -249,7 +249,7 @@ class TestSaveConfigApi:
             success=False,
             message=None,
             config_files=[],
-            critical_settings_changed=False,
+            critical_settings_changed=False, timezone_question=None,
             error="boom",
         )
         monkeypatch.setattr(

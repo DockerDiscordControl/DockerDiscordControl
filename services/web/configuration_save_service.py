@@ -22,6 +22,7 @@ from services.exceptions import (
     ConfigCacheError, FormValidationError, StorageError,
     FileStorageError
 )
+from services.scheduling.task_timezone import tasks_in_other_timezones
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class ConfigurationSaveResult:
     message: str = ""
     config_files: List[str] = None
     critical_settings_changed: bool = False
+    timezone_question: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
 
@@ -188,6 +190,7 @@ class ConfigurationSaveService:
 
             # Step 11: Build response
             response = self._build_save_response(message, save_result.config_files, critical_changes.changed, critical_changes.message)
+            response.timezone_question = critical_changes.timezone_question
             if cache_warning:
                 response.message = f"{response.message} ({cache_warning})"
             return response
@@ -303,6 +306,16 @@ class ConfigurationSaveService:
             if old_timezone != new_timezone:
                 self.logger.info(f"Timezone changed from '{old_timezone}' to '{new_timezone}'")
                 changes.timezone_changed = True
+                # A task carries its own zone, so this save does not touch it:
+                # "daily 10:00" goes on firing at 10:00 in the zone it was made
+                # in, while this page now renders its next run in the new one.
+                # Whether that is right cannot be decided here, so the panel
+                # asks. Counting them here keeps the question honest - no
+                # dialog when there is nothing behind it.
+                elsewhere = tasks_in_other_timezones(new_timezone)
+                if elsewhere:
+                    changes.timezone_question = {"old": old_timezone, "new": new_timezone,
+                                                 "tasks": len(elsewhere)}
 
             if changes.language_changed or changes.timezone_changed:
                 changes.changed = True
@@ -613,6 +626,10 @@ class CriticalChanges:
     old_language: str = ""
     new_language: str = ""
     message: str = ""
+    # {"old": ..., "new": ..., "tasks": n} when the timezone changed AND tasks
+    # still run in another one, else None. The panel turns this into the
+    # question; the save itself never answers it (operator decision 2026-09-23).
+    timezone_question: Optional[Dict[str, Any]] = None
 
 
 @dataclass

@@ -313,3 +313,36 @@ def edit_task_route(task_id):
         # Data errors (invalid request data, JSON parsing, task data processing)
         current_app.logger.error(f"Data error in edit_task_route: {e}", exc_info=True)
         return jsonify({"success": False, "error": "Data error editing task"}), 500
+
+
+@tasks_bp.route('/retime', methods=['POST'])
+@auth.login_required
+def retime_tasks_route():
+    """The operator's answer to "take the existing tasks along?" - yes.
+
+    Only this direction needs an endpoint. "No" is what not calling it does:
+    a task keeps its own zone and goes on firing at the same moment. The
+    timezone is taken from the request rather than re-read from the config so
+    that a second save between question and answer cannot move tasks to a
+    zone the operator was never asked about.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        timezone_str = data.get('timezone')
+        if not timezone_str:
+            return jsonify({"success": False, "error": "No timezone provided"}), 400
+
+        from services.scheduling.task_timezone import retime_tasks
+
+        moved = retime_tasks(timezone_str)
+        current_app.logger.info(f"Moved {moved} task(s) to timezone '{timezone_str}'")
+        return jsonify({"success": True, "moved": moved}), 200
+
+    except (ImportError, AttributeError, RuntimeError) as e:
+        # Service dependency errors (scheduler unavailable, task save failures)
+        current_app.logger.error(f"Service error in retime_tasks_route: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "Service error moving tasks"}), 500
+    except (ValueError, TypeError, KeyError) as e:
+        # Data errors (unknown timezone, malformed task data)
+        current_app.logger.error(f"Data error in retime_tasks_route: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "Data error moving tasks"}), 500

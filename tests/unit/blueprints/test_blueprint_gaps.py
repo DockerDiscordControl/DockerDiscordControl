@@ -196,7 +196,7 @@ class TestSaveConfigDonationKey:
         svc = MagicMock()
         svc.save_configuration.return_value = SimpleNamespace(
             success=True, message="saved", config_files=[],
-            critical_settings_changed=False, error=None,
+            critical_settings_changed=False, error=None, timezone_question=None,
         )
         monkeypatch.setattr(
             "services.web.configuration_save_service.get_configuration_save_service",

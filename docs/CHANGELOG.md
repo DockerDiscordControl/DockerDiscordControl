@@ -22,6 +22,14 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`. **While it is on, the
   panel answers only over HTTPS** - the session marker is the passed second factor, and it must
   not travel in the clear. Without 2FA nothing changes: plain HTTP works as before.
+- **Changing the panel's timezone now asks about your existing tasks.** A task carries the
+  timezone it was made in, so switching the panel never moved it: "daily 10:00" went on firing
+  at 10:00 in the old zone while the same page rendered its next run in the new one - the row
+  showed 10:00 next to a next run of 04:00, and nothing said why. The save now asks, naming how
+  many tasks are affected and both answers in clock terms: **keep the clock time** (10:00 stays
+  10:00, now in the new zone) or **keep the moment** (10:00 in the old zone, whatever that is
+  called now). Answering nothing keeps the moment, which is what happened before.
+
 - **The memory watchdog rule now has a second threshold, in MB.** A `high_memory` rule measured
   a percentage of the container's memory limit - and a container started without `--memory` has
   no limit, so Docker reports the host's whole RAM and the percentage is of that. On a 62 GB host

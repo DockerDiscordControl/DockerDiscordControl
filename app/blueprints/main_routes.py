@@ -184,7 +184,10 @@ def save_config_api():
                 'success': True,
                 'message': save_result.message,
                 'config_files': save_result.config_files,
-                'critical_settings_changed': save_result.critical_settings_changed
+                'critical_settings_changed': save_result.critical_settings_changed,
+                # None unless the timezone changed and tasks still run in the
+                # old one; the panel turns it into a question (see main.js).
+                'timezone_question': save_result.timezone_question
             }
             logger.info(f"Configuration saved successfully via ConfigurationSaveService: {save_result.message}")
         else:

@@ -53,9 +53,9 @@ app/blueprints/action_log_routes.py	91	pass1:s31:plan pass2:s31:1-86  [5 of 91 l
 app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
 app/blueprints/group_routes.py	70	NONE
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
-app/blueprints/main_routes.py	1507	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
+app/blueprints/main_routes.py	1510	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
 app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
-app/blueprints/tasks_bp.py	315	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
+app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never in a package]
 app/blueprints/two_factor_routes.py	198	v3rev:1-198
 app/bootstrap/__init__.py	34	pass1:s33:1-34
@@ -221,6 +221,7 @@ services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
 services/scheduling/scheduler.py	2243	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]
 services/scheduling/scheduler_service.py	568	pass1:s27:1-539  [13 of 552 lines never in a package]
+services/scheduling/task_timezone.py	71	new 2026-09-23 (the panel's timezone question), written test-first
 services/scheduling/task_writeback.py	119	NONE
 services/status/__init__.py	13	pass1:s27:1-13
 services/status/status_cache_service.py	225	pass1:s27:1-225
@@ -229,7 +230,7 @@ services/translation/translation_config_service.py	687	pass1:s27:1-607  [33 of 6
 services/translation/translation_service.py	762	pass1:s28:1-741  [21 of 762 lines never in a package]
 services/web/__init__.py	12	pass1:s28:1-12
 services/web/configuration_page_service.py	554	pass1:s28:1-554
-services/web/configuration_save_service.py	635	pass1:s28:1-531  [34 of 565 lines never in a package] v3rev2:1-616
+services/web/configuration_save_service.py	652	pass1:s28:1-531  [34 of 565 lines never in a package] v3rev2:1-616
 services/web/container_log_service.py	432	pass1:s29:1-439  [31 of 470 lines never in a package]
 services/web/container_refresh_service.py	207	pass1:s29:1-201  [6 of 207 lines never in a package]
 services/web/diagnostics_service.py	263	pass1:s29:1-263

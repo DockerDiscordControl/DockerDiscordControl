@@ -40,6 +40,10 @@ from services.web.configuration_save_service import (
 class _Changes:
     changed = True
     message = "timezone changed"
+    # The save reads this too since 2026-09-23 (the panel's question about
+    # existing tasks). None means there is nothing to ask about, which is what
+    # this stand-in wants: these tests are about the cache, not the question.
+    timezone_question = None
 
 
 @pytest.fixture
