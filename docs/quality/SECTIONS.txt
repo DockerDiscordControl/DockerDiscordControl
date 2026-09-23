@@ -10,8 +10,8 @@
 
 ## Section 01  (1266 lines, 4 pieces)
 cogs/__init__.py:1-7
-cogs/admin_overview.py:1-946
-cogs/stack_restart.py:1-239
+cogs/admin_overview.py:1-948
+cogs/stack_restart.py:1-248
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-284
 
@@ -70,28 +70,27 @@ services/admin/admin_service.py:1-379
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-813
 
-## Section 11  (1852 lines, 6 pieces)
+## Section 11  (1960 lines, 8 pieces)
 services/automation/auto_action_state_service.py:1-364
 services/automation/automation_service.py:1-739
 services/automation/container_watch.py:1-157
+# channel_roles.py and own_actions.py came back here on 2026-09-23 when
+# config_cache_service.py left for section 12; both are small.
+services/automation/own_actions.py:1-70
 services/config/__init__.py:1-16
+services/config/channel_roles.py:1-38
 services/config/channel_config_service.py:1-576
 
-## Section 12  (1844 lines, 5 pieces)
-services/config/channel_roles.py:1-38
+## Section 12  (1912 lines, 4 pieces)
 # config_cache_service.py followed on 2026-09-23: section 11 went over 2,000
 # when automation_service.py grew with the group resolution.
 services/config/config_cache_service.py:1-177
-# channel_roles.py and own_actions.py sit here, not with the rest of their
-# directories:
-# section 11 is at the 2,000 lines a section may hold.
-services/automation/own_actions.py:1-70
 services/config/config_form_parser_service.py:1-576
 services/config/config_loader_service.py:1-481
 services/config/config_migration_service.py:1-466
 # group_service.py joined on 2026-09-23 (new: the operator's own container
 # groups); section 13, where its neighbours sit, is at 1,863 of 2,000.
-services/config/group_service.py:1-189
+services/config/group_service.py:1-212
 
 ## Section 13  (1863 lines, 5 pieces)
 services/config/config_service.py:1-1265

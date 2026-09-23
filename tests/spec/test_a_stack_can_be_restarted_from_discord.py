@@ -62,7 +62,15 @@ CACHE = {
 
 
 @pytest.fixture
-def world(monkeypatch):
+def world(monkeypatch, tmp_path):
+    # An empty config directory of its own: since 2026-09-23 the button offers
+    # the operator's GROUPS next to the Compose stacks, and a group left behind
+    # by another test in this group run would answer "there is something to
+    # offer" here. Green alone, red in the group - and for the wrong reason.
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
+    from services.config import group_service
+
+    group_service.reset_group_service()
     acted = []
 
     async def _action(docker_name, action):

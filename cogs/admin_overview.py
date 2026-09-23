@@ -183,7 +183,9 @@ def _there_is_a_group_or_a_stack() -> bool:
     try:
         from cogs.stack_restart import current_targets
 
-        return bool(current_targets())
+        # want_stacks=False: one group is enough to answer this, and the stacks
+        # cost a full scan of the container configuration - on every redraw.
+        return bool(current_targets(want_stacks=False))
     except Exception as e:  # noqa: BLE001 - one button is not worth a broken overview
         logger.error(f"Could not tell whether there are groups or stacks: {e}", exc_info=True)
         return False

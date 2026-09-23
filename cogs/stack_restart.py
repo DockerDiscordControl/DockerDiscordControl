@@ -63,7 +63,7 @@ def current_stacks() -> Dict[str, List[dict]]:
     return stacks_of(ao.get_server_config_service().get_all_servers(), ao.get_status_cache_service())
 
 
-def current_targets() -> Dict[str, List[str]]:
+def current_targets(want_stacks: bool = True) -> Dict[str, List[str]]:
     """{name: [container, ...]} - the operator's groups first, then Compose stacks.
 
     Two sources, one menu. The groups are what an Unraid server has (measured:
@@ -87,6 +87,15 @@ def current_targets() -> Dict[str, List[str]]:
         # The button still offers the stacks; the groups are said to be missing
         # in the log rather than silently treated as "none defined".
         logger.error(f"Groups could not be read for the restart menu: {e}")
+
+    if targets:
+        # A group is enough to answer "is there anything to offer". Walking the
+        # Compose stacks as well means reading every container file again, and
+        # the admin overview asks this on every redraw (measured: 10 redraws =
+        # 11 scans of the configuration). The stacks are gathered when the menu
+        # is actually opened - offer_stacks calls this with want_stacks=True.
+        if not want_stacks:
+            return targets
 
     for stack, servers in current_stacks().items():
         targets.setdefault(stack, [s['docker_name'] for s in servers])
@@ -123,7 +132,7 @@ async def offer_stacks(cog, channel_id: int, interaction) -> None:
     """The first press: the stacks to choose from, for an admin."""
     if not await _is_admin(interaction):
         return
-    names = current_targets()
+    names = current_targets(want_stacks=True)
     if not names:
         await interaction.followup.send(
             _("ℹ️ There is no container group yet, and none of the active containers "

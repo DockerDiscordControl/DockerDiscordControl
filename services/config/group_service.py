@@ -26,6 +26,7 @@ Two rules everything built on top depends on:
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -70,6 +71,8 @@ class GroupService:
 
     def __init__(self):
         self._path = get_config_dir() / "groups.json"
+        self._names_cache: Optional[set] = None
+        self._names_read_at = 0.0
 
     # ------------------------------------------------------------------ read
 
@@ -167,10 +170,30 @@ class GroupService:
         atomic_write_json(self._path, {"groups": entries})
 
     def _configured_container_names(self) -> set:
+        """The containers DDC has, for one second at a time.
+
+        ServerConfigService.get_all_servers() reloads every file under
+        config/containers/ on every call, on purpose. Resolving a group is not
+        a rare thing: the watchdog does it per event per rule, and the admin
+        overview asks on every redraw - measured at 20 full reads for 20
+        resolutions, on a config directory that lives on an SMB mount, from the
+        bot's event loop.
+
+        One second is short enough that a container added in the panel shows up
+        in the next group resolution, and long enough to collapse a whole
+        watchdog cycle into one read.
+        """
+        now = time.monotonic()
+        if self._names_cache is not None and now - self._names_read_at < 1.0:
+            return self._names_cache
+
         from services.config.server_config_service import get_server_config_service
 
-        return {s.get("docker_name") for s in get_server_config_service().get_all_servers()
-                if s.get("docker_name")}
+        names = {s.get("docker_name") for s in get_server_config_service().get_all_servers()
+                 if s.get("docker_name")}
+        self._names_cache = names
+        self._names_read_at = now
+        return names
 
 
 _service: Optional[GroupService] = None

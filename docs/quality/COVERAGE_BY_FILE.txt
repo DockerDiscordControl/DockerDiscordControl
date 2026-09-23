@@ -103,7 +103,7 @@ app/web/tls.py	216	v3rev:1-216
 app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
-cogs/admin_overview.py	946	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/admin_overview.py	948	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	652	v3rev:1-652
 cogs/channel_lifecycle.py	646	v3rev2:1-646
@@ -117,7 +117,7 @@ cogs/loop_safety.py	98	v3rev2:1-98
 cogs/message_updates.py	786	v3rev2:1-786
 cogs/overview_embeds.py	964	v3rev2:1-964
 cogs/slash_commands.py	813	NONE
-cogs/stack_restart.py	239	v3rev:1-196
+cogs/stack_restart.py	248	v3rev:1-196
 cogs/status_handlers.py	1400	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1252	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1252
 cogs/task_ui.py	1228	NONE
@@ -143,7 +143,7 @@ services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 line
 services/config/config_service.py	1265	passE:E26+bothscans:252-352,354-512,793-910
 services/config/config_validation_service.py	212	passE:read-in-full:no-findings
 services/config/container_config_save_service.py	150	passE:read-in-full:no-findings
-services/config/group_service.py	189	NONE
+services/config/group_service.py	212	NONE
 services/config/server_config_service.py	233	passE:E33:read-in-full
 services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	509	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
