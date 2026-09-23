@@ -1210,7 +1210,8 @@ class TestExecuteTask:
         self, monkeypatch
     ):
         # Path: action == 'donation_message' AND is_donations_disabled() True.
-        # Should mark success, reschedule via update_after_execution, return True.
+        # Rescheduled and answered True, but NOT written down as sent - see
+        # tests/spec/test_a_skipped_donation_message_is_not_called_sent.py.
         monkeypatch.setattr(
             "services.donation.donation_utils.is_donations_disabled",
             lambda: True,
@@ -1229,9 +1230,10 @@ class TestExecuteTask:
         )
         result = await execute_task(task, timeout=2)
         assert result is True
-        # last_run_success and last_run_error reflect the no-op success.
-        assert task.last_run_success is True
-        assert task.last_run_error is None
+        # This test used to pin the opposite ("the no-op success"), which put a
+        # green badge on a message nobody got, every second Sunday.
+        assert task.last_run_success is False
+        assert "Skipped" in task.last_run_error
 
     @pytest.mark.asyncio
     async def test_execute_donation_success(self, monkeypatch):

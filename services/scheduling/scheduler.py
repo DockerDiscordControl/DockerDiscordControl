@@ -1747,10 +1747,10 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
         from services.donation.donation_utils import is_donations_disabled
         if is_donations_disabled():
             logger.info(f"Skipping donation task {task.task_id} - donations disabled by premium key")
-            # Update task as if it ran successfully to reschedule it
-            task.last_run_success = True
-            task.last_run_error = None
-            task.update_after_execution()
+            # Rescheduled, not run - see the spec test of the same name.
+            task.last_run_success = False
+            task.last_run_error = "Skipped: donations are switched off"
+            task._calculate_next_donation_run()
             await _persist_async(task)
             return True  # Return true so it reschedules normally
 
