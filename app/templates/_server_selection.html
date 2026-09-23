@@ -121,7 +121,12 @@
                         <input type="hidden" name="query_host_{{ container.name }}" value="{{ server_config.get('query_host', '') }}">
                         <input type="hidden" name="query_port_{{ container.name }}" value="{{ server_config.get('query_port', 0) }}">
                         <input type="hidden" name="query_token_{{ container.name }}" value="{{ server_config.get('query_token', '') }}">
-                        {# Hidden inputs for container info configuration #}
+                        {# Hidden inputs for container info configuration.
+                           info_version carries the version of the info block THIS page
+                           was rendered with. The save compares it and leaves a container
+                           alone whose info was changed elsewhere in the meantime, instead
+                           of writing back what the page happens to carry. #}
+                        <input type="hidden" name="info_version_{{ container.name }}" value="{{ info_config.get('_version', '') }}">
                         <input type="hidden" name="info_enabled_{{ container.name }}" value="{% if info_config.get('enabled', False) %}1{% else %}0{% endif %}">
                         <input type="hidden" name="info_show_ip_{{ container.name }}" value="{% if info_config.get('show_ip', False) %}1{% else %}0{% endif %}">
                         <input type="hidden" name="info_custom_ip_{{ container.name }}" value="{{ info_config.get('custom_ip', '') }}">

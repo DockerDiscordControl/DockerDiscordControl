@@ -9,12 +9,34 @@
 Web UI handler for container info - saves to separate JSON files
 """
 
+import hashlib
 import docker
 from typing import Dict, Any
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('container_info_web_handler')
+
+# The fields the marker covers. NOT the whole container file: a panel save also
+# writes the allowed actions and the display name, so a whole-file marker would
+# disagree with itself on every ordinary save.
+_INFO_FIELDS_FOR_MARKER = ("enabled", "show_ip", "custom_ip", "custom_port",
+                           "custom_text", "protected_enabled", "protected_content",
+                           "protected_password")
+
+
+def info_version_marker(info: Dict[str, Any]) -> str:
+    """A short hash of a container's info block, as the form carries it.
+
+    The panel renders the info into hidden inputs, so a save writes back what
+    the PAGE was rendered with. An info text edited in Discord after that is
+    reverted by any later save from that page - deterministically, not as a
+    race. The marker lets the save notice and leave that container alone.
+    """
+    payload = "|".join(f"{field}={info.get(field, '')!r}"
+                       for field in _INFO_FIELDS_FOR_MARKER)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
 
 def save_container_info_from_web(form_data: Dict[str, Any], container_names: list) -> Dict[str, bool]:
     """
@@ -32,6 +54,26 @@ def save_container_info_from_web(form_data: Dict[str, Any], container_names: lis
 
     for container_name in container_names:
         try:
+            # The page carries the info it was RENDERED with, so a save writes
+            # that back - an info edited in Discord in the meantime would be
+            # reverted without a word. The marker says which version the page
+            # saw; if the info has moved on since, this container is left alone
+            # and the caller is told which one. A form with no marker (an older
+            # page, a script) is accepted as before.
+            submitted_marker = form_data.get(f'info_version_{container_name}')
+            if submitted_marker:
+                current = info_service.get_container_info(container_name)
+                current_marker = info_version_marker(
+                    current.data.to_dict() if current.success else {})
+                if current_marker != submitted_marker:
+                    logger.warning(
+                        f"Container info for {container_name} changed since this page was "
+                        f"opened - NOT overwritten with what the page carried")
+                    results[container_name] = (
+                        f"not saved: the info of '{container_name}' was changed elsewhere "
+                        f"since this page was opened. Reload to see it.")
+                    continue
+
             # Extract and create ContainerInfo object with all required parameters
             container_info = ContainerInfo(
                 enabled=form_data.get(f'info_enabled_{container_name}', '0') == '1',
@@ -86,6 +128,10 @@ def load_container_info_for_web(container_names: list) -> Dict[str, Dict[str, An
                     'custom_port': '',
                     'custom_text': ''
                 }
+            # The page renders this into a hidden field, and the save reads it
+            # back: without it nothing in the panel can notice that the info was
+            # edited elsewhere while the page was open.
+            info_data['_version'] = info_version_marker(info_data)
             results[container_name] = info_data
             logger.debug(f"Loaded container info for {container_name}: {info_data}")
         except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
