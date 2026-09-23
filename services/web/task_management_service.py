@@ -120,11 +120,52 @@ class TaskFormResult:
     error: Optional[str] = None
 
 
+def _debug_time_parsing( time_str: str, timezone_str: str):
+    """Debug time parsing for troubleshooting."""
+    try:
+        import pytz
+        logger.debug(f"Submitted time: {time_str} (in timezone {timezone_str})")
+
+        time_parts = time_str.split(':')
+        if len(time_parts) == 2:
+            hours, minutes = int(time_parts[0]), int(time_parts[1])
+            tz = pytz.timezone(timezone_str)
+            now = datetime.now(tz)
+            dt_with_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
+            logger.debug(f"Parsed time in {timezone_str}: {dt_with_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    except (ImportError, AttributeError) as e:
+        # Import errors (pytz unavailable)
+        logger.error(f"Import error parsing time: {e}", exc_info=True)
+    except (ValueError, IndexError) as e:
+        # Data parsing errors (time format invalid)
+        logger.error(f"Data error parsing time: {e}", exc_info=True)
+
+
+def unreadable_cron_reason(task) -> Optional[str]:
+    """Why this task's cron expression cannot be used, or None.
+
+    Checked before a task is stored. Nothing did that before, so "*/5 * * *"
+    (four fields) was written to tasks.json and the panel reported it as
+    switched off "because the time given is in the past" - about an expression
+    that carries no time at all.
+    """
+    from services.scheduling.cron_check import cron_is_valid
+    from services.scheduling.scheduler import CYCLE_CRON
+
+    if task.cycle != CYCLE_CRON or cron_is_valid(task.cron_string):
+        return None
+    return (f"The cron expression '{task.cron_string}' cannot be read. Five fields are "
+            f"expected: minute hour day month weekday.")
+
+
 class TaskManagementService:
     """Service for comprehensive task management with complex business logic."""
 
     def __init__(self):
         self.logger = logger
+        # Set by _validate_and_calculate_next_run when the cron string is the
+        # reason, so the caller can say so instead of "the time is in the past"
+        self.cron_error = None
 
     def add_task(self, request: AddTaskRequest) -> AddTaskResult:
         """
@@ -152,11 +193,13 @@ class TaskManagementService:
                 )
 
             # Step 4: Validate and calculate next run time
+            self.cron_error = None
             validation_result = self._validate_and_calculate_next_run(scheduled_task, timezone_str)
             if not validation_result:
                 return AddTaskResult(
                     success=False,
-                    error="Task validation failed or next run time could not be calculated."
+                    error=self.cron_error or
+                    "Task validation failed or next run time could not be calculated."
                 )
 
             # Step 5: Save task using scheduler service
@@ -548,11 +591,16 @@ class TaskManagementService:
                 self.logger.error(f"Task validation failed for task with container={task.container_name}")
                 return False
 
+            self.cron_error = unreadable_cron_reason(task)
+            if self.cron_error:
+                self.logger.error(f"Task {task.task_id}: {self.cron_error}")
+                return False
+
             self.logger.debug(f"Task is valid, calculating next execution time...")
 
             # Debug time parsing
             if task.time_str:
-                self._debug_time_parsing(task.time_str, timezone_str)
+                _debug_time_parsing(task.time_str, timezone_str)
 
             # Calculate next run
             task.calculate_next_run()
@@ -578,26 +626,6 @@ class TaskManagementService:
             # Data errors (time calculation failed)
             self.logger.error(f"Data error validating and calculating next run: {e}", exc_info=True)
             return False
-
-    def _debug_time_parsing(self, time_str: str, timezone_str: str):
-        """Debug time parsing for troubleshooting."""
-        try:
-            import pytz
-            self.logger.debug(f"Submitted time: {time_str} (in timezone {timezone_str})")
-
-            time_parts = time_str.split(':')
-            if len(time_parts) == 2:
-                hours, minutes = int(time_parts[0]), int(time_parts[1])
-                tz = pytz.timezone(timezone_str)
-                now = datetime.now(tz)
-                dt_with_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
-                self.logger.debug(f"Parsed time in {timezone_str}: {dt_with_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        except (ImportError, AttributeError) as e:
-            # Import errors (pytz unavailable)
-            self.logger.error(f"Import error parsing time: {e}", exc_info=True)
-        except (ValueError, IndexError) as e:
-            # Data parsing errors (time format invalid)
-            self.logger.error(f"Data error parsing time: {e}", exc_info=True)
 
     def _debug_calculated_time(self, task, timezone_str: str):
         """Debug calculated execution time."""

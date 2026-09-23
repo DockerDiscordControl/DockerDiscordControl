@@ -65,7 +65,3 @@ def validate_task_before_creation(task: ScheduledTask) -> None:
 
     if check_task_time_collision(task.container_name, task.next_run_ts):
         raise ScheduleValidationError(_("Cannot schedule task: It conflicts with an existing task for container '{container}' within a 10-minute window.").format(container=task.container_name))
-
-
-
-

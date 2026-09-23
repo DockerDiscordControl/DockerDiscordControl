@@ -764,10 +764,16 @@ class TestDebugHelpers:
         service._debug_time_conversion({"time": "not-a-time"}, "UTC")
 
     def test_debug_time_parsing_swallows_format_error(self, service):
-        service._debug_time_parsing("bad-time", "UTC")
+        # A module function since 2026-09-23: it only logs, and the class was
+        # at its 1,000-line ceiling.
+        from services.web.task_management_service import _debug_time_parsing
+
+        _debug_time_parsing("bad-time", "UTC")
 
     def test_debug_time_parsing_handles_valid(self, service):
-        service._debug_time_parsing("12:34", "UTC")
+        from services.web.task_management_service import _debug_time_parsing
+
+        _debug_time_parsing("12:34", "UTC")
 
     def test_debug_calculated_time_with_mismatched_input(self, service):
         # Builds a task whose time_str doesn't match the calculated next_run.

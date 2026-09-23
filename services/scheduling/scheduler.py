@@ -553,7 +553,9 @@ class ScheduledTask:
             return None
 
     def _calculate_cron_next_run(self, tz) -> Optional[float]:
-        """Calculate next run for CRON cycle."""
+        """Next run for a CRON cycle. Every failure clears next_run_ts: a stale one
+        made a broken task read "active, next run yesterday" and never run."""
+        self.next_run_ts = None
         try:
             from croniter import croniter
             now = datetime.now(tz)
@@ -564,11 +566,8 @@ class ScheduledTask:
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug(f"Task {self.task_id} - CRON - Next execution: {next_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                 return self.next_run_ts
-        except ImportError:
-            logger.warning("Cron functionality requires croniter package. Run 'pip install croniter' to enable.")
-            return None
-        except (ValueError, TypeError, AttributeError) as e:
-            logger.error(f"Data error calculating cron next run for task {self.task_id}: {e}", exc_info=True)
+        except (ImportError, ValueError, TypeError, AttributeError) as e:
+            logger.error(f"Cron next run for task {self.task_id} ({self.cron_string!r}): {e}")
             return None
 
     def _calculate_once_next_run(self, tz, now, task_hour, task_minute) -> Optional[datetime]:

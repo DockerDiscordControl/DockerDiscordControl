@@ -214,11 +214,12 @@ services/mech/speed_levels.py	427	pass1:s24:plan pass1:s25:1-413  [14 of 427 lin
 services/member_count/__init__.py	17	pass1:s25:1-17
 services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a package]
 services/scheduling/__init__.py	36	pass1:s25:1-36
+services/scheduling/cron_check.py	40	NONE
 services/scheduling/donation_message_service.py	228	pass1:s25:1-196  [19 of 215 lines never in a package]
 services/scheduling/group_tasks.py	117	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
-services/scheduling/schedule_helpers.py	71	pass1:s25:1-248
-services/scheduling/scheduler.py	2260	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]
+services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
+services/scheduling/scheduler.py	2259	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]
 services/scheduling/scheduler_service.py	556	pass1:s27:1-539  [13 of 552 lines never in a package]
 services/status/__init__.py	13	pass1:s27:1-13
 services/status/status_cache_service.py	225	pass1:s27:1-225
@@ -240,7 +241,7 @@ services/web/mech_status_details_service.py	410	pass1:s30:1-401  [9 of 410 lines
 services/web/mech_web_service.py	676	pass1:s30:1-676
 services/web/performance_stats_service.py	181	pass1:s30:1-172  [9 of 181 lines never in a package]
 services/web/security_service.py	350	pass1:s30:1-339  [6 of 345 lines never in a package]
-services/web/task_management_service.py	1128	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
+services/web/task_management_service.py	1156	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
 services/web/two_factor_service.py	224	v3rev:1-224
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150

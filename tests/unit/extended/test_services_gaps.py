@@ -2805,7 +2805,9 @@ class TestTaskManagementGaps:
         from services.web.task_management_service import TaskManagementService
 
         svc = TaskManagementService()
-        svc._debug_time_parsing("invalid", "Europe/Berlin")
+        from services.web.task_management_service import _debug_time_parsing
+
+        _debug_time_parsing("invalid", "Europe/Berlin")
 
     def test_debug_calculated_time_handles_invalid_timestamp(self):
         from services.web.task_management_service import TaskManagementService
