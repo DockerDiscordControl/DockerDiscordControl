@@ -516,12 +516,17 @@ def release_docker_client(client=None):
                 If None, releases the legacy global client
     """
     if USE_CONNECTION_POOL and client:
+        # CLOSE it. There is no synchronous release: DockerClientService only
+        # has _release_client_async, and this function is sync - the old call to
+        # a `_release_client` that does not exist raised AttributeError every
+        # time, which the handler swallowed at DEBUG, so nothing happened at all
+        # and nobody could tell. Closing is what the live path
+        # (get_docker_client_async) already does in its finally block.
         try:
-            pool = get_docker_client_service()
-            pool._release_client(client)
-            logger.debug("Released Docker client back to connection pool")
-        except (AttributeError, RuntimeError, ValueError) as e:
-            logger.debug(f"Error releasing client to pool: {e}")
+            client.close()
+            logger.debug("Released Docker client (closed)")
+        except (AttributeError, RuntimeError, ValueError, OSError) as e:
+            logger.debug(f"Error releasing client: {e}")
     else:
         # Legacy client release
         global _docker_client

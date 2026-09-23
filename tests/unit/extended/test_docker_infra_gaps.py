@@ -158,7 +158,13 @@ class TestDockerUtilsFallbackClient:
 class TestDockerUtilsReleaseClient:
     """Covers release_docker_client pool/legacy branches (456-463, 473-474)."""
 
-    def test_release_with_pool_calls_release_client(self, monkeypatch):
+    def test_release_with_pool_closes_the_client(self, monkeypatch):
+        """This asserted `fake_pool._release_client` on a MagicMock until
+        2026-09-23 - and a MagicMock invents any attribute it is asked for, so
+        it passed on a method DockerClientService does not have. It could never
+        fail on the thing it named. See
+        tests/spec/test_releasing_a_docker_client_calls_something_that_exists.py
+        """
         monkeypatch.setattr(docker_utils, "USE_CONNECTION_POOL", True)
         client = MagicMock()
         fake_pool = MagicMock()
@@ -166,7 +172,7 @@ class TestDockerUtilsReleaseClient:
             docker_utils, "get_docker_client_service", return_value=fake_pool
         ):
             docker_utils.release_docker_client(client=client)
-        fake_pool._release_client.assert_called_once_with(client)
+        client.close.assert_called_once_with()
 
     def test_release_with_pool_handles_attribute_error(self, monkeypatch):
         monkeypatch.setattr(docker_utils, "USE_CONNECTION_POOL", True)
