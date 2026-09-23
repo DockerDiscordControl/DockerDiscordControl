@@ -144,8 +144,8 @@ services/infrastructure/action_log_service.py:1-387
 services/infrastructure/action_logger.py:1-127
 services/infrastructure/container_info_service.py:1-332
 
-## Section 19  (1450 lines, 4 pieces)
-services/infrastructure/container_status_service.py:1-870
+## Section 19  (1459 lines, 4 pieces)
+services/infrastructure/container_status_service.py:1-879
 services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-193
 services/infrastructure/event_manager.py:1-118

@@ -574,6 +574,14 @@ class ContainerStatusService:
             )
         except (ImportError, AttributeError) as e:
             duration_ms = (time.time() - start_time) * 1000
+            # The flag records the LAST DEFINITE answer, as its own docstring
+            # says. A query that could not be answered must not leave an older
+            # "not found" standing: the caller treats that as a determined
+            # state, caches it and renders "❓ not found" as a fact - about a
+            # container that exists and is probably running. Recreating a
+            # container is exactly when this happens (an Unraid auto-update
+            # removes it, then the daemon is briefly unreachable).
+            self._not_found_logged.discard(request.container_name)
             self.logger.error(f"Docker service import error for {request.container_name}: {e}", exc_info=True)
 
             return ContainerStatusResult(
@@ -585,6 +593,7 @@ class ContainerStatusService:
             )
         except (DockerServiceError, RuntimeError, OSError, IOError) as e:
             duration_ms = (time.time() - start_time) * 1000
+            self._not_found_logged.discard(request.container_name)   # see above
             self.logger.error(f"Docker communication error for {request.container_name}: {e}", exc_info=True)
 
             return ContainerStatusResult(
