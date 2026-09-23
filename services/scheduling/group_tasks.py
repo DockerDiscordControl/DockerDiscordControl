@@ -77,12 +77,22 @@ async def execute_group_task(task, timeout: int) -> bool:
         return success
 
     try:
-        members = get_group_service().members_of(task.container_name)
+        service = get_group_service()
+        members = service.members_of(task.container_name)
+        group = service.find(task.container_name)
     except OSError as e:
         return await _record(False, f"The groups could not be read: {e}")
 
-    if not members.exists:
+    if not members.exists or group is None:
         return await _record(False, f"The group '{task.container_name}' does not exist any more.")
+    # The GROUP decides (operator, 2026-09-24): its own Active and its own four
+    # actions, not its members'. A group written before those boxes existed
+    # reads as allowed to do all four, so no task that ran yesterday stops.
+    if not group.active:
+        return await _record(False, f"The group '{group.name}' is switched off.")
+    if task.action not in group.allowed_actions:
+        return await _record(
+            False, f"The group '{group.name}' is not allowed to {task.action}.")
     if not members.containers and not members.missing:
         return await _record(False, f"The group '{task.container_name}' has no containers in it.")
 

@@ -74,34 +74,60 @@ class TriggerContext:
 GROUP_PREFIX = "group:"
 
 
-def _members_of_group(name: str) -> list:
+# What a rule's action needs the group to be allowed to do. RECREATE has no box
+# of its own: it is a restart that comes back on a new image, and Restart is the
+# box an operator associates with it - asking for two he never connected to it
+# would block rules that work today. NOTIFY asks for nothing, because it does
+# nothing to a container.
+ACTION_NEEDS = {"RESTART": "restart", "STOP": "stop", "START": "start",
+                "RECREATE": "restart", "NOTIFY": None}
+
+
+def _members_of_group(name: str, action: Optional[str] = None) -> list:
     """The containers of a group, or an empty list when it is gone.
 
     A group that was deleted resolves to nothing - never to "all", which is
     what an empty trigger list means. See rule_listens_to.
+
+    With ``action``, the GROUP's own permissions decide whether it resolves at
+    all (operator, 2026-09-24): a group he switched off, or one he did not
+    allow that action, acts on nobody - whatever its members may do on their
+    own. Without ``action`` nothing is gated, which is the trigger side: a
+    permission says what may be DONE, not what may be WATCHED.
     """
     try:
         from services.config.group_service import get_group_service
 
-        members = get_group_service().members_of(name)
+        service = get_group_service()
+        members = service.members_of(name)
+        group = service.find(name) if action is not None else None
     except OSError as e:
         logger.error(f"Groups could not be read for a rule: {e}")
         return []
     if not members.exists:
         logger.warning(f"A rule names the group '{name}', which does not exist any more")
+        return []
+    if action is not None:
+        needed = ACTION_NEEDS.get((action or "").upper(), (action or "").lower())
+        if group is None or not group.active:
+            logger.info(f"A rule would act on the group '{name}', which is switched off")
+            return []
+        if needed is not None and needed not in group.allowed_actions:
+            logger.info(f"A rule would {action} the group '{name}', which may not")
+            return []
     return list(members.containers)
 
 
-def _resolved(names) -> list:
+def _resolved(names, action: Optional[str] = None) -> list:
     """Container names, with every "group:<name>" replaced by its members.
 
     Order is kept and a container named twice - directly and through a group -
-    is acted on once.
+    is acted on once. ``action`` is passed on to the groups; see there.
     """
     resolved = []
     for entry in names or []:
         if isinstance(entry, str) and entry.startswith(GROUP_PREFIX):
-            candidates = _members_of_group(entry[len(GROUP_PREFIX):])
+            candidates = _members_of_group(entry[len(GROUP_PREFIX):], action)
         else:
             candidates = [entry]
         for container in candidates:
@@ -124,8 +150,11 @@ def rule_listens_to(rule, container: str) -> bool:
 
 
 def containers_of_action(rule) -> list:
-    """The containers a rule's action is about, groups resolved."""
-    return _resolved(rule.action.containers)
+    """The containers a rule's action is about, groups resolved.
+
+    A group only resolves here if it is allowed to do what the rule does.
+    """
+    return _resolved(rule.action.containers, getattr(rule.action, "type", None))
 
 
 class AutomationService:

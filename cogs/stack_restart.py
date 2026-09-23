@@ -80,6 +80,12 @@ def current_targets(want_stacks: bool = True) -> Dict[str, List[str]]:
 
         service = get_group_service()
         for group in service.get_groups():
+            # The GROUP decides (operator, 2026-09-24). A group he switched off,
+            # or one he did not allow to restart, has no business in a restart
+            # menu - and a group written before those boxes existed reads as
+            # allowed to do all four, so nothing that worked yesterday is gone.
+            if not group.active or "restart" not in group.allowed_actions:
+                continue
             members = service.members_of(group.name)
             if members.containers:
                 targets[group.name] = members.containers
@@ -114,12 +120,21 @@ def current_targets(want_stacks: bool = True) -> Dict[str, List[str]]:
 def _servers_of(name: str) -> Tuple[List[dict], List[str]]:
     """(server entries, names that were left out) for a group or a Compose stack.
 
-    Two filters drop members before anything is restarted: one for containers
-    DDC no longer has (the group keeps naming them), one for containers that
-    are switched off in DDC. Both were silent - the summary went out green over
-    what was left, while the SAME group in a scheduled task is reported as a
-    failure. Restarting the rest is right; calling it the whole group is not.
+    One filter is left, for containers DDC no longer has - the group keeps
+    naming them, and restarting four of seven under a green summary is the "act
+    on fewer and say done" this feature forbids.
+
+    THE OTHER FILTER IS GONE (operator, 2026-09-24). It dropped every member
+    that was switched off in DDC, which is exactly the subordination he
+    rejected: a group is decoupled from the single-container control, so a
+    container he switched off is still restarted through its group.
+
+    Which is also why the entries carry the GROUP's permissions: the shared
+    loop in admin_overview skips a container whose own allowed_actions do not
+    hold the verb, and for a group action the group is what grants it. A
+    Compose stack has no permissions of its own and keeps the containers'.
     """
+    group = None
     group_members = []
     missing = []
     try:
@@ -129,22 +144,37 @@ def _servers_of(name: str) -> Tuple[List[dict], List[str]]:
         # name; the group itself is called what the operator called it.
         suffix = _("{name} (group)").format(name="")
         plain = name[:-len(suffix)] if suffix and name.endswith(suffix) else name
-        members = get_group_service().members_of(plain)
+        service = get_group_service()
+        members = service.members_of(plain)
         if members.exists:
+            group = service.find(plain)
             group_members = members.containers
             missing = list(members.missing)
     except OSError as e:
         logger.error(f"Groups could not be read for the restart: {e}")
+
+    if group is not None and (not group.active or "restart" not in group.allowed_actions):
+        # The menu already leaves such a group out; this is the second lock, for
+        # a permission that changed between the menu and the button.
+        logger.info(f"Stack restart: the group '{group.name}' may not be restarted")
+        return [], missing
 
     wanted = group_members or current_targets().get(name) or []
     if not wanted:
         return [], missing
     all_servers = [s for s in ao.get_server_config_service().get_all_servers()
                    if isinstance(s, dict)]
-    by_name = {s.get('docker_name'): s for s in all_servers if s.get('active', True)}
-    inactive = {s.get('docker_name') for s in all_servers if not s.get('active', True)}
-    missing += [container for container in wanted if container in inactive]
-    return ([by_name[container] for container in wanted if container in by_name], missing)
+    by_name = {s.get('docker_name'): s for s in all_servers}
+    chosen = []
+    for container in wanted:
+        # get_all_servers() leaves the inactive ones out by design, so a
+        # switched-off member has no entry here and is given the only two
+        # fields the restart loop reads: the name and what it may do.
+        entry = dict(by_name.get(container) or {"docker_name": container})
+        if group is not None:
+            entry["allowed_actions"] = list(group.allowed_actions)
+        chosen.append(entry)
+    return chosen, missing
 
 
 async def _is_admin(interaction) -> bool:

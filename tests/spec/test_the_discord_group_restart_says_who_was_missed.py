@@ -14,6 +14,15 @@ four are restarted, the embed is green, and nobody is told about the three.
 The summary now names them. Restarting the rest is right - that is what the
 button is for - but reporting it as the whole group is not.
 
+HALF OF THAT WAS REVERSED ON 2026-09-24, by the operator, and the case below
+was rewritten rather than deleted so the reversal is readable. An INACTIVE
+member is no longer skipped at all: a group is decoupled from the
+single-container control, so a container he switched off in DDC is still
+restarted through its group, and there is nothing to report about it. What a
+group cannot reach stays reported - a member DDC has no configuration for at
+all is still named, because the group really does act on fewer containers than
+it lists (test_a_group_decides_what_it_may_do.py).
+
 COUNTER-CHECK (2026-09-23): red before - the summary held nothing about the
 missing members, and test_a_complete_group_says_nothing_extra keeps the
 ordinary case free of noise.
@@ -83,10 +92,25 @@ async def _restart(group):
 
 @pytest.mark.asyncio
 async def test_the_summary_names_the_members_it_could_not_touch(world):
+    """What the group could not reach. "Gone" has no configuration at all, so
+    the restart really did act on fewer containers than the group lists."""
     description = await _restart("Gameserver")
 
     assert "Gone" in description, f"a member DDC no longer has went unmentioned: {description}"
-    assert "Sleeper" in description, f"an inactive member went unmentioned: {description}"
+
+
+@pytest.mark.asyncio
+async def test_a_member_switched_off_in_ddc_is_restarted_and_not_reported(world):
+    """THE REVERSAL (operator, 2026-09-24). "Sleeper" is configured and
+    inactive; it used to be skipped and listed as untouched. The group decides
+    now, so it is restarted - three containers, not two - and there is nothing
+    to say about it."""
+    description = await _restart("Gameserver")
+
+    assert "**3**" in description, (
+        f"the switched-off member was skipped instead of restarted: {description}")
+    assert "Sleeper" not in description, (
+        f"a member that WAS restarted is reported as untouched: {description}")
 
 
 @pytest.mark.asyncio

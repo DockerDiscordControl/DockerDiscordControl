@@ -267,27 +267,48 @@ class GroupService:
         atomic_write_json(self._path, {"groups": entries})
 
     def _configured_container_names(self) -> set:
-        """The containers DDC has, for one second at a time.
+        """The containers DDC has a configuration for, active or not.
 
-        ServerConfigService.get_all_servers() reloads every file under
-        config/containers/ on every call, on purpose. Resolving a group is not
-        a rare thing: the watchdog does it per event per rule, and the admin
-        overview asks on every redraw - measured at 20 full reads for 20
-        resolutions, on a config directory that lives on an SMB mount, from the
-        bot's event loop.
+        ACTIVE OR NOT is the point (operator, 2026-09-24): a group is decoupled
+        from the single-container control, so a container he switched off in
+        DDC is still a member of its group and is still acted on through it.
+        This used to ask ServerConfigService.get_all_servers(), which drops
+        every inactive container by design - so a switched-off member was
+        reported as one DDC "no longer has", and every caller left it out.
 
-        One second is short enough that a container added in the panel shows up
-        in the next group resolution, and long enough to collapse a whole
-        watchdog cycle into one read.
+        The names are read from the container configuration directory itself
+        for the same reason, and because it is the cheaper of the two: one
+        directory listing instead of parsing every file. A file is named after
+        its container by construction - container_config_save_service.py writes
+        `<container_name>.json` - so the stem IS the name, not a guess (checked
+        against the operator's server: 8 of 8 agree).
+
+        WHAT IS STILL MISSING, and it is honest to say it here: a container DDC
+        has never been configured for at all has no file, so a group naming it
+        still reports it as gone. The panel can put such a container in a group
+        - its picker lists everything on the host - and that gap is the next
+        thing to close.
+
+        For one second at a time. Resolving a group is not a rare thing: the
+        watchdog does it per event per rule, and the admin overview asks on
+        every redraw - measured at 20 full reads for 20 resolutions, on a config
+        directory that lives on an SMB mount, from the bot's event loop. One
+        second is short enough that a container added in the panel shows up in
+        the next resolution, and long enough to collapse a whole watchdog cycle
+        into one read.
         """
         now = time.monotonic()
         if self._names_cache is not None and now - self._names_read_at < 1.0:
             return self._names_cache
 
-        from services.config.server_config_service import get_server_config_service
-
-        names = {s.get("docker_name") for s in get_server_config_service().get_all_servers()
-                 if s.get("docker_name")}
+        directory = get_config_dir() / "containers"
+        try:
+            names = {path.stem for path in directory.glob("*.json")}
+        except OSError as e:
+            # Not an empty set quietly: every member of every group would be
+            # reported as gone, and the callers would act on nothing.
+            logger.error(f"The container configuration could not be listed: {e}")
+            raise OSError(f"the container configuration could not be listed: {e}") from e
         self._names_cache = names
         self._names_read_at = now
         return names

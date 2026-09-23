@@ -119,7 +119,7 @@ cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	786	v3rev2:1-786
 cogs/overview_embeds.py	965	v3rev2:1-964
 cogs/slash_commands.py	848	NONE
-cogs/stack_restart.py	290	v3rev:1-196
+cogs/stack_restart.py	320	v3rev:1-196
 cogs/status_handlers.py	1404	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1252	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1252
 cogs/task_ui.py	1233	NONE
@@ -131,7 +131,7 @@ services/admin/admin_service.py	417	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/auto_action_config_service.py	859	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
-services/automation/automation_service.py	762	passE:bothscans+E25 v3rev:1-676
+services/automation/automation_service.py	791	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	173	v3rev:1-157
 services/automation/image_updates.py	164	v3rev:1-164
 services/automation/own_actions.py	70	NONE
@@ -145,7 +145,7 @@ services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 line
 services/config/config_service.py	1267	passE:E26+bothscans:252-352,354-512,793-910
 services/config/config_validation_service.py	212	passE:read-in-full:no-findings
 services/config/container_config_save_service.py	150	passE:read-in-full:no-findings
-services/config/group_service.py	309	NONE
+services/config/group_service.py	330	NONE
 services/config/server_config_service.py	233	passE:E33:read-in-full
 services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	509	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
@@ -218,7 +218,7 @@ services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a
 services/scheduling/__init__.py	36	pass1:s25:1-36
 services/scheduling/cron_check.py	40	NONE
 services/scheduling/donation_message_service.py	243	pass1:s25:1-196  [19 of 215 lines never in a package]
-services/scheduling/group_tasks.py	118	NONE
+services/scheduling/group_tasks.py	128	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
 services/scheduling/scheduler.py	2243	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]
