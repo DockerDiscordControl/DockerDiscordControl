@@ -1762,5 +1762,6 @@
   "js.aas.groups_heading": "Container-Gruppen",
   "js.tasks.group_badge": "Gruppe",
   "js.aas.target_missing": "nicht gefunden",
-  "js.aas.confirm_widen_to_all": "Nichts ausgewählt. Diese Regel gilt dann für JEDEN Container. Fortfahren?"
+  "js.aas.confirm_widen_to_all": "Nichts ausgewählt. Diese Regel gilt dann für JEDEN Container. Fortfahren?",
+  "Not touched (not in DDC, or switched off): {names}": "Nicht angefasst (nicht in DDC oder ausgeschaltet): {names}"
 }

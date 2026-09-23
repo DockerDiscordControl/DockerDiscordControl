@@ -26,7 +26,7 @@ Test: tests/spec/test_a_stack_can_be_restarted_from_discord.py
 
 import asyncio
 import logging
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import discord
 from discord.ui import Button, Select
@@ -102,14 +102,36 @@ def current_targets(want_stacks: bool = True) -> Dict[str, List[str]]:
     return targets
 
 
-def _servers_of(name: str) -> List[dict]:
-    """The active server entries of a group or a Compose stack, in server order."""
-    wanted = current_targets().get(name)
+def _servers_of(name: str) -> Tuple[List[dict], List[str]]:
+    """(server entries, names that were left out) for a group or a Compose stack.
+
+    Two filters drop members before anything is restarted: one for containers
+    DDC no longer has (the group keeps naming them), one for containers that
+    are switched off in DDC. Both were silent - the summary went out green over
+    what was left, while the SAME group in a scheduled task is reported as a
+    failure. Restarting the rest is right; calling it the whole group is not.
+    """
+    group_members = []
+    missing = []
+    try:
+        from services.config.group_service import get_group_service
+
+        members = get_group_service().members_of(name)
+        if members.exists:
+            group_members = members.containers
+            missing = list(members.missing)
+    except OSError as e:
+        logger.error(f"Groups could not be read for the restart: {e}")
+
+    wanted = group_members or current_targets().get(name) or []
     if not wanted:
-        return []
-    by_name = {s.get('docker_name'): s for s in ao.get_server_config_service().get_all_servers()
-               if isinstance(s, dict) and s.get('active', True)}
-    return [by_name[container] for container in wanted if container in by_name]
+        return [], missing
+    all_servers = [s for s in ao.get_server_config_service().get_all_servers()
+                   if isinstance(s, dict)]
+    by_name = {s.get('docker_name'): s for s in all_servers if s.get('active', True)}
+    inactive = {s.get('docker_name') for s in all_servers if not s.get('active', True)}
+    missing += [container for container in wanted if container in inactive]
+    return ([by_name[container] for container in wanted if container in by_name], missing)
 
 
 async def _is_admin(interaction) -> bool:
@@ -221,7 +243,7 @@ class ConfirmRestartStackButton(Button):
             # Both sources, like the menu: a group the operator defined is not in
             # current_stacks(), and looking only there told the admin "the stack
             # has no active containers any more" about a group full of them.
-            members = _servers_of(self.stack)
+            members, not_touched = _servers_of(self.stack)
             if not members:
                 await interaction.followup.send(
                     _("❌ **{stack}** has no active containers any more.").format(stack=self.stack),
@@ -230,10 +252,17 @@ class ConfirmRestartStackButton(Button):
             from services.docker_service.docker_action_service import docker_action_service_first
             logger.info(f"Restart stack {self.stack}: {[m['docker_name'] for m in members]}")
             counts = await ao._restart_running_servers(members, docker_action_service_first)
+            summary = ao._restart_summary(counts)
+            if not_touched:
+                # Named, not swallowed: the same group in a scheduled task is a
+                # failure when a member is gone, and a green embed over four of
+                # seven is the "act on fewer and say done" this feature forbids.
+                summary += "\n" + _("Not touched (not in DDC, or switched off): {names}").format(
+                    names=", ".join(f"`{name}`" for name in not_touched[:20]))
             embed = discord.Embed(
                 title=_("🔄 Stack {stack} restarted").format(
                     stack=discord.utils.escape_markdown(self.stack)[:180]),
-                description=ao._restart_summary(counts),
+                description=summary,
                 color=discord.Color.green() if counts["failed"] == 0 else discord.Color.orange())
             await ao.answer_or_post(interaction, self.cog, self.channel_id, embed)
             asyncio.create_task(self._refresh_overview_later())

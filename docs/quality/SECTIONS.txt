@@ -11,7 +11,7 @@
 ## Section 01  (1266 lines, 4 pieces)
 cogs/__init__.py:1-7
 cogs/admin_overview.py:1-948
-cogs/stack_restart.py:1-248
+cogs/stack_restart.py:1-277
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-284
 

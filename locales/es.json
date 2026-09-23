@@ -1762,5 +1762,6 @@
   "js.aas.groups_heading": "Container groups",
   "js.tasks.group_badge": "Group",
   "js.aas.target_missing": "not found",
-  "js.aas.confirm_widen_to_all": "Nothing is selected. This rule will then watch EVERY container. Continue?"
+  "js.aas.confirm_widen_to_all": "Nothing is selected. This rule will then watch EVERY container. Continue?",
+  "Not touched (not in DDC, or switched off): {names}": "Not touched (not in DDC, or switched off): {names}"
 }
