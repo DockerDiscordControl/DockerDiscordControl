@@ -62,7 +62,14 @@ class TestUpdateDockerCacheBranches:
     """Cover update_docker_cache timeout & re-raise branches."""
 
     def test_update_cache_handles_unix_http_pool_timeout(self, monkeypatch):
-        """Lines 272-274: 'UnixHTTPConnectionPool' substring triggers timeout path."""
+        """A 'UnixHTTPConnectionPool' failure is REPORTED, not swallowed.
+
+        This test used to assert the opposite - that the error stayed None -
+        and that is exactly what made the panel show an empty container list
+        with no banner: the timeout path replaced the cached list with [],
+        stamped it NOW and cleared the error. Changed 2026-09-23, see
+        tests/spec/test_a_docker_timeout_does_not_empty_the_container_list.py
+        """
         from app.utils import web_helpers as wh
 
         class _FakeContainers:
@@ -81,10 +88,12 @@ class TestUpdateDockerCacheBranches:
         monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **k: _FakeClient())
 
         logger = MagicMock()
-        # Should NOT raise - the timeout path swallows the error
+        # Still must NOT raise out of the refresh worker...
         wh.update_docker_cache(logger)
-        # cache 'error' stays None for timeout path (no DockerException raised)
-        assert wh.docker_cache["error"] is None
+        # ...but the operator has to be told, or an empty panel looks like an
+        # empty host.
+        assert wh.docker_cache["error"], (
+            "a Docker call that could not be answered left no error to show")
 
     def test_update_cache_reraises_unexpected_runtime_error(self, monkeypatch):
         """Line 276: non-timeout exceptions get re-raised and caught by outer."""

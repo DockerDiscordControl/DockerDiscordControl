@@ -286,12 +286,22 @@ def update_docker_cache(logger):
             # Direct call without signal-based timeout wrapper
             containers_to_process = client.containers.list(all=True)
         except Exception as te:
-            # Catch timeouts from requests/docker-py
+            # Catch timeouts from requests/docker-py. This used to set
+            # containers_to_process = [] and CARRY ON - straight into the
+            # ordinary success path, which replaced the cached list with the
+            # empty one, stamped it with NOW and set error to None. The panel
+            # then showed no containers at all, with no banner, and went on
+            # doing so after every refresh. DDC had not learned that there are
+            # none; it had failed to ask.
+            #
+            # A DockerException instead, so the handler at the bottom does what
+            # it already does correctly for every other connection failure:
+            # report it and LEAVE THE CACHED LIST ALONE.
             if "Read timed out" in str(te) or "UnixHTTPConnectionPool" in str(te):
                 logger.error(f"Container list operation timed out after {BACKGROUND_REFRESH_TIMEOUT} seconds")
-                containers_to_process = []
-            else:
-                raise te
+                raise docker.errors.DockerException(
+                    f"the container list could not be read: {te}") from te
+            raise te
 
         # Process containers and update cache
         with cache_lock:
