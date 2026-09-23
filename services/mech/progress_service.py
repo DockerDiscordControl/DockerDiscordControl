@@ -1032,7 +1032,8 @@ def add_system_power(snap: Snapshot, units_cents: int) -> None:
 
 def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event]] = None,
                       goals: Optional[Dict[int, int]] = None,
-                      member_count_at_level_up: Optional[int] = None
+                      member_count_at_level_up: Optional[int] = None,
+                      fallback_time: Optional[datetime] = None
                       ) -> Tuple[List[Event], Optional[Event]]:
     """Apply one power-changing event; used by the live path AND rebuild_from_events.
 
@@ -1042,10 +1043,14 @@ def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event
     """
     at = _event_time(evt.ts)
     if at is None:
-        # Unreadable event time: settle at "now". Skipping it left the anchor
-        # weeks back, and the donation was eaten by consumption already shown
-        # as zero (measured: $5 -> 600 cents in the file, 0 shown).
-        at = datetime.now(ZoneInfo("UTC"))
+        # Unreadable event time: settle at the last time the caller knows, and
+        # at "now" only when there is none. Skipping the settle left the anchor
+        # weeks back and the donation was eaten by consumption already shown as
+        # zero ($5 -> 600 cents in the file, 0 shown) - but inside a REPLAY,
+        # "now" is the wrong end of the history: it charges the span up to
+        # today in the middle of the log and then lets an older event pull the
+        # anchor back. The rebuild passes the previous event's time.
+        at = fallback_time or datetime.now(ZoneInfo("UTC"))
     settle_power_decay(snap, at)
     # What the mech has at this moment, decay already taken off: the lid below
     # never goes under it.
@@ -1557,7 +1562,8 @@ class ProgressService:
                     snap.last_user_count_sample = max(0, int(payload.get("member_count", 0) or 0))
                     member_events.append(evt)
                 elif evt.type in POWER_EVENT_TYPES:
-                    apply_power_event(snap, evt, events=member_events, goals=goals)
+                    apply_power_event(snap, evt, events=member_events, goals=goals,
+                                      fallback_time=last_time)
                     anchored = anchored or _event_time(evt.ts) is not None
                     logger.debug(f"Applied {evt.type} seq {evt.seq} (power: ${snap.power_acc/100:.2f}, "
                                  f"evo: ${snap.evo_acc/100:.2f}, level: {snap.level})")
