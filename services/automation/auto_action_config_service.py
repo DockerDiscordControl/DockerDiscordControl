@@ -7,6 +7,7 @@ Service First: Configuration Management for Auto-Actions (AAS)
 Handles CRUD operations, validation, and persistence for auto_actions.json.
 """
 
+import functools
 import json
 import logging
 import uuid
@@ -534,6 +535,34 @@ class ConfigResult:
     error: Optional[str] = None
 
 
+def _under_lock(method):
+    """Serialise one read-modify-write on auto_actions.json.
+
+    The write itself is atomic; the CYCLE is not. Without this, a rule firing
+    (increment_trigger_count) and the panel creating a rule could both read the
+    file and the later write would carry a copy that never saw the other's
+    change - the panel answered "created" for a rule that was not on disk and
+    never ran.
+
+    Both sides live in ONE process (the bot's loop and a waitress worker
+    thread), so this is a thread race. flock serialises it all the same:
+    cross_process_lock opens a fresh descriptor each time, so two threads
+    conflict just as two processes do - and it also keeps out a `docker exec`
+    or an edit made on the host.
+
+    Nothing decorated here calls anything else decorated here; a second flock
+    on the same file from the same thread would block for ever.
+    """
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        from utils.atomic_io import cross_process_lock
+
+        with cross_process_lock(self.config_file):
+            return method(self, *args, **kwargs)
+
+    return wrapper
+
+
 class AutoActionConfigService:
     """Service for managing auto_actions.json configuration."""
 
@@ -655,6 +684,7 @@ class AutoActionConfigService:
             "protected_containers": ["ddc"]
         })
 
+    @_under_lock
     def add_rule(self, rule_data: Dict[str, Any]) -> ConfigResult:
         """Add a new rule with comprehensive validation."""
         try:
@@ -698,6 +728,7 @@ class AutoActionConfigService:
             logger.error(f"AAS: Error adding rule: {e}")
             return ConfigResult(success=False, error=str(e))
 
+    @_under_lock
     def update_rule(self, rule_id: str, rule_data: Dict[str, Any]) -> ConfigResult:
         """Update an existing rule with comprehensive validation."""
         try:
@@ -745,6 +776,7 @@ class AutoActionConfigService:
             logger.error(f"AAS: Error updating rule {rule_id}: {e}")
             return ConfigResult(success=False, error=str(e))
 
+    @_under_lock
     def delete_rule(self, rule_id: str) -> ConfigResult:
         """Delete a rule by ID."""
         try:
@@ -762,6 +794,7 @@ class AutoActionConfigService:
             return ConfigResult(success=True)
         return ConfigResult(success=False, error="Failed to save config file")
 
+    @_under_lock
     def update_global_settings(self, settings: Dict[str, Any]) -> ConfigResult:
         """Update global settings."""
         try:
@@ -777,6 +810,7 @@ class AutoActionConfigService:
             return ConfigResult(success=True, data=current)
         return ConfigResult(success=False, error="Failed to save config file")
 
+    @_under_lock
     def increment_trigger_count(self, rule_id: str) -> bool:
         """Increment the trigger count for a rule after successful execution."""
         try:
