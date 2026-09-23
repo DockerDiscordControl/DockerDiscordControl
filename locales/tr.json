@@ -1291,6 +1291,8 @@
   "web.server.col_restart_tooltip": "Bot konteyneri yeniden başlatabilsin mi?",
   "web.server.col_start": "Başlat",
   "web.server.col_start_tooltip": "Bot konteyneri başlatabilsin mi?",
+  "web.server.search_placeholder": "Search containers",
+  "web.server.search_no_match": "No container matches this search.",
   "web.server.bulk_group": "Apply to group",
   "web.server.bulk_pick_group": "Pick a group",
   "web.server.bulk_apply": "Apply",

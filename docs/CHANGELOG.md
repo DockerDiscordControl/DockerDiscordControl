@@ -30,6 +30,13 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   and the bot removes a leftover one when it comes back. The panel stays what it was - something
   that appears, is used and disappears.
 
+- **The container table can be searched, and its headers stay put.** With 26 containers the
+  column headers scrolled off the top by row fifteen, so you were ticking boxes in unlabelled
+  columns and counting across to tell Stop from Restart; and finding one container meant reading
+  26 names. There is a search box above the table now, and the header stays visible while the rows
+  scroll under it. The search uses the same matching rule as the one in the groups section, so the
+  two cannot disagree about what counts as a match.
+
 - **Your container groups now work in the container table too.** A group could already be the
   target of a scheduled task and of an auto-action rule; the table where each container's Active
   flag and its four allowed actions are set knew nothing about them. With 26 containers, giving a

@@ -1291,6 +1291,8 @@
   "web.server.col_restart_tooltip": "Tillad botten at genstarte containeren?",
   "web.server.col_start": "Start",
   "web.server.col_start_tooltip": "Tillad botten at starte containeren?",
+  "web.server.search_placeholder": "Search containers",
+  "web.server.search_no_match": "No container matches this search.",
   "web.server.bulk_group": "Apply to group",
   "web.server.bulk_pick_group": "Pick a group",
   "web.server.bulk_apply": "Apply",

@@ -78,9 +78,26 @@
     <div class="d-none d-lg-flex justify-content-end" style="padding-right: 6%; margin-bottom: 4px; position: relative; z-index: 2;">
         <span class="handwritten-note" style="font-size: 1.15em;">{{ _t('web.server.new_query_hint') }}</span>
     </div>
-    <div class="table-responsive">
+    <div class="input-group input-group-sm mb-2" style="max-width: 420px;">
+        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+        <label for="container-search" class="visually-hidden">{{ _t('web.server.search_placeholder') }}</label>
+        <input type="search" class="form-control" id="container-search"
+               placeholder="{{ _t('web.server.search_placeholder') }}">
+    </div>
+    <div class="text-muted small mb-2" id="container-search-no-match" hidden>
+        {{ _t('web.server.search_no_match') }}
+    </div>
+    {# max-height, and it is not decoration. `position: sticky` is relative to the
+       nearest SCROLLING ancestor, and .table-responsive is one: it is
+       overflow-x: auto, and CSS computes an adjacent overflow-y: visible to auto.
+       So the sticky header pins to the top of THIS div - which, at the height of
+       its own content, is never reached. Giving the div a height makes the rows
+       scroll inside it and the header pin where the operator can see it.
+       Removing .table-responsive instead would take the horizontal scroll with
+       it, and that is what makes ten columns usable on a laptop. #}
+    <div class="table-responsive" style="max-height: 70vh;">
         <table class="table table-dark table-bordered table-hover align-middle">
-            <thead>
+            <thead style="position: sticky; top: 0; z-index: 3;">
                 <tr>
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_order') }}</th>
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_active') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_active_tooltip') }}"></i></th>

@@ -1291,6 +1291,8 @@
   "web.server.col_restart_tooltip": "Bot darf Container neu starten?",
   "web.server.col_start": "Starten",
   "web.server.col_start_tooltip": "Bot darf Container starten?",
+  "web.server.search_placeholder": "Container suchen",
+  "web.server.search_no_match": "Kein Container passt zu dieser Suche.",
   "web.server.bulk_group": "Auf Gruppe anwenden",
   "web.server.bulk_pick_group": "Gruppe wählen",
   "web.server.bulk_apply": "Anwenden",
