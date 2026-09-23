@@ -379,6 +379,16 @@ class SchedulerService:
                     self.task_execution_stats['total_skipped'] += 1
                     continue
 
+                # Begun before this process started: execute_task writes the
+                # occurrence down before it acts, so a last run at or after the
+                # due time means this one was already taken on - by a DDC that
+                # was restarted mid-action, for instance.
+                if task.last_run_ts and task.last_run_ts >= task.next_run_ts:
+                    logger.info(f"Task {task.task_id} was already begun at "
+                                f"{task.last_run_ts} for {task.next_run_ts}; not repeating it")
+                    self.task_execution_stats['total_skipped'] += 1
+                    continue
+
                 # Skip if this occurrence already ran (its reschedule could not be saved)
                 if self._executed_runs.get(task.task_id) == task.next_run_ts:
                     logger.debug(f"Task {task.task_id} already executed for {task.next_run_ts}, skipping")

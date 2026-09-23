@@ -29,9 +29,13 @@ import pytest
 from services.scheduling import scheduler_service as module
 
 
-def _task(task_id, due_secs_ago):
+def _task(task_id, due_secs_ago, last_run_ts=None):
+    # last_run_ts is part of a real task and the cycle reads it: execute_task
+    # writes the occurrence down before it acts, so a last run at or after the
+    # due time means this one was already begun
+    # (tests/spec/test_a_restart_does_not_run_a_task_twice.py).
     return SimpleNamespace(
-        task_id=task_id, container_name="nginx", action="restart",
+        task_id=task_id, container_name="nginx", action="restart", last_run_ts=last_run_ts,
         is_active=True, next_run_ts=time.time() - due_secs_ago, cycle="daily")
 
 

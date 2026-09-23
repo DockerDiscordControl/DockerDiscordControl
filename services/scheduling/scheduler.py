@@ -258,8 +258,7 @@ class ScheduledTask:
                 self.created_at_ts = self.created_at_dt.timestamp()
                 # Create local datetime object with timezone for display
                 self.created_at_dt = datetime.fromtimestamp(self.created_at_ts, tz)
-                if logger.isEnabledFor(logging.DEBUG):  # Conditional logging for performance
-                    logger.debug(f"Parsed created_at from ISO string: {created_at} to {self.created_at_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                logger.debug("Parsed created_at from ISO string: %s", created_at)
             except ValueError:
                 logger.warning(f"Could not parse created_at ISO string '{created_at}'. Using current time.")
                 self.created_at_ts = time.time()
@@ -268,14 +267,12 @@ class ScheduledTask:
             self.created_at_ts = created_at
             # Create timezone-aware datetime
             self.created_at_dt = datetime.fromtimestamp(created_at, tz)
-            if logger.isEnabledFor(logging.DEBUG):  # Conditional logging for performance
-                logger.debug(f"Set created_at from timestamp: {created_at} to {self.created_at_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            logger.debug("Set created_at from timestamp: %s", created_at)
         else:
             self.created_at_ts = time.time()
             # Create timezone-aware datetime
             self.created_at_dt = datetime.fromtimestamp(self.created_at_ts, tz)
-            if logger.isEnabledFor(logging.DEBUG):  # Conditional logging for performance
-                logger.debug(f"Set created_at to current time: {self.created_at_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            logger.debug("Set created_at to current time")
 
         self.last_run_ts = last_run # timestamp
         self.next_run_ts = next_run # timestamp
@@ -563,8 +560,7 @@ class ScheduledTask:
                 iter = croniter(self.cron_string, now)
                 next_dt = iter.get_next(datetime)
                 self.next_run_ts = next_dt.timestamp()
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Task {self.task_id} - CRON - Next execution: {next_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                logger.debug("Task %s - CRON - next execution: %s", self.task_id, next_dt)
                 return self.next_run_ts
         except (ImportError, ValueError, TypeError, AttributeError) as e:
             logger.error(f"Cron next run for task {self.task_id} ({self.cron_string!r}): {e}")
@@ -1865,6 +1861,11 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
         task.update_after_execution()
         _persist_executed_task(task)
         return False
+
+    # BEFORE the action: a DDC restart mid-action acted a second time. A begun
+    # run is not retried - see test_a_restart_does_not_run_a_task_twice.py
+    task.last_run_ts = time.time()
+    _persist_executed_task(task)
 
     try:
         # Stop/restart get at least the container's StopTimeout + margin and are
