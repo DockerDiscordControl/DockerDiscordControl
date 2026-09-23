@@ -68,12 +68,24 @@ def test_the_new_rate_takes_over_after_a_settle(rate):
     assert module.current_power_cents(snap, later) == 400
 
 
-def test_an_old_snapshot_without_a_rate_uses_the_configured_one(rate):
-    """Counter-check: nothing in the file, so the config decides."""
-    snap = _snapshot(days_ago=1, power_acc=1000, decay_per_day=0)
-    rate(300)
+def test_a_rate_of_zero_means_zero(rate):
+    """A level that consumes nothing keeps its charge, whatever the config says.
 
-    assert module.current_power_cents(snap) == 700
+    THE FINDING (independent review, 2026-09-23): the rate was read as
+    `snap.power_decay_per_day or decay_per_day(level)`, which cannot tell "not
+    filled in" from "this level really consumes nothing" - and the field has
+    always defaulted to 100, so a 0 in a snapshot is deliberate. The final
+    level has exactly that, and an operator may set it for any level.
+
+    With the fallback, raising that level's rate in decay.json afterwards
+    applied the new rate to the WHOLE span since the last power change - the
+    very thing this file exists to prevent, left open for a zero.
+    """
+    snap = _snapshot(days_ago=30, power_acc=2000, decay_per_day=0)
+    rate(200)
+
+    assert module.current_power_cents(snap) == 2000, (
+        "a level that consumes nothing lost its charge when the config changed")
 
 
 def test_power_never_goes_below_zero(rate):

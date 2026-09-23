@@ -803,7 +803,12 @@ def current_power_cents(snap: Snapshot, now: Optional[datetime] = None) -> int:
         # configured rate to the WHOLE span since the anchor recomputed the
         # past, so editing decay.json moved power that had long since decayed.
         # settle_power_decay takes the new rate over when the span ends.
-        rate = snap.power_decay_per_day or decay_per_day(snap.level)
+        #
+        # No fallback for 0. The field has always defaulted to 100, so a zero
+        # in a snapshot is deliberate - the final level has one, and an
+        # operator may set one. Reading it as "not filled in" re-applied a
+        # changed rate to a month of standing still.
+        rate = snap.power_decay_per_day
         decay_amount = (elapsed_seconds / 86400.0) * rate
         return max(0, snap.power_acc - int(decay_amount))
     except (ValueError, TypeError, KeyError) as e:

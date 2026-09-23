@@ -118,15 +118,16 @@ def grant_power_gift(service: "ProgressService", campaign_id: str,
         append_event(evt)
 
         # Power is 0 here: fold any decay debt and restart the decay clock before adding
-        power_before = snap.power_acc
         apply_power_event(snap, evt)
         snap.version += 1
         snap.last_event_seq = evt.seq
         persist_snapshot(snap)
 
-        # What LANDED, not what was asked for: the battery has a lid, and
-        # reporting the requested amount made the log read "$15.00 (power is
-        # now $10.00)" and the donation statistics count the difference.
-        gift_dollars = (snap.power_acc - power_before) / 100.0
+        # gift_cents is already what FITS (capped above), which is what the
+        # event carries and what landed. Measuring snap.power_acc against its
+        # value before apply_power_event would subtract the decay that the
+        # settle inside it takes off - and report a NEGATIVE gift for a mech
+        # whose raw power_acc had not been settled yet.
+        gift_dollars = gift_cents / 100.0
         logger.info(f"Power gift granted: ${gift_dollars:.2f}")
         return compute_ui_state(snap), gift_dollars
