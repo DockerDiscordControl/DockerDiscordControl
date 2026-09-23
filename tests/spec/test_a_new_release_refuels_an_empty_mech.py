@@ -196,3 +196,30 @@ def test_a_gift_bigger_than_the_battery_reports_what_landed(module, mech, monkey
     # are built from - it must be the amount that landed, not the one asked for.
     written = [e for e in module.read_events() if e.type == "PowerGiftGranted"]
     assert written[-1].payload["power_units"] == snap.power_acc, written[-1].payload
+
+
+def test_a_deleted_gift_frees_its_campaign(module, mech):
+    """Deleting a gift takes the energy back, so the campaign is open again.
+
+    THE FINDING (independent review, 2026-09-23): the duplicate check looked at
+    every PowerGiftGranted in the log, deleted or not. An admin who removed a
+    gift row - which rebuilds the power back down - could never have that
+    campaign granted again, and the mech stayed dry.
+
+    COUNTER-CHECK: the second part keeps the check itself; a gift that is still
+    in the ledger is refused a second time.
+    """
+    _state, first = mech.release_gift("3.0.0")
+    assert first is not None
+
+    gift_event = [e for e in module.read_events() if e.type == "PowerGiftGranted"][-1]
+    mech.delete_donation(gift_event.seq)
+    assert module.current_power_cents(module.load_snapshot("main")) == 0
+
+    _state, again = mech.release_gift("3.0.0")
+
+    assert again is not None, "the campaign stayed spent on a gift that was taken back"
+
+    # And still only once while it stands
+    _state, third = mech.release_gift("3.0.0")
+    assert third is None

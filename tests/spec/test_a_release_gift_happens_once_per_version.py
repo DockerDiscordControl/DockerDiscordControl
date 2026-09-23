@@ -84,3 +84,28 @@ def test_the_startup_gift_still_exists(adapter, monkeypatch):
     _run(monkeypatch, "3.0.0")
 
     assert any(campaign == "startup_gift_v1" for campaign, _ in adapter)
+
+
+def test_a_build_id_in_the_version_does_not_make_a_new_release(monkeypatch, adapter):
+    """Build metadata is not a release.
+
+    THE FINDING (independent review, 2026-09-23): the campaign is named after
+    DDC_VERSION as it stands. If an image ever stamps a build id or a git sha
+    into it, every rebuild of the SAME release becomes a new campaign: another
+    three days of energy for a dry mech, and one more PowerGiftGranted in a log
+    that read_events() walks end to end before every donation.
+
+    SemVer puts build metadata after a "+", so that is where the release ends.
+    """
+    _run(monkeypatch, "3.0.0+build.271")
+
+    campaigns = [campaign for campaign, _cents in adapter if campaign.startswith("release_")]
+
+    assert campaigns == ["release_3.0.0"], campaigns
+
+
+def test_the_version_itself_is_still_the_campaign(monkeypatch, adapter):
+    """Counter-check: an ordinary version is not truncated."""
+    _run(monkeypatch, "3.0.1")
+
+    assert any(campaign == "release_3.0.1" for campaign, _ in adapter)

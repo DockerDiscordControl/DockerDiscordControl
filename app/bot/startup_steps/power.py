@@ -38,7 +38,11 @@ async def grant_power_gift_step(context: StartupContext) -> None:
         # holds - so a restart of the same version gives nothing and an update
         # gives once. Without DDC_VERSION there is no release to name, and
         # inventing one would hand out a gift on every restart.
-        version = (os.environ.get("DDC_VERSION") or "").strip().lstrip("vV")
+        # Everything after a "+" is build metadata (SemVer), not a release. A
+        # build id in DDC_VERSION would make every rebuild of the same release
+        # a new campaign: another three days for a dry mech, and one more event
+        # in a log that is walked end to end before every donation.
+        version = (os.environ.get("DDC_VERSION") or "").strip().lstrip("vV").split("+")[0]
         if version:
             state = adapter.release_gift(version)
             granted.append(getattr(state, "gift", None))

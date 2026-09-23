@@ -52,6 +52,23 @@ def deterministic_gift_1_3(mech_id: str, campaign_id: str) -> int:
     return ((n % 3) + 1) * 100  # 1-3 dollars in cents
 
 
+def _currently_deleted(events) -> set:
+    """The event seqs that are deleted right now.
+
+    Deletion is a toggle in this ledger: an odd number of DonationDeleted
+    events for one seq means it is deleted, an even number means it was
+    restored (see ProgressService.delete_donation).
+    """
+    counts: dict = {}
+    for event in events:
+        if event.type != "DonationDeleted":
+            continue
+        seq = (event.payload or {}).get("deleted_seq")
+        if seq is not None:
+            counts[seq] = counts.get(seq, 0) + 1
+    return {seq for seq, count in counts.items() if count % 2 == 1}
+
+
 def grant_power_gift(service: "ProgressService", campaign_id: str,
                      gift_cents: Optional[int] = None) -> Tuple[ProgressState, Optional[int]]:
     """Grant a power gift if power is 0 AND the campaign has not been used.
@@ -81,12 +98,16 @@ def grant_power_gift(service: "ProgressService", campaign_id: str,
             _persist_if_decay_day_changed()
             return compute_ui_state(snap), None
 
-        # CHECK FOR DUPLICATE: Search event log for this campaign_id
+        # CHECK FOR DUPLICATE: Search event log for this campaign_id. A gift the
+        # admin DELETED does not count - deleting it rebuilds the power back
+        # down, and the campaign would otherwise be spent on a gift that is no
+        # longer in the ledger.
         all_events = read_events()
+        deleted = _currently_deleted(all_events)
         for evt in all_events:
             if evt.type == "PowerGiftGranted" and evt.mech_id == service.mech_id:
                 existing_campaign = evt.payload.get("campaign_id")
-                if existing_campaign == campaign_id:
+                if existing_campaign == campaign_id and evt.seq not in deleted:
                     logger.info(f"Power gift skipped: campaign_id '{campaign_id}' already used")
                     _persist_if_decay_day_changed()
                     return compute_ui_state(snap), None

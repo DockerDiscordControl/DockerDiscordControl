@@ -781,9 +781,8 @@ def _ensure_decay_anchor(snap: Snapshot) -> None:
 def battery_capacity_cents(snap: Snapshot) -> Optional[int]:
     """What the energy account holds: the level's goal.
 
-    The bar's maximum used to be the goal PLUS $1 - that dollar was the place
-    the exact-hit bonus went, and the bonus is gone (2026-09-23), so it is the
-    goal now. None at the last level, which has no goal and therefore no limit.
+    None at the last level, which has no goal and therefore no limit - and
+    every caller has to cope with that (see MechServiceAdapter._convert_state).
     """
     return snap.goal_requirement if snap.goal_requirement > 0 else None
 
@@ -1464,9 +1463,12 @@ class ProgressService:
         """
         from services.mech.gifts import three_days_of_energy
 
-        level = load_snapshot(self.mech_id).level
-        return self.power_gift(f"release_{version}",
-                               gift_cents=three_days_of_energy(level))
+        with LOCK:
+            # Under the lock: a donation that levels up in between would size
+            # the gift from the level the mech no longer has.
+            level = load_snapshot(self.mech_id).level
+            return self.power_gift(f"release_{version}",
+                                   gift_cents=three_days_of_energy(level))
 
     def rebuild_from_events(self, allow_damaged_log: bool = False) -> ProgressState:
         """
