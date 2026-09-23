@@ -1194,6 +1194,18 @@ def setup(bot):
 
                         for channel_id_str, channel_info in channels_config.items():
                             try:
+                                # ValueError from int() on a key that is not a
+                                # number, and AttributeError from .get() on an
+                                # entry that is not a dict, were in neither
+                                # caught type: one unusable entry abandoned the
+                                # channels behind it, and the notification file
+                                # is already deleted by then. The parallel path
+                                # in donation_message_service has checked this
+                                # since review C74.
+                                if not isinstance(channel_info, dict):
+                                    raise TypeError(
+                                        f"channel entry is {type(channel_info).__name__}, "
+                                        "not a set of permissions")
                                 channel = bot.get_channel(int(channel_id_str))
                                 donation_broadcasts = channel_info.get('donation_broadcasts', True)
 
@@ -1208,7 +1220,8 @@ def setup(bot):
                                         logger.debug(f"🔔 Channel {channel_id_str} not found")
                                     elif not donation_broadcasts:
                                         logger.debug(f"🔔 Donation broadcasts disabled for {channel_id_str}")
-                            except (discord.errors.DiscordException, RuntimeError) as channel_error:
+                            except (discord.errors.DiscordException, RuntimeError,
+                                    ValueError, TypeError, AttributeError, KeyError) as channel_error:
                                 logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
                         logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
