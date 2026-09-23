@@ -30,6 +30,14 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   and the bot removes a leftover one when it comes back. The panel stays what it was - something
   that appears, is used and disappears.
 
+- **The panel can be used on a phone, not just looked at.** The floating navigation is hidden
+  below 768 pixels - thirteen dots down a phone screen would cover the page - and the logout
+  control lived in it and nowhere else, so on a phone there was no way to log out. There is one
+  at the top of the page now, on small screens only. And in the two wide tables the NAME column
+  stays put while the rest scrolls sideways: the container table has ten columns and the
+  permissions table eighteen, so reaching Stop, Restart or a channel permission used to take the
+  name off screen and you ticked a box for a row you could no longer identify.
+
 - **The settings sit behind four tabs.** Discord, Containers, Automation, System. Thirteen card
   sections used to scroll past between the mech panel and the log; the container table is one
   click away now instead of five screens down. One Save button for all four tabs, and it stays

@@ -101,7 +101,7 @@
                 <tr>
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_order') }}</th>
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_active') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_active_tooltip') }}" tabindex="0" role="button"></i></th>
-                    <th scope="col" style="width: 25%;">{{ _t('web.server.col_container') }}</th>
+                    <th scope="col" class="sticky-name-column" style="width: 25%;">{{ _t('web.server.col_container') }}</th>
                     <th scope="col" style="width: 20%;">{{ _t('web.server.col_display_name') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_display_name_tooltip') }}" tabindex="0" role="button"></i></th>
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_status') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_status_tooltip') }}" tabindex="0" role="button"></i></th>
                     <th scope="col" class="text-center" style="width: 10%;">{{ _t('web.server.col_start') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.server.col_start_tooltip') }}" tabindex="0" role="button"></i></th>
@@ -140,7 +140,7 @@
                                     <label class="form-check-label visually-hidden" for="select_{{ container.id }}">{{ _t('web.server.select') }}</label>
                                 </div>
                             </td>
-                            <td>
+                            <td class="sticky-name-column">
                                 <code class="text-info">{{ container.name }}</code><br>
                                 <small class="text-light">{{ _t('web.server.status_label') }}: {{ container.status }}<br>{{ _t('web.server.image_label') }}: {{ container.image }}{% if container.compose_project %}<br>{{ _t('web.server.stack_label') }}: {{ container.compose_project }}{% endif %}</small>
                             </td>

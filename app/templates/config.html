@@ -11,6 +11,19 @@
        so it is safe this early. See
        tests/spec/test_the_mech_panel_can_draw_its_bars_at_once.py #}
     <script src="{{ url_for('static', filename='js/progress_bars.js') }}"></script>
+    {# The way out on a phone. The floating navigation carries the logout control,
+       and base.html hides that navigation below 768px - thirteen dots down a
+       390-pixel screen would cover the page. So between this evening and now
+       there was no way to log out of the panel on a phone at all. d-lg-none: it
+       appears exactly where the navigation is gone. A POST form with the token,
+       for the same reason as the one in the navigation - a GET that changes
+       state is followed by anything that walks links. #}
+    <form method="POST" action="{{ url_for('login.logout') }}" class="d-lg-none text-end mb-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-box-arrow-right" aria-hidden="true"></i> {{ _t('web.nav.logout') }}
+        </button>
+    </form>
     <div class="text-center logo-header">
         <img src="{{ url_for('static', filename='ddc_web.png') }}" alt="DDC Logo">
         <div class="ddc-title">

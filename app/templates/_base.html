@@ -132,6 +132,25 @@ Licensed under the MIT License
         .btn-primary { background-color: #4299e1; border-color: #4299e1; color: #10243a; font-weight: bold; }
         .btn-primary:hover, .btn-primary:focus { background-color: #63b3ed; border-color: #63b3ed; color: #10243a; }
         .btn-secondary { background-color: #6c757d; border-color: #6c757d; }
+
+        /* Wide tables on a narrow screen. The container table has ten columns and
+           the permissions table eighteen; .table-responsive gives them a sideways
+           scrollbar, and the NAME is the first or third column. Scrolling far
+           enough to reach Stop, Restart or a channel permission took the name off
+           screen, so a box was ticked for a row nobody could identify any more.
+           The name column stays put while the rest scrolls. Only on phones and
+           tablets: on a wide screen there is no sideways scroll to anchor to, and
+           a sticky cell there would only add a seam. */
+        @media (max-width: 991.98px) {
+            .sticky-name-column {
+                position: sticky;
+                left: 0;
+                z-index: 2;
+                background-color: #1E2125;
+                box-shadow: 2px 0 4px rgba(0, 0, 0, 0.45);
+            }
+            thead .sticky-name-column { z-index: 4; }
+        }
         
         .logo-header img {
             max-height: 200px;
