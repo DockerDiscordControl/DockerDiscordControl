@@ -47,6 +47,18 @@ NOT protect.
 
 ## New things you will notice
 
+- **Container groups.** Make a group in the panel - a name you choose and the containers that
+  belong to it - and use it everywhere: as the target of a scheduled task ("every Sunday at 4,
+  restart Gameserver"), in an auto-action rule (as the containers it watches AND as the ones it
+  acts on), and behind one button in the Admin Overview. Compose stacks still work and are
+  offered by the same button; groups are for the containers that have no Compose project, which
+  on Unraid is usually all of them.
+- **The mech's energy is a battery.** It survives a level-up instead of being reset to the
+  surplus, it holds the level's goal, and every new DDC release gives an empty mech three days
+  of energy. The $1 bonus for hitting a goal exactly is gone - it only ever made up for the
+  energy the level-up wiped out. What you will see: after climbing a level the mech keeps
+  running instead of standing at zero.
+
 - **A container watchdog.** Rules can react when a container stops on its own, turns unhealthy,
   restarts several times in a few minutes, or stays above a CPU or memory threshold. Notify, or
   restart/start/stop the container that changed. Set it up under Auto-Actions, trigger type

@@ -66,15 +66,53 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   v2.4.1 never fires them, adding another rule there leaves them untouched, and saving or toggling
   one there is refused by its validation - so after upgrading again they work as before.
 
+### ✨ Container groups
+
+Compose stacks only ever grouped containers that were created with docker-compose - on a typical
+Unraid server, that is none of them (measured on the installation this was built for: 0 of 37).
+So a group is now what you say it is.
+
+- **Make groups in the panel**, under the container selection: a name of your choosing
+  ("Gameserver", "Infrastruktur") and the containers that belong to it. A group that names a
+  container DDC no longer has says so instead of quietly shrinking.
+- **A scheduled task can act on a group**: "every Sunday at 4, restart Gameserver". The members
+  are restarted one after another, with the same pacing as the bulk buttons. If the group is
+  gone, empty, or has lost a member, the task reports a FAILURE - it does not report success
+  over five of seven containers.
+- **An auto-action rule can use a group twice over**: as the containers it watches ("for every
+  container of this group: if it stops, restart it") and as the containers it acts on ("if the
+  database dies, restart the whole group"). Both are picked from the rule editor.
+- **One button in Discord for both**: the Admin Overview's group button offers your groups and
+  any Compose stacks DDC finds. It is an icon now, not a labelled button, and it only appears
+  when there is something to offer.
+
 ### ✨ Compose stacks
 
 - **Sort by stack:** the server list in the web panel shows each container's Compose stack, and a
   "Sort by stack" button puts the containers of one stack next to each other (where the stack's
   first container stands). Save to keep the order - no more moving them row by row.
-- **Restart a stack from Discord:** the Admin Overview has a new "Stack" button. Pick a stack,
-  confirm, and its running containers are restarted - with the same rules as "Restart All"
-  (only containers that allow restart, stopped ones are skipped).
+- **Restart a stack from Discord:** the button above offers them next to your own groups - with
+  the same rules as "Restart All" (only containers that allow restart, stopped ones are skipped).
 - The Admin Overview shows the stack's name above its containers.
+
+### ⚡ The mech's energy is a battery
+
+Decided with the operator on 2026-09-23. The energy account is the mech's fuel, and the decay is
+what it burns per day - so it no longer resets on a level-up.
+
+- **Energy survives a level-up.** Until now it was reset to the surplus, exactly like the
+  evolution account, so a mech stood almost empty the moment it climbed - and burned more per day
+  from then on. Evolution still keeps only the surplus.
+- **The battery holds the level's goal.** What does not fit is lost; the donation still counts in
+  full towards evolution. The last level has no goal and no limit.
+- **No more $1 bonus for hitting a goal exactly.** That dollar existed to make up for the energy
+  the level-up wiped out, and it was the "+$1" in the bar's maximum. Both are gone. An
+  ExactHitBonusGranted event in an existing log still counts - a rebuild does not take it away.
+- **Every new release refuels an empty mech**: three days of the energy its level consumes,
+  once per version, and only when the energy has run out.
+- **A changed decay rate no longer rewrites the past.** Editing `decay.json` used to recompute
+  the whole span since the last power change; the rate that a span was measured at now stays
+  with it.
 
 ### 🐛 Fixed (behaviour you may have seen before v3.0)
 
