@@ -86,8 +86,8 @@ def fake_docker_client():
 def _clear_module_globals():
     """Reset cached singletons that ``docker_utils`` keeps as module-level
     globals so individual tests stay isolated."""
-    docker_utils._docker_client = None
-    docker_utils._client_last_used = 0
+    # _docker_client / _client_last_used were removed with the synchronous
+    # client getter on 2026-09-23; setting them here would put them back.
     docker_utils._containers_cache = None
     docker_utils._cache_timestamp = 0
     docker_utils._custom_timeout_config = None
@@ -416,81 +416,6 @@ class TestLoadCustomTimeoutConfig:
         monkeypatch.setattr("builtins.open", _bad_open)
         result = docker_utils.load_custom_timeout_config()
         assert result is None
-
-
-# ---------------------------------------------------------------------------
-# get_docker_client (sync/legacy)
-# ---------------------------------------------------------------------------
-
-
-FACTORY = "services.docker_service.client_factory.build_docker_client"
-
-
-class TestGetDockerClient:
-    """Rewritten 2026-09-22 with the move onto the client factory. The old
-    tests pinned from_env first and a hard-coded socket as fallback - the
-    second way past the v3.0 proxy that the move removes."""
-
-    def test_returns_cached_client_when_recent(self):
-        cached = MagicMock(name="cached-client")
-        docker_utils._docker_client = cached
-        docker_utils._client_last_used = time.time()
-        with patch(FACTORY) as factory:
-            result = docker_utils.get_docker_client()
-        assert result is cached
-        factory.assert_not_called()
-
-    def test_creates_client_through_the_factory_with_the_list_timeout(self):
-        docker_utils._docker_client = None
-        new_client = MagicMock(name="new-client")
-        with patch(FACTORY, return_value=new_client) as factory:
-            result = docker_utils.get_docker_client()
-        assert result is new_client
-        factory.assert_called_once_with(
-            timeout=int(docker_utils._timeout("DEFAULT_CONTAINER_LIST_TIMEOUT"))
-        )
-
-    def test_no_second_way_past_the_factory(self):
-        docker_utils._docker_client = None
-        with patch(FACTORY, side_effect=docker_utils.docker.errors.DockerException("down")), \
-                patch.object(docker_utils.docker, "DockerClient") as direct:
-            result = docker_utils.get_docker_client()
-        assert result is None
-        direct.assert_not_called()
-
-    def test_returns_none_when_the_ping_fails(self):
-        docker_utils._docker_client = None
-        client = MagicMock(name="client")
-        client.ping.side_effect = docker_utils.docker.errors.DockerException("no answer")
-        with patch(FACTORY, return_value=client):
-            result = docker_utils.get_docker_client()
-        assert result is None
-        assert docker_utils._docker_client is None
-
-
-class TestReleaseDockerClient:
-    def test_release_no_client_does_not_raise(self):
-        # Default state: no client cached
-        docker_utils._docker_client = None
-        docker_utils.release_docker_client()  # should be a no-op
-
-    def test_release_when_client_idle(self, monkeypatch):
-        client = MagicMock()
-        docker_utils._docker_client = client
-        # Force the client to look idle (older than timeout)
-        docker_utils._client_last_used = time.time() - (
-            docker_utils._CLIENT_TIMEOUT + 10
-        )
-        # Connection pool is on; force the legacy branch by passing client=None
-        monkeypatch.setattr(docker_utils, "USE_CONNECTION_POOL", False)
-        docker_utils.release_docker_client()
-        client.close.assert_called_once()
-        assert docker_utils._docker_client is None
-
-
-# ---------------------------------------------------------------------------
-# get_docker_stats
-# ---------------------------------------------------------------------------
 
 
 class TestGetDockerStats:

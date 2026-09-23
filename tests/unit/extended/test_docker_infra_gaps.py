@@ -86,8 +86,8 @@ def _mock_client(ping_ok: bool = True):
 @pytest.fixture(autouse=True)
 def _reset_docker_utils_globals():
     """Restore module-level singletons so individual tests stay isolated."""
-    docker_utils._docker_client = None
-    docker_utils._client_last_used = 0
+    # _docker_client / _client_last_used were removed with the synchronous
+    # client getter on 2026-09-23; setting them here would put them back.
     docker_utils._containers_cache = None
     docker_utils._cache_timestamp = 0
     docker_utils._custom_timeout_config = None
@@ -153,48 +153,6 @@ class TestDockerUtilsFallbackClient:
                 assert c is client
         # Even though close raised, the cm exited cleanly (line 388 path).
         client.close.assert_called_once()
-
-
-class TestDockerUtilsReleaseClient:
-    """Covers release_docker_client pool/legacy branches (456-463, 473-474)."""
-
-    def test_release_with_pool_closes_the_client(self, monkeypatch):
-        """This asserted `fake_pool._release_client` on a MagicMock until
-        2026-09-23 - and a MagicMock invents any attribute it is asked for, so
-        it passed on a method DockerClientService does not have. It could never
-        fail on the thing it named. See
-        tests/spec/test_releasing_a_docker_client_calls_something_that_exists.py
-        """
-        monkeypatch.setattr(docker_utils, "USE_CONNECTION_POOL", True)
-        client = MagicMock()
-        fake_pool = MagicMock()
-        with patch.object(
-            docker_utils, "get_docker_client_service", return_value=fake_pool
-        ):
-            docker_utils.release_docker_client(client=client)
-        client.close.assert_called_once_with()
-
-    def test_release_with_pool_handles_attribute_error(self, monkeypatch):
-        monkeypatch.setattr(docker_utils, "USE_CONNECTION_POOL", True)
-        client = MagicMock()
-        fake_pool = MagicMock()
-        fake_pool._release_client.side_effect = AttributeError("nope")
-        with patch.object(
-            docker_utils, "get_docker_client_service", return_value=fake_pool
-        ):
-            # Must not raise
-            docker_utils.release_docker_client(client=client)
-
-    def test_release_legacy_when_close_errors(self, monkeypatch):
-        monkeypatch.setattr(docker_utils, "USE_CONNECTION_POOL", False)
-        client = MagicMock()
-        client.close.side_effect = RuntimeError("explosion in close")
-        docker_utils._docker_client = client
-        docker_utils._client_last_used = (
-            time.time() - docker_utils._CLIENT_TIMEOUT - 5
-        )
-        # Must not raise (line 473-474 path).
-        docker_utils.release_docker_client()
 
 
 class TestDockerUtilsStatsBranches:

@@ -34,20 +34,15 @@ logger = setup_logger('ddc.docker_utils', level=logging.INFO)
 
 # Import the modern async connection pool
 try:
-    from .docker_client_pool import get_docker_client_service
+    # Imported to find out whether the pool is there at all; the name itself is
+    # not used here any more since the synchronous client getter was removed
+    # (operator decision 2026-09-23, tests/spec/test_there_is_one_way_to_a_docker_client.py).
+    from .docker_client_pool import get_docker_client_service  # noqa: F401
     USE_CONNECTION_POOL = True
     logger.info("Modern Async Docker Queue System enabled for optimal performance")
 except ImportError:
     USE_CONNECTION_POOL = False
     logger.warning("Docker Connection Pool not available, using legacy single client")
-
-# Fallback Docker client for environments without connection pooling
-_docker_client = None
-_client_last_used = 0
-_CLIENT_TIMEOUT = 300  # 5 minutes timeout for long-running operations
-_client_ping_cache = 0  # Cache for ping results
-_PING_CACHE_TTL = 120   # Ping cache for 2 minutes
-_docker_client_lock = threading.Lock()  # Thread safety for Docker client
 
 # PERFORMANCE OPTIMIZATION: Flexible container timeout configuration
 # Load from Advanced Settings first, then environment variables, then defaults
@@ -471,73 +466,6 @@ def get_docker_client_async(timeout: float = None, operation: str = 'default', c
     # the safety net raised TypeError exactly when the connection pool was gone
     # and it was the only thing left (review C4).
     return individual_client()
-
-def get_docker_client():
-    """
-    Get a cached synchronous Docker client, built through the client factory.
-
-    The connection pool has no synchronous acquire, so this keeps one client
-    cached for _CLIENT_TIMEOUT seconds. Returns None if Docker cannot be reached.
-    """
-    global _docker_client, _client_last_used
-
-    current_time = time.time()
-
-    # Return cached client if still valid
-    if (_docker_client is not None and
-        current_time - _client_last_used < _CLIENT_TIMEOUT):
-        _client_last_used = current_time
-        return _docker_client
-
-    # Through the one client factory (follows DOCKER_HOST, the v3.0 proxy).
-    # This used to fall back to a hard-coded unix:///var/run/docker.sock when
-    # from_env failed - a second way that walks past the proxy exactly when
-    # DOCKER_HOST points at it and the proxy is down. No fallback now: an
-    # unreachable Docker is reported and answered with None.
-    from .client_factory import build_docker_client
-
-    try:
-        _docker_client = build_docker_client(timeout=int(_timeout('DEFAULT_CONTAINER_LIST_TIMEOUT')))
-        _docker_client.ping()
-        logger.info("Docker client created through the client factory")
-        _client_last_used = current_time
-        return _docker_client
-    except (docker.errors.DockerException, OSError, RuntimeError) as e:
-        logger.error(f"Docker client could not be created: {e}")
-        _docker_client = None
-        return None
-
-def release_docker_client(client=None):
-    """
-    Releases a Docker client back to the pool or closes it.
-
-    Args:
-        client: Specific client to release (for pool mode)
-                If None, releases the legacy global client
-    """
-    if USE_CONNECTION_POOL and client:
-        # CLOSE it. There is no synchronous release: DockerClientService only
-        # has _release_client_async, and this function is sync - the old call to
-        # a `_release_client` that does not exist raised AttributeError every
-        # time, which the handler swallowed at DEBUG, so nothing happened at all
-        # and nobody could tell. Closing is what the live path
-        # (get_docker_client_async) already does in its finally block.
-        try:
-            client.close()
-            logger.debug("Released Docker client (closed)")
-        except (AttributeError, RuntimeError, ValueError, OSError) as e:
-            logger.debug(f"Error releasing client: {e}")
-    else:
-        # Legacy client release
-        global _docker_client
-
-        if _docker_client is not None and (time.time() - _client_last_used > _CLIENT_TIMEOUT):
-            try:
-                _docker_client.close()
-                logger.info("Released Docker client due to inactivity.")
-                _docker_client = None
-            except (OSError, RuntimeError, AttributeError) as e:
-                logger.debug(f"Error during client release: {e}")
 
 class DockerError(Exception):
     """Custom exception class for Docker-related errors."""
