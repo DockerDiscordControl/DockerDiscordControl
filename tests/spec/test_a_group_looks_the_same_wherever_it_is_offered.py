@@ -36,6 +36,7 @@ already followed the convention (the rule editor and the task form) are
 checked here too, so the convention cannot be dropped where it started.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -99,11 +100,20 @@ def test_the_groups_section_marks_its_own_groups():
     assert "containers || []).length" in source, "the list does not say how big a group is"
 
 
-def test_the_container_tables_group_bar_marks_its_groups():
-    """THE GAP: the bar added to the container table listed bare names."""
-    source = _read(JS / "group_bulk.js")
+def test_the_groups_in_the_container_table_are_marked_as_groups():
+    """THE GAP: the bar added to the container table listed bare names.
 
-    assert "containers || []).length" in source, "the bar does not say how big a group is"
+    That bar is gone (2026-09-24) - the groups are rows of the table itself
+    now, which makes the marker matter MORE, not less: a group row and a
+    container row are the same ten columns, and the icon, the amber and the
+    member count are the only things saying which is which."""
+    # Comments stripped: this file EXPLAINS the marker at length, and a test
+    # that a comment can satisfy is a test that stops noticing.
+    source = re.sub(r"^\s*//.*$", "", _read(JS / "group_rows.js"), flags=re.M)
+
+    assert "collection" in source, "a group row carries no group marker"
+    assert "text-warning" in source, "a group row is not coloured like a group"
+    assert "member_count" in source, "the row does not say how big the group is"
 
     section = _read(TEMPLATES / "_server_selection.html")
-    assert "bi-collection" in section, "the bar's label carries no group marker"
+    assert "bi-collection" in section, "the group heading carries no group marker"

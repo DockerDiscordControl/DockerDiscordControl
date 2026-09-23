@@ -7,10 +7,16 @@ container DDC steers. It is the only part of the Containers tab that is not
 about the containers themselves, and it is needed rarely: groups are made once
 and used often.
 
-It moves into a dialog, opened by a + beside the group picker in the bulk bar.
+It moves into a dialog, opened by a + where the groups themselves are shown.
 That is where the operator already is when he discovers a group is missing or
 wrong, so the shortest path from "I need a group" to "I have one" is one
 click, and the page loses a section it mostly scrolled past.
+
+WHERE THAT + SITS was rewritten on 2026-09-24: the bulk bar it was added to is
+gone, and the groups are rows of the container table now
+(test_a_group_is_a_row_like_a_container.py). The + moved with them, into the
+heading that separates the group rows from the containers - still one click
+from what it makes, just beside a different thing.
 
 WHAT THAT COSTS, and it is the reason the nav lists change with it: the
 section had a dot in the floating navigation and a place in the tab grouping.
@@ -23,7 +29,7 @@ settings form, so it can live outside <form id="config-form"> - which is where
 a modal belongs anyway, beside the eight others.
 
 HOW THIS TEST CAN FAIL: leaving the editor inline, putting the dialog inside
-the settings form, or offering no way to open it from the bar.
+the settings form, or offering no way to open it beside the groups.
 
 COUNTER-CHECK (2026-09-24): red before - the editor was included inline in the
 Containers pane and nothing opened a dialog.
@@ -64,14 +70,14 @@ def test_the_dialog_is_outside_the_settings_form():
         "the group dialog is included inside the settings form")
 
 
-def test_the_bar_offers_a_way_to_make_one():
+def test_the_table_offers_a_way_to_make_one():
     """THE POINT: the shortest path from "this group is missing something" to
     "fixed" is a click, not a scroll to another section."""
     section = _without_comments(SECTION.read_text(encoding="utf-8"))
 
-    assert 'id="bulk-group-new"' in section, (
-        "there is no way to open the group editor from the bar")
-    position = section.index('id="bulk-group-new"')
+    assert 'id="group-rows-new"' in section, (
+        "there is no way to open the group editor from the container table")
+    position = section.index('id="group-rows-new"')
     button = section[section.rindex("<button", 0, position):section.index(">", position)]
 
     assert "containerGroupsModal" in button, "the button opens nothing"
@@ -79,14 +85,18 @@ def test_the_bar_offers_a_way_to_make_one():
         "a button without type=button submits the settings form it sits in")
 
 
-def test_it_sits_with_the_group_picker():
-    """A + that is not beside the thing it adds to is a scavenger hunt."""
+def test_it_sits_with_the_groups():
+    """A + that is not beside the thing it adds to is a scavenger hunt. It is
+    in the heading of the group rows, so it is the first thing in reach of an
+    operator who has no groups at all - and that heading shows even then."""
     section = _without_comments(SECTION.read_text(encoding="utf-8"))
-    picker = section.index('id="bulk-group"')
-    plus = section.index('id="bulk-group-new"')
+    heading = section.index('id="group-rows-heading"')
+    plus = section.index('id="group-rows-new"')
+    rows = section.index('id="group-rows"', heading + 1)
 
-    assert 0 < plus - picker < 900, (
-        f"the + is {plus - picker} characters from the group picker")
+    assert 0 < plus - heading < 900, (
+        f"the + is {plus - heading} characters from the group heading")
+    assert plus < rows, "the + is below the rows it makes"
 
 
 def test_the_navigation_no_longer_points_at_a_section_that_is_gone():

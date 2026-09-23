@@ -139,6 +139,13 @@ if (typeof document !== 'undefined') {
             nameField.focus();
         };
 
+        // THE BUG THE OPERATOR HIT (2026-09-24): he made a group in this dialog
+        // and the rest of the page did not know about it until a reload, because
+        // everything else reads /api/groups once on load. Saying so here is one
+        // line; making every reader poll would be a page that never settles.
+        const announce = () =>
+            document.dispatchEvent(new CustomEvent('ddc:groups-changed'));
+
         async function load() {
             let answer;
             try {
@@ -228,6 +235,7 @@ if (typeof document !== 'undefined') {
                 for (const box of boxes()) box.checked = false;
                 showCount();
                 await load();
+                announce();
             } else {
                 say(body.error || 'Error', 'danger');
             }
@@ -240,6 +248,7 @@ if (typeof document !== 'undefined') {
             if (answer.ok) {
                 say(texts.deleted || 'Deleted', 'success');
                 await load();
+                announce();
             } else {
                 say(body.error || 'Error', 'danger');
             }
@@ -256,6 +265,12 @@ if (typeof document !== 'undefined') {
         document.getElementById('group-select-none')?.addEventListener(
             'click', () => setVisible(false));
         containerField.addEventListener('change', showCount);
+        // The pencil on a group's row in the container table opens this dialog
+        // on that group, rather than leaving the operator to find it in the list.
+        document.addEventListener('ddc:edit-group', (event) => {
+            const wanted = (knownGroups || []).find(g => g.name === event.detail);
+            if (wanted) { loadIntoForm(wanted); }
+        });
         showCount();
         load();
     });
