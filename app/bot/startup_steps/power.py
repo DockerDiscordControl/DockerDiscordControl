@@ -36,8 +36,14 @@ async def grant_power_gift_step(context: StartupContext) -> None:
         if version:
             state = adapter.release_gift(version)
 
-        if state.power_level > 0:
-            logger.info("✅ Power gift granted: $%.2f Power", state.power_level)
+        # state.power_level is the power the mech HAS; `gift` is what was just
+        # given. Reporting the first under the word "granted" told the operator
+        # about a gift on every restart of a mech that simply had power - I read
+        # the line on the running installation and believed it myself.
+        gift = getattr(state, "gift", None)
+        if gift:
+            logger.info("✅ Power gift granted: $%.2f (power is now $%.2f)",
+                        gift, state.power_level)
             # REMOVED: Cache clear not needed - MechStatusCacheService reads from DB
             # The background loop will pick up the new value automatically on next refresh
             # Clearing the cache causes Web UI to show "OFFLINE" until loop refreshes

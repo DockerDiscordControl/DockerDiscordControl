@@ -175,7 +175,7 @@ services/mech/mech_high_res_service.py:1-248
 ## Section 23  (1932 lines, 9 pieces)
 services/mech/mech_reset_service.py:1-378
 services/mech/mech_service.py:1-32
-services/mech/mech_service_adapter.py:1-306
+services/mech/mech_service_adapter.py:1-320
 services/mech/mech_state_manager.py:1-221
 services/mech/mech_status_cache_service.py:1-466
 services/mech/mech_story_service.py:1-204
@@ -263,7 +263,7 @@ app/bot/startup_steps/__init__.py:1-52
 app/bot/startup_steps/commands.py:1-120
 app/bot/startup_steps/member_count.py:1-126
 app/bot/startup_steps/notifications.py:1-35
-app/bot/startup_steps/power.py:1-64
+app/bot/startup_steps/power.py:1-70
 app/bot/startup_steps/scheduler.py:1-27
 app/bot/token.py:1-123
 app/constants.py:1-17

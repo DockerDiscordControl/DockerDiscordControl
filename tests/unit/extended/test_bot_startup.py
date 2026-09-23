@@ -561,7 +561,10 @@ class TestStartupPower:
         # its own spec (tests/spec/test_a_release_gift_happens_once_per_version.py).
         monkeypatch.delenv("DDC_VERSION", raising=False)
         adapter = MagicMock()
-        adapter.power_gift.return_value = SimpleNamespace(power_level=500)
+        # `gift` is what was GIVEN; power_level is what the mech has. Only the
+        # first makes the step report a gift - see
+        # tests/spec/test_the_startup_log_only_claims_a_gift_that_happened.py.
+        adapter.power_gift.return_value = SimpleNamespace(power_level=500, gift=5.0)
 
         # Build a fake services.mech.mech_service_adapter module so the
         # in-function import resolves to our adapter.
