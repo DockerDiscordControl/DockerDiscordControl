@@ -404,7 +404,9 @@ class SchedulerService:
                 # executed" while it was executing.
                 if self._lateness(task, current_ts) > MISSED_RUN_GRACE_SECONDS:
                     try:
-                        reschedule_missed_task(task)
+                        # Writes tasks.json under the cross-process lock, so it
+                        # goes off the event loop like the read above (B8).
+                        await asyncio.to_thread(reschedule_missed_task, task)
                     except (RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
                         logger.error(f"Error rescheduling missed task {task.task_id}: {e}", exc_info=True)
                     continue

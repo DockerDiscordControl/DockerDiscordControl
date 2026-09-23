@@ -56,7 +56,7 @@ async def execute_group_task(task, timeout: int) -> bool:
     from services.config.group_service import get_group_service
     from services.docker_service.docker_action_service import docker_action_service_first
 
-    def _record(success: bool, error: Optional[str]) -> bool:
+    async def _record(success: bool, error: Optional[str]) -> bool:
         task.last_run_success = success
         task.last_run_error = error
         if error:
@@ -69,21 +69,22 @@ async def execute_group_task(task, timeout: int) -> bool:
             user="Scheduled Task",
             source="Scheduled Task",
             details=f"Task ID: {task.task_id}, Group: {task.container_name}, Error: {error or '-'}")
-        from services.scheduling.scheduler import _persist_executed_task
+        from services.scheduling.task_writeback import persist_executed_task_async
 
         task.update_after_execution()
-        _persist_executed_task(task)
+        # Off the event loop: the bot must keep answering while this is written.
+        await persist_executed_task_async(task)
         return success
 
     try:
         members = get_group_service().members_of(task.container_name)
     except OSError as e:
-        return _record(False, f"The groups could not be read: {e}")
+        return await _record(False, f"The groups could not be read: {e}")
 
     if not members.exists:
-        return _record(False, f"The group '{task.container_name}' does not exist any more.")
+        return await _record(False, f"The group '{task.container_name}' does not exist any more.")
     if not members.containers and not members.missing:
-        return _record(False, f"The group '{task.container_name}' has no containers in it.")
+        return await _record(False, f"The group '{task.container_name}' has no containers in it.")
 
     failed = []
     attempted = 0
@@ -114,4 +115,4 @@ async def execute_group_task(task, timeout: int) -> bool:
         problems.append(f"{task.action} failed for: {', '.join(failed)}")
     if members.missing:
         problems.append(f"no longer in DDC: {', '.join(members.missing)}")
-    return _record(not problems, "; ".join(problems) if problems else None)
+    return await _record(not problems, "; ".join(problems) if problems else None)

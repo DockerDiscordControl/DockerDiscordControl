@@ -23,6 +23,13 @@ from utils.time_utils import get_datetime_imports, get_current_time, get_utc_tim
 from utils.logging_utils import get_module_logger
 from services.config.config_service import load_config
 from services.scheduling.runtime import get_scheduler_runtime
+# The write-back rules live next door; _persist_async keeps the write off the
+# bot's event loop, _persist_executed_task is the blocking twin for sync callers.
+from services.scheduling.task_writeback import (
+    persist_executed_task as _persist_executed_task,
+    persist_executed_task_async as _persist_async,
+    store_system_task_state as _store_system_task_state,
+)
 # SERVICE FIRST: Use new Docker Action Service
 from services.docker_service.docker_action_service import docker_action_service_first
 from services.infrastructure.action_logger import log_user_action, user_action_logger
@@ -1480,29 +1487,6 @@ def delete_task(task_id: str) -> bool:
         return False
     return save_tasks(tasks)
 
-def _store_system_task_state(task: ScheduledTask) -> None:
-    """Remember a system task's run state across load_tasks() calls.
-
-    System tasks are not stored in tasks.json and are rebuilt on every load;
-    their last_run/next_run is kept in the scheduler runtime (per process).
-    """
-    _runtime.store_system_task_state(task.task_id, {
-        "last_run_ts": task.last_run_ts,
-        "next_run_ts": task.next_run_ts,
-        "last_run_success": task.last_run_success,
-        "last_run_error": task.last_run_error,
-    })
-
-def _persist_executed_task(task: ScheduledTask) -> bool:
-    """Save an executed (or missed) task; rules in task_writeback.py, which
-    writes only what the RUN produced so an edit during it survives."""
-    if task.is_system_task():
-        _store_system_task_state(task)
-        return True
-    from services.scheduling.task_writeback import save_run_result
-    return save_run_result(task)
-
-
 def _format_task_time(task: ScheduledTask, timestamp: Optional[float]) -> str:
     """Format a timestamp in the task's timezone for log and error messages."""
     try:
@@ -1767,7 +1751,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             task.last_run_success = True
             task.last_run_error = None
             task.update_after_execution()
-            _persist_executed_task(task)
+            await _persist_async(task)
             return True  # Return true so it reschedules normally
 
         # Execute donation message task
@@ -1811,7 +1795,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
                 )
 
             task.update_after_execution()
-            _persist_executed_task(task)
+            await _persist_async(task)
             return result
 
         except (ImportError, AttributeError, RuntimeError) as e:
@@ -1831,7 +1815,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             )
 
             task.update_after_execution()
-            _persist_executed_task(task)
+            await _persist_async(task)
             return False
 
     if task.target_is_group:
@@ -1858,13 +1842,13 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             details=f"Task ID: {task.task_id}, Cycle: {task.cycle}, Error: {disallowed_reason}"
         )
         task.update_after_execution()
-        _persist_executed_task(task)
+        await _persist_async(task)
         return False
 
     # BEFORE the action: a DDC restart mid-action acted a second time. A begun
     # run is not retried - see test_a_restart_does_not_run_a_task_twice.py
     task.last_run_ts = time.time()
-    _persist_executed_task(task)
+    await _persist_async(task)
 
     try:
         # Stop/restart get at least the container's StopTimeout + margin and are
@@ -1911,7 +1895,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
                 details=f"Task ID: {task.task_id}, Cycle: {task.cycle}, Error: {error_msg}"
             )
             task.update_after_execution()
-            _persist_executed_task(task)
+            await _persist_async(task)
             return False
 
         if result:
@@ -1931,7 +1915,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             )
 
             task.update_after_execution()
-            _persist_executed_task(task)
+            await _persist_async(task)
             return True
         else:
             logger.error(f"Execution failed for task {task.task_id}.")
@@ -1949,7 +1933,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             )
 
             task.update_after_execution()
-            _persist_executed_task(task)
+            await _persist_async(task)
             return False
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (docker service unavailable, action execution failures)
@@ -1971,7 +1955,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
         )
 
         task.update_after_execution()
-        _persist_executed_task(task)
+        await _persist_async(task)
         return False
     except (ValueError, TypeError, KeyError) as e:
         # Data errors (invalid task parameters, type mismatches, missing attributes)
@@ -1993,7 +1977,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
         )
 
         task.update_after_execution()
-        _persist_executed_task(task)
+        await _persist_async(task)
         return False
     except asyncio.CancelledError:
         # The scheduler is going down; this is not the task's failure.
@@ -2031,7 +2015,7 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
         # error is not more retryable than "Docker action failed", and that one
         # has never been retried on the next cycle either.
         task.update_after_execution()
-        _persist_executed_task(task)
+        await _persist_async(task)
         return False
 
 # --- Validation & Parsing Functions (Maintain and adjust if needed) ---

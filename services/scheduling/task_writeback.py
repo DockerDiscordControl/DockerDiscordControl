@@ -15,6 +15,9 @@ the meantime.
 
 from __future__ import annotations
 
+import asyncio
+
+from services.scheduling.runtime import get_scheduler_runtime
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('scheduler')
@@ -29,6 +32,44 @@ def _scheduler():
 
 SCHEDULE_FIELDS = ("container_name", "action", "cycle", "cron_string", "time_str",
                    "year_val", "month_val", "day_val", "weekday_val", "timezone_str")
+
+
+def store_system_task_state(task) -> None:
+    """Remember a system task's run state across load_tasks() calls.
+
+    System tasks are not stored in tasks.json and are rebuilt on every load;
+    their last_run/next_run is kept in the scheduler runtime (per process).
+    Memory only - this is the one write-back that touches no disk.
+    """
+    get_scheduler_runtime().store_system_task_state(task.task_id, {
+        "last_run_ts": task.last_run_ts,
+        "next_run_ts": task.next_run_ts,
+        "last_run_success": task.last_run_success,
+        "last_run_error": task.last_run_error,
+    })
+
+
+def persist_executed_task(task) -> bool:
+    """Save an executed (or missed) task. Blocking - see the async twin below."""
+    if task.is_system_task():
+        store_system_task_state(task)
+        return True
+    return save_run_result(task)
+
+
+async def persist_executed_task_async(task) -> bool:
+    """The same write, off the event loop.
+
+    The scheduler runs inside the BOT's loop, and this write is load_tasks()
+    plus save_tasks() under the cross-process lock, on a config directory that
+    is often a network mount. Left on the loop, the bot answered nothing - no
+    button, no gateway heartbeat - for as long as the disk took, twice per
+    task. The read at the top of the cycle was already moved off the loop.
+
+    Looked up through the module so a test that replaces
+    scheduler._persist_executed_task still gets its replacement.
+    """
+    return await asyncio.to_thread(_scheduler()._persist_executed_task, task)
 
 
 def save_run_result(task) -> bool:
