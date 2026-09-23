@@ -128,12 +128,15 @@ def test_donation_level_up_and_surplus_carryover(donation_env):
     assert result.level_changed
     assert result.old_level == 1
     assert result.new_level == 2
-    assert result.new_power == pytest.approx(0.5)
+    # Energy survives the climb since 2026-09-23: the $1.50 donated is the
+    # $1.50 in the battery, where this used to be the $0.50 surplus. Evolution
+    # still keeps only the surplus.
+    assert result.new_power == pytest.approx(1.5)
 
     snapshot = donation_env.progress_service.load_snapshot("main")
     assert snapshot.level == 2
     assert snapshot.evo_acc == 50
-    assert snapshot.power_acc == 50
+    assert snapshot.power_acc == 150
 
     assert donation_env.event_manager.events
     payload = donation_env.event_manager.events[-1]
@@ -170,9 +173,13 @@ def test_system_donation_only_affects_power(donation_env):
     state = donation_env.adapter.add_system_donation(amount=2.5, event_name="Anniversary Bonus")
 
     after = donation_env.progress_service.load_snapshot("main")
+    # The battery holds the level's goal; a system donation pays into energy
+    # alone, so it is the one thing that can reach the lid (2026-09-23).
+    capacity = donation_env.progress_service.battery_capacity_cents(after)
+    expected = base_power + 250 if capacity is None else min(base_power + 250, capacity)
     assert after.level == base_level
     assert after.evo_acc == base_evo
-    assert after.power_acc == base_power + 250
+    assert after.power_acc == expected
 
-    assert state.power_level == pytest.approx((base_power + 250) / 100)
+    assert state.power_level == pytest.approx(expected / 100)
     assert state.evolution_level == base_level

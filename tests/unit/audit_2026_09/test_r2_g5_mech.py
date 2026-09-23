@@ -266,7 +266,10 @@ def test_r5_4_exact_hit_bonus_not_counted_twice(ps, clock):
     svc = ps.ProgressService("main")
     live = svc.add_donation(3.0, idempotency_key="exact")  # level-1 goal is exactly $3
     assert live.level == 2
-    assert live.power_current == pytest.approx(1.0)  # $0 excess + $1 exact-hit bonus
+    # No bonus since 2026-09-23, and the energy survives the climb: the $3 that
+    # was donated is the $3 in the battery, where this used to read $0 excess
+    # plus $1 bonus.
+    assert live.power_current == pytest.approx(3.0)
     assert live.total_donated == pytest.approx(3.0)
 
     rebuilt = svc.rebuild_from_events()
@@ -290,17 +293,31 @@ def test_r5_4_system_donations_are_replayed(ps, clock):
     assert rebuilt.total_donated == pytest.approx(live.total_donated) == pytest.approx(2.0)
 
 
-def test_r5_4_deleted_bonus_is_removed_and_restored(ps, clock):
+def test_r5_4_a_bonus_from_an_older_version_still_counts(ps, clock):
+    """An ExactHitBonusGranted in an existing log survives an update.
+
+    DDC stopped granting the $1 exact-hit bonus on 2026-09-23 (energy survives
+    a level-up now, so there is nothing to make up for). Logs written by older
+    versions may still carry one, and a rebuild must not quietly take that
+    dollar off the mech - nor leave it there when the operator deletes it.
+    """
     svc = ps.ProgressService("main")
     live = svc.add_donation(3.0, idempotency_key="exact")
-    bonus_seq = next(e.seq for e in ps.read_events() if e.type == "ExactHitBonusGranted")
+    bonus = ps.Event(seq=ps.next_seq(), ts=ps.now_utc_iso(), type="ExactHitBonusGranted",
+                     mech_id="main",
+                     payload={"power_units": 100, "from_level": 1, "to_level": 2,
+                              "reason": "exact_level_up"})
+    ps.append_event(bonus)
 
-    deleted = svc.delete_donation(bonus_seq)
-    assert deleted.power_current == pytest.approx(live.power_current - 1.0)
+    with_bonus = svc.rebuild_from_events()
+    assert with_bonus.power_current == pytest.approx(live.power_current + 1.0)
+
+    deleted = svc.delete_donation(bonus.seq)
+    assert deleted.power_current == pytest.approx(live.power_current)
     assert deleted.level == live.level
 
-    restored = svc.delete_donation(bonus_seq)
-    assert restored.power_current == pytest.approx(live.power_current)
+    restored = svc.delete_donation(bonus.seq)
+    assert restored.power_current == pytest.approx(live.power_current + 1.0)
 
 
 def test_r5_4_rebuild_keeps_goals_priced_by_the_live_path(ps, clock):

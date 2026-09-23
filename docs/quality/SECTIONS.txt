@@ -182,7 +182,7 @@ services/mech/progress_paths.py:1-189
 # the 2,000 lines a section may hold. gifts.py joined on 2026-09-23: it was
 # split out of progress_service.py, which may only shrink.
 services/mech/progress/runtime.py:1-201
-services/mech/progress_service.py:1-1715
+services/mech/progress_service.py:1-1714
 
 ## Section 25  (1276 lines, 7 pieces)
 services/mech/speed_levels.py:1-427

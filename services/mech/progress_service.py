@@ -1524,7 +1524,6 @@ class ProgressService:
 
             last_time: Optional[datetime] = None  # last event time (anchor if power never changed)
             anchored = False  # a power event set the decay anchor
-            last_bonus = 0  # exact-hit bonus granted by the last replayed power event
             member_events: List[Event] = []  # member count samples replayed so far
             last_seq = 0
             for evt in ordered:
@@ -1532,15 +1531,6 @@ class ProgressService:
                 payload = evt.payload or {}
 
                 if evt.seq in deleted_seqs:
-                    if evt.type == "ExactHitBonusGranted" and last_bonus:
-                        # Deleted bonus: its donation is replayed without the bonus
-                        snap.power_acc = max(0, snap.power_acc - last_bonus)
-                    if evt.type in POWER_EVENT_TYPES or evt.type == "ExactHitBonusGranted":
-                        # The bonus only ever belongs to the power event right before it. A
-                        # skipped power event leaves no bonus to remove - keeping the previous
-                        # value would subtract an unrelated, earlier bonus when a donation and
-                        # its bonus are both deleted (V2 review B3).
-                        last_bonus = 0
                     continue
 
                 last_time = _event_time(evt.ts) or last_time
@@ -1549,12 +1539,21 @@ class ProgressService:
                     snap.last_user_count_sample = max(0, int(payload.get("member_count", 0) or 0))
                     member_events.append(evt)
                 elif evt.type in POWER_EVENT_TYPES:
-                    _, bonus_evt = apply_power_event(snap, evt, events=member_events, goals=goals)
-                    last_bonus = int(bonus_evt.payload.get("power_units", 0)) if bonus_evt else 0
+                    apply_power_event(snap, evt, events=member_events, goals=goals)
                     anchored = anchored or _event_time(evt.ts) is not None
                     logger.debug(f"Applied {evt.type} seq {evt.seq} (power: ${snap.power_acc/100:.2f}, "
                                  f"evo: ${snap.evo_acc/100:.2f}, level: {snap.level})")
-                # DonationDeleted, LevelUpCommitted, ExactHitBonusGranted: nothing to replay
+                elif evt.type == "ExactHitBonusGranted":
+                    # No new bonus is granted since 2026-09-23, but a log written
+                    # by an older version may carry one. It is replayed from the
+                    # event, so a rebuild does not quietly take $1 off a mech
+                    # that earned it - and a DELETED bonus event is skipped above,
+                    # which is what used to need a special case here.
+                    snap.power_acc += int(payload.get("power_units", 0) or 0)
+                    capacity = battery_capacity_cents(snap)
+                    if capacity is not None:
+                        snap.power_acc = min(snap.power_acc, capacity)
+                # DonationDeleted, LevelUpCommitted: nothing to replay
 
             if not anchored:
                 # Power never changed (it is 0): start the decay clock at the last event
