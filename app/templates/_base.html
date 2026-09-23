@@ -123,7 +123,14 @@ Licensed under the MIT License
         a { color: #61dafb; }
         hr { border-top: 1px solid #495057; opacity: 0.5; }
         label, h4, h5 { font-weight: bold; color: #dee2e6; } 
-        .btn-primary { background-color: #4299e1; border-color: #4299e1; font-weight: bold; } 
+        /* Dark text on this blue, not Bootstrap's white: white on #4299e1 is
+           3.05:1, under the 4.5:1 a normal text needs, and these are the
+           buttons the operator presses most - Save, group Save, bulk Apply.
+           #10243a on the same blue is well over the minimum. Checked by
+           tests/spec/test_the_panel_can_be_read_and_reached.py, which computes
+           the ratio rather than trusting this comment. */
+        .btn-primary { background-color: #4299e1; border-color: #4299e1; color: #10243a; font-weight: bold; }
+        .btn-primary:hover, .btn-primary:focus { background-color: #63b3ed; border-color: #63b3ed; color: #10243a; }
         .btn-secondary { background-color: #6c757d; border-color: #6c757d; }
         
         .logo-header img {

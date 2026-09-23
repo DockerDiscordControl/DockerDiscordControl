@@ -5,7 +5,7 @@
         <label class="form-check-label" for="enableHeartbeatSection">
             <strong>{{ _t('web.heartbeat.label') }}</strong>
         </label>
-        <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.label_tooltip') }}"></i>
+        <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.label_tooltip') }}" tabindex="0" role="button"></i>
     </div>
 
     <div class="collapse {% if config.heartbeat and config.heartbeat.enabled %}show{% endif %}" id="heartbeatCollapse">
@@ -24,14 +24,14 @@
 
         <div class="mb-3">
             <label for="heartbeat_ping_url" class="form-label">{{ _t('web.heartbeat.monitoring_url_label') }}</label>
-            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.monitoring_url_tooltip') }}"></i>
+            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.monitoring_url_tooltip') }}" tabindex="0" role="button"></i>
             <input type="url" class="form-control" id="heartbeat_ping_url" name="heartbeat_ping_url" value="{{ config.heartbeat.ping_url if config.heartbeat else '' }}" placeholder="https://hc-ping.com/your-uuid-here" pattern="https://.*">
             <p class="form-text mt-1"><small>{{ _t('web.heartbeat.monitoring_url_help') }}</small></p>
         </div>
 
         <div class="mb-3">
             <label for="heartbeat_interval" class="form-label">{{ _t('web.heartbeat.interval_label') }}</label>
-            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.interval_tooltip') }}"></i>
+            <i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ _t('web.heartbeat.interval_tooltip') }}" tabindex="0" role="button"></i>
             <input type="number" class="form-control" id="heartbeat_interval" name="heartbeat_interval" value="{{ config.heartbeat.interval if config.heartbeat else 5 }}" min="1" max="60">
             <p class="form-text mt-1"><small>{{ _t('web.heartbeat.interval_help') }}</small></p>
         </div>
