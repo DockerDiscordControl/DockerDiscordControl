@@ -47,7 +47,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGE = ROOT / "app" / "templates" / "config.html"
-NAV = ROOT / "app" / "templates" / "base.html"
+# The navigation's script moved to app/static/js/floating_nav.js on
+# 2026-09-23, when it grew past the inline budget. The markup stayed in
+# base.html.
+NAV = ROOT / "app" / "static" / "js" / "floating_nav.js"
 
 PANES = ("pane-discord", "pane-containers", "pane-automation", "pane-system")
 KEYS = ("web.tabs.discord", "web.tabs.containers", "web.tabs.automation",
