@@ -36,6 +36,40 @@ def _iter_event_log(event_log) -> Iterator[Dict[str, Any]]:
             if isinstance(event, dict):
                 yield event
 
+def _usable(event: Dict[str, Any]) -> bool:
+    """True when this line can be read as a ledger entry at all.
+
+    _iter_event_log tolerates a line that cannot be PARSED. A line that parses
+    as a dict but carries no usable seq - a hand edit, a restored backup, an
+    older schema - used to reach donations_map[None], and sorting that raised
+    TypeError, which is in none of this module's except clauses: the whole
+    donation history page answered 500, including the delete and restore
+    buttons that are the only way to repair the ledger from the panel.
+
+    Nothing is repaired here. The event log is append-only and is not
+    rewritten; the line is left out of the reading and said out loud.
+    """
+    seq = event.get('seq')
+    if not isinstance(seq, int) or isinstance(seq, bool):
+        logger.warning(f"Donation event without a usable seq - left out of the "
+                       f"history: {str(event)[:120]}")
+        return False
+    return True
+
+
+def _cents(payload: Dict[str, Any], field: str) -> float:
+    """The amount in dollars, or 0.00 when the ledger line does not carry one.
+
+    Same class as _usable: "500" instead of 500 turned into a TypeError from
+    a plain division and took the page down with it.
+    """
+    value = (payload or {}).get(field, 0)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        logger.warning(f"Donation event with an unreadable {field} ({value!r}) - counted as 0")
+        return 0.0
+    return value / 100.0
+
+
 @dataclass(frozen=True)
 class ServiceResult:
     """Standard service result wrapper."""
@@ -106,7 +140,8 @@ class DonationManagementService:
             if event_log.exists():
                 for event in _iter_event_log(event_log):
                     # Include ALL donation types for transparency
-                    if event.get('type') in _DONATION_EVENT_TYPES + ('DonationDeleted',):
+                    if event.get('type') in _DONATION_EVENT_TYPES + ('DonationDeleted',) \
+                            and _usable(event):
                         all_events.append(event)
 
             # Build nested structure: Donations with their deletion events
@@ -122,7 +157,7 @@ class DonationManagementService:
                     donations_map[seq] = {
                         'seq': seq,
                         'donor_name': payload.get('donor', 'Anonymous'),
-                        'amount': payload.get('units', 0) / 100.0,  # cents → dollars
+                        'amount': _cents(payload, 'units'),
                         'timestamp': event.get('ts', ''),
                         'donation_type': 'manual',
                         'is_deleted': False,
@@ -140,7 +175,7 @@ class DonationManagementService:
                     donations_map[seq] = {
                         'seq': seq,
                         'donor_name': gift_name,
-                        'amount': payload.get('power_units', 0) / 100.0,  # cents → dollars
+                        'amount': _cents(payload, 'power_units'),
                         'timestamp': event.get('ts', ''),
                         'donation_type': 'power_gift',
                         'is_deleted': False,
@@ -152,7 +187,7 @@ class DonationManagementService:
                     donations_map[seq] = {
                         'seq': seq,
                         'donor_name': f"🤖 {payload.get('event_name', 'System Event')}",
-                        'amount': payload.get('power_units', 0) / 100.0,  # cents → dollars
+                        'amount': _cents(payload, 'power_units'),
                         'timestamp': event.get('ts', ''),
                         'donation_type': 'system',
                         'is_deleted': False,
@@ -166,7 +201,7 @@ class DonationManagementService:
                     donations_map[seq] = {
                         'seq': seq,
                         'donor_name': f"🎯 Exact Hit Bonus (Level {from_level} → {to_level})",
-                        'amount': payload.get('power_units', 0) / 100.0,  # cents → dollars
+                        'amount': _cents(payload, 'power_units'),
                         'timestamp': event.get('ts', ''),
                         'donation_type': 'exact_hit_bonus',
                         'is_deleted': False,
@@ -179,7 +214,7 @@ class DonationManagementService:
                             'seq': event.get('seq'),
                             'deleted_seq': deleted_seq,
                             'donor_name': event.get('payload', {}).get('donor', 'Unknown'),
-                            'amount': event.get('payload', {}).get('units', 0) / 100.0,
+                            'amount': _cents(event.get('payload', {}), 'units'),
                             'timestamp': event.get('ts', ''),
                             'reason': event.get('payload', {}).get('reason', 'admin_deletion'),
                             'donation_type': 'deletion',
@@ -389,13 +424,17 @@ class DonationManagementService:
                 for event in _iter_event_log(event_log):
                     event_type = event.get('type')
 
-                    # Include ALL donation types
-                    if event_type in _DONATION_EVENT_TYPES:
+                    # Include ALL donation types. Same guard as the history
+                    # reader: a line without a usable seq would merge every such
+                    # line into ONE entry here (the count and the average are
+                    # built from these keys), and a string amount would raise
+                    # from the division.
+                    if event_type in _DONATION_EVENT_TYPES and _usable(event):
                         seq = event.get('seq')
                         payload = event.get('payload', {})
                         amount_key = 'units' if event_type == 'DonationAdded' else 'power_units'
                         donations_map[seq] = {
-                            'amount': payload.get(amount_key, 0) / 100.0,
+                            'amount': _cents(payload, amount_key),
                             'is_deleted': False
                         }
                     elif event_type == 'DonationDeleted':

@@ -166,7 +166,7 @@ services/docker_status/models.py	397	pass1:s17:plan pass2:s17:1-376
 services/docker_status/performance_service.py	234	pass1:s17:plan pass2:s17:1-234
 services/donation/__init__.py	24	pass2:s17:1-24
 services/donation/donation_config.py	50	pass1:s17:plan pass2:s17:1-41
-services/donation/donation_management_service.py	452	pass1:s17:plan pass2:s17:1-440  [6 of 446 lines never in a package]
+services/donation/donation_management_service.py	491	pass1:s17:plan pass2:s17:1-440  [6 of 446 lines never in a package]
 services/donation/donation_utils.py	89	pass1:s17:plan pass2:s17:1-62
 services/donation/notification_service.py	98	pass1:s17:plan pass2:s17:1-79
 services/donation/unified/__init__.py	30	pass2:s17:1-30
