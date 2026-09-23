@@ -2128,15 +2128,10 @@ def _ns(success=True, **kwargs):
 class TestMainRoutesAdditional:
     """Extra routes not covered by test_main_automation_security_routes.py."""
 
-    def test_logout_returns_401_with_realm(self, main_app):
-        resp = main_app.test_client().get("/logout")
-        assert resp.status_code == 401
-        assert "WWW-Authenticate" in resp.headers
-        assert "DDC-logout-" in resp.headers["WWW-Authenticate"]
-
-    def test_logout_post_also_works(self, main_app):
-        resp = main_app.test_client().post("/logout")
-        assert resp.status_code == 401
+    # /logout moved to login_routes.py on 2026-09-23 with the form login, and
+    # its answer now depends on how the caller got in. Both cases are covered
+    # in tests/unit/security/test_bundle3_security.py, where the app that
+    # registers login_bp lives; main_app deliberately registers main_bp only.
 
     def test_setup_get_redirects_when_password_already_set(
         self, main_app, monkeypatch

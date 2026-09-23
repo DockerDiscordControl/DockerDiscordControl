@@ -24,7 +24,7 @@ except (TypeError, ValueError):
 
 logger = logging.getLogger("ddc.web.security")
 
-_IDLE_EXEMPT_PATHS = ("/static/", "/health", "/logout")
+_IDLE_EXEMPT_PATHS = ("/static/", "/health", "/logout", "/login")
 
 
 def install_security_handlers(app: Flask) -> None:
@@ -54,21 +54,22 @@ def install_security_handlers(app: Flask) -> None:
             session.clear()
             if csrf_token:
                 session["csrf_token"] = csrf_token
-            # NOT "please re-authenticate". The panel's login is HTTP Basic,
-            # and a browser replays those credentials for the same realm by
-            # itself - there is no way for a server to make it ask again. With
-            # 2FA switched ON this timeout is real: session.clear() also drops
-            # two_factor_ok and the guard sends the operator to /security/2fa/
-            # verify for a fresh code. Without 2FA it costs exactly one 401.
-            # Saying otherwise would be reporting a control that did not
-            # happen, which is worse here than anywhere else.
+            # Since the form login (2026-09-23) this timeout is real for a
+            # form user: session.clear() drops the auth marker too, and the
+            # next request lands on /login. It stays weaker for a browser that
+            # logged in with HTTP Basic - still a fallback by operator
+            # decision - because such a browser replays its credentials for
+            # the same realm by itself, and no server can make it stop. With
+            # 2FA on, both cases end at a fresh code. Saying otherwise would
+            # be reporting a control that did not happen.
             logger.info("Session went idle after %ss; the session state was cleared",
                         _SESSION_IDLE_TIMEOUT_SECONDS)
             response = jsonify({
                 "error": "session_idle_timeout",
                 "message": ("This session was idle for too long and its state was "
-                            "cleared. With two-factor authentication switched on, "
-                            "the next page asks for a fresh code."),
+                            "cleared. The next page asks you to log in again; a "
+                            "browser that was logged in with HTTP Basic may send "
+                            "its stored credentials by itself."),
             })
             response.status_code = 401
             response.headers["WWW-Authenticate"] = 'Basic realm="DDC"'

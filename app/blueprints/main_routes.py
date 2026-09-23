@@ -1069,26 +1069,6 @@ def delete_donation(seq):
 # LOGOUT
 # ========================================
 
-@main_bp.route('/logout', methods=['GET', 'POST'])
-def logout():
-    """Clear server-side session and force HTTP Basic Auth re-prompt.
-
-    HTTP Basic credentials are cached by the browser; returning 401 with a
-    fresh realm string is the most portable way to make the browser drop them
-    and re-prompt the user.
-    """
-    user = session.get('username') or 'unknown'
-    session.clear()
-    current_app.logger.info("User logout: %s", user)
-    response = jsonify({
-        'success': True,
-        'message': 'Logged out. Close the browser tab to fully clear cached credentials.',
-    })
-    response.status_code = 401
-    response.headers['WWW-Authenticate'] = f'Basic realm="DDC-logout-{int(datetime.now().timestamp())}"'
-    return response
-
-
 # ========================================
 # FIRST-TIME SETUP ROUTES
 # ========================================

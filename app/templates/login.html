@@ -1,0 +1,39 @@
+{% extends '_base.html' %}
+
+{% block title %}DDC Login{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="card p-4" style="width: 100%; max-width: 420px;">
+        <div class="text-center mb-3">
+            <img src="{{ url_for('static', filename='ddc_web.png') }}" alt="DDC" style="max-height: 72px;">
+            <h4 class="mt-3 mb-0">DockerDiscordControl</h4>
+        </div>
+
+        {% if error == 'wrong' %}
+        <div class="alert alert-danger py-2" role="alert">{{ _t('web.login.wrong') }}</div>
+        {% elif error == 'rate_limited' %}
+        <div class="alert alert-warning py-2" role="alert">{{ _t('web.login.rate_limited') }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login.login_submit') }}">
+            {# CSRFProtect covers every route, this form included. #}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ next }}">
+            <div class="mb-3">
+                <label for="username" class="form-label">{{ _t('web.login.user') }}</label>
+                <input type="text" class="form-control" id="username" name="username"
+                       autocomplete="username" autofocus required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">{{ _t('web.login.password') }}</label>
+                <input type="password" class="form-control" id="password" name="password"
+                       autocomplete="current-password" required>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">{{ _t('web.login.submit') }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

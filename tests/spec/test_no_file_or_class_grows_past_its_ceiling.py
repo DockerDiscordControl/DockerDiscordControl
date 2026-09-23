@@ -36,7 +36,6 @@ FILE_EXCEPTIONS = {
     "services/scheduling/scheduler.py": 2243,
     "services/mech/animation_cache_service.py": 1846,
     "services/mech/progress_service.py": 1740,
-    "app/blueprints/main_routes.py": 1514,
 }
 CLASS_EXCEPTIONS = {
     "services/mech/animation_cache_service.py::AnimationCacheService": 1762,

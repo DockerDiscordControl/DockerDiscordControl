@@ -27,8 +27,20 @@ reporting a save that did not happen - it is just pointed at a security
 control, where believing it is worse. Whether the panel should get a real form
 login instead is an operator decision and is written down as one.
 
-HOW THIS TEST CAN FAIL: it reads the answer with 2FA off and looks for a
-promise of re-authentication. Finding one is red.
+REVISITED 2026-09-23: the operator decided on the form login, and it is built.
+The world this file described has changed in half: session.clear() now also
+drops the auth marker, so for a FORM user the idle timeout really does log
+them out and the next page is /login. For a browser that came in with HTTP
+Basic - still a fallback by operator decision - nothing changed: it replays
+its credentials by itself and no server can stop it.
+
+So the rule is no longer "never promise a login". It is: promise one only
+while also naming the case where it does not hold. A message that promises
+and stays silent about Basic is the same overclaim as before, and the first
+wording written for the form login did exactly that - it was caught here.
+
+HOW THIS TEST CAN FAIL: it reads the answer with 2FA off. A promise of
+re-authentication that does not also name HTTP Basic is red.
 
 COUNTER-CHECK (2026-09-23): red before - "Please re-authenticate." The other
 tests keep what is real: with 2FA the second factor is cleared, the CSRF token
@@ -72,16 +84,38 @@ def _go_idle(client):
 
 
 def test_the_answer_does_not_promise_a_login_it_cannot_ask_for(client):
-    """THE FINDING: 'Please re-authenticate' - the browser never asks."""
+    """THE FINDING, and what is left of it: a form user IS logged out now, a
+    Basic browser is not. The message may say the first only if it says the
+    second too."""
     _go_idle(client)
 
     response = client.get("/anywhere")
     message = response.get_json()["message"].lower()
 
     assert response.status_code == 401
-    assert "re-authenticate" not in message and "log in again" not in message, (
-        f"the panel promises a login that HTTP Basic cannot make a browser ask "
-        f"for: {message!r}")
+    promises_a_login = "re-authenticate" in message or "log in again" in message
+    if promises_a_login:
+        assert "basic" in message, (
+            f"the panel promises a login that a browser holding HTTP Basic "
+            f"credentials will not be asked for, and does not say so: {message!r}")
+
+
+def test_the_idle_timeout_really_drops_a_form_login(client):
+    """The half that became real on 2026-09-23: the auth marker goes with the
+    rest of the session, so the next page is the form."""
+    from app.auth import SESSION_AUTH_KEY
+
+    client.get("/anywhere")
+    with client.session_transaction() as session:
+        session["last_activity"] = time.time() - 10_000
+        session[SESSION_AUTH_KEY] = "a-binding"
+
+    client.get("/anywhere")
+
+    with client.session_transaction() as session:
+        assert SESSION_AUTH_KEY not in session, (
+            "a form login survived the idle timeout - then the timeout is "
+            "inert for the way most operators get in")
 
 
 def test_the_answer_still_says_the_session_went_idle(client):

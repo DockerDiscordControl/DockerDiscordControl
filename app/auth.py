@@ -6,7 +6,7 @@
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 
-from flask import current_app, jsonify, request
+from flask import current_app, jsonify, redirect, request, session, url_for
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash
 from services.config.config_service import load_config
@@ -18,7 +18,63 @@ import threading
 import time
 import discord
 
-auth = HTTPBasicAuth()
+# The session key that carries a finished form login, and what it holds.
+#
+# Not a flag: the value is a BINDING to the stored password hash, the same way
+# the second factor binds its own marker (app/blueprints/two_factor_routes.py).
+# A flag would outlive a password change - the one moment every session has to
+# end - and a cookie is client-side, so "any truthy value" would be a hole.
+SESSION_AUTH_KEY = "web_authenticated"
+
+
+def password_binding():
+    """sha256 of the stored password hash, or None when none is configured.
+
+    None means no session can be valid: on a fresh install, or when config/
+    could not be read, the panel is not open to anybody holding a cookie.
+    """
+    stored = (load_config() or {}).get("web_ui_password_hash")
+    if not stored:
+        return None
+    return hashlib.sha256(stored.encode()).hexdigest()[:24]
+
+
+def session_user():
+    """The user this session is logged in as, or None.
+
+    Outside a request context there is no session, and asking for one raises;
+    an auth check that cannot see a session simply has none.
+    """
+    try:
+        marker = session.get(SESSION_AUTH_KEY)
+    except RuntimeError:
+        return None
+    if not marker:
+        return None
+    binding = password_binding()
+    if binding is None or not hmac.compare_digest(str(marker), binding):
+        return None
+    return (load_config() or {}).get("web_ui_user", "admin")
+
+
+class SessionOrBasicAuth(HTTPBasicAuth):
+    """HTTP Basic, plus a finished form login.
+
+    login_required() calls authenticate() and nothing else, so this one method
+    is the whole hook: all 75 @auth.login_required decorators stay as they are
+    and current_user() goes on working. Basic stays as the fallback (operator
+    decision 2026-09-23) so curl, scripts and the Unraid integrations that pass
+    -u admin:... keep working.
+    """
+
+    def authenticate(self, auth, stored_password):
+        user = session_user()
+        if user is not None:
+            return user
+        return super().authenticate(auth, stored_password)
+
+
+auth = SessionOrBasicAuth()
 
 # --- Verified-credential cache -------------------------------------------------------------
 #
@@ -239,6 +295,12 @@ def verify_password(username, password):
     logger.warning(f"Failed login attempt for user: {username}")
     return None
 
+def _wants_json():
+    """Same split the second factor uses, and for the same reason."""
+    return (request.is_json or request.path.startswith("/api/")
+            or request.accept_mimetypes.best == "application/json")
+
+
 @auth.error_handler
 def auth_error(status):
     """Enhanced auth error handler with Unraid-friendly setup instructions."""
@@ -267,4 +329,9 @@ def auth_error(status):
     except (RuntimeError, discord.Forbidden, discord.HTTPException, discord.NotFound):
         pass  # Continue with normal auth error
 
+    # A browser gets the form; a fetch() gets the 401 it can read. Answering a
+    # fetch with a redirect to an HTML page makes it fail on something
+    # unrelated - the panel would report a parse error for a login problem.
+    if not _wants_json():
+        return redirect(url_for("login.login_page", next=request.full_path.rstrip("?")))
     return jsonify(message="Authentication Required"), status

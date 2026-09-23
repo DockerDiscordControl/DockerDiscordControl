@@ -36,7 +36,11 @@ SESSION_KEY = "two_factor_ok"
 ISSUER = "DockerDiscordControl"
 # Paths the second factor never stands in front of: the code page itself, what
 # it needs to render, the container healthcheck and the first-time setup.
-EXEMPT_PREFIXES = ("/static/", "/security/2fa/verify", "/health", "/setup", "/logout")
+EXEMPT_PREFIXES = ("/static/", "/security/2fa/verify", "/health", "/setup", "/logout",
+                   # The password comes first; sending an unauthenticated
+                   # browser to the code page instead of the form leaves it
+                   # with nothing to type.
+                   "/login")
 
 
 def _binding() -> str:

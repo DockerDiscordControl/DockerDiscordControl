@@ -44,12 +44,15 @@ def isolated_web_app(monkeypatch):
         "app.utils.web_helpers.setup_action_logger", lambda app: None
     )
 
-    # Only register the main blueprint so /setup, /logout exist without dragging
-    # the whole service stack.
+    # Only the blueprints these tests need, so /setup and /logout exist without
+    # dragging the whole service stack. login_bp joined on 2026-09-23: /logout
+    # moved there with the form login, because logout belongs beside login.
     def register_only_main_blueprint(app):
+        from app.blueprints.login_routes import login_bp
         from app.blueprints.main_routes import main_bp
 
         app.register_blueprint(main_bp)
+        app.register_blueprint(login_bp)
 
     monkeypatch.setattr(
         "app.web.blueprints.register_blueprints", register_only_main_blueprint
@@ -300,15 +303,35 @@ class TestSessionIdleTimeoutKeepsCsrfToken:
 
 
 class TestLogoutEndpoint:
-    """/logout always returns 401 + WWW-Authenticate and clears the session."""
+    """/logout clears the session, and answers by how the caller got in.
 
-    def test_logout_returns_401_with_dynamic_realm(self, isolated_web_app):
+    REVISITED 2026-09-23 with the form login. This class said "/logout ALWAYS
+    returns 401 + WWW-Authenticate", and that was the whole contract while the
+    only way in was HTTP Basic: a browser replays those credentials by itself,
+    so the 401 with a fresh realm is the only portable way to make it stop.
+
+    Basic is still a fallback (operator decision), so that answer is still
+    right - for a caller that brought credentials. A form user has no
+    credentials to forget; their session WAS the login, and it is gone. A 401
+    they cannot answer is a dead end, so they are sent to the form.
+    """
+
+    def test_a_caller_with_credentials_still_gets_the_realm(self, isolated_web_app):
+        import base64
+
         client = isolated_web_app.test_client()
-        resp = client.post("/logout")
+        token = base64.b64encode(b"admin:whatever").decode()
+        resp = client.post("/logout", headers={"Authorization": f"Basic {token}"})
         assert resp.status_code == 401
         www = resp.headers.get("WWW-Authenticate", "")
         assert www.startswith('Basic realm="DDC-logout-')
         assert www.endswith('"')
+
+    def test_a_form_user_is_sent_to_the_form(self, isolated_web_app):
+        resp = isolated_web_app.test_client().post("/logout")
+
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]
 
     def test_logout_clears_session_keys(self, isolated_web_app):
         client = isolated_web_app.test_client()
@@ -320,7 +343,7 @@ class TestLogoutEndpoint:
             sess["username"] = "admin"
 
         resp = client.post("/logout")
-        assert resp.status_code == 401
+        assert resp.status_code in (302, 401)
 
         with client.session_transaction() as sess:
             # session.clear() removes everything; the security
@@ -332,10 +355,13 @@ class TestLogoutEndpoint:
             assert "username" not in sess
             assert "last_activity" not in sess
 
-    def test_logout_get_also_returns_401(self, isolated_web_app):
-        # The route accepts GET as well — both must produce the 401 contract.
+    def test_logout_get_also_works(self, isolated_web_app):
+        # The route accepts GET as well - both methods take the same way out.
+        import base64
+
         client = isolated_web_app.test_client()
-        resp = client.get("/logout")
+        token = base64.b64encode(b"admin:whatever").decode()
+        resp = client.get("/logout", headers={"Authorization": f"Basic {token}"})
         assert resp.status_code == 401
         assert "WWW-Authenticate" in resp.headers
 
