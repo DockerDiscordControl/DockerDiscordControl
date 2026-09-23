@@ -166,7 +166,10 @@ class ScheduledTask:
         # Whether the LAST is_valid() fell over rather than deciding. In slots
         # because this class has no __dict__ - setting it without declaring it
         # here raises inside __init__, which calls is_valid() (review E5).
-        'validation_errored'
+        'validation_errored',
+        # True when container_name names a GROUP, not a container: the name
+        # stays there so list, log and validation keep working.
+        'target_is_group'
     ]
 
     def __init__(self,
@@ -190,9 +193,11 @@ class ScheduledTask:
                  weekday: Optional[int] = None,
                  is_active: bool = True,
                  last_run_success: Optional[bool] = None,
-                 last_run_error: Optional[str] = None):
+                 last_run_error: Optional[str] = None,
+                 target_is_group: bool = False):
         self.task_id = task_id or str(uuid.uuid4())
         self.container_name = container_name
+        self.target_is_group = bool(target_is_group)
         self.action = action
         self.cycle = cycle
         self.status = status
@@ -456,6 +461,7 @@ class ScheduledTask:
             "created_at_local": self.created_at_dt.strftime("%Y-%m-%d %H:%M:%S %Z"), # Local time with timezone for display
             "status": self.status,
             "is_active": self.is_active,  # New field for active/inactive status
+            "target_is_group": self.target_is_group,  # then "container" names a group
             # Internal fields for Discord etc. not in standard Web UI JSON format.
             # Could be added optionally if needed.
             "_description": self.description,
@@ -524,7 +530,8 @@ class ScheduledTask:
             weekday=data.get("weekday"),
             is_active=data.get("is_active", True),  # Active by default, if not specified
             last_run_success=data.get("last_run_success"),
-            last_run_error=data.get("last_run_error")
+            last_run_error=data.get("last_run_error"),
+            target_is_group=bool(data.get("target_is_group", False))
         )
 
     def _parse_task_time(self) -> Optional[tuple]:
@@ -1832,6 +1839,11 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             task.update_after_execution()
             _persist_executed_task(task)
             return False
+
+    if task.target_is_group:
+        # Imported here: group_tasks needs names from this module
+        from services.scheduling.group_tasks import execute_group_task
+        return await execute_group_task(task, timeout)
 
     # Re-check the container's allowed actions at execution time for tasks created
     # in Discord: the config may have changed since the task was created. Disallowed

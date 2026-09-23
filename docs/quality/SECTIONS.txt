@@ -187,7 +187,7 @@ services/mech/progress_paths.py:1-189
 services/mech/progress/runtime.py:1-201
 services/mech/progress_service.py:1-1714
 
-## Section 25  (1276 lines, 7 pieces)
+## Section 25  (1370 lines, 8 pieces)
 services/mech/speed_levels.py:1-427
 services/member_count/__init__.py:1-17
 services/member_count/service.py:1-296
@@ -195,12 +195,15 @@ services/scheduling/__init__.py:1-36
 services/scheduling/donation_message_service.py:1-228
 services/scheduling/runtime.py:1-231
 services/scheduling/schedule_helpers.py:1-71
+# group_tasks.py split out of scheduler.py on 2026-09-23 (that file is on the
+# size list and may only shrink); sections 26 and 27 are full.
+services/scheduling/group_tasks.py:1-94
 
 ## Section 26  (1745 lines, 1 piece)
 services/scheduling/scheduler.py:1-1745
 
-## Section 27  (1979 lines, 4 pieces)
-services/scheduling/scheduler.py:1746-2248
+## Section 27  (1991 lines, 4 pieces)
+services/scheduling/scheduler.py:1746-2260
 services/scheduling/scheduler_service.py:1-556
 services/status/status_cache_service.py:1-225
 services/translation/translation_config_service.py:1-687
