@@ -78,7 +78,7 @@ services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-576
 services/config/config_cache_service.py:1-177
 
-## Section 12  (1478 lines, 3 pieces)
+## Section 12  (1667 lines, 4 pieces)
 services/config/channel_roles.py:1-38
 # channel_roles.py and own_actions.py sit here, not with the rest of their
 # directories:
@@ -87,6 +87,9 @@ services/automation/own_actions.py:1-70
 services/config/config_form_parser_service.py:1-576
 services/config/config_loader_service.py:1-481
 services/config/config_migration_service.py:1-466
+# group_service.py joined on 2026-09-23 (new: the operator's own container
+# groups); section 13, where its neighbours sit, is at 1,863 of 2,000.
+services/config/group_service.py:1-189
 
 ## Section 13  (1863 lines, 5 pieces)
 services/config/config_service.py:1-1265
