@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Fejl ved behandling af stop alle-forespørgsel.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Fejl ved genskabelse af kontrolpanelet. Se logfilerne for detaljer.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Fejl ved afsendelse af donationsmeddelelse. Prøv igen senere.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Fejl ved visning af kontroloversigt.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Kunne ikke slette opgaven **{task_description}**. Den findes muligvis ikke længere.",

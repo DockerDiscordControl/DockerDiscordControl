@@ -555,8 +555,23 @@ class SlashCommandsMixin:
             except Exception:
                 await ctx.followup.send(embed=embed)
 
-        except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
+        except Exception as e:  # noqa: BLE001
+            # Broad on purpose, and it ANSWERS. This was the only command whose
+            # handler just logged, while the global handler steps aside for
+            # donation commands believing they answer themselves. Both doors
+            # were shut: the user watched Discord's "thinking" state for ever,
+            # tried again, hit the cooldown - which does answer - and concluded
+            # the bot was slow. The mech service also raises DDCBaseException,
+            # which the old three-type tuple did not cover.
             logger.error(f"Error in donate command: {e}", exc_info=True)
+            try:
+                await ctx.followup.send(
+                    _("❌ The donation panel could not be shown. The reason is in "
+                      "the DDC log."),
+                    ephemeral=True)
+            except (discord.errors.DiscordException, RuntimeError) as answer_error:
+                # Nothing left to answer with - the channel may forbid even this.
+                logger.error(f"Could not tell the user either: {answer_error}")
 
     @commands.slash_command(name="info", description=_("Show container information"), guild_ids=get_guild_id())
     async def info_command(self, ctx: discord.ApplicationContext,

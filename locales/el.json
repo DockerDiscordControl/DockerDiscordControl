@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Σφάλμα επεξεργασίας αιτήματος διακοπής όλων.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Σφάλμα κατά την αναδημιουργία του πίνακα ελέγχου. Δες τα logs για λεπτομέρειες.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Σφάλμα αποστολής ανακοίνωσης δωρεάς. Δοκίμασε ξανά αργότερα.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Σφάλμα εμφάνισης επισκόπησης ελέγχου.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Η διαγραφή της εργασίας **{task_description}** απέτυχε. Ίσως δεν υπάρχει πλέον.",

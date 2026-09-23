@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Kesalahan memproses permintaan hentikan semua.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Kesalahan saat membuat ulang panel kontrol. Periksa log untuk detailnya.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Kesalahan mengirim siaran donasi. Silakan coba lagi nanti.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Kesalahan menampilkan ringkasan kontrol.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Gagal menghapus tugas **{task_description}**. Tugas mungkin sudah tidak ada.",

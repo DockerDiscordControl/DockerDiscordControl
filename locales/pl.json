@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Błąd przetwarzania żądania zatrzymania wszystkich.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Błąd podczas ponownego generowania panelu sterowania. Sprawdź logi, aby poznać szczegóły.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Błąd wysyłania transmisji darowizny. Spróbuj ponownie później.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Błąd wyświetlania przeglądu sterowania.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Nie udało się usunąć zadania **{task_description}**. Być może już nie istnieje.",

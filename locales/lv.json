@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Kļūda, apstrādājot visu apturēšanas pieprasījumu.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Kļūda, atkārtoti ģenerējot vadības paneli. Sīkāku informāciju skatiet žurnālos.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Kļūda, nosūtot ziedojuma paziņojumu. Lūdzu, mēģiniet vēlāk.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Kļūda, parādot vadības pārskatu.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Neizdevās izdzēst uzdevumu **{task_description}**. Iespējams, tas vairs nepastāv.",

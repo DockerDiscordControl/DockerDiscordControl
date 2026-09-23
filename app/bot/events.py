@@ -103,6 +103,12 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
             return
 
         if is_donation_command:
+            # Stepping aside so the user is not told the same thing twice - but
+            # NOT going quiet. This return used to sit before both logger.error
+            # calls below, so an error a donation command did not catch itself
+            # left no answer AND no log line at all.
+            runtime.logger.error("Command Error in '%s': %s", ctx.command, error,
+                                 exc_info=True)
             return
 
         if isinstance(error, discord.ApplicationCommandError):

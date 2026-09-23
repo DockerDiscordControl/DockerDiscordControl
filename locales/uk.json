@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Помилка обробки запиту на зупинку усього.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Помилка повторного створення панелі керування. Перевірте логи для деталей.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Помилка надсилання оголошення про донат. Спробуйте пізніше.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ Помилка показу огляду керування.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Не вдалося видалити завдання **{task_description}**. Можливо, воно вже не існує.",

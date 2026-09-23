@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ Fehler bei der Verarbeitung der Stopp-Anfrage.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ Fehler beim Neugenerieren des Kontrollpanels. Details findest du in den Logs.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ Fehler beim Senden der Spendenankündigung. Bitte später erneut versuchen.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ Das Spendenfenster konnte nicht angezeigt werden. Der Grund steht im DDC-Log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Deine Spende **wurde verbucht** - nur die Ankündigung ist fehlgeschlagen. Bitte schicke sie NICHT noch einmal ab.",
   "❌ Error showing control overview.": "❌ Fehler beim Anzeigen der Kontrollübersicht.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ Aufgabe **{task_description}** konnte nicht gelöscht werden. Sie existiert möglicherweise nicht mehr.",

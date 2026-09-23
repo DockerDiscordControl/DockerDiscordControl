@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ خطا در پردازش درخواست توقف همه.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ خطا در ایجاد مجدد پنل کنترل. برای جزئیات، لاگ‌ها را بررسی کنید.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ خطا در ارسال پخش کمک مالی. لطفاً بعداً دوباره امتحان کنید.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ خطا در نمایش نمای کلی کنترل.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ حذف وظیفه **{task_description}** ناموفق بود. ممکن است دیگر وجود نداشته باشد.",

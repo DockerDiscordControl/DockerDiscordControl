@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ 모두 중지 요청을 처리하는 중 오류가 발생했습니다.",
   "❌ Error regenerating control panel. Check logs for details.": "❌ 제어판을 다시 생성하는 중 오류가 발생했습니다. 자세한 내용은 로그를 확인해 주세요.",
   "❌ Error sending donation broadcast. Please try again later.": "❌ 기부 공지를 전송하는 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ 제어 개요를 표시하는 중 오류가 발생했습니다.",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ 작업 **{task_description}**을(를) 삭제하지 못했습니다. 이미 존재하지 않을 수 있습니다.",

@@ -1546,6 +1546,7 @@
   "❌ Error processing stop all request.": "❌ 处理全部停止请求时出错。",
   "❌ Error regenerating control panel. Check logs for details.": "❌ 重新生成控制面板时出错。请检查日志了解详情。",
   "❌ Error sending donation broadcast. Please try again later.": "❌ 发送捐赠广播时出错。请稍后再试。",
+  "❌ The donation panel could not be shown. The reason is in the DDC log.": "❌ The donation panel could not be shown. The reason is in the DDC log.",
   "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.": "⚠️ Your donation **was recorded** - only the announcement failed. Please do NOT submit it again.",
   "❌ Error showing control overview.": "❌ 显示控制概览时出错。",
   "❌ Failed to delete task **{task_description}**. It may no longer exist.": "❌ 删除任务 **{task_description}** 失败。它可能已不存在。",
