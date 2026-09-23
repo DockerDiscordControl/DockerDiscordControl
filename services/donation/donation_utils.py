@@ -60,3 +60,30 @@ def validate_donation_key(key: str) -> bool:
         # (SPEC.md Z8, review A9).
         logger.error(f"Donation key could not be validated: {e}", exc_info=True)
         return False
+
+
+def donation_is_already_recorded(idempotency_key, mech_id: str = "main") -> bool:
+    """True when the ledger already holds a donation under this key.
+
+    ProgressService.add_donation answers a dedupe hit with an ordinary success -
+    the mech's UI state, exactly as for a fresh donation - so a caller cannot
+    tell a repeat from a booking. Everything that happens AFTER a booking
+    (announcing it in Discord, writing it to the action log) has to, or one
+    payment is thanked for twice in every channel.
+
+    An unreadable ledger answers False on purpose: saying "already booked" there
+    would silence a real announcement, and a thank-you too many is a smaller
+    fault than a donation nobody hears about.
+    """
+    if not idempotency_key:
+        return False
+    try:
+        from services.mech.progress_service import read_events
+
+        return any(event.type == "DonationAdded"
+                   and event.mech_id == mech_id
+                   and (event.payload or {}).get("idempotency_key") == idempotency_key
+                   for event in read_events())
+    except (ImportError, OSError, ValueError, TypeError) as e:
+        logger.warning(f"Could not check the ledger for a repeated donation: {e}")
+        return False

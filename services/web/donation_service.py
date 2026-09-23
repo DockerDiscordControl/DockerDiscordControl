@@ -22,6 +22,8 @@ from dataclasses import dataclass
 
 from utils.atomic_io import atomic_write_json
 
+from services.donation.donation_utils import donation_is_already_recorded
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,6 +89,17 @@ class DonationService:
                     error=mech_result['error'],
                     status_code=500
                 )
+
+            # The ledger DEDUPES a retry (Z4) and answers it as an ordinary
+            # success, so nothing below could tell the two apart: a donor whose
+            # answer was lost and who pressed the button again got a second
+            # announcement in every channel and a second line in the action log
+            # for one payment. Only a booking that really happened is announced.
+            if donation_is_already_recorded(request.idempotency_key):
+                self.logger.info(
+                    "Donation already in the ledger under this key - booked once, "
+                    "announced once; this submission is a repeat")
+                return self._build_donation_response(request, mech_result, False)
 
             # Step 3: Handle Discord notifications
             discord_success = self._handle_discord_notification(request)
