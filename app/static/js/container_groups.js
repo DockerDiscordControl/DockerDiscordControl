@@ -154,11 +154,20 @@ if (typeof document !== 'undefined') {
             for (const group of groups) {
                 const row = document.createElement('div');
                 row.className = 'd-flex align-items-center gap-2 mb-2';
+                // Marked the way the rule editor and the task list mark a
+                // group: the collection icon, amber instead of the containers'
+                // blue, and the member count. The one page that is ABOUT
+                // groups was the one that marked them not at all.
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-collection text-warning';
                 const label = document.createElement('button');
                 label.type = 'button';
-                label.className = 'btn btn-link fw-bold p-0 text-decoration-none';
+                label.className = 'btn btn-link fw-bold p-0 text-decoration-none text-warning';
                 label.textContent = group.name;
                 label.title = texts.edit || '';
+                const size = document.createElement('span');
+                size.className = 'text-muted small';
+                size.textContent = '(' + (group.containers || []).length + ')';
                 label.addEventListener('click', () => loadIntoForm(group));
                 const members = document.createElement('span');
                 members.className = 'text-muted small';
@@ -174,7 +183,7 @@ if (typeof document !== 'undefined') {
                         .replace('{name}', group.name);
                     if (confirm(question)) del(group.name);
                 });
-                row.append(label, members, remove);
+                row.append(icon, label, size, members, remove);
                 list.appendChild(row);
 
                 const warning = groupWarning(group, texts);

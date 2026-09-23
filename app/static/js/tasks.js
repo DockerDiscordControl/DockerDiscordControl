@@ -348,10 +348,17 @@ class TaskManager {
             names.push(task.container);
         }
         options.innerHTML = '';
+        const sizeOf = new Map(groups.map(g => [g.name, (g.containers || []).length]));
         for (const name of names) {
             const option = document.createElement('option');
             option.value = name;
-            option.textContent = name;
+            // Same shape as the create form: picking a group without seeing
+            // whether it holds one container or seven is the difference
+            // between restarting a server and restarting a rack. A group the
+            // task still points at but /api/groups no longer knows has no
+            // size, and gets none rather than a made-up zero.
+            const size = sizeOf.get(name);
+            option.textContent = size === undefined ? name : name + ' (' + size + ')';
             option.dataset.group = '1';
             options.appendChild(option);
         }

@@ -114,7 +114,11 @@ if (typeof document !== 'undefined' && document.addEventListener) {
                 window.DDC_BULK_GROUPS.forEach(group => {
                     const option = document.createElement('option');
                     option.value = group.name;
-                    option.textContent = group.name;
+                    // "name (5)", the same shape the task form's picker uses:
+                    // a <select> cannot carry the collection icon, so the size
+                    // is what says this is a group and how far it reaches.
+                    option.textContent = group.name +
+                        ' (' + (group.containers || []).length + ')';
                     picker.appendChild(option);
                 });
             })

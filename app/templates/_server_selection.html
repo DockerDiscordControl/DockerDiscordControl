@@ -15,7 +15,9 @@
        services/config/group_service.py, the same ones the tasks and the rules target. #}
     <div class="row g-2 align-items-end mb-3" id="bulk-group-bar">
         <div class="col-12 col-md-3">
-            <label for="bulk-group" class="form-label">{{ _t('web.server.bulk_group') }}</label>
+            <label for="bulk-group" class="form-label">
+                <i class="bi bi-collection text-warning"></i> {{ _t('web.server.bulk_group') }}
+            </label>
             <select class="form-select" id="bulk-group">
                 <option value="">{{ _t('web.server.bulk_pick_group') }}</option>
             </select>
