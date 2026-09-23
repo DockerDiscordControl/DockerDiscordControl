@@ -457,6 +457,7 @@ function populateRuleForm(rule) {
         document.getElementById('aasRuleRestartWindow').value = rule.trigger.restart_window_minutes || 10;
         document.getElementById('aasRuleCpuThreshold').value = rule.trigger.cpu_threshold_percent || 90;
         document.getElementById('aasRuleMemoryThreshold').value = rule.trigger.memory_threshold_percent || 90;
+        document.getElementById('aasRuleMemoryThresholdMb').value = rule.trigger.memory_threshold_mb || 4096;
         document.getElementById('aasRuleResourceMinutes').value = rule.trigger.resource_minutes || 5;
     }
     updateTriggerTypeFields();
@@ -627,6 +628,7 @@ async function saveContainerStateRule(ruleName, watchedContainers) {
             restart_window_minutes: safeInt(document.getElementById('aasRuleRestartWindow').value, 10),
             cpu_threshold_percent: safeInt(document.getElementById('aasRuleCpuThreshold').value, 90),
             memory_threshold_percent: safeInt(document.getElementById('aasRuleMemoryThreshold').value, 90),
+            memory_threshold_mb: safeInt(document.getElementById('aasRuleMemoryThresholdMb').value, 4096),
             resource_minutes: safeInt(document.getElementById('aasRuleResourceMinutes').value, 5),
             channel_ids: [],
             keywords: [],

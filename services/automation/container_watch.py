@@ -116,9 +116,23 @@ class ResourceWatcher:
     Test: tests/spec/test_a_container_that_runs_hot_is_reported_once.py
     """
 
-    def __init__(self, metric: str, threshold_percent: float, minutes: int, hysteresis_percent: float = 10):
+    def __init__(self, metric: str, threshold_percent: float, minutes: int,
+                 hysteresis_percent: float = 10, unit: str = "%"):
+        """``unit`` is "%" or "MB" - the yardstick, not a second mode.
+
+        A container started without --memory has no limit, so Docker reports the
+        HOST's memory as the limit and a percentage of it can never be reached:
+        measured on one server, 20 of 26 containers, the largest at 13 % of the
+        host. Those are watched in MB instead (operator decision 2026-09-23).
+
+        The split is made by the CALLER, which hands this watcher None for the
+        containers the other one is for - and None already means "not measured"
+        here. So nothing about deciding when to alert changes; only what the
+        message says.
+        """
         self.metric = metric
         self.kind = RESOURCE_KINDS[metric]
+        self.unit = unit
         self.threshold = threshold_percent
         self.minutes = minutes
         # Never more than half the threshold: with the panel's lowest setting (10)
@@ -147,10 +161,12 @@ class ResourceWatcher:
                 if now - since >= self.minutes * 60:
                     self._alerted.add(name)
                     label = "CPU" if self.metric == "cpu" else "Memory"
+                    # "90%" but "4096 MB" - a space where the unit is a word.
+                    unit = self.unit if self.unit == "%" else f" {self.unit}"
                     events.append(WatchEvent(
                         name, self.kind,
-                        f"{label} of '{name}' at or above {self.threshold:g}% for "
-                        f"{self.minutes} min (now {value:.0f}%).",
+                        f"{label} of '{name}' at or above {self.threshold:g}{unit} for "
+                        f"{self.minutes} min (now {value:.0f}{unit}).",
                         threshold=int(self.threshold), window_minutes=self.minutes))
             else:
                 self._high_since.pop(name, None)

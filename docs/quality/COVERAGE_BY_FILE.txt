@@ -105,7 +105,7 @@ app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/admin_overview.py	1011	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
-cogs/background_loops.py	661	v3rev:1-652
+cogs/background_loops.py	702	v3rev:1-652
 cogs/channel_lifecycle.py	646	v3rev2:1-646
 cogs/control_helpers.py	284	pass1:s01:plan pass2:s01:1-205  [79 of 284 lines never in a package]
 cogs/control_ui.py	3777	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
@@ -118,7 +118,7 @@ cogs/message_updates.py	786	v3rev2:1-786
 cogs/overview_embeds.py	965	v3rev2:1-964
 cogs/slash_commands.py	840	NONE
 cogs/stack_restart.py	290	v3rev:1-196
-cogs/status_handlers.py	1400	passE:E15,E16:80-200,560-700 v3rev2:1-1400
+cogs/status_handlers.py	1404	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1252	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1252
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
@@ -127,10 +127,10 @@ services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	417	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
-services/automation/auto_action_config_service.py	847	passE:bothscans+E25 v3rev:1-813
+services/automation/auto_action_config_service.py	859	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
-services/automation/automation_service.py	756	passE:bothscans+E25 v3rev:1-676
-services/automation/container_watch.py	157	v3rev:1-157
+services/automation/automation_service.py	762	passE:bothscans+E25 v3rev:1-676
+services/automation/container_watch.py	173	v3rev:1-157
 services/automation/image_updates.py	164	v3rev:1-164
 services/automation/own_actions.py	70	NONE
 services/config/__init__.py	16	passE:read-in-full
@@ -162,7 +162,7 @@ services/docker_service/server_order.py	111	pass1:s16:1-111
 services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101
 services/docker_status/__init__.py	34	pass1:s16:1-34
 services/docker_status/fetch_service.py	251	pass1:s16:1-251
-services/docker_status/models.py	397	pass1:s17:plan pass2:s17:1-376
+services/docker_status/models.py	406	pass1:s17:plan pass2:s17:1-376
 services/docker_status/performance_service.py	234	pass1:s17:plan pass2:s17:1-234
 services/donation/__init__.py	24	pass2:s17:1-24
 services/donation/donation_config.py	50	pass1:s17:plan pass2:s17:1-41
@@ -183,7 +183,7 @@ services/infrastructure/__init__.py	0	pass2:s18:1-0
 services/infrastructure/action_log_service.py	387	pass1:s18:plan pass2:s18:1-376  [11 of 387 lines never in a package]
 services/infrastructure/action_logger.py	127	pass1:s18:plan pass2:s18:1-86  [17 of 103 lines never in a package]
 services/infrastructure/container_info_service.py	332	pass1:s18:plan pass2:s18:1-282  [44 of 326 lines never in a package]
-services/infrastructure/container_status_service.py	879	pass1:s19:1-816  [14 of 830 lines never in a package]
+services/infrastructure/container_status_service.py	887	pass1:s19:1-816  [14 of 830 lines never in a package]
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239
 services/infrastructure/dynamic_cooldown_manager.py	193	pass1:s19:1-179  [14 of 193 lines never in a package]
 services/infrastructure/event_manager.py	118	pass1:s19:1-118

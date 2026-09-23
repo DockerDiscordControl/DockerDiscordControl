@@ -189,19 +189,23 @@
                                 <label class="form-label" for="aasRuleRestartWindow">{{ _t('web.aas.restart_window') }}</label>
                                 <input type="number" class="form-control" id="aasRuleRestartWindow" value="10" min="1" max="1440">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label" for="aasRuleCpuThreshold">{{ _t('web.aas.cpu_threshold') }}</label>
                                 <input type="number" class="form-control" id="aasRuleCpuThreshold" value="90" min="10" max="100">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label" for="aasRuleMemoryThreshold">{{ _t('web.aas.memory_threshold') }}</label>
                                 <input type="number" class="form-control" id="aasRuleMemoryThreshold" value="90" min="10" max="100">
-                                <div class="form-text">{{ _t('web.aas.memory_threshold_hint') }}</div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label class="form-label" for="aasRuleMemoryThresholdMb">{{ _t('web.aas.memory_threshold_mb') }}</label>
+                                <input type="number" class="form-control" id="aasRuleMemoryThresholdMb" value="4096" min="128" max="1048576">
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label" for="aasRuleResourceMinutes">{{ _t('web.aas.resource_minutes') }}</label>
                                 <input type="number" class="form-control" id="aasRuleResourceMinutes" value="5" min="1" max="1440">
                             </div>
+                            <div class="col-12 form-text">{{ _t('web.aas.memory_threshold_hint') }}</div>
                             <div class="col-12 form-text">{{ _t('web.aas.container_state_hint') }}</div>
                         </div>
                     </div>

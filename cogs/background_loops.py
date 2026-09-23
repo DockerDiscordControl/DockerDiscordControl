@@ -34,6 +34,32 @@ from .loop_safety import survives_one_bad_cycle
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
+def _measured_for(result, metric: str, unit: str):
+    """The number THIS watcher measures for this container, or None for
+    "not this watcher's container" - which ResourceWatcher reads as "not
+    measured" and resets its timer for.
+
+    Memory is measured two ways because Docker only gives one number. A
+    container started with --memory has a real limit, so a percentage of it
+    means something. A container started without one is reported with the
+    HOST's total RAM as its limit, which made a 90 % rule fire at 56 GB: for
+    20 of the operator's 26 containers the rule could never fire at all.
+    Those are measured against an absolute MB threshold instead.
+
+    memory_limited is None when nothing said which kind it is - an older
+    cache entry, or a result built without the flag. Then neither watcher
+    measures it, rather than guessing the yardstick.
+    """
+    if not result.is_running:
+        return None
+    if metric == 'cpu':
+        return result.cpu_percent
+    limited = getattr(result, 'memory_limited', None)
+    if unit == '%':
+        return result.memory_percent if limited is True else None
+    return getattr(result, 'memory_mb', None) if limited is False else None
+
+
 class BackgroundLoopsMixin:
     """Periodic loops, mixed into DockerControlCog."""
 
@@ -242,14 +268,29 @@ class BackgroundLoopsMixin:
                 watchers[key].observe(snapshot, now, expected)  # baseline, like the base watcher
                 continue
             events.extend(e for e in watchers[key].observe(snapshot, now, expected) if e.kind == RESTART_LOOP)
-        # Resource thresholds (Phase 4b): one watcher per metric, threshold and duration.
-        resource_keys = {(metric, r.trigger.cpu_threshold_percent if metric == 'cpu'
-                           else r.trigger.memory_threshold_percent, r.trigger.resource_minutes)
-                         for r in rules for metric, kind in RESOURCE_KINDS.items() if kind in r.trigger.states}
+        # Resource thresholds (Phase 4b): one watcher per metric, threshold, duration
+        # and unit. Memory has TWO units - a container with a --memory limit is
+        # measured in percent of it, one without against an absolute MB threshold,
+        # because Docker reports the host's whole RAM as the limit when there is
+        # none. So a high_memory rule builds both watchers and each is handed None
+        # for the other's containers, which ResourceWatcher reads as "not measured".
+        resource_keys = set()
+        for rule in rules:
+            for metric, kind in RESOURCE_KINDS.items():
+                if kind not in rule.trigger.states:
+                    continue
+                if metric == 'cpu':
+                    resource_keys.add(('cpu', rule.trigger.cpu_threshold_percent,
+                                       rule.trigger.resource_minutes, '%'))
+                else:
+                    resource_keys.add(('memory', rule.trigger.memory_threshold_percent,
+                                       rule.trigger.resource_minutes, '%'))
+                    resource_keys.add(('memory', rule.trigger.memory_threshold_mb,
+                                       rule.trigger.resource_minutes, 'MB'))
         for key in resource_keys:
-            metric, threshold, minutes = key
-            watcher = watchers.setdefault(key, ResourceWatcher(metric, threshold, minutes))
-            values = {name: (getattr(result, f'{metric}_percent', None) if result.is_running else None)
+            metric, threshold, minutes, unit = key
+            watcher = watchers.setdefault(key, ResourceWatcher(metric, threshold, minutes, unit=unit))
+            values = {name: _measured_for(result, metric, unit)
                       for name, result in results.items()
                       if result.success and not getattr(result, 'not_found', False)}
             events.extend(watcher.observe(values, now))

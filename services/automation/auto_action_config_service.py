@@ -49,6 +49,10 @@ CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_me
 MIN_RESTART_THRESHOLD, MAX_RESTART_THRESHOLD = 2, 50
 MIN_RESTART_WINDOW_MINUTES, MAX_RESTART_WINDOW_MINUTES = 1, 1440
 MIN_RESOURCE_PERCENT, MAX_RESOURCE_PERCENT = 10, 100
+# The absolute memory yardstick, for containers without a --memory limit. The
+# lowest MB is deliberately above the highest percent: an event carries only its
+# number, so keeping the two ranges apart makes "90" unambiguously a percentage.
+MIN_RESOURCE_MB, MAX_RESOURCE_MB = 128, 1024 * 1024
 MIN_RESOURCE_MINUTES, MAX_RESOURCE_MINUTES = 1, 1440
 VALID_MATCH_MODES = {'any', 'all'}
 
@@ -365,6 +369,9 @@ def _validate_container_state_trigger(trigger: Dict[str, Any], errors: List[str]
         value = trigger.get(key, 90)
         if not isinstance(value, int) or not MIN_RESOURCE_PERCENT <= value <= MAX_RESOURCE_PERCENT:
             errors.append(f"{label} must be between {MIN_RESOURCE_PERCENT} and {MAX_RESOURCE_PERCENT} percent")
+    megabytes = trigger.get('memory_threshold_mb', 4096)
+    if not isinstance(megabytes, int) or not MIN_RESOURCE_MB <= megabytes <= MAX_RESOURCE_MB:
+        errors.append(f"Memory threshold must be between {MIN_RESOURCE_MB} and {MAX_RESOURCE_MB} MB")
     minutes = trigger.get('resource_minutes', 5)
     if not isinstance(minutes, int) or not MIN_RESOURCE_MINUTES <= minutes <= MAX_RESOURCE_MINUTES:
         errors.append(f"Resource duration must be between {MIN_RESOURCE_MINUTES} and {MAX_RESOURCE_MINUTES} minutes")
@@ -393,7 +400,10 @@ class TriggerConfig:
     restart_window_minutes: int = 10
     # Resource thresholds (Phase 4b): high_cpu / high_memory above this for resource_minutes
     cpu_threshold_percent: int = 90
+    # Memory has two yardsticks, picked per container: percent of the container's
+    # --memory limit, or these absolute MB when it was started without one.
     memory_threshold_percent: int = 90
+    memory_threshold_mb: int = 4096
     resource_minutes: int = 5
 
     @classmethod
@@ -406,6 +416,7 @@ class TriggerConfig:
             restart_window_minutes=data.get('restart_window_minutes', 10),
             cpu_threshold_percent=data.get('cpu_threshold_percent', 90),
             memory_threshold_percent=data.get('memory_threshold_percent', 90),
+            memory_threshold_mb=data.get('memory_threshold_mb', 4096),
             resource_minutes=data.get('resource_minutes', 5),
             channel_ids=data.get('channel_ids', []),
             keywords=data.get('keywords', []),
@@ -444,6 +455,7 @@ class TriggerConfig:
                 "restart_window_minutes": self.restart_window_minutes,
                 "cpu_threshold_percent": self.cpu_threshold_percent,
                 "memory_threshold_percent": self.memory_threshold_percent,
+                "memory_threshold_mb": self.memory_threshold_mb,
                 "resource_minutes": self.resource_minutes,
             })
         return data

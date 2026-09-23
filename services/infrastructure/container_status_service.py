@@ -64,6 +64,11 @@ class ContainerStatusResult:
     cpu_percent: Optional[float] = None
     memory_usage_mb: Optional[float] = None
     memory_limit_mb: Optional[float] = None
+    # Whether the container was started WITH a --memory limit. Not derivable from
+    # memory_limit_mb: Docker reports the host's whole RAM there when there is no
+    # limit, so a 62 GB "limit" and a real 62 GB limit look identical. This comes
+    # from HostConfig.Memory in the inspect answer. None means not asked.
+    memory_limited: Optional[bool] = None
 
     # Detailed info (if requested)
     uptime_seconds: int = 0
@@ -464,6 +469,7 @@ class ContainerStatusService:
             restart_count = container.attrs.get('RestartCount')
             compose_project = ((container.attrs.get('Config') or {}).get('Labels') or {}).get(
                 'com.docker.compose.project')
+            memory_limited = bool((container.attrs.get('HostConfig') or {}).get('Memory'))
 
         except (AttributeError, KeyError, IndexError) as e:
             # Container not found or data access error
@@ -523,6 +529,7 @@ class ContainerStatusService:
             cpu_percent=cpu_percent,
             memory_usage_mb=memory_usage_mb,
             memory_limit_mb=memory_limit_mb,
+            memory_limited=memory_limited,
             uptime_seconds=uptime_seconds,
             image=image,
             ports=ports,
@@ -817,6 +824,7 @@ async def get_docker_info_dict_service_first(docker_container_name: str, timeout
             'cpu_percent': result.cpu_percent,
             'memory_usage_mb': result.memory_usage_mb,
             'memory_limit_mb': result.memory_limit_mb,  # for the resource thresholds (Phase 4b)
+            'memory_limited': result.memory_limited,  # which memory yardstick applies
             'uptime_seconds': result.uptime_seconds
         }
     }

@@ -49,14 +49,14 @@ cogs/slash_commands.py:1-840
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:884-1309
-cogs/background_loops.py:1-661
+cogs/background_loops.py:1-702
 cogs/donation_ui.py:1-645
 
 ## Section 07  (694 lines, 1 piece)
 cogs/enhanced_info_modal_simple.py:1-694
 
 ## Section 08  (1398 lines, 1 piece)
-cogs/status_handlers.py:1-1400
+cogs/status_handlers.py:1-1404
 
 ## Section 09  (1234 lines, 1 piece)
 cogs/status_info_integration.py:1-1252
@@ -68,17 +68,16 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-417
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-847
+services/automation/auto_action_config_service.py:1-859
 
-## Section 11  (1960 lines, 8 pieces)
+## Section 11  (1970 lines, 6 pieces)
 services/automation/auto_action_state_service.py:1-364
-services/automation/automation_service.py:1-756
-services/automation/container_watch.py:1-157
+services/automation/automation_service.py:1-762
+services/automation/container_watch.py:1-173
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
 # config_cache_service.py left for section 12; both are small.
 services/automation/own_actions.py:1-70
 services/config/__init__.py:1-16
-services/config/channel_roles.py:1-38
 services/config/channel_config_service.py:1-585
 
 ## Section 12  (1912 lines, 4 pieces)
@@ -92,11 +91,16 @@ services/config/config_migration_service.py:1-466
 # groups); section 13, where its neighbours sit, is at 1,863 of 2,000.
 services/config/group_service.py:1-248
 
-## Section 13  (1863 lines, 5 pieces)
+## Section 13  (1920 lines, 6 pieces)
 services/config/config_service.py:1-1267
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-233
+# channel_roles.py moved on from section 11 on 2026-09-23: the memory
+# watchdog's second threshold grew automation_service.py and
+# container_watch.py, which put that section over the 2,000 lines a
+# section may hold. It sits with the other services/config files here.
+services/config/channel_roles.py:1-38
 services/discord/__init__.py:1-20
 
 ## Section 14  (1542 lines, 6 pieces)
@@ -120,7 +124,7 @@ services/docker_status/__init__.py:1-34
 services/docker_status/fetch_service.py:1-251
 
 ## Section 17  (1775 lines, 13 pieces)
-services/docker_status/models.py:1-397
+services/docker_status/models.py:1-406
 services/docker_status/performance_service.py:1-234
 services/donation/__init__.py:1-24
 services/donation/donation_config.py:1-50
@@ -145,7 +149,7 @@ services/infrastructure/action_logger.py:1-127
 services/infrastructure/container_info_service.py:1-332
 
 ## Section 19  (1459 lines, 4 pieces)
-services/infrastructure/container_status_service.py:1-879
+services/infrastructure/container_status_service.py:1-887
 services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-193
 services/infrastructure/event_manager.py:1-118

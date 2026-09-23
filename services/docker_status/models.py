@@ -217,6 +217,11 @@ class ContainerStatusResult:
     # when not measured.
     cpu_percent: Optional[float] = None
     memory_percent: Optional[float] = None
+    # A container without a --memory limit has no meaningful percentage (Docker
+    # reports the host's RAM as its limit), so it is measured in MB instead.
+    # memory_limited says which of the two applies; None means not known.
+    memory_mb: Optional[float] = None
+    memory_limited: Optional[bool] = None
     # Compose stack (Phase 4c): com.docker.compose.project, None without one.
     compose_project: Optional[str] = None
 
@@ -255,6 +260,8 @@ class ContainerStatusResult:
                       restart_count: Optional[int] = None,
                       cpu_percent: Optional[float] = None,
                       memory_percent: Optional[float] = None,
+                      memory_mb: Optional[float] = None,
+                      memory_limited: Optional[bool] = None,
                       compose_project: Optional[str] = None) -> 'ContainerStatusResult':
         """Factory method for successful status fetch.
 
@@ -276,6 +283,8 @@ class ContainerStatusResult:
             restart_count=restart_count,
             cpu_percent=cpu_percent,
             memory_percent=memory_percent,
+            memory_mb=memory_mb,
+            memory_limited=memory_limited,
             compose_project=compose_project,
         )
 

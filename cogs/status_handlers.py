@@ -101,6 +101,10 @@ def _watch_fields(info: Dict[str, Any]) -> Dict[str, Any]:
         "restart_count": info.get('RestartCount'),
         "cpu_percent": computed.get('cpu_percent'),
         "memory_percent": (usage / limit * 100) if usage is not None and limit else None,
+        # The second memory yardstick, for containers started without --memory:
+        # the usage itself, and the flag that says which of the two applies.
+        "memory_mb": usage,
+        "memory_limited": computed.get('memory_limited'),
         "compose_project": ((info.get('Config') or {}).get('Labels') or {}).get('com.docker.compose.project'),
     }
 

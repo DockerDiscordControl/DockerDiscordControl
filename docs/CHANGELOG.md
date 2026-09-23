@@ -22,6 +22,14 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`. **While it is on, the
   panel answers only over HTTPS** - the session marker is the passed second factor, and it must
   not travel in the clear. Without 2FA nothing changes: plain HTTP works as before.
+- **The memory watchdog rule now has a second threshold, in MB.** A `high_memory` rule measured
+  a percentage of the container's memory limit - and a container started without `--memory` has
+  no limit, so Docker reports the host's whole RAM and the percentage is of that. On a 62 GB host
+  a 90 % rule fired at 56 GB, which means it could never fire at all for such a container. DDC
+  now picks the yardstick per container: **with** a `--memory` limit the percentage as before,
+  **without** one the new "Memory threshold (MB)" field (default 4096 MB). Existing rules keep
+  their percentage and gain the MB default; nothing changes for containers that have a limit.
+
 - **A monthly task on the 29th, 30th or 31st now runs EVERY month.** It used to skip the months
   that have no such day, so "monthly on the 31st" ran seven times a year while the panel called
   it monthly - and said so only in a debug line. It now falls on the last day of a short month,

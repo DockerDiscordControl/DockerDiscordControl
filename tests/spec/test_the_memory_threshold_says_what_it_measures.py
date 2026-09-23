@@ -12,6 +12,15 @@ The field now carries that sentence, and so does the roadmap's changelog
 entry. Nothing about the measurement changes - it is the only number Docker
 gives.
 
+REVISITED 2026-09-23: the hint used to sit inside the percentage field's own
+column and it now sits on a full-width line under the memory fields, because
+there are two of them. The operator decision that day gave the rule a second
+threshold in MB, for the containers that have no limit - so the hint no longer
+describes one field, it describes which of the two applies. The sentence it
+must carry changed with it: not "the percentage is of the host's RAM", but
+"the percentage is for containers with a limit, the MB value for the others".
+See test_a_container_without_a_memory_limit_can_be_watched.py.
+
 COUNTER-CHECK (2026-09-22): red before - the modal had no hint next to the
 memory threshold, and the CPU threshold next to it still has none (it needs
 none: CPU percent is of one core-equivalent, as everywhere else).
@@ -26,16 +35,15 @@ MODAL = (ROOT / "app" / "templates" / "_auto_actions_modal.html").read_text(enco
 LOCALE = ROOT / "locales"
 
 
-def _field_block(field_id):
-    position = MODAL.index(f'id="{field_id}"')
-    start = MODAL.rindex('<div class="col-md-4', 0, position)
-    end = MODAL.index("</div>", position)
-    return MODAL[start:end]
+def test_the_hint_sits_with_the_memory_fields():
+    """It is one line for the pair now, so it has to follow both of them and
+    still come before the block's own closing hint."""
+    percent = MODAL.index('id="aasRuleMemoryThreshold"')
+    megabytes = MODAL.index('id="aasRuleMemoryThresholdMb"')
+    hint = MODAL.index("web.aas.memory_threshold_hint")
 
-
-def test_the_memory_field_carries_the_hint():
-    block = _field_block("aasRuleMemoryThreshold")
-    assert "web.aas.memory_threshold_hint" in block, block
+    assert percent < megabytes < hint
+    assert hint < MODAL.index("web.aas.container_state_hint")
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
@@ -45,7 +53,8 @@ def test_the_hint_names_the_limit_and_the_missing_limit(language):
     catalogue = json.loads((LOCALE / f"{language}.json").read_text(encoding="utf-8"))
     hint = catalogue["web.aas.memory_threshold_hint"].lower()
     assert "limit" in hint
-    assert "--memory" in hint or "ram" in hint
+    assert "--memory" in hint
+    assert "mb" in hint, "the hint has to name the other yardstick too"
 
 
 def test_the_changelog_says_it_too():

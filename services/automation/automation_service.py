@@ -597,12 +597,18 @@ class AutomationService:
         """Restart loops and resource thresholds are measured per setting: an event
         belongs only to the rules whose threshold and window produced it."""
         trigger = rule.trigger
+        # high_memory has TWO of its own settings, not one: percent for the
+        # containers with a --memory limit, MB for the containers without one.
+        # Both watchers report for the same rule, so both count as its own. The
+        # two ranges cannot overlap (MIN_RESOURCE_MB > MAX_RESOURCE_PERCENT), so
+        # no rule can claim the other yardstick's number by accident.
         own = {
-            'restart_loop': (trigger.restart_threshold, trigger.restart_window_minutes),
-            'high_cpu': (trigger.cpu_threshold_percent, trigger.resource_minutes),
-            'high_memory': (trigger.memory_threshold_percent, trigger.resource_minutes),
+            'restart_loop': [(trigger.restart_threshold, trigger.restart_window_minutes)],
+            'high_cpu': [(trigger.cpu_threshold_percent, trigger.resource_minutes)],
+            'high_memory': [(trigger.memory_threshold_percent, trigger.resource_minutes),
+                            (trigger.memory_threshold_mb, trigger.resource_minutes)],
         }.get(event.kind)
-        return own is None or (event.threshold, event.window_minutes) == own
+        return own is None or (event.threshold, event.window_minutes) in own
 
     async def _execute_container_rule(self, rule: AutoActionRule, event, settings: Dict,
                                       bot, control_channel_id, global_cooldown: int = 30) -> bool:
