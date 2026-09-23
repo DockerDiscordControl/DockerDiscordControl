@@ -1042,6 +1042,9 @@ def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event
         # as zero (measured: $5 -> 600 cents in the file, 0 shown).
         at = datetime.now(ZoneInfo("UTC"))
     settle_power_decay(snap, at)
+    # What the mech has at this moment, decay already taken off: the lid below
+    # never goes under it.
+    power_before = snap.power_acc
     payload = evt.payload or {}
     lvl_events: List[Event] = []
     bonus_evt: Optional[Event] = None
@@ -1056,15 +1059,25 @@ def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event
         snap.power_acc += int(payload.get("power_units", 0) or 0)
     # A level-up restarted the clock at "now"; the new power_acc is as of the event
     snap.goal_started_at = at.isoformat()
-    # The battery is full at the level's goal plus the $1 the bar has always
-    # shown as its maximum - measured AFTER the climb, so a donation that lifts
-    # the mech fills the bigger battery it ends up with. What does not fit is
-    # lost; the evolution account kept every cent of it.
+    # The rate belongs to the level the mech has NOW. settle_power_decay wrote
+    # the rate of the level it had BEFORE, and the climb to the last level never
+    # reaches set_new_goal_for_next_level - so level 11, whose table says 0,
+    # kept level 10's 200 cents a day and the immortal mech ran dry in 20 days.
+    snap.power_decay_per_day = decay_per_day(snap.level)
+    # The battery is full at the level's goal, measured AFTER the climb - so a
+    # donation that lifts the mech fills the bigger battery it ends up with.
+    # What does not FIT is lost; the evolution account kept every cent of it.
+    #
+    # Never below what was already there: the goal is re-priced when the member
+    # count changes, so power can legitimately stand above it. Cutting to the
+    # new capacity on the next event meant a $1 donation taking $35 off a mech
+    # charged at $59 - a lid, not a drain.
     capacity = battery_capacity_cents(snap)
-    if capacity is not None and snap.power_acc > capacity:
-        logger.info(f"Battery full: {snap.power_acc - capacity} cents did not fit "
+    if capacity is not None and snap.power_acc > max(capacity, power_before):
+        kept = max(capacity, power_before)
+        logger.info(f"Battery full: {snap.power_acc - kept} cents did not fit "
                     f"(capacity ${capacity/100:.2f})")
-        snap.power_acc = capacity
+        snap.power_acc = kept
     return lvl_events, bonus_evt
 
 
