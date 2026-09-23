@@ -77,6 +77,12 @@
                                     {% else %}
                                         <option disabled>{{ _t('web.tasks.no_active_containers') }}</option>
                                     {% endif %}
+                                    {# The groups, filled from /api/groups before a task is put
+                                       into this form. Without them a group task could not be
+                                       edited at all: a select cannot hold a value that has no
+                                       option, so saving asked for a container that was there
+                                       all along. #}
+                                    <optgroup id="edit-target-group" label="{{ _t('web.groups.title') }}" hidden></optgroup>
                                 </select>
                             </div>
                             <div class="col-md-6">

@@ -316,6 +316,9 @@ class TaskManager {
             const data = await response.json();
             
             if (data.success) {
+                // The groups first: a select cannot hold a value whose option
+                // does not exist yet, and populateEditForm sets that value.
+                await this.fillEditGroups(data.task);
                 this.populateEditForm(data.task);
                 this.editModal?.show();
             } else {
@@ -324,6 +327,35 @@ class TaskManager {
         } catch (error) {
             this.showError(`Error: ${error.message || 'Failed to load task'}`);
         }
+    }
+
+    async fillEditGroups(task) {
+        // Before the task is put into the form: a select cannot hold a value
+        // whose option does not exist yet. The task's own group is added even
+        // when it is no longer in /api/groups, so opening the dialog cannot
+        // silently change what the task points at.
+        const options = document.getElementById('edit-target-group');
+        if (!options) return;
+        let groups = [];
+        try {
+            const answer = await fetch('/api/groups');
+            groups = answer.ok ? ((await answer.json()).groups || []) : [];
+        } catch (error) {
+            groups = [];
+        }
+        const names = groups.map(g => g.name);
+        if (task.target_is_group && task.container && !names.includes(task.container)) {
+            names.push(task.container);
+        }
+        options.innerHTML = '';
+        for (const name of names) {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            option.dataset.group = '1';
+            options.appendChild(option);
+        }
+        options.hidden = names.length === 0;
     }
 
     populateEditForm(task) {
@@ -497,7 +529,13 @@ class TaskManager {
 
     collectFormData() {
         const taskId = document.getElementById('editTaskId')?.value;
-        const container = document.getElementById('editTaskContainer')?.value;
+        const containerField = document.getElementById('editTaskContainer');
+        const container = containerField?.value;
+        // Which kind of target was chosen. Without this an edited group task
+        // kept target_is_group while pointing at a container, and every run
+        // afterwards reported "the group does not exist any more".
+        const chosenOption = containerField?.selectedOptions?.[0];
+        const targetIsGroup = chosenOption ? chosenOption.dataset.group === '1' : false;
         const action = document.getElementById('editTaskAction')?.value;
         const cycle = document.getElementById('editTaskCycle')?.value;
         const isActive = document.getElementById('editTaskActive')?.checked;
