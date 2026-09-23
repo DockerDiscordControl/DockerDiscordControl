@@ -120,7 +120,7 @@ cogs/slash_commands.py	813	NONE
 cogs/stack_restart.py	277	v3rev:1-196
 cogs/status_handlers.py	1400	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1252	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1252
-cogs/task_ui.py	1228	NONE
+cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	97	passE:E32:read-in-full
 services/__init__.py	51	passE:E31:read-in-full
@@ -215,7 +215,7 @@ services/member_count/__init__.py	17	pass1:s25:1-17
 services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a package]
 services/scheduling/__init__.py	36	pass1:s25:1-36
 services/scheduling/donation_message_service.py	228	pass1:s25:1-196  [19 of 215 lines never in a package]
-services/scheduling/group_tasks.py	94	NONE
+services/scheduling/group_tasks.py	117	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	71	pass1:s25:1-248
 services/scheduling/scheduler.py	2260	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]

@@ -311,10 +311,15 @@ class AutoActionButton(discord.ui.Button):
             config_service = get_auto_action_config_service()
             all_rules = config_service.get_rules()
 
-            # Filter rules that target this container
+            # Filter rules that target this container - groups resolved. A rule
+            # aimed at "group:Gameserver" WILL act on this container, and
+            # reading the raw list answered "no Auto-Actions configured" while
+            # an automation was wired to it.
+            from services.automation.automation_service import containers_of_action
+
             matching_rules = [
                 rule for rule in all_rules
-                if self.container_name in rule.action.containers
+                if self.container_name in containers_of_action(rule)
             ]
 
             if not matching_rules:

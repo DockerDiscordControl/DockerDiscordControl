@@ -23,6 +23,23 @@ from utils.logging_utils import get_module_logger
 logger = get_module_logger('scheduler')
 
 
+async def _timeout_for(container: str, action: str, timeout: int) -> float:
+    """The timeout this container needs for this action (see scheduler._get_action_timeout)."""
+    from services.scheduling.scheduler import (NON_REPEATABLE_ACTIONS, STOP_TIMEOUT_MARGIN_SECONDS,
+                                               _get_container_stop_timeout)
+
+    if action not in NON_REPEATABLE_ACTIONS:
+        return timeout
+    try:
+        stop_timeout = await _get_container_stop_timeout(container)
+    except (RuntimeError, OSError, ValueError) as e:
+        logger.warning(f"Stop timeout of {container} could not be read: {e}")
+        return timeout
+    if stop_timeout is None:
+        return timeout
+    return max(timeout, stop_timeout + STOP_TIMEOUT_MARGIN_SECONDS)
+
+
 async def execute_group_task(task, timeout: int) -> bool:
     """Apply the task's action to every container of its group, one after another.
 
@@ -75,8 +92,14 @@ async def execute_group_task(task, timeout: int) -> bool:
             await asyncio.sleep(0.5)
         attempted += 1
         try:
+            # Each member gets the time ITS container needs: the single-container
+            # path raises the timeout to StopTimeout + margin for stop and
+            # restart, and the group path used the raw 60 seconds for everyone -
+            # a database with StopTimeout=120 was logged as failed every night
+            # while the stop was still running.
+            member_timeout = await _timeout_for(container, task.action, timeout)
             done = await asyncio.wait_for(docker_action_service_first(container, task.action),
-                                          timeout=timeout)
+                                          timeout=member_timeout)
         except asyncio.TimeoutError:
             done = False
             logger.error(f"Timeout on {task.action} for {container} (group {task.container_name})")

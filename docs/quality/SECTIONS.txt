@@ -198,7 +198,7 @@ services/scheduling/runtime.py:1-231
 services/scheduling/schedule_helpers.py:1-71
 # group_tasks.py split out of scheduler.py on 2026-09-23 (that file is on the
 # size list and may only shrink); sections 26 and 27 are full.
-services/scheduling/group_tasks.py:1-94
+services/scheduling/group_tasks.py:1-117
 
 ## Section 26  (1745 lines, 1 piece)
 services/scheduling/scheduler.py:1-1745
@@ -358,7 +358,7 @@ cogs/message_updates.py:1-786
 ## Section 41  (1228 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
 # (2,403 -> 1234 lines); too large to join a neighbour.
-cogs/task_ui.py:1-1228
+cogs/task_ui.py:1-1233
 
 ## Section 42  (158 lines, 1 piece)
 # Phase 4d (2026-09-22): the image-update check. Section 11, where the other

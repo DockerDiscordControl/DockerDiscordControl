@@ -147,3 +147,42 @@ def test_a_task_on_one_container_is_untouched(world, monkeypatch):
                                    hour=4, minute=0, timezone_str="UTC")
 
     assert task.target_is_group is False
+
+
+def test_each_member_gets_its_own_stop_timeout(world, monkeypatch):
+    """A slow container in a group is not cut off at the default timeout.
+
+    THE FINDING (independent review, 2026-09-23): the single-container path
+    raises the timeout to the container's StopTimeout plus a margin for stop
+    and restart; the group path used the raw 60 seconds for every member. A
+    group task stopping a database with StopTimeout=120 logged it as failed at
+    60 s every night, while the stop very likely finished at ~120.
+
+    COUNTER-CHECK: red before - the wait was 60 for the slow container too.
+    """
+    waits = []
+    real_wait_for = asyncio.wait_for
+
+    async def recording_wait_for(coroutine, timeout):
+        waits.append(timeout)
+        return await real_wait_for(coroutine, timeout)
+
+    monkeypatch.setattr(scheduler.asyncio, "wait_for", recording_wait_for)
+    monkeypatch.setattr("services.scheduling.group_tasks.asyncio.wait_for", recording_wait_for)
+    monkeypatch.setattr("services.scheduling.scheduler._get_container_stop_timeout",
+                        lambda name: _stop_timeout_of(name))
+
+    from services.config import group_service
+
+    group_service.get_group_service().save_group("Gameserver", ["Valheim", "Icarus 1"])
+    task = _group_task(action="stop")
+
+    asyncio.run(scheduler.execute_task(task, timeout=60))
+
+    assert waits and max(waits) > 60, (
+        f"every member was cut off at the default: {waits}")
+
+
+async def _stop_timeout_of(name):
+    """Icarus 1 shuts down slowly; Valheim does not say."""
+    return 120 if name == "Icarus 1" else None
