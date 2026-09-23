@@ -155,7 +155,14 @@ async def test_the_service_is_asked_and_noted(tmp_path):
 async def test_the_second_press_is_refused(tmp_path, monkeypatch):
     """THE FINDING, effect - before the defer, visible only to the presser,
     and nothing else runs afterwards."""
-    monkeypatch.setattr(time, "time", lambda: NOW)
+    # monotonic, not time: the spam-protection service reads time.monotonic()
+    # at all three of its clock sites (a wall-clock correction must not brake
+    # every button). Freezing time.time here therefore froze nothing, and the
+    # assertion below held only because almost no real time passes between
+    # add_user_cooldown and the press - under the load of a full group run it
+    # stopped holding. A test that is green by luck is what this file exists
+    # to catch.
+    monkeypatch.setattr(time, "monotonic", lambda: NOW)
     service = _service(tmp_path)
     service._real.add_user_cooldown(USER, KEY)
     cog = MagicMock()
