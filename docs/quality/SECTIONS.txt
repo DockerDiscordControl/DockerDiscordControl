@@ -373,7 +373,7 @@ utils/key_crypto.py:1-84
 utils/token_security.py:1-278
 # group_references.py joined on 2026-09-24 (new: everything outside
 # groups.json that points at a group by name, moved by a rename).
-services/config/group_references.py:1-133
+services/config/group_references.py:1-153
 services/config/group_service.py:1-415
 
 ## Section 38  (871 lines, 7 pieces)

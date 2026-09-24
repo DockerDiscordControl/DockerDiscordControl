@@ -10,10 +10,19 @@ is a hole.
 WHAT MAKES IT MORE THAN A STRING SWAP. A group's name is its identity in three
 other files:
 
-    config/tasks.json        a scheduled task holds the plain name and a flag
-    config/auto_actions.json a rule holds "group:<name>" in its trigger and
-                             in its action
-    config/admins.json       an assignment holds "group:<name>"
+    config/tasks.json        a LIST of tasks; the field is `container`, and
+                             `target_is_group` says it is a group
+    config/auto_actions.json `auto_actions`, not `rules`; each holds
+                             "group:<name>" in its trigger and in its action
+    config/admins.json       `admin_containers` holds "group:<name>"
+
+THE SHAPES ARE MEASURED FROM THE OPERATOR'S OWN FILES, and the first version
+of this test was not: it invented `{"tasks": [...]}` with a `container_name`
+field and `{"rules": [...]}`, and passed against a module that read exactly
+those inventions. The live rename answered 500 - "'list' object has no
+attribute 'get'" - which is the test stand-in drifting from the thing it
+imitates, the defect class this suite spent the night hunting. A case below
+pins the real shape so the invention cannot come back.
 
 A rename that moved only groups.json would leave all three pointing at a group
 that no longer exists - and each of them fails QUIETLY: the task reports "the
@@ -56,23 +65,28 @@ def world(tmp_path, monkeypatch):
             {"container_name": name, "docker_name": name, "active": True,
              "allowed_actions": ["status"]}), encoding="utf-8")
 
-    (tmp_path / "tasks.json").write_text(json.dumps({"tasks": [
-        {"task_id": "t1", "container_name": "Icaruse", "target_is_group": True,
+    # A LIST, and the field is `container` - measured on the operator's server.
+    (tmp_path / "tasks.json").write_text(json.dumps([
+        {"id": "t1", "container": "Icaruse", "target_is_group": True,
          "action": "restart", "cycle": "daily"},
-        {"task_id": "t2", "container_name": "Icarus", "target_is_group": False,
+        {"id": "t2", "container": "Icarus", "target_is_group": False,
          "action": "restart", "cycle": "daily"},
         # A CONTAINER that happens to carry the group's name. Only the flag
         # tells the two apart, and without this entry the check below could not
         # fail: nothing else in the file shares the name.
-        {"task_id": "t3", "container_name": "Icaruse", "target_is_group": False,
+        {"id": "t3", "container": "Icaruse", "target_is_group": False,
          "action": "restart", "cycle": "daily"},
-    ]}), encoding="utf-8")
+    ]), encoding="utf-8")
 
-    (tmp_path / "auto_actions.json").write_text(json.dumps({"rules": [
-        {"id": "r1", "name": "watch",
-         "trigger": {"type": "container_state", "containers": ["group:Icaruse", "Icarus"]},
-         "action": {"type": "RESTART", "containers": ["group:Icaruse"]}},
-    ]}), encoding="utf-8")
+    # `auto_actions`, not `rules`, beside the global settings.
+    (tmp_path / "auto_actions.json").write_text(json.dumps({
+        "global_settings": {"enabled": True},
+        "auto_actions": [
+            {"id": "r1", "name": "watch",
+             "trigger": {"type": "container_state",
+                         "containers": ["group:Icaruse", "Icarus"]},
+             "action": {"type": "RESTART", "containers": ["group:Icaruse"]}},
+        ]}), encoding="utf-8")
 
     (tmp_path / "admins.json").write_text(json.dumps({
         "discord_admin_users": ["111"],
@@ -109,18 +123,18 @@ def test_the_group_keeps_everything_but_its_name(world):
 def test_a_scheduled_task_follows(world, tmp_path):
     """It holds the plain name, and only when it targets a group."""
     world.rename_group("Icaruse", "Gameserver")
-    tasks = {task["task_id"]: task for task in _read(tmp_path, "tasks.json")["tasks"]}
+    tasks = {task["id"]: task for task in _read(tmp_path, "tasks.json")}
 
-    assert tasks["t1"]["container_name"] == "Gameserver"
-    assert tasks["t2"]["container_name"] == "Icarus"
-    assert tasks["t3"]["container_name"] == "Icaruse", (
+    assert tasks["t1"]["container"] == "Gameserver"
+    assert tasks["t2"]["container"] == "Icarus"
+    assert tasks["t3"]["container"] == "Icaruse", (
         "a container that happens to share the group's name was renamed too")
 
 
 def test_a_rule_follows_on_both_sides(world, tmp_path):
     """A rule names a group in what it watches AND in what it acts on."""
     world.rename_group("Icaruse", "Gameserver")
-    rule = _read(tmp_path, "auto_actions.json")["rules"][0]
+    rule = _read(tmp_path, "auto_actions.json")["auto_actions"][0]
 
     assert rule["trigger"]["containers"] == ["group:Gameserver", "Icarus"]
     assert rule["action"]["containers"] == ["group:Gameserver"]
@@ -193,9 +207,9 @@ def test_the_references_move_before_the_group(world, tmp_path, monkeypatch):
     assert result.success is False
     assert written == ["groups"], written
     # The references went first and are already on the new name.
-    tasks = _read(tmp_path, "tasks.json")["tasks"]
+    tasks = _read(tmp_path, "tasks.json")
 
-    assert any(task["container_name"] == "Gameserver" for task in tasks)
+    assert any(task["container"] == "Gameserver" for task in tasks)
     monkeypatch.setattr(group_service.GroupService, "_write", real_write)
 
 
@@ -258,3 +272,24 @@ def test_the_dialog_offers_it():
     assert "/rename" in editor, "nothing in the dialog renames a group"
     assert "ddc:groups-changed" in editor, (
         "a rename that does not announce itself leaves the table on the old name")
+
+
+def test_the_shapes_are_the_ones_on_disk():
+    """THE TRAP THIS TEST FELL INTO. The first fixture invented
+    `{"tasks": [...]}` with `container_name`, and the module read exactly that
+    invention - green here, 500 on the operator's server.
+
+    So the reader is held to the real shapes by name: a LIST of tasks whose
+    field is `container`, and rules under `auto_actions`."""
+    import re
+
+    root = Path(__file__).resolve().parents[2]
+    source = (root / "services" / "config" / "group_references.py").read_text(encoding="utf-8")
+    code = re.sub(r"#[^\n]*", "", source)
+
+    assert '"container"' in code, "the task reader does not know the real field"
+    assert '"container_name"' not in code, "the invented field is back"
+    assert '"auto_actions"' in code, "the rule reader does not know the real key"
+    assert 'document.get("rules"' not in code, "the invented key is back"
+    assert "isinstance(document, list)" in code, (
+        "tasks.json is a list on disk; a reader that only knows a dict answers 500")

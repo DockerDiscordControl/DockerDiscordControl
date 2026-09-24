@@ -7,13 +7,16 @@
 # ============================================================================ #
 """Everything outside groups.json that points at a group by name.
 
-A group's name is its identity in three other files, in two spellings:
+A group's name is its identity in three other files, in two spellings and
+three shapes - all of them measured on the operator's own server, because the
+first version of this module read shapes that only its test had:
 
-    config/tasks.json        a scheduled task holds the PLAIN name, and says
-                             so with target_is_group
-    config/auto_actions.json a rule holds "group:<name>", in what it watches
-                             and in what it acts on
-    config/admins.json       a per-admin assignment holds "group:<name>"
+    config/tasks.json        a LIST of tasks; the field is `container`, and
+                             `target_is_group` says the name means a group
+    config/auto_actions.json `auto_actions` beside `global_settings`; a rule
+                             holds "group:<name>" in what it WATCHES and in
+                             what it ACTS ON
+    config/admins.json       `admin_containers` holds "group:<name>"
 
 Renaming a group without moving these would leave all three pointing at a name
 that does not exist, and every one of them fails QUIETLY: the task reports it
@@ -45,6 +48,9 @@ def _rewrite(filename: str, change) -> int:
     ``change(document)`` returns how many names it moved; zero means the file
     is left untouched, which keeps a rename from rewriting three files that had
     nothing to do with it.
+
+    AttributeError is caught with the rest on purpose: a file in a shape this
+    module does not expect is what turned the first live rename into a 500.
     """
     path = get_config_dir() / filename
     if not path.exists():
@@ -57,7 +63,8 @@ def _rewrite(filename: str, change) -> int:
             if moved:
                 atomic_write_json(path, document)
             return moved
-    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
+    except (OSError, json.JSONDecodeError, ValueError, KeyError, TypeError,
+            AttributeError, IndexError) as e:
         # Counted as zero, never raised: one unreadable file must not cost the
         # other two, and the rename itself is reported with what it did move.
         logger.error(f"References in {filename} could not be moved: {e}", exc_info=True)
@@ -66,14 +73,23 @@ def _rewrite(filename: str, change) -> int:
 
 def _tasks(old: str, new: str) -> int:
     def change(document):
+        # A LIST on disk. An older file that wrapped them in {"tasks": [...]}
+        # is read as well rather than skipped in silence.
+        tasks = document if isinstance(document, list) else (document.get("tasks") or [])
         moved = 0
-        for task in document.get("tasks", []) or []:
+        for task in tasks:
             if not isinstance(task, dict):
                 continue
             # The flag is what makes it a group: a CONTAINER that happens to
             # share the name must not be renamed with it.
-            if task.get("target_is_group") and task.get("container_name") == old:
-                task["container_name"] = new
+            if not task.get("target_is_group"):
+                continue
+            # `container` and nothing else: ScheduledTask.to_dict() writes
+            # that one field, every time (services/scheduling/scheduler.py).
+            # Reading a second spelling "to be safe" is how the invented one
+            # got in - and how it would have stayed unnoticed.
+            if task.get("container") == old:
+                task["container"] = new
                 moved += 1
         return moved
 
@@ -85,7 +101,11 @@ def _rules(old: str, new: str) -> int:
 
     def change(document):
         moved = 0
-        for rule in document.get("rules", []) or []:
+        # `auto_actions` and nothing else: that is the key
+        # auto_action_config_service.py writes, every time. A second spelling
+        # read "to be safe" is what let an invented one pass unnoticed.
+        rules = document.get("auto_actions") or []
+        for rule in rules:
             if not isinstance(rule, dict):
                 continue
             # Both sides: a rule names a group in what it WATCHES and in what
