@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Logs do Container (últimas 500 linhas)",
   "web.logs.debug_level_help": "Alternar entre os níveis de log Debug e Info. Debug mostra informações detalhadas do sistema, Info mostra mensagens padrão.",
-  "web.logs.debug_level_restart_hint": "Nota: As alterações entram em vigor após reiniciar o container.",
   "web.logs.debug_level_label": "Nível de Debug",
   "web.logs.description": "Visualize e gerencie diferentes tipos de log do seu sistema DockerDiscordControl.",
   "web.logs.heading": "Logs do Sistema",

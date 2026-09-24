@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Automatikus",
   "web.logs.container_logs_title": "Konténer naplók (utolsó 500 sor)",
   "web.logs.debug_level_help": "Váltás a Debug és Info napló szintek között. A Debug részletes rendszerinformációkat mutat, az Info szabványos üzeneteket.",
-  "web.logs.debug_level_restart_hint": "Megjegyzés: A módosítások a konténer újraindítása után lépnek életbe.",
   "web.logs.debug_level_label": "Debug szint",
   "web.logs.description": "A DockerDiscordControl rendszer különböző naplótípusainak megtekintése és kezelése.",
   "web.logs.heading": "Rendszer naplók",

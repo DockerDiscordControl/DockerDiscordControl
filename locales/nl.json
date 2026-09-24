@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Containerlogbestanden (laatste 500 regels)",
   "web.logs.debug_level_help": "Schakel tussen Debug- en Info-logniveaus. Debug toont gedetailleerde systeeminformatie, Info toont standaardberichten.",
-  "web.logs.debug_level_restart_hint": "Let op: wijzigingen worden pas actief na een herstart van de container.",
   "web.logs.debug_level_label": "Debugniveau",
   "web.logs.description": "Bekijk en beheer verschillende logtypen van je DockerDiscordControl-systeem.",
   "web.logs.heading": "Systeemlogbestanden",

@@ -236,7 +236,7 @@ services/translation/translation_config_service.py	687	pass1:s27:1-607  [33 of 6
 services/translation/translation_service.py	762	pass1:s28:1-741  [21 of 762 lines never in a package]
 services/web/__init__.py	12	pass1:s28:1-12
 services/web/configuration_page_service.py	554	pass1:s28:1-554
-services/web/configuration_save_service.py	652	pass1:s28:1-531  [34 of 565 lines never in a package] v3rev2:1-616
+services/web/configuration_save_service.py	652	pass1:s28:1-531  [34 of 652 lines never in a package] v3rev2:1-652
 services/web/container_log_service.py	432	pass1:s29:1-439  [31 of 470 lines never in a package]
 services/web/container_refresh_service.py	207	pass1:s29:1-201  [6 of 207 lines never in a package]
 services/web/diagnostics_service.py	263	pass1:s29:1-263
@@ -260,7 +260,7 @@ utils/config_paths.py	47	pass1:s35:1-47
 utils/container_image.py	67	passE:written-2026-09-22:E53
 utils/import_utils.py	165	pass1:s35:1-160  [5 of 165 lines never in a package]
 utils/key_crypto.py	84	pass1:s35:1-79  [5 of 84 lines never in a package]
-utils/logging_utils.py	546	pass1:s36:1-467  [79 of 546 lines never in a package]
+utils/logging_utils.py	556	pass1:s36:1-467  [79 of 556 lines never in a package]
 utils/observability.py	593	pass1:s36:1-579  [14 of 593 lines never in a package]
 utils/performance_metrics.py	419	pass1:s36:1-389  [30 of 419 lines never in a package]
 utils/settings.py	113	pass1:s36:1-98  [15 of 113 lines never in a package]

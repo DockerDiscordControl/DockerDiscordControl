@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "خودکار",
   "web.logs.container_logs_title": "لاگ‌های کانتینر (500 خط آخر)",
   "web.logs.debug_level_help": "بین سطح لاگ Debug و Info جابجا شوید. Debug اطلاعات مفصل سیستم، Info پیام‌های استاندارد نمایش می‌دهد.",
-  "web.logs.debug_level_restart_hint": "توجه: تغییرات پس از راه‌اندازی مجدد کانتینر اعمال می‌شوند.",
   "web.logs.debug_level_label": "سطح Debug",
   "web.logs.description": "انواع مختلف لاگ از سیستم DockerDiscordControl خود را مشاهده و مدیریت کنید.",
   "web.logs.heading": "لاگ‌های سیستم",

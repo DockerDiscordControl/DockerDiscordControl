@@ -564,23 +564,23 @@ class ConfigurationSaveService:
             from services.config.config_service import load_config
             import logging
 
-            config_check = load_config()
-            debug_level_enabled = config_check.get('debug_level_enabled', False)
-            current_level = 'DEBUG' if debug_level_enabled else 'INFO'
+            # THIS USED TO LOWER THE LOGGERS AND LEAVE THE HANDLERS. A record
+            # passes its logger's level and then its handler's, so a logger at
+            # DEBUG feeding a handler at INFO emits nothing - which is exactly
+            # what "you have to restart" looked like to the operator.
+            #
+            # refresh_debug_status() drops the config cache, re-reads the
+            # switch and applies BOTH halves (utils/logging_utils.py,
+            # _apply_debug_levels). It existed for the temporary debug switch
+            # since review C9 and was called from the diagnostics page alone.
+            # It also sets nothing on the root logger, so third-party libraries
+            # do not start narrating.
+            from utils.logging_utils import refresh_debug_status
 
-            self.logger.info(f"Log level after config save: {current_level}")
-
-            # Update logging level for all loggers
-            root_logger = logging.getLogger()
-            target_level = logging.DEBUG if debug_level_enabled else logging.INFO
-            root_logger.setLevel(target_level)
-
-            # Update specific loggers
-            for logger_name in ['ddc', 'gunicorn', 'discord', 'app']:
-                specific_logger = logging.getLogger(logger_name)
-                specific_logger.setLevel(target_level)
-
-            self.logger.info(f"All loggers set to {current_level} level")
+            enabled = refresh_debug_status()
+            self.logger.info(
+                f"Log level after config save: {'DEBUG' if enabled else 'INFO'} "
+                "(applied now, no restart)")
 
             # Update scheduler logging if available
             try:

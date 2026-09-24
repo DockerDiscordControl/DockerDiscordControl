@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Automatinis",
   "web.logs.container_logs_title": "Konteinerio žurnalai (paskutinės 500 eilučių)",
   "web.logs.debug_level_help": "Perjungti tarp Debug ir Info žurnalų lygių. Debug rodo detalią sistemos informaciją, Info rodo standartinius pranešimus.",
-  "web.logs.debug_level_restart_hint": "Pastaba: pakeitimai įsigalioja iš naujo paleidus konteinerį.",
   "web.logs.debug_level_label": "Derinimo lygis",
   "web.logs.description": "Peržiūrėkite ir valdykite skirtingus žurnalų tipus iš jūsų DockerDiscordControl sistemos.",
   "web.logs.heading": "Sistemos žurnalai",

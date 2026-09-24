@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Аутоматски",
   "web.logs.container_logs_title": "Дневници контејнера (задњих 500 линија)",
   "web.logs.debug_level_help": "Пребацујте између Debug и Info нивоа дневника. Debug приказује детаљне системске информације, Info приказује стандардне поруке.",
-  "web.logs.debug_level_restart_hint": "Напомена: Промене ступају на снагу након поновног покретања контејнера.",
   "web.logs.debug_level_label": "Ниво дебаговања",
   "web.logs.description": "Прегледајте и управљајте различитим типовима дневника из вашег DockerDiscordControl система.",
   "web.logs.heading": "Системски дневници",

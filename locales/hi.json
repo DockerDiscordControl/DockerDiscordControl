@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "स्वतः",
   "web.logs.container_logs_title": "कंटेनर लॉग (अंतिम 500 पंक्तियाँ)",
   "web.logs.debug_level_help": "Debug और Info लॉग स्तरों के बीच टॉगल करें। Debug विस्तृत सिस्टम जानकारी दिखाता है, Info मानक संदेश दिखाता है।",
-  "web.logs.debug_level_restart_hint": "नोट: परिवर्तन कंटेनर रीस्टार्ट के बाद प्रभावी होते हैं।",
   "web.logs.debug_level_label": "Debug स्तर",
   "web.logs.description": "अपने DockerDiscordControl सिस्टम से विभिन्न लॉग प्रकार देखें और प्रबंधित करें।",
   "web.logs.heading": "सिस्टम लॉग",

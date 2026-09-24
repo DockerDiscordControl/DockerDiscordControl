@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Konteineri logid (viimased 500 rida)",
   "web.logs.debug_level_help": "Lülita silumis- ja infologi tasemete vahel. Silumine näitab üksikasjalikku süsteemiteavet, info näitab standardseid sõnumeid.",
-  "web.logs.debug_level_restart_hint": "Märkus: Muudatused jõustuvad pärast konteineri taaskäivitamist.",
   "web.logs.debug_level_label": "Silumise tase",
   "web.logs.description": "Vaata ja halda DockerDiscordControl süsteemi erinevaid logitüüpe.",
   "web.logs.heading": "Süsteemi logid",

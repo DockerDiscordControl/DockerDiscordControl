@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Automatski",
   "web.logs.container_logs_title": "Zapisi kontejnera (zadnjih 500 redaka)",
   "web.logs.debug_level_help": "Prebacivanje između Debug i Info razina zapisa. Debug prikazuje detaljne informacije o sustavu, Info prikazuje standardne poruke.",
-  "web.logs.debug_level_restart_hint": "Napomena: Promjene stupaju na snagu nakon ponovnog pokretanja kontejnera.",
   "web.logs.debug_level_label": "Razina Debug-a",
   "web.logs.description": "Pregledaj i upravljaj različitim tipovima zapisa iz tvog DockerDiscordControl sustava.",
   "web.logs.heading": "Sistemski zapisi",

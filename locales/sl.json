@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Samodejno",
   "web.logs.container_logs_title": "Dnevniki vsebnika (zadnjih 500 vrstic)",
   "web.logs.debug_level_help": "Preklapljajte med ravnjo dnevnikov Debug in Info. Debug prikaže podrobne sistemske informacije, Info prikaže standardna sporočila.",
-  "web.logs.debug_level_restart_hint": "Opomba: Spremembe začnejo veljati po ponovnem zagonu vsebnika.",
   "web.logs.debug_level_label": "Raven razhroščevanja",
   "web.logs.description": "Oglejte si in upravljajte različne vrste dnevnikov iz vašega sistema DockerDiscordControl.",
   "web.logs.heading": "Sistemski dnevniki",

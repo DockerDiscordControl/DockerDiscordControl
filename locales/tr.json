@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Otomatik",
   "web.logs.container_logs_title": "Konteyner Günlükleri (son 500 satır)",
   "web.logs.debug_level_help": "Hata Ayıklama ve Bilgi günlük seviyeleri arasında geçiş yapın. Hata Ayıklama ayrıntılı sistem bilgisini gösterir, Bilgi standart mesajları gösterir.",
-  "web.logs.debug_level_restart_hint": "Not: Değişiklikler container yeniden başlatıldıktan sonra geçerli olur.",
   "web.logs.debug_level_label": "Hata Ayıklama Seviyesi",
   "web.logs.description": "DockerDiscordControl sisteminizden farklı günlük türlerini görüntüleyin ve yönetin.",
   "web.logs.heading": "Sistem Günlükleri",

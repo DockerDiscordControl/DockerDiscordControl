@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Tự động",
   "web.logs.container_logs_title": "Nhật ký Container (500 dòng cuối)",
   "web.logs.debug_level_help": "Chuyển đổi giữa mức nhật ký Debug và Info. Debug hiển thị thông tin hệ thống chi tiết, Info hiển thị tin nhắn tiêu chuẩn.",
-  "web.logs.debug_level_restart_hint": "Lưu ý: Thay đổi có hiệu lực sau khi khởi động lại container.",
   "web.logs.debug_level_label": "Mức Debug",
   "web.logs.description": "Xem và quản lý các loại nhật ký khác nhau từ hệ thống DockerDiscordControl.",
   "web.logs.heading": "Nhật ký hệ thống",

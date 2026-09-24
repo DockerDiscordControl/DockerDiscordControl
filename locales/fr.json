@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Journaux du conteneur (500 dernières lignes)",
   "web.logs.debug_level_help": "Basculez entre les niveaux de journalisation Debug et Info. Debug affiche des informations système détaillées, Info affiche les messages standard.",
-  "web.logs.debug_level_restart_hint": "Remarque : les modifications prennent effet après un redémarrage du conteneur.",
   "web.logs.debug_level_label": "Niveau de débogage",
   "web.logs.description": "Consultez et gérez les différents types de journaux de votre système DockerDiscordControl.",
   "web.logs.heading": "Journaux système",

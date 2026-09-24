@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "تلقائي",
   "web.logs.container_logs_title": "سجلات الحاوية (آخر 500 سطر)",
   "web.logs.debug_level_help": "التبديل بين مستويي السجل Debug وInfo. Debug يعرض معلومات تفصيلية للنظام، Info يعرض الرسائل القياسية.",
-  "web.logs.debug_level_restart_hint": "ملاحظة: تسري التغييرات بعد إعادة تشغيل الحاوية.",
   "web.logs.debug_level_label": "مستوى التصحيح",
   "web.logs.description": "عرض وإدارة أنواع السجلات المختلفة من نظام DockerDiscordControl.",
   "web.logs.heading": "سجلات النظام",

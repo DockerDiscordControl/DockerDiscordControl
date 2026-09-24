@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Konteinera žurnāli (pēdējās 500 rindas)",
   "web.logs.debug_level_help": "Pārslēdziet starp atkļūdošanas un informācijas žurnālu līmeņiem. Atkļūdošana rāda detalizētu sistēmas informāciju, informācija rāda standarta ziņojumus.",
-  "web.logs.debug_level_restart_hint": "Piezīme: izmaiņas stājas spēkā pēc konteinera restartēšanas.",
   "web.logs.debug_level_label": "Atkļūdošanas līmenis",
   "web.logs.description": "Skatiet un pārvaldiet dažādu veidu žurnālus no savas DockerDiscordControl sistēmas.",
   "web.logs.heading": "Sistēmas žurnāli",

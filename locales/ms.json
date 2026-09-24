@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Automatik",
   "web.logs.container_logs_title": "Log Kandungana (500 baris terakhir)",
   "web.logs.debug_level_help": "Beralih antara level log Debug dan Info. Debug memaparkan maklumat sistem detail, Info memaparkan pesan standar.",
-  "web.logs.debug_level_restart_hint": "Nota: Perubahan berkuat kuasa selepas bekas dimulakan semula.",
   "web.logs.debug_level_label": "Level Debug",
   "web.logs.description": "Lihat dan urus berbagai tipe log dari sistem DockerDiscordControl anda.",
   "web.logs.heading": "Log Sistem",

@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "אוטומטי",
   "web.logs.container_logs_title": "יומני קונטיינר (500 שורות אחרונות)",
   "web.logs.debug_level_help": "החלף בין רמות יומן Debug ו-Info. Debug מציג מידע מערכת מפורט, Info מציג הודעות רגילות.",
-  "web.logs.debug_level_restart_hint": "הערה: השינויים ייכנסו לתוקף לאחר הפעלה מחדש של הקונטיינר.",
   "web.logs.debug_level_label": "רמת Debug",
   "web.logs.description": "צפה ונהל סוגי יומנים שונים ממערכת DockerDiscordControl שלך.",
   "web.logs.heading": "יומני מערכת",

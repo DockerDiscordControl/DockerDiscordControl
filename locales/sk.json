@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Logy kontajnera (posledných 500 riadkov)",
   "web.logs.debug_level_help": "Prepnúť medzi úrovňami logov Debug a Info. Debug zobrazuje podrobné systémové informácie, Info zobrazuje štandardné správy.",
-  "web.logs.debug_level_restart_hint": "Poznámka: Zmeny sa prejavia po reštarte kontajnera.",
   "web.logs.debug_level_label": "Úroveň ladenia",
   "web.logs.description": "Zobrazujte a spravujte rôzne typy logov z vášho systému DockerDiscordControl.",
   "web.logs.heading": "Systémové logy",

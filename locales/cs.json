@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Protokoly kontejneru (posledních 500 řádků)",
   "web.logs.debug_level_help": "Přepínání mezi úrovněmi protokolů Debug a Info. Debug zobrazuje detailní systémové informace, Info zobrazuje standardní zprávy.",
-  "web.logs.debug_level_restart_hint": "Poznámka: Změny se projeví po restartu kontejneru.",
   "web.logs.debug_level_label": "Úroveň ladění",
   "web.logs.description": "Zobrazení a správa různých typů protokolů z vašeho systému DockerDiscordControl.",
   "web.logs.heading": "Systémové protokoly",

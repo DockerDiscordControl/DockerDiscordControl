@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "自动",
   "web.logs.container_logs_title": "容器日志（最后 500 行）",
   "web.logs.debug_level_help": "在 Debug 和 Info 日志级别之间切换。Debug 显示详细系统信息，Info 显示标准消息。",
-  "web.logs.debug_level_restart_hint": "注意：更改将在容器重启后生效。",
   "web.logs.debug_level_label": "调试级别",
   "web.logs.description": "查看和管理 DockerDiscordControl 系统的不同日志类型。",
   "web.logs.heading": "系统日志",

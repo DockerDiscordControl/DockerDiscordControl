@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Jurnale Container (ultimele 500 linii)",
   "web.logs.debug_level_help": "Comutați între nivelurile de jurnal Debug și Info. Debug afișează informații detaliate de sistem, Info afișează mesaje standard.",
-  "web.logs.debug_level_restart_hint": "Notă: Modificările intră în vigoare după repornirea containerului.",
   "web.logs.debug_level_label": "Nivel Debug",
   "web.logs.description": "Vizualizați și gestionați diferite tipuri de jurnale din sistemul DockerDiscordControl.",
   "web.logs.heading": "Jurnale Sistem",

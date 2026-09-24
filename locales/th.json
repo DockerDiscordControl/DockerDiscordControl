@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "อัตโนมัติ",
   "web.logs.container_logs_title": "บันทึก Container (500 บรรทัดล่าสุด)",
   "web.logs.debug_level_help": "สลับระหว่างระดับบันทึก Debug และ Info Debug แสดงข้อมูลระบบโดยละเอียด Info แสดงข้อความมาตรฐาน",
-  "web.logs.debug_level_restart_hint": "หมายเหตุ: การเปลี่ยนแปลงจะมีผลหลังจากรีสตาร์ทคอนเทนเนอร์",
   "web.logs.debug_level_label": "ระดับ Debug",
   "web.logs.description": "ดูและจัดการประเภทบันทึกต่างๆ จากระบบ DockerDiscordControl ของคุณ",
   "web.logs.heading": "บันทึกระบบ",

@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "自動",
   "web.logs.container_logs_title": "コンテナログ（最後の500行）",
   "web.logs.debug_level_help": "DebugとInfoのログレベルを切り替えます。Debugは詳細なシステム情報を、Infoは標準メッセージを表示します。",
-  "web.logs.debug_level_restart_hint": "注意: 変更はコンテナの再起動後に反映されます。",
   "web.logs.debug_level_label": "デバッグレベル",
   "web.logs.description": "DockerDiscordControlシステムのさまざまなログタイプを表示・管理します。",
   "web.logs.heading": "システムログ",

@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Αυτόματο",
   "web.logs.container_logs_title": "Αρχεία container (τελευταίες 500 γραμμές)",
   "web.logs.debug_level_help": "Εναλλαγή μεταξύ επιπέδων Debug και Info.",
-  "web.logs.debug_level_restart_hint": "Σημείωση: Οι αλλαγές ισχύουν μετά από επανεκκίνηση του container.",
   "web.logs.debug_level_label": "Επίπεδο Debug",
   "web.logs.description": "Προβολή και διαχείριση αρχείων καταγραφής του DockerDiscordControl.",
   "web.logs.heading": "Αρχεία καταγραφής συστήματος",

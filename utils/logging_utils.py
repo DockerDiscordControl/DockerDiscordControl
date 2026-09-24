@@ -81,7 +81,17 @@ def is_debug_mode_enabled() -> bool:
                     return _debug_mode_enabled
 
                 # Use the cached value of debug mode if available
-                _debug_mode_enabled = config.get('scheduler_debug_mode', False)
+                # TWO NAMES FOR ONE SWITCH. The panel's box is called
+                # debug_level_enabled; this read scheduler_debug_mode, which
+                # nothing in the panel has ever written. So the box the
+                # operator ticks could not reach DebugModeFilter, whatever
+                # else was fixed (operator, 2026-09-24). The panel's name wins;
+                # the old one is still read so an installation that carries it
+                # keeps its debug logging.
+                if 'debug_level_enabled' in config:
+                    _debug_mode_enabled = bool(config.get('debug_level_enabled'))
+                else:
+                    _debug_mode_enabled = bool(config.get('scheduler_debug_mode', False))
 
                 # Only output debug message when loaded for the first time or when the value changes
                 if previous_value != _debug_mode_enabled or (_last_debug_status_log is None) or (current_time - _last_debug_status_log > 300):

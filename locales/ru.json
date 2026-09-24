@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Авто",
   "web.logs.container_logs_title": "Логи контейнера (последние 500 строк)",
   "web.logs.debug_level_help": "Переключение между уровнями логов Debug и Info. Debug показывает подробную системную информацию, Info — стандартные сообщения.",
-  "web.logs.debug_level_restart_hint": "Примечание: изменения вступают в силу после перезапуска контейнера.",
   "web.logs.debug_level_label": "Уровень отладки",
   "web.logs.description": "Просмотр и управление различными типами логов вашей системы DockerDiscordControl.",
   "web.logs.heading": "Системные логи",

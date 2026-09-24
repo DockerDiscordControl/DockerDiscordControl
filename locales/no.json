@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Containerlogger (siste 500 linjer)",
   "web.logs.debug_level_help": "Veksle mellom Debug- og Info-loggnivåer. Debug viser detaljert systeminformasjon, Info viser standardmeldinger.",
-  "web.logs.debug_level_restart_hint": "Merk: Endringer trer i kraft etter en omstart av containeren.",
   "web.logs.debug_level_label": "Feilsøkingsnivå",
   "web.logs.description": "Se og administrer ulike loggtyper fra DockerDiscordControl-systemet.",
   "web.logs.heading": "Systemlogger",

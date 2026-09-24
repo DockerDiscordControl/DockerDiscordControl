@@ -1174,7 +1174,6 @@
   "web.logs.auto_refresh": "Auto",
   "web.logs.container_logs_title": "Säilölokit (viimeiset 500 riviä)",
   "web.logs.debug_level_help": "Vaihda Debug- ja Info-lokitasojen välillä. Debug näyttää yksityiskohtaiset järjestelmätiedot, Info näyttää vakioviestit.",
-  "web.logs.debug_level_restart_hint": "Huom: Muutokset tulevat voimaan kontin uudelleenkäynnistyksen jälkeen.",
   "web.logs.debug_level_label": "Virheenkorjaustaso",
   "web.logs.description": "Tarkastele ja hallitse eri lokityyppejä DockerDiscordControl-järjestelmästäsi.",
   "web.logs.heading": "Järjestelmälokit",
