@@ -278,8 +278,13 @@
                     return;
                 }
                 
-                // Exclude task management elements from triggering unsaved changes
-                if (e.target.id === 'taskFilterStatus' || e.target.closest('#taskListBody') || e.target.closest('.task-filters')) {
+                // Not everything inside the form belongs to the form's one
+                // save: a control that stores itself, or a filter that changes
+                // only what is shown (app/static/js/form_scope.js). This used
+                // to be a hard-coded list of three ids, which is why the debug
+                // switch - given its own save the same day, and inside the form
+                // since the log view moved in - still raised the warning.
+                if (!window.belongsToTheFormSave || !window.belongsToTheFormSave(e.target)) {
                     return;
                 }
                 
@@ -295,8 +300,13 @@
                     return;
                 }
                 
-                // Exclude task management elements from triggering unsaved changes
-                if (e.target.id === 'taskFilterStatus' || e.target.closest('#taskListBody') || e.target.closest('.task-filters')) {
+                // Not everything inside the form belongs to the form's one
+                // save: a control that stores itself, or a filter that changes
+                // only what is shown (app/static/js/form_scope.js). This used
+                // to be a hard-coded list of three ids, which is why the debug
+                // switch - given its own save the same day, and inside the form
+                // since the log view moved in - still raised the warning.
+                if (!window.belongsToTheFormSave || !window.belongsToTheFormSave(e.target)) {
                     return;
                 }
                 
@@ -312,13 +322,11 @@
                     return;
                 }
                 
-                // Exclude task management elements from triggering unsaved changes
-                if (event.target.id === 'refreshTasksBtn' || 
-                    event.target.closest('#taskListBody') || 
-                    event.target.closest('.task-filters') ||
-                    event.target.closest('.editTaskBtn') ||
-                    event.target.closest('.deleteTaskBtn') ||
-                    event.target.closest('.toggle-active')) {
+                // The same rule the two listeners above ask
+                // (app/static/js/form_scope.js). This list held six entries
+                // where theirs held three, and neither knew the other's - two
+                // lists for one question.
+                if (!window.belongsToTheFormSave || !window.belongsToTheFormSave(event.target)) {
                     return;
                 }
                 

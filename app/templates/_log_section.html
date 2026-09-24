@@ -41,7 +41,7 @@
     <div class="row mb-3">
         <div class="col-md-12">
             <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="debugLevelToggle" name="debug_level_enabled" value="1" {% if config.debug_level_enabled %}checked{% endif %}>
+                <input class="form-check-input" type="checkbox" id="debugLevelToggle" data-saves-itself="true" name="debug_level_enabled" value="1" {% if config.debug_level_enabled %}checked{% endif %}>
                 <label class="form-check-label" for="debugLevelToggle">{{ _t('web.logs.debug_level_label') }}</label>
             </div>
             <p class="form-text mt-1">{{ _t('web.logs.debug_level_help') }}</p>
