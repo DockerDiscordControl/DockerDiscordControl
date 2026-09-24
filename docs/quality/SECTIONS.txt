@@ -107,13 +107,16 @@ services/config/server_config_service.py:1-233
 services/config/channel_roles.py:1-38
 services/discord/__init__.py:1-20
 
-## Section 14  (1542 lines, 6 pieces)
+## Section 14  (1754 lines, 7 pieces)
 services/discord/channel_cleanup_service.py:1-509
 services/discord/conditional_update_cache_service.py:1-184
 services/discord/embed_helper_service.py:1-209
 services/discord/status_overview_service.py:1-365
 services/docker_service/__init__.py:1-28
-services/docker_service/docker_action_service.py:1-298
+services/docker_service/docker_action_service.py:1-308
+# group_actions.py joined on 2026-09-24 (new: one walk over a group's
+# containers, shared by the action service and the scheduled tasks).
+services/docker_service/group_actions.py:1-151
 
 ## Section 15  (933 lines, 3 pieces)
 services/docker_service/client_factory.py:1-105
@@ -220,7 +223,7 @@ services/scheduling/task_timezone.py:1-71
 services/scheduling/task_writeback.py:1-119
 # group_tasks.py split out of scheduler.py on 2026-09-23 (that file is on the
 # size list and may only shrink); sections 26 and 27 are full.
-services/scheduling/group_tasks.py:1-128
+services/scheduling/group_tasks.py:1-96
 
 ## Section 26  (1745 lines, 1 piece)
 services/scheduling/scheduler.py:1-1745

@@ -156,8 +156,9 @@ services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	281	v3rev:1-272
 services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	105	v3rev:1-105
-services/docker_service/docker_action_service.py	298	pass1:s14:plan pass2:s14:1-276
+services/docker_service/docker_action_service.py	308	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
+services/docker_service/group_actions.py	151	NONE
 services/docker_service/docker_utils.py	1163	pass1:s16:1-1404  [28 of 1432 lines never in a package]
 services/docker_service/reachability.py	87	v3rev:1-87
 services/docker_service/server_order.py	111	pass1:s16:1-111
@@ -218,7 +219,7 @@ services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a
 services/scheduling/__init__.py	36	pass1:s25:1-36
 services/scheduling/cron_check.py	40	NONE
 services/scheduling/donation_message_service.py	243	pass1:s25:1-196  [19 of 215 lines never in a package]
-services/scheduling/group_tasks.py	128	NONE
+services/scheduling/group_tasks.py	96	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
 services/scheduling/scheduler.py	2243	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]

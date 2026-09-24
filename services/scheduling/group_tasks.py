@@ -76,53 +76,21 @@ async def execute_group_task(task, timeout: int) -> bool:
         await persist_executed_task_async(task)
         return success
 
-    try:
-        service = get_group_service()
-        members = service.members_of(task.container_name)
-        group = service.find(task.container_name)
-    except OSError as e:
-        return await _record(False, f"The groups could not be read: {e}")
+    # ONE WALK, shared with every other way a group is acted on (operator,
+    # 2026-09-24: a group behaves like one container). This function used to
+    # carry its own copy - resolve, pace, report a partial run as a failure -
+    # and a second copy is two answers to one question, drifting until a group
+    # restarted from a button behaves differently from the same group here.
+    # What stays here is the task bookkeeping, and the per-member timeout,
+    # which is this caller's own: the single-container path raises it to
+    # StopTimeout + margin for stop and restart, and the group path used the
+    # raw 60 seconds for everyone - a database with StopTimeout=120 was logged
+    # as failed every night while the stop was still running.
+    from services.docker_service.group_actions import act_on_group
 
-    if not members.exists or group is None:
-        return await _record(False, f"The group '{task.container_name}' does not exist any more.")
-    # The GROUP decides (operator, 2026-09-24): its own Active and its own four
-    # actions, not its members'. A group written before those boxes existed
-    # reads as allowed to do all four, so no task that ran yesterday stops.
-    if not group.active:
-        return await _record(False, f"The group '{group.name}' is switched off.")
-    if task.action not in group.allowed_actions:
-        return await _record(
-            False, f"The group '{group.name}' is not allowed to {task.action}.")
-    if not members.containers and not members.missing:
-        return await _record(False, f"The group '{task.container_name}' has no containers in it.")
-
-    failed = []
-    attempted = 0
-    for container in members.containers:
-        if attempted > 0:
-            await asyncio.sleep(0.5)
-        attempted += 1
-        try:
-            # Each member gets the time ITS container needs: the single-container
-            # path raises the timeout to StopTimeout + margin for stop and
-            # restart, and the group path used the raw 60 seconds for everyone -
-            # a database with StopTimeout=120 was logged as failed every night
-            # while the stop was still running.
-            member_timeout = await _timeout_for(container, task.action, timeout)
-            done = await asyncio.wait_for(docker_action_service_first(container, task.action),
-                                          timeout=member_timeout)
-        except asyncio.TimeoutError:
-            done = False
-            logger.error(f"Timeout on {task.action} for {container} (group {task.container_name})")
-        except (RuntimeError, OSError) as e:
-            done = False
-            logger.error(f"Error on {task.action} for {container}: {e}", exc_info=True)
-        if not done:
-            failed.append(container)
-
-    problems = []
-    if failed:
-        problems.append(f"{task.action} failed for: {', '.join(failed)}")
-    if members.missing:
-        problems.append(f"no longer in DDC: {', '.join(members.missing)}")
-    return await _record(not problems, "; ".join(problems) if problems else None)
+    outcome = await act_on_group(task.container_name, task.action, timeout,
+                                 timeout_for=_timeout_for)
+    problem = outcome.problem()
+    if problem and outcome.failed:
+        problem = problem.replace("failed for:", f"{task.action} failed for:", 1)
+    return await _record(outcome.success, problem)
