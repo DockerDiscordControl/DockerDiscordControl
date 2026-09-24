@@ -442,7 +442,6 @@
   "all of its containers are running": "svi njezini kontejneri rade",
   "some are running": "neki rade",
   "none is running": "nijedan ne radi",
-  "Pick one in the Admin panel to control all its containers at once": "Odaberite je u Admin ploči da biste svim njezinim kontejnerima upravljali odjednom",
   "Show donation information to support the project": "Prikaži informacije o donaciji za podršku projekta",
   "Showing first 25 of {total} tasks": "Prikaz prvih 25 od {total} zadataka",
   "Showing first {count} of {total} tasks": "Prikaz prvih {count} od {total} zadataka",

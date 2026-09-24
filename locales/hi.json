@@ -442,7 +442,6 @@
   "all of its containers are running": "इसके सभी कंटेनर चल रहे हैं",
   "some are running": "कुछ चल रहे हैं",
   "none is running": "कोई नहीं चल रहा",
-  "Pick one in the Admin panel to control all its containers at once": "इसके सभी कंटेनर एक साथ नियंत्रित करने के लिए इसे एडमिन पैनल में चुनें",
   "Show donation information to support the project": "परियोजना का समर्थन करने के लिए दान जानकारी दिखाएँ",
   "Showing first 25 of {total} tasks": "{total} कार्यों में से पहले 25 दिखाए जा रहे हैं",
   "Showing first {count} of {total} tasks": "{total} कार्यों में से पहले {count} दिखाए जा रहे हैं",

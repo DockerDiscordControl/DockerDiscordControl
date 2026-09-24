@@ -138,8 +138,7 @@ def group_help_field():
         f"{GROUP_EMOJI} {_('A group acts like a single container, with permissions of its own')}\n"
         f"🟢 {_('all of its containers are running')}"
         f" · 🟡 {_('some are running')}"
-        f" · 🔴 {_('none is running')}\n"
-        f"{_('Pick one in the Admin panel to control all its containers at once')}"
+        f" · 🔴 {_('none is running')}"
         "\n\u200b")
 
 

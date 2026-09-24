@@ -442,7 +442,6 @@
   "all of its containers are running": "tất cả container của nhóm đang chạy",
   "some are running": "một số đang chạy",
   "none is running": "không có cái nào đang chạy",
-  "Pick one in the Admin panel to control all its containers at once": "Chọn trong bảng Admin để điều khiển tất cả container của nhóm cùng lúc",
   "Show donation information to support the project": "Hiển thị thông tin đóng góp để hỗ trợ dự án",
   "Showing first 25 of {total} tasks": "Hiển thị 25 tác vụ đầu tiên trong tổng số {total}",
   "Showing first {count} of {total} tasks": "Hiển thị {count} tác vụ đầu tiên trong tổng số {total}",

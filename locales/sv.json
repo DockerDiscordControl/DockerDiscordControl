@@ -442,7 +442,6 @@
   "all of its containers are running": "alla dess containrar körs",
   "some are running": "några körs",
   "none is running": "ingen körs",
-  "Pick one in the Admin panel to control all its containers at once": "Välj den i Admin-panelen för att styra alla dess containrar på en gång",
   "Show donation information to support the project": "Visa donationsinformation för att stödja projektet",
   "Showing first 25 of {total} tasks": "Visar de första 25 av {total} uppgifter",
   "Showing first {count} of {total} tasks": "Visar de första {count} av {total} uppgifter",

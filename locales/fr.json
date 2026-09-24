@@ -442,7 +442,6 @@
   "all of its containers are running": "tous ses conteneurs tournent",
   "some are running": "certains tournent",
   "none is running": "aucun ne tourne",
-  "Pick one in the Admin panel to control all its containers at once": "Choisissez-le dans le panneau Admin pour piloter tous ses conteneurs en une fois",
   "Show donation information to support the project": "Afficher les informations de don pour soutenir le projet",
   "Showing first 25 of {total} tasks": "Affichage des 25 premières tâches sur {total}",
   "Showing first {count} of {total} tasks": "Affichage des {count} premières tâches sur {total}",

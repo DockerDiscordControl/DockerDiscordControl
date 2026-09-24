@@ -442,7 +442,6 @@
   "all of its containers are running": "Container ทั้งหมดกำลังทำงาน",
   "some are running": "บางส่วนกำลังทำงาน",
   "none is running": "ไม่มีตัวใดทำงาน",
-  "Pick one in the Admin panel to control all its containers at once": "เลือกในแผงผู้ดูแลเพื่อควบคุม Container ทั้งหมดพร้อมกัน",
   "Show donation information to support the project": "แสดงข้อมูลการบริจาคเพื่อสนับสนุนโครงการ",
   "Showing first 25 of {total} tasks": "แสดง 25 งานแรกจากทั้งหมด {total} งาน",
   "Showing first {count} of {total} tasks": "แสดง {count} งานแรกจากทั้งหมด {total} งาน",

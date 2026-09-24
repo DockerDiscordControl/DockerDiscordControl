@@ -442,7 +442,6 @@
   "all of its containers are running": "همه کانتینرهای آن در حال اجرا هستند",
   "some are running": "برخی در حال اجرا هستند",
   "none is running": "هیچ‌کدام در حال اجرا نیست",
-  "Pick one in the Admin panel to control all its containers at once": "آن را در پنل مدیریت انتخاب کنید تا همه کانتینرهای آن را یکجا کنترل کنید",
   "Show donation information to support the project": "نمایش اطلاعات کمک مالی برای حمایت از پروژه",
   "Showing first 25 of {total} tasks": "نمایش 25 وظیفه اول از {total}",
   "Showing first {count} of {total} tasks": "نمایش {count} وظیفه اول از {total}",

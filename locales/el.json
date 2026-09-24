@@ -442,7 +442,6 @@
   "all of its containers are running": "όλα τα container της εκτελούνται",
   "some are running": "μερικά εκτελούνται",
   "none is running": "κανένα δεν εκτελείται",
-  "Pick one in the Admin panel to control all its containers at once": "Επιλέξτε την στο πάνελ διαχείρισης για να ελέγξετε όλα τα container της μαζί",
   "Show donation information to support the project": "Εμφάνιση πληροφοριών δωρεάς για υποστήριξη του έργου",
   "Showing first 25 of {total} tasks": "Εμφάνιση πρώτων 25 από {total} εργασίες",
   "Showing first {count} of {total} tasks": "Εμφάνιση πρώτων {count} από {total} εργασίες",

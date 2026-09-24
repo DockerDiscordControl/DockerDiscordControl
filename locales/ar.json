@@ -442,7 +442,6 @@
   "all of its containers are running": "كل حاوياتها تعمل",
   "some are running": "بعضها يعمل",
   "none is running": "لا شيء يعمل",
-  "Pick one in the Admin panel to control all its containers at once": "اخترها من لوحة الإدارة للتحكم بجميع حاوياتها دفعة واحدة",
   "Show donation information to support the project": "عرض معلومات التبرع لدعم المشروع",
   "Showing first 25 of {total} tasks": "عرض أول 25 من {total} مهمة",
   "Showing first {count} of {total} tasks": "عرض أول {count} من {total} مهمة",

@@ -442,7 +442,6 @@
   "all of its containers are running": "kõik selle konteinerid töötavad",
   "some are running": "mõned töötavad",
   "none is running": "ükski ei tööta",
-  "Pick one in the Admin panel to control all its containers at once": "Vali see administraatori paneelil, et juhtida kõiki selle konteinereid korraga",
   "Show donation information to support the project": "Näita annetuste infot projekti toetamiseks",
   "Showing first 25 of {total} tasks": "Kuvatakse esimesed 25 ülesannet {total}-st",
   "Showing first {count} of {total} tasks": "Kuvatakse esimesed {count} ülesannet {total}-st",

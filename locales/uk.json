@@ -442,7 +442,6 @@
   "all of its containers are running": "усі її контейнери працюють",
   "some are running": "деякі працюють",
   "none is running": "жоден не працює",
-  "Pick one in the Admin panel to control all its containers at once": "Виберіть її в панелі адміністратора, щоб керувати всіма її контейнерами одразу",
   "Show donation information to support the project": "Показати інформацію про донати для підтримки проєкту",
   "Showing first 25 of {total} tasks": "Показано перші 25 з {total} завдань",
   "Showing first {count} of {total} tasks": "Показано перші {count} з {total} завдань",

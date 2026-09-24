@@ -442,7 +442,6 @@
   "all of its containers are running": "すべてのコンテナが稼働中",
   "some are running": "一部が稼働中",
   "none is running": "どれも稼働していません",
-  "Pick one in the Admin panel to control all its containers at once": "管理パネルで選ぶと、そのコンテナすべてを一度に操作できます",
   "Show donation information to support the project": "プロジェクトを支援するための寄付情報を表示",
   "Showing first 25 of {total} tasks": "{total}件中最初の25件のタスクを表示",
   "Showing first {count} of {total} tasks": "{total}件中最初の{count}件のタスクを表示",

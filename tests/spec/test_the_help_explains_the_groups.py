@@ -46,8 +46,14 @@ GROUP_TEXTS = (
     "all of its containers are running",
     "some are running",
     "none is running",
-    "Pick one in the Admin panel to control all its containers at once",
 )
+
+# Dropped on 2026-09-24, with its catalogue entry: "Admin panel" is what the
+# operator calls the WEB panel, so a line in the Discord help telling him to
+# pick a group there pointed at the wrong window. The two lines above already
+# say what a group is and how to read its lamp; where to press it is the one
+# thing the button he is looking at answers by being pressed.
+DROPPED = "Pick one in the Admin panel to control all its containers at once"
 
 
 def _literals(relative):
@@ -125,6 +131,30 @@ def test_every_new_sentence_is_in_every_catalogue(text):
             missing.append(path.name)
 
     assert missing == [], f"{text!r} is missing from {len(missing)} catalogues: {missing[:5]}"
+
+
+def test_the_dropped_line_is_gone_everywhere():
+    """A sentence removed from the code and left in the catalogues is a text
+    nobody shows and nobody can find - and the check that sweeps dead keys
+    only knows the dotted ones, so nothing else would notice."""
+    left = []
+    for path in sorted((PROJECT / "locales").glob("*.json")):
+        if path.name == "meta.json":
+            continue
+        if DROPPED in json.loads(path.read_text(encoding="utf-8")):
+            left.append(path.name)
+
+    assert left == [], f"the dropped line is still in {len(left)} catalogues: {left[:5]}"
+    assert DROPPED not in (PROJECT / "cogs" / "group_control.py").read_text(encoding="utf-8")
+
+
+def test_the_section_does_not_point_at_the_wrong_window():
+    """"Admin panel" is the web panel to this operator."""
+    from cogs.group_control import group_help_field
+
+    _name, value = group_help_field()
+
+    assert "Admin" not in value, value
 
 
 def test_the_german_ones_are_really_german():

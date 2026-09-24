@@ -442,7 +442,6 @@
   "all of its containers are running": "visi tās konteineri darbojas",
   "some are running": "daži darbojas",
   "none is running": "neviens nedarbojas",
-  "Pick one in the Admin panel to control all its containers at once": "Izvēlieties to administratora panelī, lai vadītu visus tās konteinerus uzreiz",
   "Show donation information to support the project": "Rādīt ziedojumu informāciju, lai atbalstītu projektu",
   "Showing first 25 of {total} tasks": "Tiek rādīti pirmie 25 no {total} uzdevumiem",
   "Showing first {count} of {total} tasks": "Tiek rādīti pirmie {count} no {total} uzdevumiem",

@@ -442,7 +442,6 @@
   "all of its containers are running": "všechny její kontejnery běží",
   "some are running": "některé běží",
   "none is running": "žádný neběží",
-  "Pick one in the Admin panel to control all its containers at once": "Vyberte ji v panelu správce a ovládejte všechny její kontejnery najednou",
   "Show donation information to support the project": "Zobrazit informace o příspěvcích pro podporu projektu",
   "Showing first 25 of {total} tasks": "Zobrazeno prvních 25 z {total} úkolů",
   "Showing first {count} of {total} tasks": "Zobrazeno prvních {count} z {total} úkolů",

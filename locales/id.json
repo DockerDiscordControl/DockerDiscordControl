@@ -442,7 +442,6 @@
   "all of its containers are running": "semua kontainernya berjalan",
   "some are running": "sebagian berjalan",
   "none is running": "tidak ada yang berjalan",
-  "Pick one in the Admin panel to control all its containers at once": "Pilih di panel Admin untuk mengendalikan semua kontainernya sekaligus",
   "Show donation information to support the project": "Tampilkan informasi donasi untuk mendukung proyek",
   "Showing first 25 of {total} tasks": "Menampilkan 25 pertama dari {total} tugas",
   "Showing first {count} of {total} tasks": "Menampilkan {count} pertama dari {total} tugas",
