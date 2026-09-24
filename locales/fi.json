@@ -435,6 +435,7 @@
   "Show Cooldown Messages": "Näytä jäähtymisviestit",
   "Show active tasks with delete buttons": "Näytä aktiiviset tehtävät poistopainikkeilla",
   "Show container information": "Näytä säilön tiedot",
+  "Container groups": "Säilöryhmät",
   "Show donation information to support the project": "Näytä lahjoitustiedot projektin tukemiseksi",
   "Showing first 25 of {total} tasks": "Näytetään ensimmäiset 25 / {total} tehtävää",
   "Showing first {count} of {total} tasks": "Näytetään ensimmäiset {count} / {total} tehtävää",

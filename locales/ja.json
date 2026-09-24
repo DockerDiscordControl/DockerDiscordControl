@@ -435,6 +435,7 @@
   "Show Cooldown Messages": "クールダウンメッセージを表示",
   "Show active tasks with delete buttons": "削除ボタン付きのアクティブなタスクを表示",
   "Show container information": "コンテナ情報を表示",
+  "Container groups": "コンテナグループ",
   "Show donation information to support the project": "プロジェクトを支援するための寄付情報を表示",
   "Showing first 25 of {total} tasks": "{total}件中最初の25件のタスクを表示",
   "Showing first {count} of {total} tasks": "{total}件中最初の{count}件のタスクを表示",

@@ -16,9 +16,18 @@ a donation that could not be recorded - every server sees them in English; two
 are log texts wrapped in _() for no reason. They are listed below and may only
 shrink; fixing them is a separate change.
 
-THE LIMIT: only literal first arguments of a call to a plain name ``_`` are
-checked. Strings built at runtime, or translated through another helper
-(translation_manager.translate), are not seen.
+THE LIMIT: only literal first arguments are checked. Strings built at runtime
+are not seen, and cannot be.
+
+WIDENED 2026-09-24, because the limit above was hiding a live one. The scan
+looked for calls to a plain ``_`` - the spelling of the day it was written -
+and cogs/overview_embeds.py imports the same function as ``translate``. The
+group heading added to the Discord overview that morning was
+``translate("Container groups")`` with no catalogue entry, so a German
+operator read "Container groups:" in English between "Server-Übersicht" and
+"nicht gefunden", and this test said nothing. It now follows every name the
+translation function is imported under, in each file, so a rename or a second
+alias cannot reopen the hole.
 """
 
 import ast
@@ -39,13 +48,34 @@ KNOWN_MISSING = {
 }
 
 
+def _translation_names(tree):
+    """Every name THIS file calls the translation function by.
+
+    ``from .translation_manager import _`` and ``... import _ as translate``
+    are the same function; a scan that knows only the first spelling is a scan
+    that stops at the file where the finding was made.
+    """
+    names = {"_"}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        if "translation" not in (node.module or ""):
+            continue
+        for alias in node.names:
+            if alias.name in ("_", "translate"):
+                names.add(alias.asname or alias.name)
+    return names
+
+
 def _literals():
     for root in ROOTS:
         for path in sorted((PROJECT / root).rglob("*.py")):
             tree = ast.parse(path.read_text(encoding="utf-8"))
             rel = path.relative_to(PROJECT).as_posix()
+            names = _translation_names(tree)
             for node in ast.walk(tree):
-                if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_"
+                if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                        and node.func.id in names
                         and node.args and isinstance(node.args[0], ast.Constant)
                         and isinstance(node.args[0].value, str)):
                     yield rel, node.lineno, node.args[0].value
@@ -55,6 +85,19 @@ def test_the_scanner_sees_the_bot_strings():
     """Guard against a blunt tool."""
     literals = list(_literals())
     assert len(literals) > 500, f"Only {len(literals)} bot strings found - the scan is blind"
+
+
+def test_the_scanner_follows_the_aliases():
+    """Proof that the widening is applied and not merely described: the file
+    that exposed the hole calls the translation function by another name."""
+    tree = ast.parse((PROJECT / "cogs" / "overview_embeds.py").read_text(encoding="utf-8"))
+    names = _translation_names(tree)
+
+    assert "translate" in names, (
+        "the scan knows only the plain _(), which is the spelling that hid a "
+        "missing key for a whole morning")
+    found = [text for rel, _line, text in _literals() if rel.endswith("overview_embeds.py")]
+    assert "Container groups" in found, found[:5]
 
 
 def test_every_bot_string_is_a_catalog_key():

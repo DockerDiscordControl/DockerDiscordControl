@@ -435,6 +435,7 @@
   "Show Cooldown Messages": "显示冷却消息",
   "Show active tasks with delete buttons": "显示带有删除按钮的活动任务",
   "Show container information": "显示容器信息",
+  "Container groups": "容器组",
   "Show donation information to support the project": "显示捐赠信息以支持项目",
   "Showing first 25 of {total} tasks": "显示 {total} 个任务中的前 25 个",
   "Showing first {count} of {total} tasks": "显示 {total} 个任务中的前 {count} 个",

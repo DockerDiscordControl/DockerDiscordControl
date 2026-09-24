@@ -435,6 +435,7 @@
   "Show Cooldown Messages": "Näita taastumisaja sõnumeid",
   "Show active tasks with delete buttons": "Näita aktiivseid ülesandeid kustutamisnuppudega",
   "Show container information": "Kuva konteineri teave",
+  "Container groups": "Konteinerirühmad",
   "Show donation information to support the project": "Näita annetuste infot projekti toetamiseks",
   "Showing first 25 of {total} tasks": "Kuvatakse esimesed 25 ülesannet {total}-st",
   "Showing first {count} of {total} tasks": "Kuvatakse esimesed {count} ülesannet {total}-st",

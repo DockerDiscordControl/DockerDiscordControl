@@ -435,6 +435,7 @@
   "Show Cooldown Messages": "쿨다운 메시지 표시",
   "Show active tasks with delete buttons": "삭제 버튼이 있는 활성 작업 표시",
   "Show container information": "컨테이너 정보 표시",
+  "Container groups": "컨테이너 그룹",
   "Show donation information to support the project": "프로젝트 지원을 위한 기부 정보 표시",
   "Showing first 25 of {total} tasks": "전체 {total}개 중 처음 25개 작업 표시",
   "Showing first {count} of {total} tasks": "전체 {total}개 중 처음 {count}개 작업 표시",
