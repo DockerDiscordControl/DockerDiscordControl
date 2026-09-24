@@ -17,10 +17,20 @@ One helper still writes both, because a group that appears in one view and not
 another is the defect this whole feature was built against - it takes a style,
 not a second implementation.
 
-THE INDICATOR IS THE SAME ONE THE PANEL USES for a group, as far as Discord
-allows: the panel marks a group with a collection icon in amber, a dropdown
-option can carry one emoji and no colour. 🗂️ is the one the group menu used
-before it was retired, so an operator who used that button recognises it.
+THE INDICATOR, chosen by the operator on 2026-09-24 after seeing the first
+one: 📁. The retired group menu's 🗂️ renders large and colourful on Discord
+and reads as clutter rather than as a collection; a folder is the calmest
+thing that says "there is more inside".
+
+AND ONLY THE GROUP CARRIES ONE. He was asked whether the containers should be
+marked too and chose not to: the group is the only row with a symbol, and it
+stands out for exactly that reason. A symbol on every row is a column the eye
+reads instead of an exception it notices.
+
+THE PANEL AND DISCORD MUST AGREE. The symbol is written in two places that
+cannot import from each other - the cog and config-ui.js - so a case below
+compares them. Two marks for one thing is how an operator ends up wondering
+whether they mean the same.
 
 HOW THIS TEST CAN FAIL: a dropdown that lists groups like containers, box
 drawing in the admin overview, or a heading that stops naming what follows it.
@@ -143,6 +153,35 @@ def test_the_dropdown_marks_a_group(world):
     entry = group_entries()[0]
 
     assert entry.get("emoji") == GROUP_EMOJI, entry
+    assert GROUP_EMOJI == "📁", (
+        f"the operator chose the folder; this is {GROUP_EMOJI!r}")
+
+
+def test_only_the_group_is_marked(world):
+    """His decision: the group is the only row with a symbol, and it stands
+    out for exactly that reason."""
+    from cogs.group_control import controllable_entries
+
+    entries = controllable_entries([{"docker_name": "Valheim", "order": 1}])
+    marked = [entry for entry in entries if entry.get("emoji")]
+
+    assert [entry["docker_name"] for entry in marked] == ["group:Icaruse"], marked
+
+
+def test_the_panel_uses_the_same_mark():
+    """Two places that cannot import from each other. Two marks for one thing
+    is how an operator ends up wondering whether they mean the same."""
+    import re
+
+    from cogs.group_control import GROUP_EMOJI
+
+    source = (ROOT / "app" / "static" / "js" / "config-ui.js").read_text(encoding="utf-8")
+    label = re.search(r"function adminAssignmentLabel.*?^\}", source,
+                      re.S | re.M)
+
+    assert label, "the panel's label rule is gone"
+    assert GROUP_EMOJI in label.group(0), (
+        f"the panel marks a group with something other than {GROUP_EMOJI!r}")
 
 
 def test_the_option_carries_it(world):

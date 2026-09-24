@@ -715,7 +715,9 @@ function adminAssignmentLabel(name) {
     const prefix = 'group:';
     const text = String(name == null ? '' : name);
     if (!text.startsWith(prefix)) { return text; }
-    return '🗂️ ' + text.slice(prefix.length);
+    // The same mark the bot uses (cogs/group_control.py GROUP_EMOJI); it
+    // cannot be imported from there, so a test compares the two.
+    return '📁 ' + text.slice(prefix.length);
 }
 
 // The container assignment of one admin. Three states, and they are NOT the

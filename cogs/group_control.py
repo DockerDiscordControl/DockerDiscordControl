@@ -34,11 +34,22 @@ logger = get_module_logger('group_control')
 # and a container's own order rarely passes a few dozen.
 GROUP_ORDER = 9000
 
-# What says "this is a group" in a list that also holds containers. The panel
-# marks one with a collection icon in amber; a Discord dropdown option carries
-# one emoji and no colour, so it is this - the same one the retired group menu
-# used, which an operator who pressed that button already reads as "group".
-GROUP_EMOJI = "🗂️"
+# What says "this is a group" in a list that also holds containers.
+#
+# THE OPERATOR CHOSE IT (2026-09-24) after seeing the first one: the retired
+# group menu's card-index emoji renders large and colourful on Discord and
+# reads as clutter rather than as a collection. A folder is the calmest thing
+# that says "there is more inside".
+#
+# AND ONLY THE GROUP CARRIES ONE. He was asked whether the containers should
+# be marked too and chose not to: the group is the only row with a symbol, and
+# it stands out for exactly that reason. A symbol on every row is a column the
+# eye reads instead of an exception it notices.
+#
+# The panel writes the same mark in app/static/js/config-ui.js - it cannot
+# import this one - and a test compares them, because two marks for one thing
+# is how somebody ends up wondering whether they mean the same.
+GROUP_EMOJI = "📁"
 
 
 def group_entries() -> list:
