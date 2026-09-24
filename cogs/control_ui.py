@@ -25,6 +25,7 @@ from utils.time_utils import format_datetime_with_timezone
 from .control_helpers import (_admin_may_control, _admin_may_control_task,
                               _channel_has_permission, _get_pending_embed,
                               _is_registered_admin, is_admin_panel_message)
+from .action_effect import refresh_the_caches, wait_until_the_action_took_effect
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
 from services.infrastructure.action_logger import log_user_action
@@ -527,55 +528,11 @@ class ActionButton(Button):
                     container_status_service.invalidate_container(self.docker_name)
                     logger.info(f"[ACTION_BTN] Invalidating ContainerStatusService cache for {self.docker_name}")
 
-                    # Multiple attempts to get correct status after Docker updates
-                    # Some containers (like game servers) can take 15-30+ seconds to fully start
-                    max_retries = 6
-                    retry_delays = [3, 3, 5, 5, 5, 5]  # Total up to 26 seconds
-
-                    for retry in range(max_retries):
-                        await asyncio.sleep(retry_delays[retry])
-                        total_waited = sum(retry_delays[:retry+1])
-                        logger.info(f"[ACTION_BTN] Getting status for {self.display_name} (attempt {retry + 1}/{max_retries}, waited {total_waited}s total)")
-
-                        # Get fresh status after Docker has updated
-                        # SERVICE FIRST: Use ServerConfigService instead of direct config access
-                        server_config_service = get_server_config_service()
-                        servers = server_config_service.get_all_servers()
-                        # Look up server by docker_name (stable), not display_name (can change)
-                        server_config_for_update = next((s for s in servers if s.get('docker_name') == self.docker_name), None)
-                        if server_config_for_update:
-                            # Always invalidate BOTH caches before fetching - use docker_name as key!
-                            # 1. StatusCacheService
-                            if self.cog.status_cache_service.get(self.docker_name):
-                                self.cog.status_cache_service.remove(self.docker_name)
-
-                            # 2. ContainerStatusService (has its own 30s cache!)
-                            container_status_service.invalidate_container(self.docker_name)
-
-                            fresh_status = await self.cog.get_status(server_config_for_update)
-                            if fresh_status.success:
-                                self.cog.status_cache_service.set(
-                                    self.docker_name,
-                                    fresh_status,  # Cache ContainerStatusResult directly
-                                    datetime.now(timezone.utc)
-                                )
-                                is_running = fresh_status.is_running
-                                logger.info(f"[ACTION_BTN] Status for {self.display_name}: is_running={is_running}, action was '{self.action}'")
-
-                                # Check if status matches expected state
-                                if self.action == "stop" and not is_running:
-                                    logger.info(f"[ACTION_BTN] Container successfully stopped")
-                                    break
-                                elif self.action == "start" and is_running:
-                                    logger.info(f"[ACTION_BTN] Container successfully started")
-                                    break
-                                elif self.action == "restart" and is_running:
-                                    logger.info(f"[ACTION_BTN] Container successfully restarted")
-                                    break
-                                elif retry < max_retries - 1:
-                                    logger.info(f"[ACTION_BTN] Status not yet updated, will retry...")
-                            else:
-                                logger.error(f"[ACTION_BTN] Error getting status: {fresh_status}")
+                    # What the press did, waited for where that question
+                    # belongs: a container waits for itself, a group for all
+                    # of its members (cogs/action_effect.py).
+                    await wait_until_the_action_took_effect(
+                        self.cog, self.docker_name, self.display_name, self.action)
 
                     # Which panel this button sits on, asked of the cog's own
                     # tracking rather than of the message's translated title
@@ -616,28 +573,9 @@ class ActionButton(Button):
                             await asyncio.sleep(15)
                             logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
 
-                            # Invalidate BOTH caches again to get latest status - use docker_name!
-                            # 1. StatusCacheService
-                            if self.cog.status_cache_service.get(self.docker_name):
-                                self.cog.status_cache_service.remove(self.docker_name)
-
-                            # 2. ContainerStatusService (has its own 30s cache!)
-                            container_status_service.invalidate_container(self.docker_name)
-
-                            # Get fresh status
-                            # SERVICE FIRST: Use ServerConfigService instead of direct config access
-                            server_config_service = get_server_config_service()
-                            servers = server_config_service.get_all_servers()
-                            # Look up server by docker_name (stable), not display_name (can change)
-                            server_config_for_update = next((s for s in servers if s.get('docker_name') == self.docker_name), None)
-                            if server_config_for_update:
-                                fresh_status = await self.cog.get_status(server_config_for_update)
-                                if fresh_status.success:
-                                    self.cog.status_cache_service.set(
-                                        self.docker_name,
-                                        fresh_status,  # Cache ContainerStatusResult directly
-                                        datetime.now(timezone.utc)
-                                    )
+                            # The same targets the wait used, refreshed once
+                            # more after the pause (cogs/action_effect.py).
+                            await refresh_the_caches(self.cog, self.docker_name)
 
                             # FIRST: Update Admin Control message (if it was an admin control action)
                             if is_admin_message:
@@ -700,10 +638,17 @@ class ActionButton(Button):
                                                 if channel:
                                                     message = await channel.fetch_message(msg_data['message_id'])
                                                     if message:
+                                                        # The button's own config: the fresh
+                                                        # one used to be looked up here as a
+                                                        # side effect of the cache refresh,
+                                                        # which now lives in action_effect.py.
+                                                        # Only containers are tracked by
+                                                        # display name, so a group never
+                                                        # reaches this loop.
                                                         embed, view, _running = await self.cog._generate_status_embed_and_view(
                                                             channel_id,
                                                             self.display_name,
-                                                            server_config_for_update,
+                                                            self.server_config,
                                                             config,
                                                             allow_toggle=True,
                                                             force_collapse=False
