@@ -9,7 +9,11 @@ honest. The ceiling keeps the next one from growing unnoticed:
 * a source file over FILE_LIMIT or a class over CLASS_LIMIT fails, unless it
   is on the exception list;
 * a listed file or class may not grow past the size recorded here - the
-  record is the ceiling for that one;
+  record is the ceiling for that one, and it must be the CURRENT size: a file
+  that shrank by 23 lines had quietly won 23 lines of headroom back, which is
+  a ceiling that has stopped holding anything (measured 2026-09-24:
+  animation_cache_service.py 1,823 against a record of 1,846, its class the
+  same 23 lines, control_ui.py 3 lines under);
 * a listed one that has come down to the limit must leave the list, so the
   list only ever shrinks and never lies.
 
@@ -30,15 +34,18 @@ DIRECTORIES = ("cogs", "services", "app", "utils")
 FILE_LIMIT = 1500
 CLASS_LIMIT = 1000
 
-# Measured 2026-09-22. May only go down; remove an entry once it is at the limit.
+# Measured 2026-09-22, tightened to the real sizes 2026-09-24. May only go
+# down, and a number left above what the file measures is caught by
+# test_a_record_is_the_current_size_and_not_a_high_water_mark. Remove an entry
+# once it is at the limit.
 FILE_EXCEPTIONS = {
-    "cogs/control_ui.py": 3780,
+    "cogs/control_ui.py": 3777,
     "services/scheduling/scheduler.py": 2243,
-    "services/mech/animation_cache_service.py": 1846,
+    "services/mech/animation_cache_service.py": 1823,
     "services/mech/progress_service.py": 1740,
 }
 CLASS_EXCEPTIONS = {
-    "services/mech/animation_cache_service.py::AnimationCacheService": 1762,
+    "services/mech/animation_cache_service.py::AnimationCacheService": 1739,
     "cogs/status_handlers.py::StatusHandlersMixin": 1293,
     "services/config/config_service.py::ConfigService": 1067,
 }
@@ -70,6 +77,12 @@ def _check(sizes, limit, exceptions):
     return too_big, grew, may_leave
 
 
+def _slack(sizes, exceptions):
+    """Recorded sizes that sit ABOVE the real one, with the room they leave."""
+    return {k: (exceptions[k], sizes[k]) for k in exceptions
+            if k in sizes and sizes[k] < exceptions[k]}
+
+
 def test_the_scan_sees_the_code():
     sizes = _file_sizes()
     assert "cogs/docker_control.py" in sizes and len(sizes) > 150, len(sizes)
@@ -87,6 +100,19 @@ def test_no_class_grows_past_its_ceiling():
     assert not too_big, f"New classes over {CLASS_LIMIT} lines - split them: {too_big}"
     assert not grew, f"Listed classes grew past their recorded size (record, now): {grew}"
     assert not may_leave, f"At or under the limit now - remove from CLASS_EXCEPTIONS: {may_leave}"
+
+
+def test_a_record_is_the_current_size_and_not_a_high_water_mark():
+    """THE POINT of "may only go down". A record left where it was when the
+    file was bigger is not a ceiling - it is that much free growth, handed back
+    without anyone deciding to hand it back. Lower the number to what the file
+    is now; that is the whole repair."""
+    loose = dict(_slack(_file_sizes(), FILE_EXCEPTIONS))
+    loose.update(_slack(_all_class_sizes(), CLASS_EXCEPTIONS))
+
+    assert loose == {}, (
+        "these records sit above the real size, so that many lines may be "
+        f"added back unnoticed (record, now): {loose}")
 
 
 def test_the_class_counter_bites():
