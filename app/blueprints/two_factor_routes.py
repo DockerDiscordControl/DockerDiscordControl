@@ -103,6 +103,20 @@ def _require_second_factor():
 
 
 def _notice_state():
+    """Whether to offer the second factor, and to whom.
+
+    ONLY TO SOMEBODY WHO IS LOGGED IN (operator, 2026-09-25). This is a context
+    processor, so it runs for every template the app renders - including the
+    login page, where the banner asked for something that cannot be done: "Set
+    up now" goes to a page that is login_required, which answers 302 back to
+    the login, and "Later" posts a dismissal into a session that does not
+    exist. It also told anybody who could reach the port that this panel has no
+    second factor, before they had typed anything.
+    """
+    from app.auth import session_user
+
+    if session_user() is None:
+        return {"two_factor": {"show": False}}
     try:
         store = TwoFactorStore()
         enabled = store.enabled

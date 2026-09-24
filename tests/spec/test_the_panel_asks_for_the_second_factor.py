@@ -188,16 +188,33 @@ def test_the_panel_offers_setup_until_later_then_keeps_a_notice(panel):
     app, store = panel
     from flask import render_template_string
 
-    with app.test_request_context("/", base_url=SECURE):
-        dialog = render_template_string("{% include '_two_factor_notice.html' %}")
+    # LOGGED IN, since 2026-09-25: the notice is for somebody who can act on
+    # it. Rendering it in a bare context now shows nothing - which is the
+    # point, and is pinned by
+    # tests/spec/test_the_second_factor_notice_waits_for_a_login.py.
+    from flask import session as flask_session
+
+    from app.auth import SESSION_AUTH_KEY, password_binding
+
+    def _as_a_logged_in_operator():
+        context = app.test_request_context("/", base_url=SECURE)
+        context.push()
+        flask_session[SESSION_AUTH_KEY] = password_binding()
+        return context
+
+    context = _as_a_logged_in_operator()
+    dialog = render_template_string("{% include '_two_factor_notice.html' %}")
+    context.pop()
     assert 'data-two-factor="prompt"' in dialog
     store.dismiss_prompt()
-    with app.test_request_context("/", base_url=SECURE):
-        notice = render_template_string("{% include '_two_factor_notice.html' %}")
+    context = _as_a_logged_in_operator()
+    notice = render_template_string("{% include '_two_factor_notice.html' %}")
+    context.pop()
     assert 'data-two-factor="notice"' in notice and 'data-two-factor="prompt"' not in notice
     _enable(store)
-    with app.test_request_context("/", base_url=SECURE):
-        quiet = render_template_string("{% include '_two_factor_notice.html' %}")
+    context = _as_a_logged_in_operator()
+    quiet = render_template_string("{% include '_two_factor_notice.html' %}")
+    context.pop()
     assert "data-two-factor" not in quiet
 
 

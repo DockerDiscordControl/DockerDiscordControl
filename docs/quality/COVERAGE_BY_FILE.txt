@@ -59,7 +59,7 @@ app/blueprints/main_routes.py	1490	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 
 app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
 app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never in a package]
-app/blueprints/two_factor_routes.py	202	v3rev:1-198
+app/blueprints/two_factor_routes.py	216	v3rev:1-198
 app/bootstrap/__init__.py	34	pass1:s33:1-34
 app/bootstrap/performance.py	55	pass1:s33:1-55
 app/bootstrap/runtime.py	200	pass1:s33:1-200
