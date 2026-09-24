@@ -1732,32 +1732,110 @@ class TestSchedulerGaps:
         )
         assert ok is False
 
-    def test_calculate_next_donation_run_falls_back(self, scheduler_isolated):
-        # Lines 808-823: error path with fallback
-        scheduler_mod = scheduler_isolated
-        task = scheduler_mod.ScheduledTask(
+    @staticmethod
+    def _flaky_timezone(failures):
+        """A real Europe/Berlin whose localize() fails the first `failures` times.
+
+        NOT a MagicMock. The version of this test written on 2026-09-21 handed
+        the scheduler a MagicMock as its timezone, and `datetime.now(tz)` on a
+        non-tzinfo raises TypeError - which this code does not catch, so the
+        fallback it meant to exercise was never reached. The TypeError landed in
+        the test's own `except Exception: pass`, and the case passed whatever
+        the code did. A tzinfo subclass that delegates is the smallest thing
+        that is really a timezone.
+        """
+        import datetime as _datetime
+
+        import pytz
+
+        real = pytz.timezone("Europe/Berlin")
+
+        class Flaky(_datetime.tzinfo):
+            def __init__(self):
+                self.left = failures
+
+            def utcoffset(self, dt):
+                return real.utcoffset(dt.replace(tzinfo=None) if dt else dt)
+
+            def dst(self, dt):
+                return real.dst(dt.replace(tzinfo=None) if dt else dt)
+
+            def tzname(self, dt):
+                return "CET"
+
+            def localize(self, naive):
+                if self.left > 0:
+                    self.left -= 1
+                    raise ValueError("localize refused")
+                return real.localize(naive)
+
+        return Flaky()
+
+    def _donation_task(self, scheduler_mod):
+        return scheduler_mod.ScheduledTask(
             task_id=scheduler_mod.DONATION_TASK_ID,
             container_name="SYSTEM",
             action="donation_message",
             cycle=scheduler_mod.CYCLE_MONTHLY,
             schedule_details={"time": "13:37", "day": "2nd Sunday"},
         )
-        # Force the inner calculation to fail by patching tz.localize
-        with patch.object(
-            scheduler_mod,
-            "load_config",
-            return_value={"timezone": "Europe/Berlin"},
-        ), patch("pytz.timezone") as mock_tz:
-            tz_mock = MagicMock()
-            tz_mock.localize.side_effect = [ValueError("first fail")] * 5 + [
-                MagicMock()
-            ] * 100
-            mock_tz.return_value = tz_mock
-            try:
-                task._calculate_next_donation_run()
-            except Exception:
-                pass
-        # Test exercised the error path; final state may vary
+
+    def test_calculate_next_donation_run_falls_back(self, scheduler_isolated):
+        """The first fallback: the 10th of next month at 13:37.
+
+        The donation message is the one task nobody re-enters by hand, so a
+        failed calculation must still leave a date behind - that is what the
+        fallback is for, and what this case now checks instead of only running
+        the line.
+        """
+        scheduler_mod = scheduler_isolated
+        task = self._donation_task(scheduler_mod)
+        tz = self._flaky_timezone(failures=1)
+
+        with patch.object(scheduler_mod, "load_config",
+                          return_value={"timezone": "Europe/Berlin"}), \
+                patch("pytz.timezone", return_value=tz):
+            task._calculate_next_donation_run()
+
+        assert task.next_run_ts, "a failed calculation left the task without a date"
+        landed = datetime.fromtimestamp(task.next_run_ts)
+        assert (landed.day, landed.hour, landed.minute) == (10, 13, 37), landed
+
+    def test_calculate_next_donation_run_has_a_last_resort(self, scheduler_isolated):
+        """The second fallback: 30 days out, when even the fallback date fails.
+
+        Counter-check on the case above - it must be the FALLBACK that answers
+        there, not this one.
+        """
+        scheduler_mod = scheduler_isolated
+        task = self._donation_task(scheduler_mod)
+        tz = self._flaky_timezone(failures=99)
+
+        with patch.object(scheduler_mod, "load_config",
+                          return_value={"timezone": "Europe/Berlin"}), \
+                patch("pytz.timezone", return_value=tz):
+            task._calculate_next_donation_run()
+
+        assert task.next_run_ts
+        days = (task.next_run_ts - time.time()) / 86400
+        assert 29 < days < 31, f"the last resort landed {days:.1f} days out"
+
+    def test_calculate_next_donation_run_normally_picks_a_sunday(self, scheduler_isolated):
+        """Counter-check on both: with nothing failing it is the 2nd Sunday at
+        13:37, so the two cases above really are reading the error paths."""
+        scheduler_mod = scheduler_isolated
+        task = self._donation_task(scheduler_mod)
+        tz = self._flaky_timezone(failures=0)
+
+        with patch.object(scheduler_mod, "load_config",
+                          return_value={"timezone": "Europe/Berlin"}), \
+                patch("pytz.timezone", return_value=tz):
+            task._calculate_next_donation_run()
+
+        landed = datetime.fromtimestamp(task.next_run_ts)
+        assert landed.weekday() == 6, f"{landed} is not a Sunday"
+        assert 8 <= landed.day <= 14, f"{landed} is not the second Sunday"
+        assert (landed.hour, landed.minute) == (13, 37), landed
 
     def test_load_tasks_io_error_during_create_empty(
         self, scheduler_isolated, tmp_path
