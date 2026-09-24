@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Belum terkonfirmasi",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** menerima perintah {action_process_text} dan Docker menerimanya, tetapi setelah {seconds} detik status belum berubah. Mungkin masih berjalan."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** menerima perintah {action_process_text} dan Docker menerimanya, tetapi setelah {seconds} detik status belum berubah. Mungkin masih berjalan.",
+  "web.tabs.logs": "Log"
 }

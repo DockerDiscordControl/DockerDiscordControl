@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Henüz doğrulanmadı",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** için {action_process_text} komutu gönderildi ve Docker kabul etti, ancak {seconds} saniye sonra durum değişmemişti. Hâlâ çalışıyor olabilir."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** için {action_process_text} komutu gönderildi ve Docker kabul etti, ancak {seconds} saniye sonra durum değişmemişti. Hâlâ çalışıyor olabilir.",
+  "web.tabs.logs": "Günlükler"
 }

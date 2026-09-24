@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Dar nepatvirtinta",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** gavo komandą {action_process_text}, ir Docker ją priėmė, bet po {seconds} sekundžių būsena nepasikeitė. Gali būti, kad jis vis dar dirba."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** gavo komandą {action_process_text}, ir Docker ją priėmė, bet po {seconds} sekundžių būsena nepasikeitė. Gali būti, kad jis vis dar dirba.",
+  "web.tabs.logs": "Žurnalai"
 }

@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Še ni potrjeno",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** je prejel ukaz {action_process_text} in Docker ga je sprejel, a se po {seconds} sekundah stanje ni spremenilo. Morda še vedno poteka."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** je prejel ukaz {action_process_text} in Docker ga je sprejel, a se po {seconds} sekundah stanje ni spremenilo. Morda še vedno poteka.",
+  "web.tabs.logs": "Dnevniki"
 }

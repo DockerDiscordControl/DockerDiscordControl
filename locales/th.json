@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ ยังไม่ได้รับการยืนยัน",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "ส่งคำสั่ง {action_process_text} ไปยัง **{server_name}** แล้ว และ Docker รับคำสั่งแล้ว แต่หลังจาก {seconds} วินาที สถานะยังไม่เปลี่ยน อาจยังทำงานอยู่"
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "ส่งคำสั่ง {action_process_text} ไปยัง **{server_name}** แล้ว และ Docker รับคำสั่งแล้ว แต่หลังจาก {seconds} วินาที สถานะยังไม่เปลี่ยน อาจยังทำงานอยู่",
+  "web.tabs.logs": "บันทึก"
 }

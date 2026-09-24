@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Még nincs megerősítve",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** megkapta a(z) {action_process_text} parancsot, és a Docker elfogadta, de {seconds} másodperc után az állapot nem változott. Lehet, hogy még dolgozik."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** megkapta a(z) {action_process_text} parancsot, és a Docker elfogadta, de {seconds} másodperc után az állapot nem változott. Lehet, hogy még dolgozik.",
+  "web.tabs.logs": "Naplók"
 }

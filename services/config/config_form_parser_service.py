@@ -534,8 +534,27 @@ class ConfigFormParserService:
             if advanced:
                 updated_config['advanced_settings'] = advanced
 
+            # THE DEBUG SWITCH IS A BOX, NOT A STRING. panel.js posts an
+            # unchecked box as "0", the catch-all below writes form values
+            # through unchanged, and "0" is truthy in Python - so switching the
+            # log level OFF would have turned debug logging ON. It only became
+            # reachable on 2026-09-24, when the log section moved inside the
+            # form and the switch started being posted at all; before that it
+            # was never sent and never did anything.
+            #
+            # A form that does not carry the key leaves what is stored alone:
+            # a missing box is not the same answer as an unticked one, and
+            # other savers post no logging fields.
+            if 'debug_level_enabled' in form_data:
+                raw = form_data['debug_level_enabled']
+                updated_config['debug_level_enabled'] = (
+                    raw if isinstance(raw, bool)
+                    else str(raw).strip().lower() in ('1', 'true', 'on', 'yes'))
+
             # Process remaining form fields
             for key, value in form_data.items():
+                if key == 'debug_level_enabled':
+                    continue                     # already stored, as a boolean
                 if key in ConfigFormParserService._SKIP_KEYS or key == 'donation_disable_key':
                     continue
                 if key in ConfigFormParserService._PROTECTED_KEYS or ConfigFormParserService._is_never_persisted(key):

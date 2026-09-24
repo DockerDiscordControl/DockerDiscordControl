@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Nog niet bevestigd",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** heeft de opdracht {action_process_text} gekregen en Docker heeft die geaccepteerd, maar na {seconds} seconden was de status niet veranderd. Mogelijk is hij nog bezig."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** heeft de opdracht {action_process_text} gekregen en Docker heeft die geaccepteerd, maar na {seconds} seconden was de status niet veranderd. Mogelijk is hij nog bezig.",
+  "web.tabs.logs": "Logboeken"
 }

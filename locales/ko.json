@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ 아직 확인되지 않음",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** 에 {action_process_text} 명령을 보냈고 Docker가 수락했지만, {seconds}초가 지나도 상태가 바뀌지 않았습니다. 아직 진행 중일 수 있습니다."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** 에 {action_process_text} 명령을 보냈고 Docker가 수락했지만, {seconds}초가 지나도 상태가 바뀌지 않았습니다. 아직 진행 중일 수 있습니다.",
+  "web.tabs.logs": "로그"
 }

@@ -212,6 +212,13 @@
                     <i class="bi bi-sliders" aria-hidden="true"></i> {{ _t('web.tabs.system') }}
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-logs" data-bs-toggle="pill"
+                        data-bs-target="#pane-logs" type="button" role="tab"
+                        aria-controls="pane-logs" aria-selected="false">
+                    <i class="bi bi-journal-text" aria-hidden="true"></i> {{ _t('web.tabs.logs') }}
+                </button>
+            </li>
         </ul>
 
         <div class="tab-content" id="settings-panes">
@@ -293,6 +300,14 @@
         {% include '_heartbeat_section.html' %}
 
         </div>{# /pane-system #}
+
+        {# The logs, a page of their own (operator, 2026-09-24). INSIDE the form
+           on purpose: its debug switch is a named field, and saveConfigAjax
+           collects what is inside #config-form and nothing else - outside it,
+           the switch was never posted and never did anything. #}
+        <div class="tab-pane fade" id="pane-logs" role="tabpanel" aria-labelledby="tab-logs">
+        {% include '_log_section.html' %}
+        </div>{# /pane-logs #}
         </div>{# /tab-content #}
 
         {# One Save for all four tabs, inside the form but outside the panes, so it
@@ -304,8 +319,6 @@
     </form> {# --- End of form --- #}
 
     <div id="save-notification"></div>
-
-    {% include '_log_section.html' %}
 
     
     {# Modals #}

@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Vēl nav apstiprināts",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** saņēma komandu {action_process_text}, un Docker to pieņēma, bet pēc {seconds} sekundēm statuss nebija mainījies. Iespējams, tas vēl darbojas."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** saņēma komandu {action_process_text}, un Docker to pieņēma, bet pēc {seconds} sekundēm statuss nebija mainījies. Iespējams, tas vēl darbojas.",
+  "web.tabs.logs": "Žurnāli"
 }

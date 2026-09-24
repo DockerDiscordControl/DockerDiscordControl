@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ 尚未确认",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "已向 **{server_name}** 发送 {action_process_text}，Docker 已接受，但 {seconds} 秒后状态仍未改变。可能仍在处理中。"
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "已向 **{server_name}** 发送 {action_process_text}，Docker 已接受，但 {seconds} 秒后状态仍未改变。可能仍在处理中。",
+  "web.tabs.logs": "日志"
 }

@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Zatím nepotvrzeno",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** dostal příkaz {action_process_text} a Docker jej přijal, ale po {seconds} sekundách se stav nezměnil. Možná stále probíhá."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** dostal příkaz {action_process_text} a Docker jej přijal, ale po {seconds} sekundách se stav nezměnil. Možná stále probíhá.",
+  "web.tabs.logs": "Protokoly"
 }

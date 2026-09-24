@@ -1798,5 +1798,6 @@
   "{name} (group)": "{name} (group)",
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ لم يتم التأكيد بعد",
-  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "تم إرسال {action_process_text} إلى **{server_name}** وقبِلها Docker، لكن بعد {seconds} ثانية لم تتغير الحالة. قد تكون العملية ما زالت جارية."
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "تم إرسال {action_process_text} إلى **{server_name}** وقبِلها Docker، لكن بعد {seconds} ثانية لم تتغير الحالة. قد تكون العملية ما زالت جارية.",
+  "web.tabs.logs": "السجلات"
 }
