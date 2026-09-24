@@ -5,8 +5,16 @@
 {% block content %}
 <div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
     <div class="card p-4" style="width: 100%; max-width: 420px;">
-        <div class="text-center mb-3">
-            <img src="{{ url_for('static', filename='ddc_web.png') }}" alt="DDC" style="max-height: 72px;">
+        {# The whole mark, as on the panel's own page: the whale and the word
+           belong together (operator, 2026-09-25). Same ids and classes, so the
+           flicker in _base.html finds it here too without knowing about this
+           page - it was already running and had nothing to flicker. The
+           --compact modifier only makes it fit a 420-pixel card. #}
+        <div class="text-center mb-3 logo-header logo-header--compact">
+            <img src="{{ url_for('static', filename='ddc_web.png') }}" alt="DDC">
+            <div class="ddc-title">
+                <span class="neon-text-large" id="neon-ddc">DDC</span>
+            </div>
             <h4 class="mt-3 mb-0">DockerDiscordControl</h4>
         </div>
 

@@ -214,6 +214,23 @@
             z-index: 10;
         }
         
+        /* The same mark inside a card. 200 pixels of whale and 6rem of text
+           were chosen against a full-width page; the login card is 420 wide and
+           the full size buries the whale it belongs to. Size only - the colour,
+           the glow and the flicker are what make it the same mark. */
+        .logo-header--compact img {
+            max-height: 96px;
+            margin-bottom: -0.5rem;
+        }
+        .logo-header--compact .neon-text-large {
+            font-size: 2.75rem;
+            margin-top: -0.25rem;
+        }
+        .logo-header--compact .ddc-title {
+            margin-top: -0.25rem;
+            margin-bottom: 0.25rem;
+        }
+
         .ddc-title {
             margin-top: -1rem;
             margin-bottom: 1rem;
