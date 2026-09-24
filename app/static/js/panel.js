@@ -1614,23 +1614,14 @@
                  // Show restart message only if necessary and if changes 
                  // were actually made to critical elements
                  if (restartRequired) {
-                     if (document.querySelectorAll('.requires-restart').length > 0) {
-                         // Check if changes were actually made to a critical element
-                         let changesDetected = false;
-                         document.querySelectorAll('.requires-restart').forEach(element => {
-                             // For checkboxes: The original setting was changed by saving
-                             if (element.type === 'checkbox' && element.checked) {
-                                 changesDetected = true;
-                             }
-                             // For input fields: If not empty, there was a change
-                             else if (element.value && element.value.trim() !== '') {
-                                 changesDetected = true;
-                             }
-                         });
-                         
-                         if (changesDetected) {
-                             showRestartRequiredAlert();
-                         }
+                     // Whether a restart-requiring field was actually CHANGED.
+                     // This used to ask whether one had a value at all, and a
+                     // bot token is never empty - so the notice appeared after
+                     // every save and taught the operator to restart for
+                     // nothing (app/static/js/restart_notice.js).
+                     if (window.restartIsNeeded &&
+                         window.restartIsNeeded(document.querySelectorAll('.requires-restart'))) {
+                         showRestartRequiredAlert();
                      }
                      
                      restartRequired = false; // Reset after successful saving
