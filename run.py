@@ -56,7 +56,12 @@ def _serve_web(app, port, threads):
         import app.web.tls as tls
         from utils.config_paths import get_config_dir
 
-        certificate = tls.ensure_self_signed_certificate(Path(get_config_dir()) / "tls")
+        tls_directory = Path(get_config_dir()) / "tls"
+        certificate = tls.ensure_self_signed_certificate(tls_directory)
+        # The third place an address can be learned, and the only one that
+        # sees a bookmark on https://<ip>: a bare address sends no SNI and
+        # never passes the redirect (app/web/tls.py).
+        tls.learn_from_requests(app, tls_directory)
         logger.info(
             f"🔒 HTTPS with a self-signed certificate ({'new' if certificate.created else 'kept'}, "
             f"valid until {certificate.not_after:%Y-%m-%d}). Trust step: compare the browser's "

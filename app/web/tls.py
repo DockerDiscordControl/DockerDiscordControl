@@ -32,6 +32,8 @@ from __future__ import annotations
 import datetime
 import hashlib
 import ipaddress
+import json
+import re
 import logging
 import os
 import socket
@@ -103,6 +105,29 @@ def apply_tls_mode(app: Flask, mode: Optional[str] = None) -> None:
         )
 
 
+def learn_from_requests(app: Flask, directory) -> None:
+    """Remember the address each request was aimed at.
+
+    THE CASE NEITHER OTHER SOURCE COVERS, and it is the common one: an
+    operator with a bookmark on https://<ip>:9374. A bare address sends no
+    SNI, so the handshake cannot learn it, and there is no plain request to
+    learn it from either. He clicks through the warning once - and by then
+    the request has arrived, carrying the address in its Host header.
+
+    So the next certificate names it, and the time after that there is nothing
+    to click through. The reissue happens on the next start rather than
+    mid-request: a certificate swapped underneath the connection that is
+    reading this would end the response he is waiting for.
+    """
+    @app.before_request
+    def _remember_where_this_came_from():
+        host = (request.host or "").split(":")[0]
+        if host.startswith("[") and "]" in host:
+            host = host[1:host.index("]")]
+        remember_name(directory, host)
+        return None
+
+
 @dataclass(frozen=True)
 class Certificate:
     cert_path: Path
@@ -117,10 +142,80 @@ def _fingerprint(der: bytes) -> str:
     return ":".join(digest[i:i + 2] for i in range(0, len(digest), 2))
 
 
+KNOWN_NAMES_FILE = "known_names.json"
+# A hostname label: letters, digits and hyphens, and something has to be there.
+_HOSTNAME = re.compile(r"^(?=.{1,253}$)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
+                       r"(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$", re.I)
+
+
+def _is_a_name(value: str) -> bool:
+    """Whether this is an address or a hostname at all.
+
+    It arrives from the network, from anybody who can reach the port, so it is
+    checked before it is kept. A wildcard is refused on purpose: a certificate
+    for *.something would match more than the panel.
+    """
+    value = (value or "").strip()
+    if not value or len(value) > 253 or "*" in value:
+        return False
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except ValueError:
+        return bool(_HOSTNAME.match(value))
+
+
+def known_names(directory) -> list:
+    """The addresses this panel has been reached on before.
+
+    Kept beside the certificate so a restart does not forget them - a panel
+    that forgot would issue a new certificate on the next visit, and every
+    visit after a restart.
+    """
+    path = Path(directory) / KNOWN_NAMES_FILE
+    try:
+        stored = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        # The file sits where an operator can edit it. Unreadable means
+        # "nothing learned yet", never "do not start".
+        return []
+    return [n for n in stored if isinstance(n, str) and _is_a_name(n)] if isinstance(stored, list) else []
+
+
+def remember_name(directory, name: str) -> bool:
+    """Keep an address the panel was reached on. True when it is new.
+
+    Only ever adds. Two addresses reach the same panel, and using one today
+    must not stop the other from working tomorrow.
+    """
+    if not _is_a_name(name):
+        return False
+    name = name.strip()
+    directory = Path(directory)
+    current = known_names(directory)
+    if name in current:
+        return False
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        # Durable state, so it goes through the atomic writer: a crash while
+        # this is being written would otherwise leave a truncated file, and the
+        # panel would forget every address it had learned (utils/atomic_io.py).
+        from utils.atomic_io import atomic_write_text
+
+        atomic_write_text(directory / KNOWN_NAMES_FILE,
+                          json.dumps(sorted(current + [name]), indent=2))
+    except OSError as error:
+        logger.warning(f"Could not remember the address {name}: {error}")
+        return False
+    logger.info(f"New address for this panel: {name} - the certificate will name it")
+    return True
+
+
 def _names(extra: Optional[Iterable[str]]) -> list:
     names = ["localhost", "127.0.0.1", socket.gethostname()]
     names += [n.strip() for n in (os.environ.get(TLS_HOSTNAMES_ENV) or "").split(",") if n.strip()]
     names += list(extra or [])
+    names = [n for n in names if _is_a_name(n)]
     seen, unique = set(), []
     for name in names:
         if name and name not in seen:
@@ -138,6 +233,18 @@ def _load(cert_path: Path, key_path: Path):
     return cert
 
 
+def _missing_from(cert, wanted) -> list:
+    """The wanted names this certificate does not carry."""
+    from cryptography import x509
+
+    try:
+        san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+    except x509.ExtensionNotFound:
+        return list(wanted)
+    have = {str(entry.value) for entry in san}
+    return [name for name in wanted if name not in have]
+
+
 def ensure_self_signed_certificate(directory, now: Optional[datetime.datetime] = None,
                                    hostnames: Optional[Iterable[str]] = None) -> Certificate:
     """Return the certificate in ``directory``, creating or renewing it when needed."""
@@ -150,12 +257,21 @@ def ensure_self_signed_certificate(directory, now: Optional[datetime.datetime] =
     now = now or datetime.datetime.now(datetime.timezone.utc)
     cert_path, key_path = directory / CERT_NAME, directory / KEY_NAME
 
+    wanted = _names(list(hostnames or []) + known_names(directory))
+
     try:
         cert = _load(cert_path, key_path)
-        if cert.not_valid_after_utc - now > RENEW_BEFORE:
+        missing = _missing_from(cert, wanted)
+        if cert.not_valid_after_utc - now > RENEW_BEFORE and not missing:
             return Certificate(cert_path, key_path, _fingerprint(cert.public_bytes(serialization.Encoding.DER)),
                                cert.not_valid_after_utc, created=False)
-        logger.warning(f"TLS certificate expires {cert.not_valid_after_utc:%Y-%m-%d} - renewing it now")
+        if missing:
+            # Without this the fix would never reach an installation that
+            # already has a certificate - which is every installation that has
+            # ever started (operator, 2026-09-25).
+            logger.warning(f"TLS certificate does not name {', '.join(missing)} - issuing a new one")
+        else:
+            logger.warning(f"TLS certificate expires {cert.not_valid_after_utc:%Y-%m-%d} - renewing it now")
     except FileNotFoundError:
         pass
     except ValueError as error:
@@ -164,7 +280,7 @@ def ensure_self_signed_certificate(directory, now: Optional[datetime.datetime] =
     directory.mkdir(parents=True, exist_ok=True)
     key = ec.generate_private_key(ec.SECP256R1())
     sans = []
-    for name in _names(hostnames):
+    for name in wanted:
         try:
             sans.append(x509.IPAddress(ipaddress.ip_address(name)))
         except ValueError:
@@ -276,6 +392,38 @@ def make_tls_server(app, host: str, port: int, certificate: Certificate):
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(str(certificate.cert_path), str(certificate.key_path))
     server = make_server(host, port, app, threaded=True)      # plain listener
+    directory = certificate.cert_path.parent
+
+    def _learn_from_the_handshake(sslobject, server_name, _context):
+        """SNI: the name the browser asked for, before the certificate is sent.
+
+        So a first visit under a new hostname already gets a certificate that
+        names it - no warning to click through, no second attempt. A bare IP
+        sends no server_name; that case is learned by the redirect instead.
+
+        Reissuing here costs a key generation, which is why it only happens
+        when the name is genuinely new. Returning None lets the handshake go
+        on with whatever context is now set.
+        """
+        if not server_name or not remember_name(directory, server_name):
+            return None
+        try:
+            fresh = ensure_self_signed_certificate(directory)
+            replacement = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            replacement.minimum_version = ssl.TLSVersion.TLSv1_2
+            replacement.load_cert_chain(str(fresh.cert_path), str(fresh.key_path))
+            replacement.sni_callback = _learn_from_the_handshake
+            sslobject.context = replacement
+            # The listener keeps handing out the old one otherwise, and every
+            # later connection would reissue again.
+            context.load_cert_chain(str(fresh.cert_path), str(fresh.key_path))
+            logger.info(f"Certificate reissued for {server_name} "
+                        f"(fingerprint {fresh.fingerprint})")
+        except Exception as error:                   # noqa: BLE001 - never break a handshake
+            logger.error(f"Could not reissue for {server_name}: {error}")
+        return None
+
+    context.sni_callback = _learn_from_the_handshake
 
     def get_request():
         connection, address = server.socket.accept()
@@ -289,7 +437,7 @@ def make_tls_server(app, host: str, port: int, certificate: Certificate):
         # The port we are BOUND to, not the one we were asked for: they differ
         # whenever port 0 was given, and a redirect to the wrong port is a
         # redirect to nothing.
-        _answer_with_a_redirect(connection, server.socket.getsockname()[1])
+        _answer_with_a_redirect(connection, server.socket.getsockname()[1], directory)
         raise OSError("plain HTTP on the HTTPS port - answered with a redirect")
 
     server.get_request = get_request
@@ -297,7 +445,31 @@ def make_tls_server(app, host: str, port: int, certificate: Certificate):
     return server
 
 
-def _answer_with_a_redirect(connection, port: int) -> None:
+def _learn_from(request_head: bytes, directory) -> None:
+    """Remember the address a plain HTTP request was aimed at.
+
+    This is the only place an IP-only client ever tells us: a connection to a
+    bare address sends no SNI, so the handshake cannot learn it. A plain
+    request carries a Host and happens before any TLS at all.
+    """
+    if directory is None:
+        return
+    for line in request_head.split(b"\r\n")[1:]:
+        if not line.lower().startswith(b"host:"):
+            continue
+        host = line.split(b":", 1)[1].strip()
+        if host.startswith(b"["):
+            host = host.partition(b"]")[0][1:]
+        elif b":" in host:
+            host = host.rsplit(b":", 1)[0]
+        try:
+            remember_name(directory, host.decode("ascii"))
+        except UnicodeDecodeError:
+            pass
+        return
+
+
+def _answer_with_a_redirect(connection, port: int, directory=None) -> None:
     """Read just enough of the request to build a Location, then say goodbye."""
     try:
         connection.settimeout(5)
@@ -307,6 +479,7 @@ def _answer_with_a_redirect(connection, port: int) -> None:
             if not chunk:
                 break
             head += chunk
+        _learn_from(head, directory)
         connection.sendall(redirect_to_https(head, port))
     except OSError as error:
         logger.debug(f"Could not redirect a plain HTTP request: {error}")

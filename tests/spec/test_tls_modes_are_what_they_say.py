@@ -196,7 +196,13 @@ def test_run_serves_https_in_self_signed_mode(monkeypatch, tmp_path):
     made = MagicMock(return_value=_FakeServer())
     monkeypatch.setattr(tls, "make_tls_server", made)
 
-    run_module._serve_web(object(), 9374, 4)
+    # A Flask app, not object(): _serve_web now also installs a before_request
+    # hook that teaches the certificate the address each request was aimed at
+    # (2026-09-25). A stand-in that cannot do what the real thing does is how a
+    # test passes while the code is broken.
+    from flask import Flask
+
+    run_module._serve_web(Flask(__name__), 9374, 4)
 
     waitress.assert_not_called()
     assert made.called and _FakeServer.served
@@ -211,7 +217,13 @@ def test_run_keeps_waitress_when_tls_is_off(monkeypatch):
     monkeypatch.delenv("DDC_TLS_MODE", raising=False)
     waitress = MagicMock()
     monkeypatch.setattr(run_module, "serve", waitress)
-    run_module._serve_web(object(), 9374, 4)
+    # A Flask app, not object(): _serve_web now also installs a before_request
+    # hook that teaches the certificate the address each request was aimed at
+    # (2026-09-25). A stand-in that cannot do what the real thing does is how a
+    # test passes while the code is broken.
+    from flask import Flask
+
+    run_module._serve_web(Flask(__name__), 9374, 4)
     assert waitress.call_args.kwargs["port"] == 9374
 
 
