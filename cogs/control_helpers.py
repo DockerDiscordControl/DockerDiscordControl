@@ -282,3 +282,45 @@ def validate_custom_port(port: str) -> bool:
     if not isinstance(port, str) or not port.isdigit():
         return False
     return 1 <= int(port) <= 65535
+
+
+def is_admin_panel_message(cog, channel_id, message_id) -> bool:
+    """Whether this message is the admin panel rather than a control message.
+
+    THE HEURISTIC THIS REPLACES read the message's own title and looked for the
+    words "Admin Control" in it. That title is translated: the English literal
+    is in one catalogue out of forty, so the check answered "yes" only for a
+    bot running in English. Everywhere else a press in the admin panel took the
+    branch meant for a control-channel message - harmless-looking for a
+    container, and for a container GROUP the error the operator reported on
+    2026-09-24, because that branch asks the container machinery about a name
+    no container has.
+
+    The same title heuristic has been removed three times before, each time
+    where its symptom showed: the channel permission check, and twice where it
+    decided whether a view carrying a path to delete_task() was built
+    (SPEC.md Z5 and B1). This is the fourth site and the last one.
+
+    THE ANSWER IS STATE THE COG ALREADY KEEPS. The admin panel is not a message
+    of its own; the 🛠️ button edits the admin overview in place. That message's
+    id is tracked per channel in ``channel_server_message_ids`` and is
+    persisted, so the answer survives a restart - which was the only thing the
+    title had going for it.
+
+    Ids are compared as numbers: restored from JSON they can come back as
+    strings, and a comparison that tripped over the type would say "not the
+    admin panel" for every channel after a restart.
+
+    Anything missing - an untracked channel, a cog built for view registration
+    only - is "no". This runs inside a button press, where an exception loses
+    the redraw entirely.
+    """
+    tracked = getattr(cog, 'channel_server_message_ids', None) or {}
+    channel = tracked.get(channel_id) or {}
+    admin_message_id = channel.get('admin_overview')
+    if admin_message_id is None or message_id is None:
+        return False
+    try:
+        return int(admin_message_id) == int(message_id)
+    except (TypeError, ValueError):
+        return False

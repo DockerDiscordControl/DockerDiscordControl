@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 from utils.time_utils import format_datetime_with_timezone
 from .control_helpers import (_admin_may_control, _admin_may_control_task,
                               _channel_has_permission, _get_pending_embed,
-                              _is_registered_admin)
+                              _is_registered_admin, is_admin_panel_message)
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
 from services.infrastructure.action_logger import log_user_action
@@ -577,14 +577,14 @@ class ActionButton(Button):
                             else:
                                 logger.error(f"[ACTION_BTN] Error getting status: {fresh_status}")
 
-                    # Check if original message was Admin Control (needed for background update)
+                    # Which panel this button sits on, asked of the cog's own
+                    # tracking rather than of the message's translated title
+                    # (cogs/control_helpers.py explains why).
                     is_admin_message = False
                     try:
-                        original_message = interaction.message
-                        if original_message and original_message.embeds:
-                            embed_title = original_message.embeds[0].title if original_message.embeds else ""
-                            is_admin_message = "Admin Control" in str(embed_title)
-                            logger.debug(f"[ACTION_BTN] Is admin message check: {is_admin_message}, title: {embed_title}")
+                        message = interaction.message
+                        is_admin_message = is_admin_panel_message(
+                            self.cog, interaction.channel.id, message.id if message else None)
                     except (discord.errors.DiscordException, AttributeError, KeyError) as e:
                         logger.error(f"[ACTION_BTN] Error checking admin status: {e}", exc_info=True)
 
