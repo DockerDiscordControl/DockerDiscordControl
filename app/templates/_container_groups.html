@@ -33,9 +33,16 @@
             <label for="group-name" class="form-label">{{ _t('web.groups.name') }}</label>
             <input type="text" class="form-control" id="group-name" maxlength="80"
                    placeholder="{{ _t('web.groups.name_placeholder') }}">
-            <div class="d-grid mt-3">
+            <div class="d-grid mt-3 gap-2">
                 <button type="button" class="btn btn-primary" id="group-save-btn">
                     {{ _t('web.groups.save') }}
+                </button>
+                {# Only while a group is LOADED: renaming needs something to
+                   rename, and saving under a new name makes a second group
+                   instead (app/static/js/container_groups.js). #}
+                <button type="button" class="btn btn-outline-warning" id="group-rename-btn" hidden>
+                    <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                    {{ _t('web.groups.rename') }}
                 </button>
             </div>
         </div>
@@ -100,6 +107,7 @@ window.DDC_GROUP_TEXTS = {
     needs_name: {{ _t('web.groups.needs_name') | tojson }},
     load_failed: {{ _t('web.groups.load_failed') | tojson }},
     edit: {{ _t('web.groups.edit') | tojson }},
+    renamed: {{ _t('web.groups.renamed') | tojson }},
     replace: {{ _t('web.groups.replace') | tojson }},
     confirm_delete: {{ _t('web.groups.confirm_delete') | tojson }},
     chosen_count: {{ _t('web.groups.chosen_count') | tojson }}

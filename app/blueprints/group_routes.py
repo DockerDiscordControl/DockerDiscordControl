@@ -135,6 +135,28 @@ def save_group():
     return jsonify({"success": False, "error": result.error}), 400
 
 
+@group_bp.route('/api/groups/<name>/rename', methods=['POST'])
+@auth.login_required
+def rename_group(name):
+    """Rename a group and carry everything that points at it.
+
+    Its own route rather than a field on the save: saving under a new name
+    CREATES a group, which is what the dialog warns about, and an operator who
+    means "call this one something else" would get two.
+    """
+    data = request.get_json(silent=True) or {}
+    result = get_group_service().rename_group(name, data.get("name"))
+    if result.success:
+        # How many references followed, so the panel can say it in one
+        # sentence instead of leaving the operator to check three files.
+        return jsonify({"success": True, "moved": result.moved})
+    # 404 when the group is gone, 400 when the new name is refused: the page
+    # asked for something that is not there in the first case, and asked for
+    # something that may not be in the second.
+    gone = "There is no group called" in (result.error or "")
+    return jsonify({"success": False, "error": result.error}), 404 if gone else 400
+
+
 @group_bp.route('/api/groups/<name>', methods=['DELETE'])
 @auth.login_required
 def delete_group(name):

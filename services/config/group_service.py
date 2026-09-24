@@ -101,9 +101,14 @@ class GroupMembers:
 
 @dataclass(frozen=True)
 class GroupResult:
-    """Success or the reason it did not happen."""
+    """Success or the reason it did not happen.
+
+    ``moved`` is filled by a rename: how many references in each file followed
+    the name. The operator gets one sentence instead of four files to check.
+    """
     success: bool
     error: Optional[str] = None
+    moved: dict = field(default_factory=dict)
 
 
 class GroupService:
@@ -146,6 +151,69 @@ class GroupService:
 
     # ----------------------------------------------------------------- write
 
+    def _refuse_name(self, name: str) -> Optional[str]:
+        """Why this name may not be used, or None.
+
+        Shared by save and rename, because a rename IS a save of the name: a
+        rule that only one of them applies is a rule with a way around it.
+        """
+        if not name:
+            return "A group needs a name."
+        if len(name) > MAX_NAME_LENGTH:
+            return f"A group name may be at most {MAX_NAME_LENGTH} characters."
+        if [c for c in FORBIDDEN_IN_NAME if c in name]:
+            return ("A group name may not contain a slash, a backslash or a "
+                    "line break - the name is part of a web address when the "
+                    "group is deleted.")
+        return None
+
+    def rename_group(self, old_name: str, new_name: str) -> GroupResult:
+        """Rename a group and carry everything that points at it.
+
+        A group's name is its identity in three other files - a scheduled task
+        holds it plainly, a rule and an admin assignment hold it as
+        "group:<name>". A rename that moved only groups.json would leave all
+        three pointing at a group that does not exist, and each of them fails
+        QUIETLY: the task reports it once a night, the rule resolves to nobody,
+        the admin just loses a menu entry.
+
+        THE ORDER IS THE SAFEGUARD. Four files cannot be written as one, so the
+        references move FIRST and groups.json last. Interrupted in between, a
+        reference points at a name that does not exist YET - which every caller
+        already reports - rather than a renamed group nobody points at.
+        """
+        old_name = _normalised(old_name).strip()
+        new_name = _normalised(new_name).strip()
+        refusal = self._refuse_name(new_name)
+        if refusal:
+            return GroupResult(False, refusal)
+
+        existing = self.find(old_name)
+        if existing is None:
+            return GroupResult(False, f"There is no group called '{old_name}'.")
+        if _normalised(existing.name) == _normalised(new_name):
+            return GroupResult(True, moved={})
+
+        clash = self.find(new_name)
+        if clash is not None:
+            return GroupResult(False, f"A group called '{clash.name}' already exists.")
+
+        from services.config.group_references import move_references
+
+        moved = move_references(existing.name, new_name)
+        try:
+            with cross_process_lock(self._path):
+                entries = self._read()
+                for entry in entries:
+                    if _normalised(entry["name"]).casefold() == _normalised(existing.name).casefold():
+                        entry["name"] = new_name
+                self._write(entries)
+        except OSError as e:
+            logger.error(f"Group '{existing.name}' could not be renamed: {e}", exc_info=True)
+            return GroupResult(False, f"The group could not be renamed: {e}", moved=moved)
+        logger.info(f"Group '{existing.name}' renamed to '{new_name}'; references moved: {moved}")
+        return GroupResult(True, moved=moved)
+
     def save_group(self, name: str, containers: List[str],
                    active: Optional[bool] = None,
                    allowed_actions: Optional[List[str]] = None) -> GroupResult:
@@ -157,15 +225,9 @@ class GroupService:
         not silently take them away.
         """
         name = _normalised(name).strip()
-        if not name:
-            return GroupResult(False, "A group needs a name.")
-        if len(name) > MAX_NAME_LENGTH:
-            return GroupResult(False, f"A group name may be at most {MAX_NAME_LENGTH} characters.")
-        bad = [c for c in FORBIDDEN_IN_NAME if c in name]
-        if bad:
-            return GroupResult(False, "A group name may not contain a slash, a backslash or a "
-                                      "line break - the name is part of a web address when the "
-                                      "group is deleted.")
+        refusal = self._refuse_name(name)
+        if refusal:
+            return GroupResult(False, refusal)
 
         # Stripped as they are stored, and each one once: a padded name never
         # matches a container, and a doubled one would be acted on twice.

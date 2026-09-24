@@ -128,6 +128,13 @@ if (typeof document !== 'undefined') {
         let knownGroups = [];
         let editing = null;       // the group loaded into the form, if any
 
+        const renameButton = document.getElementById('group-rename-btn');
+        const showRename = () => {
+            // Only with a group loaded: there is nothing to rename otherwise,
+            // and a button that needs a hidden precondition is a trap.
+            if (renameButton) { renameButton.hidden = !editing; }
+        };
+
         const loadIntoForm = (group) => {
             // Clicking a group EDITS it: without this the only way to change a
             // group was to type its name again, which replaces its containers.
@@ -136,6 +143,7 @@ if (typeof document !== 'undefined') {
             const members = new Set(group.containers || []);
             for (const box of boxes()) { box.checked = members.has(box.value); }
             showCount();
+            showRename();
             nameField.focus();
         };
 
@@ -232,6 +240,7 @@ if (typeof document !== 'undefined') {
                 say(texts.saved || 'Saved', 'success');
                 nameField.value = '';
                 editing = null;
+                showRename();
                 for (const box of boxes()) box.checked = false;
                 showCount();
                 await load();
@@ -254,6 +263,35 @@ if (typeof document !== 'undefined') {
             }
         }
 
+        async function rename() {
+            const wanted = (nameField.value || '').trim();
+            if (!editing || !wanted) {
+                say(texts.needs_name || 'A group needs a name', 'warning');
+                return;
+            }
+            const answer = await fetch('/api/groups/' + encodeURIComponent(editing) + '/rename',
+                                       { method: 'POST',
+                                         headers: { 'Content-Type': 'application/json' },
+                                         body: JSON.stringify({ name: wanted }) });
+            const body = await answer.json().catch(() => ({}));
+            if (!answer.ok) {
+                say(body.error || 'Error', 'danger');
+                return;
+            }
+            // What followed the name, in one sentence: a rename touches the
+            // scheduled tasks, the rules and the admin assignments, and an
+            // operator should not have to go and look.
+            const moved = body.moved || {};
+            const total = (moved.tasks || 0) + (moved.rules || 0) + (moved.admins || 0);
+            say((texts.renamed || 'Renamed')
+                .replace('{name}', wanted).replace('{count}', String(total)), 'success');
+            editing = wanted;
+            showRename();
+            await load();
+            announce();
+        }
+
+        renameButton?.addEventListener('click', rename);
         document.getElementById('group-save-btn')?.addEventListener('click', save);
         searchField?.addEventListener('input', () => {
             if (pager) { pager.reset(); }

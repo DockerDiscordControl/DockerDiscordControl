@@ -1772,6 +1772,8 @@
   "web.groups.chosen_count": "{chosen} of {total} picked",
   "web.groups.no_match": "No container matches this search.",
   "web.groups.save": "Save group",
+  "web.groups.rename": "Rename group",
+  "web.groups.renamed": "Renamed to {name}; {count} reference(s) followed.",
   "web.groups.delete": "Delete",
   "web.groups.saved": "Group saved.",
   "web.groups.deleted": "Group deleted.",

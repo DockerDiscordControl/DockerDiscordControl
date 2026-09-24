@@ -1772,6 +1772,8 @@
   "web.groups.chosen_count": "{chosen} von {total} gewählt",
   "web.groups.no_match": "Kein Container passt zu dieser Suche.",
   "web.groups.save": "Gruppe speichern",
+  "web.groups.rename": "Gruppe umbenennen",
+  "web.groups.renamed": "In {name} umbenannt; {count} Verweis(e) sind mitgezogen.",
   "web.groups.delete": "Löschen",
   "web.groups.saved": "Gruppe gespeichert.",
   "web.groups.deleted": "Gruppe gelöscht.",
