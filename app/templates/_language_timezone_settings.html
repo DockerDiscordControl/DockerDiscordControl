@@ -98,13 +98,13 @@
                     <div class="col-12">
                         <div class="collapse mt-2" id="ctAdvancedSettings">
                             <div class="row g-3">
-                                <div class="col-md-4">
+                                <div class="col-md-4 d-flex flex-column">
                                     <label class="form-label text-light">{{ _t('web.lang.rate_limit_label') }}</label>
-                                    <input type="number" class="form-control" id="ctRateLimit" min="1" max="600" value="60">
+                                    <input type="number" class="form-control mt-auto" id="ctRateLimit" min="1" max="600" value="60">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-4 d-flex flex-column">
                                     <label class="form-label text-light">{{ _t('web.lang.max_text_length_label') }}</label>
-                                    <input type="number" class="form-control" id="ctMaxTextLength" min="100" max="50000" value="5000">
+                                    <input type="number" class="form-control mt-auto" id="ctMaxTextLength" min="100" max="50000" value="5000">
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
                                     <button type="button" class="btn btn-outline-secondary w-100" onclick="testCTConnection()">

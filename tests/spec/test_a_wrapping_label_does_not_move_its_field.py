@@ -96,6 +96,25 @@ def _control_is_last(inner):
     return not re.search(r"<\w+", after)
 
 
+def _takes_part_in_the_alignment(inner):
+    """Whether this column is a label above a field, which is the thing being
+    lined up.
+
+    A SWITCH IS NOT. Its control sits BEFORE its label, on the same line, and
+    holding it at the bottom of a tall column would tear the two apart. It has
+    no field edge to line up with anything, so it neither gets the fix nor
+    stops its neighbours from getting it.
+
+    Requiring every column of a row to qualify - which the first version of
+    this did - meant one switch kept four number fields in the operator's
+    screenshot ragged, which is the row he reported (2026-09-24).
+    """
+    if len(LABEL.findall(inner)) != 1 or len(CONTROL.findall(inner)) != 1:
+        return False
+    return LABEL.search(inner).start() < CONTROL.search(inner).start() \
+        and _control_is_last(inner)
+
+
 def _shaped_columns():
     """Every column of the finding's shape, in a row where the fix applies.
 
@@ -117,9 +136,8 @@ def _shaped_columns():
             if "row" not in classes.split():
                 continue
             columns = [(c, i) for c, i in _divs(inner) if _is_column(c)]
-            shaped = [(c, i) for c, i in columns
-                      if len(LABEL.findall(i)) == 1 and len(CONTROL.findall(i)) == 1]
-            if len(shaped) < 2 or not all(_control_is_last(i) for _c, i in shaped):
+            shaped = [(c, i) for c, i in columns if _takes_part_in_the_alignment(i)]
+            if len(shaped) < 2:
                 continue
             for c, i in shaped:
                 yield path.name, c, i

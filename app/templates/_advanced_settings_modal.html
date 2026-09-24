@@ -20,34 +20,34 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-2">
+                            <div class="col-md-2 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.status_update_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.status_update_interval_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_DOCKER_CACHE_DURATION" name="env_DDC_DOCKER_CACHE_DURATION" min="10" max="300" value="{{ (config.env.DDC_DOCKER_CACHE_DURATION if config.env else '') or '' }}" placeholder="30" onchange="updateCacheTTL()">
                                 <div class="form-text"><strong>Discord Bot</strong>: {{ _t('web.advanced.status_update_interval_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_DOCKER_CACHE_DURATION" name="env_DDC_DOCKER_CACHE_DURATION" min="10" max="300" value="{{ (config.env.DDC_DOCKER_CACHE_DURATION if config.env else '') or '' }}" placeholder="30" onchange="updateCacheTTL()">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-2 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.cache_ttl') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.cache_ttl_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="text" class="form-control" id="calculated_cache_ttl" readonly style="background-color: #2d3748; border: 1px solid #4a5568;">
                                 <div class="form-text"><strong>{{ _t('web.advanced.auto_calculated') }}</strong>: {{ _t('web.advanced.cache_ttl_hint') }}</div>
+                                <input type="text" class="form-control mt-auto" id="calculated_cache_ttl" readonly style="background-color: #2d3748; border: 1px solid #4a5568;">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-2 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.docker_query_cooldown') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.docker_query_cooldown_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_DOCKER_QUERY_COOLDOWN" name="env_DDC_DOCKER_QUERY_COOLDOWN" min="0" max="60" value="{{ (config.env.DDC_DOCKER_QUERY_COOLDOWN if config.env else '') or '' }}" placeholder="2">
                                 <div class="form-text"><strong>{{ _t('web.advanced.rate_limiting') }}</strong>: {{ _t('web.advanced.docker_query_cooldown_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_DOCKER_QUERY_COOLDOWN" name="env_DDC_DOCKER_QUERY_COOLDOWN" min="0" max="60" value="{{ (config.env.DDC_DOCKER_QUERY_COOLDOWN if config.env else '') or '' }}" placeholder="2">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-2 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.docker_max_cache_age') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.docker_max_cache_age_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_DOCKER_MAX_CACHE_AGE" name="env_DDC_DOCKER_MAX_CACHE_AGE" min="1" max="7200" value="{{ (config.env.DDC_DOCKER_MAX_CACHE_AGE if config.env else '') or '' }}" placeholder="300">
                                 <div class="form-text"><strong>{{ _t('web.advanced.safety_limit') }}</strong>: {{ _t('web.advanced.docker_max_cache_age_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_DOCKER_MAX_CACHE_AGE" name="env_DDC_DOCKER_MAX_CACHE_AGE" min="1" max="7200" value="{{ (config.env.DDC_DOCKER_MAX_CACHE_AGE if config.env else '') or '' }}" placeholder="300">
                             </div>
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4">
+                                <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.enable_bg_refresh_hint') }}</div>
                                     <input class="form-check-input requires-restart" type="checkbox" id="env_DDC_ENABLE_BACKGROUND_REFRESH" name="env_DDC_ENABLE_BACKGROUND_REFRESH" value="true" {% if not config.env or not config.env.get('DDC_ENABLE_BACKGROUND_REFRESH') or config.env.get('DDC_ENABLE_BACKGROUND_REFRESH').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_ENABLE_BACKGROUND_REFRESH">
                                         {{ _t('web.advanced.enable_bg_refresh') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.enable_bg_refresh_tooltip') }}" tabindex="0" role="button"></i>
                                     </label>
                                 </div>
-                                <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.enable_bg_refresh_hint') }}</div>
                             </div>
                         </div>
                     </div>
@@ -60,25 +60,25 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-3">
+                            <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.refresh_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.refresh_interval_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_BACKGROUND_REFRESH_INTERVAL" name="env_DDC_BACKGROUND_REFRESH_INTERVAL" min="30" max="3600" value="{{ (config.env.DDC_BACKGROUND_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="300">
                                 <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.refresh_interval_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_BACKGROUND_REFRESH_INTERVAL" name="env_DDC_BACKGROUND_REFRESH_INTERVAL" min="30" max="3600" value="{{ (config.env.DDC_BACKGROUND_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="300">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.bg_refresh_limit') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.bg_refresh_limit_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_BACKGROUND_REFRESH_LIMIT" name="env_DDC_BACKGROUND_REFRESH_LIMIT" min="1" max="1000" value="{{ (config.env.DDC_BACKGROUND_REFRESH_LIMIT if config.env else '') or '' }}" placeholder="50">
                                 <div class="form-text"><strong>{{ _t('web.advanced.performance') }}</strong>: {{ _t('web.advanced.bg_refresh_limit_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_BACKGROUND_REFRESH_LIMIT" name="env_DDC_BACKGROUND_REFRESH_LIMIT" min="1" max="1000" value="{{ (config.env.DDC_BACKGROUND_REFRESH_LIMIT if config.env else '') or '' }}" placeholder="50">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.refresh_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.refresh_timeout_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_BACKGROUND_REFRESH_TIMEOUT" name="env_DDC_BACKGROUND_REFRESH_TIMEOUT" min="5" max="300" value="{{ (config.env.DDC_BACKGROUND_REFRESH_TIMEOUT if config.env else '') or '' }}" placeholder="30">
                                 <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.refresh_timeout_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_BACKGROUND_REFRESH_TIMEOUT" name="env_DDC_BACKGROUND_REFRESH_TIMEOUT" min="5" max="300" value="{{ (config.env.DDC_BACKGROUND_REFRESH_TIMEOUT if config.env else '') or '' }}" placeholder="30">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.max_containers_display') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.max_containers_display_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_MAX_CONTAINERS_DISPLAY" name="env_DDC_MAX_CONTAINERS_DISPLAY" min="1" max="500" value="{{ (config.env.DDC_MAX_CONTAINERS_DISPLAY if config.env else '') or '' }}" placeholder="100">
                                 <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.max_containers_display_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_MAX_CONTAINERS_DISPLAY" name="env_DDC_MAX_CONTAINERS_DISPLAY" min="1" max="500" value="{{ (config.env.DDC_MAX_CONTAINERS_DISPLAY if config.env else '') or '' }}" placeholder="100">
                             </div>
                         </div>
                     </div>
@@ -91,20 +91,20 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.scheduler_check_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.scheduler_check_interval_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="60">
                                 <div class="form-text"><strong>{{ _t('web.advanced.scheduler') }}</strong>: {{ _t('web.advanced.scheduler_check_interval_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="60">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.max_concurrent_tasks') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.max_concurrent_tasks_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_MAX_CONCURRENT_TASKS" name="env_DDC_MAX_CONCURRENT_TASKS" min="1" max="50" value="{{ (config.env.DDC_MAX_CONCURRENT_TASKS if config.env else '') or '' }}" placeholder="3">
                                 <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.max_concurrent_tasks_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_MAX_CONCURRENT_TASKS" name="env_DDC_MAX_CONCURRENT_TASKS" min="1" max="50" value="{{ (config.env.DDC_MAX_CONCURRENT_TASKS if config.env else '') or '' }}" placeholder="3">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.task_batch_size') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.task_batch_size_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
-                                <input type="number" class="form-control requires-restart" id="env_DDC_TASK_BATCH_SIZE" name="env_DDC_TASK_BATCH_SIZE" min="1" max="100" value="{{ (config.env.DDC_TASK_BATCH_SIZE if config.env else '') or '' }}" placeholder="5">
                                 <div class="form-text"><strong>{{ _t('web.advanced.efficiency') }}</strong>: {{ _t('web.advanced.task_batch_size_hint') }}</div>
+                                <input type="number" class="form-control requires-restart mt-auto" id="env_DDC_TASK_BATCH_SIZE" name="env_DDC_TASK_BATCH_SIZE" min="1" max="100" value="{{ (config.env.DDC_TASK_BATCH_SIZE if config.env else '') or '' }}" placeholder="5">
                             </div>
                         </div>
                     </div>
@@ -117,45 +117,45 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-3">
+                            <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.logs_refresh_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_refresh_interval_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" name="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" min="1" max="30" value="{{ (config.env.DDC_LIVE_LOGS_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="5">
                                 <div class="form-text"><strong>Discord</strong>: {{ _t('web.advanced.logs_refresh_interval_hint') }}</div>
+                                <input type="number" class="form-control mt-auto" id="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" name="env_DDC_LIVE_LOGS_REFRESH_INTERVAL" min="1" max="30" value="{{ (config.env.DDC_LIVE_LOGS_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="5">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.logs_max_refreshes') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_max_refreshes_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_MAX_REFRESHES" name="env_DDC_LIVE_LOGS_MAX_REFRESHES" min="1" max="100" value="{{ (config.env.DDC_LIVE_LOGS_MAX_REFRESHES if config.env else '') or '' }}" placeholder="12">
                                 <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.logs_max_refreshes_hint') }}</div>
+                                <input type="number" class="form-control mt-auto" id="env_DDC_LIVE_LOGS_MAX_REFRESHES" name="env_DDC_LIVE_LOGS_MAX_REFRESHES" min="1" max="100" value="{{ (config.env.DDC_LIVE_LOGS_MAX_REFRESHES if config.env else '') or '' }}" placeholder="12">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.logs_tail_lines') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_tail_lines_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_TAIL_LINES" name="env_DDC_LIVE_LOGS_TAIL_LINES" min="10" max="200" value="{{ (config.env.DDC_LIVE_LOGS_TAIL_LINES if config.env else '') or '' }}" placeholder="50">
                                 <div class="form-text"><strong>Discord</strong>: {{ _t('web.advanced.logs_tail_lines_hint') }}</div>
+                                <input type="number" class="form-control mt-auto" id="env_DDC_LIVE_LOGS_TAIL_LINES" name="env_DDC_LIVE_LOGS_TAIL_LINES" min="10" max="200" value="{{ (config.env.DDC_LIVE_LOGS_TAIL_LINES if config.env else '') or '' }}" placeholder="50">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.logs_message_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_message_timeout_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_LIVE_LOGS_TIMEOUT" name="env_DDC_LIVE_LOGS_TIMEOUT" min="30" max="600" value="{{ (config.env.DDC_LIVE_LOGS_TIMEOUT if config.env else '') or '' }}" placeholder="120">
                                 <div class="form-text"><strong>{{ _t('web.advanced.cleanup') }}</strong>: {{ _t('web.advanced.logs_message_timeout_hint') }}</div>
+                                <input type="number" class="form-control mt-auto" id="env_DDC_LIVE_LOGS_TIMEOUT" name="env_DDC_LIVE_LOGS_TIMEOUT" min="30" max="600" value="{{ (config.env.DDC_LIVE_LOGS_TIMEOUT if config.env else '') or '' }}" placeholder="120">
                             </div>
                         </div>
                         <div class="row g-3 mt-2">
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
+                                <div class="form-text"><strong>{{ _t('web.advanced.feature_toggle') }}</strong>: {{ _t('web.advanced.enable_live_logs_hint') }}</div>
                                     <input class="form-check-input" type="checkbox" id="env_DDC_LIVE_LOGS_ENABLED" name="env_DDC_LIVE_LOGS_ENABLED" value="true" {% if not config.env or not config.env.get('DDC_LIVE_LOGS_ENABLED') or config.env.get('DDC_LIVE_LOGS_ENABLED').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_LIVE_LOGS_ENABLED">
                                         {{ _t('web.advanced.enable_live_logs') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.enable_live_logs_tooltip') }}" tabindex="0" role="button"></i>
                                     </label>
                                 </div>
-                                <div class="form-text"><strong>{{ _t('web.advanced.feature_toggle') }}</strong>: {{ _t('web.advanced.enable_live_logs_hint') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
+                                <div class="form-text"><strong>UX</strong>: {{ _t('web.advanced.logs_auto_start_hint') }}</div>
                                     <input class="form-check-input" type="checkbox" id="env_DDC_LIVE_LOGS_AUTO_START" name="env_DDC_LIVE_LOGS_AUTO_START" value="true" {% if config.env and config.env.get('DDC_LIVE_LOGS_AUTO_START', '').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_LIVE_LOGS_AUTO_START">
                                         {{ _t('web.advanced.logs_auto_start') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.logs_auto_start_tooltip') }}" tabindex="0" role="button"></i>
                                     </label>
                                 </div>
-                                <div class="form-text"><strong>UX</strong>: {{ _t('web.advanced.logs_auto_start_hint') }}</div>
                             </div>
                         </div>
                     </div>
@@ -168,20 +168,20 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.fast_stats_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.fast_stats_timeout_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_FAST_STATS_TIMEOUT" name="env_DDC_FAST_STATS_TIMEOUT" min="1" max="60" value="{{ (config.env.DDC_FAST_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="10">
                                 <div class="form-text"><strong>{{ _t('web.advanced.performance') }}</strong>: {{ _t('web.advanced.fast_stats_timeout_hint') }}</div>
+                                <input type="number" class="form-control mt-auto" id="env_DDC_FAST_STATS_TIMEOUT" name="env_DDC_FAST_STATS_TIMEOUT" min="1" max="60" value="{{ (config.env.DDC_FAST_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="10">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.slow_stats_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.slow_stats_timeout_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_SLOW_STATS_TIMEOUT" name="env_DDC_SLOW_STATS_TIMEOUT" min="1" max="300" value="{{ (config.env.DDC_SLOW_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="30">
                                 <div class="form-text"><strong>{{ _t('web.advanced.fallback') }}</strong>: {{ _t('web.advanced.slow_stats_timeout_hint') }}</div>
+                                <input type="number" class="form-control mt-auto" id="env_DDC_SLOW_STATS_TIMEOUT" name="env_DDC_SLOW_STATS_TIMEOUT" min="1" max="300" value="{{ (config.env.DDC_SLOW_STATS_TIMEOUT if config.env else '') or '' }}" placeholder="30">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <label class="form-label">{{ _t('web.advanced.container_list_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.container_list_timeout_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_CONTAINER_LIST_TIMEOUT" name="env_DDC_CONTAINER_LIST_TIMEOUT" min="1" max="120" value="{{ (config.env.DDC_CONTAINER_LIST_TIMEOUT if config.env else '') or '' }}" placeholder="15">
                                 <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.container_list_timeout_hint') }}</div>
+                                <input type="number" class="form-control mt-auto" id="env_DDC_CONTAINER_LIST_TIMEOUT" name="env_DDC_CONTAINER_LIST_TIMEOUT" min="1" max="120" value="{{ (config.env.DDC_CONTAINER_LIST_TIMEOUT if config.env else '') or '' }}" placeholder="15">
                             </div>
                         </div>
                     </div>
@@ -213,10 +213,10 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-md-6">
                                 <label class="form-label">{{ _t('web.advanced.disable_donation_key') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.disable_donation_key_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="text" class="form-control" id="donation_disable_key" name="donation_disable_key" value="{{ config.donation_disable_key or '' }}" placeholder="DDC-EXAMPLE-XXXX-XXXX-XXXX-XXXX-2025" maxlength="80">
                                 <div class="form-text">
                                     <span id="keyStatus" class="text-muted">{{ _t('web.advanced.key_status_default') }}</span>
                                 </div>
+                                <input type="text" class="form-control" id="donation_disable_key" name="donation_disable_key" value="{{ config.donation_disable_key or '' }}" placeholder="DDC-EXAMPLE-XXXX-XXXX-XXXX-XXXX-2025" maxlength="80">
                             </div>
                             <div class="col-md-6">
                                 <div class="d-flex gap-2">
@@ -248,16 +248,16 @@
                                 <div class="card bg-dark border-warning">
                                     <div class="card-body p-3">
                                         <div class="form-check form-switch">
+                                        <div class="form-text mt-2">
+                                            <strong>OFF:</strong> <span class="text-success">{{ _t('web.advanced.difficulty_dynamic') }}</span><br>
+                                            <strong>ON:</strong> <span class="text-warning">{{ _t('web.advanced.difficulty_static') }}</span>
+                                            <br><small class="text-info"><i class="bi bi-lightning"></i> {{ _t('web.advanced.difficulty_saved_immediately') }}</small>
+                                        </div>
                                             <input class="form-check-input" type="checkbox" id="mech_manual_difficulty_override_standalone" onchange="saveMechOverrideToggle()">
                                             <label class="form-check-label" for="mech_manual_difficulty_override_standalone">
                                                 <i class="bi bi-sliders"></i> {{ _t('web.advanced.static_difficulty_override') }}
                                                 <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.static_difficulty_override_tooltip') }}" tabindex="0" role="button"></i>
                                             </label>
-                                        </div>
-                                        <div class="form-text mt-2">
-                                            <strong>OFF:</strong> <span class="text-success">{{ _t('web.advanced.difficulty_dynamic') }}</span><br>
-                                            <strong>ON:</strong> <span class="text-warning">{{ _t('web.advanced.difficulty_static') }}</span>
-                                            <br><small class="text-info"><i class="bi bi-lightning"></i> {{ _t('web.advanced.difficulty_saved_immediately') }}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -266,15 +266,15 @@
                                 <label class="form-label">{{ _t('web.advanced.evolution_cost_multiplier') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.evolution_cost_multiplier_tooltip') }}" tabindex="0" role="button"></i></label>
                                 <div class="d-flex align-items-center gap-3">
                                     <span class="text-muted">{{ _t('web.advanced.difficulty_easy') }}</span>
-                                    <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier"
-                                           min="0.5" max="2.4" step="0.1" value="1.0"
-                                           oninput="onSliderChange()" onchange="onSliderChange()">
-                                    <span class="text-muted">{{ _t('web.advanced.difficulty_hard') }}</span>
-                                </div>
                                 <div class="form-text">
                                     <strong>Current:</strong> <span id="difficultyValue">1.0x</span> - 
                                     <span id="levelCostPreview">Next evolution costs: $20</span>
                                     <span class="text-muted ms-2" id="levelCostDetails">(Base: $20, Community: Medium)</span>
+                                </div>
+                                    <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier"
+                                           min="0.5" max="2.4" step="0.1" value="1.0"
+                                           oninput="onSliderChange()" onchange="onSliderChange()">
+                                    <span class="text-muted">{{ _t('web.advanced.difficulty_hard') }}</span>
                                 </div>
                             </div>
                             <div class="col-md-4">

@@ -271,7 +271,7 @@
                                                 <option value="all">{{ _t('web.aas.match_all') }}</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 d-flex flex-column">
                                             <label class="form-label">
                                                 {{ _t('web.aas.ignore_keywords') }}
                                                 <i class="bi bi-info-circle text-info ms-1"
@@ -279,11 +279,11 @@
                                                    data-bs-placement="top"
                                                    title="{{ _t('web.aas.ignore_keywords_tooltip') }}" tabindex="0" role="button"></i>
                                             </label>
-                                            <input type="text" class="form-control" id="aasRuleIgnore" placeholder="{{ _t('web.aas.ignore_keywords_placeholder') }}">
+                                            <input type="text" class="form-control mt-auto" id="aasRuleIgnore" placeholder="{{ _t('web.aas.ignore_keywords_placeholder') }}">
                                         </div>
-                                        <div class="col-12 mt-2">
+                                        <div class="col-12 mt-2 d-flex flex-column">
                                             <label class="form-label">{{ _t('web.aas.regex_pattern') }}</label>
-                                            <input type="text" class="form-control font-monospace" id="aasRuleRegex" placeholder="{{ _t('web.aas.regex_placeholder') }}">
+                                            <input type="text" class="form-control font-monospace mt-auto" id="aasRuleRegex" placeholder="{{ _t('web.aas.regex_placeholder') }}">
                                         </div>
                                         <div class="col-12 mt-2">
                                             <div class="form-check">
