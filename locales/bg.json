@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Таймаут за операция за списък на Docker daemon",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Таймаут за извличане на пълния списък с контейнери от Docker. Ако Docker daemon е бавен, това предотвратява блокиращи операции.",
   "web.advanced.costs_prefix": "цена",
-  "web.advanced.description": "Разширени настройки за фина настройка на производителността. Промените изискват рестарт на контейнера, за да влязат в сила.",
+  "web.advanced.description": "Разширени настройки за фина настройка на производителността. Отбелязаните с ↻ влизат в сила едва след рестарт на контейнера; останалите важат веднага след запис.",
   "web.advanced.difficulty_dynamic": "Динамични разходи за еволюция, базирани на размера на общността (мин. 1,0x)",
   "web.advanced.difficulty_easy": "Лесно",
   "web.advanced.difficulty_easy_btn": "Лесно (0,5x)",

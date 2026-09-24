@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Časovna omejitev operacije seznama Docker demona",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Časovna omejitev za pridobivanje celotnega seznama vsebnikov iz Docker. Če je Docker demon počasen, to preprečuje visenje operacij.",
   "web.advanced.costs_prefix": "stane",
-  "web.advanced.description": "Napredne nastavitve za fino uravnavanje zmogljivosti. Spremembe zahtevajo ponovni zagon vsebnika za uveljavitev.",
+  "web.advanced.description": "Napredne nastavitve za natančno nastavitev zmogljivosti. Nastavitve, označene z ↻, začnejo veljati šele po ponovnem zagonu vsebnika; druge veljajo takoj po shranjevanju.",
   "web.advanced.difficulty_dynamic": "Dinamični stroški evolucije glede na velikost skupnosti (min 1,0x)",
   "web.advanced.difficulty_easy": "Enostavno",
   "web.advanced.difficulty_easy_btn": "Enostavno (0,5x)",

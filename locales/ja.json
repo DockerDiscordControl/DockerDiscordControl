@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker daemonリスト操作タイムアウト",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Dockerからコンテナリスト全体を取得するためのタイムアウト。Docker daemonが遅い場合、操作のハングを防止します。",
   "web.advanced.costs_prefix": "コスト",
-  "web.advanced.description": "パフォーマンスの微調整のための詳細設定。変更を適用するにはコンテナの再起動が必要です。",
+  "web.advanced.description": "パフォーマンスを調整するための詳細設定です。↻ が付いた設定はコンテナを再起動してから有効になります。それ以外は保存した時点で反映されます。",
   "web.advanced.difficulty_dynamic": "コミュニティサイズに基づく動的進化コスト（最小1.0倍）",
   "web.advanced.difficulty_easy": "簡単",
   "web.advanced.difficulty_easy_btn": "簡単（0.5倍）",

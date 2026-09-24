@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker डेमन सूची ऑपरेशन टाइमआउट",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Docker से पूर्ण कंटेनर सूची लाने का टाइमआउट। यदि Docker डेमन धीमा है, तो यह हैंग होने से रोकता है।",
   "web.advanced.costs_prefix": "लागत",
-  "web.advanced.description": "प्रदर्शन को फ़ाइन-ट्यून करने के लिए उन्नत सेटिंग्स। परिवर्तन प्रभावी होने के लिए कंटेनर पुनः आरंभ आवश्यक है।",
+  "web.advanced.description": "प्रदर्शन को बारीकी से समायोजित करने की उन्नत सेटिंग्स। ↻ से चिह्नित सेटिंग्स कंटेनर पुनः आरंभ करने के बाद ही लागू होती हैं; बाकी सहेजते ही लागू हो जाती हैं।",
   "web.advanced.difficulty_dynamic": "समुदाय आकार पर आधारित गतिशील विकास लागत (न्यूनतम 1.0x)",
   "web.advanced.difficulty_easy": "आसान",
   "web.advanced.difficulty_easy_btn": "आसान (0.5x)",

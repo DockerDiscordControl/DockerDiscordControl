@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Timeout pentru operația de listare Docker daemon",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Timeout pentru obținerea listei complete de containere de la Docker. Dacă Docker daemon este lent, aceasta previne blocarea operațiilor.",
   "web.advanced.costs_prefix": "costă",
-  "web.advanced.description": "Setări avansate pentru reglarea fină a performanței. Modificările necesită repornirea containerului pentru a avea efect.",
+  "web.advanced.description": "Setări avansate pentru reglarea fină a performanței. Setările marcate cu ↻ au efect doar după repornirea containerului; restul se aplică imediat ce salvați.",
   "web.advanced.difficulty_dynamic": "Costuri dinamice de evoluție bazate pe dimensiunea comunității (min 1.0x)",
   "web.advanced.difficulty_easy": "Ușor",
   "web.advanced.difficulty_easy_btn": "Ușor (0.5x)",

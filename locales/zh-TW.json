@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker 守護程序列表操作逾時",
   "web.advanced.container_list_timeout_tooltip": "Docker API：從 Docker 取得完整容器列表的逾時時間。如果 Docker 守護程序較慢，這可防止操作卡住。",
   "web.advanced.costs_prefix": "費用",
-  "web.advanced.description": "用於微調效能的進階設定。變更需要重新啟動容器才能生效。",
+  "web.advanced.description": "用於微調效能的進階設定。標示 ↻ 的設定需重新啟動容器後才生效，其餘設定儲存後立即生效。",
   "web.advanced.difficulty_dynamic": "基於社群規模的動態進化費用（最低 1.0 倍）",
   "web.advanced.difficulty_easy": "簡單",
   "web.advanced.difficulty_easy_btn": "簡單（0.5 倍）",

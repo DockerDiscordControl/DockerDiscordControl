@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker 守护进程列表操作超时",
   "web.advanced.container_list_timeout_tooltip": "Docker API：从 Docker 获取完整容器列表的超时时间。如果 Docker 守护进程响应慢，此设置可防止操作挂起。",
   "web.advanced.costs_prefix": "费用",
-  "web.advanced.description": "高级设置用于微调性能。更改需要重启容器才能生效。",
+  "web.advanced.description": "用于微调性能的高级设置。标有 ↻ 的设置需要重启容器后才生效，其余设置保存后立即生效。",
   "web.advanced.difficulty_dynamic": "基于社区规模的动态进化费用（最低 1.0 倍）",
   "web.advanced.difficulty_easy": "简单",
   "web.advanced.difficulty_easy_btn": "简单（0.5 倍）",

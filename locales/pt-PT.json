@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Tempo limite da operação de listagem do daemon Docker",
   "web.advanced.container_list_timeout_tooltip": "API Docker: Tempo limite para obter a lista completa de contentores do Docker. Se o daemon Docker for lento, isto previne operações bloqueadas.",
   "web.advanced.costs_prefix": "custa",
-  "web.advanced.description": "Definições avançadas para ajuste fino de desempenho. As alterações requerem reinício do contentor para entrarem em vigor.",
+  "web.advanced.description": "Definições avançadas para afinar o desempenho. As definições marcadas com ↻ só entram em vigor após reiniciar o contentor; as restantes aplicam-se assim que guardar.",
   "web.advanced.difficulty_dynamic": "Custos de evolução dinâmicos baseados no tamanho da comunidade (mín. 1.0x)",
   "web.advanced.difficulty_easy": "Fácil",
   "web.advanced.difficulty_easy_btn": "Fácil (0.5x)",

@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker daemon lijst-operatie-timeout",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Timeout voor het ophalen van de volledige containerlijst van Docker. Als de Docker daemon traag is, voorkomt dit hangende operaties.",
   "web.advanced.costs_prefix": "kost",
-  "web.advanced.description": "Geavanceerde instellingen voor fijnafstemming van prestaties. Wijzigingen vereisen een container-herstart om van kracht te worden.",
+  "web.advanced.description": "Geavanceerde instellingen voor het finetunen van de prestaties. De met ↻ gemarkeerde instellingen werken pas na een herstart van de container; de rest geldt zodra u opslaat.",
   "web.advanced.difficulty_dynamic": "Dynamische evolutiekosten op basis van communitygrootte (min 1,0x)",
   "web.advanced.difficulty_easy": "Makkelijk",
   "web.advanced.difficulty_easy_btn": "Makkelijk (0,5x)",

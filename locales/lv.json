@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker demona saraksta operācijas taimauts",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Taimauts pilnīga konteineru saraksta iegūšanai no Docker. Ja Docker demons ir lēns, tas novērš operāciju iestrēgšanu.",
   "web.advanced.costs_prefix": "maksā",
-  "web.advanced.description": "Papildu iestatījumi veiktspējas pielāgošanai. Izmaiņām nepieciešama konteinera restartēšana, lai stātos spēkā.",
+  "web.advanced.description": "Papildu iestatījumi veiktspējas precizēšanai. Ar ↻ atzīmētie iestatījumi stājas spēkā tikai pēc konteinera restartēšanas; pārējie — tiklīdz saglabāsiet.",
   "web.advanced.difficulty_dynamic": "Dinamiskas evolūcijas izmaksas, pamatojoties uz kopienas lielumu (min. 1,0x)",
   "web.advanced.difficulty_easy": "Viegli",
   "web.advanced.difficulty_easy_btn": "Viegli (0,5x)",

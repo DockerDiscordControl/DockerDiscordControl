@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Limit czasu operacji listy demona Docker",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Limit czasu pobierania pełnej listy kontenerów z Docker. Jeśli demon Docker jest wolny, zapobiega to zawieszeniu operacji.",
   "web.advanced.costs_prefix": "kosztuje",
-  "web.advanced.description": "Zaawansowane ustawienia do dostrajania wydajności. Zmiany wymagają restartu kontenera, aby wejść w życie.",
+  "web.advanced.description": "Ustawienia zaawansowane do dostrajania wydajności. Ustawienia oznaczone ↻ działają dopiero po ponownym uruchomieniu kontenera; pozostałe obowiązują zaraz po zapisaniu.",
   "web.advanced.difficulty_dynamic": "Dynamiczne koszty ewolucji oparte na wielkości społeczności (min. 1.0x)",
   "web.advanced.difficulty_easy": "Łatwy",
   "web.advanced.difficulty_easy_btn": "Łatwy (0.5x)",

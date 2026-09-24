@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker demono sąrašo operacijos laikas",
   "web.advanced.container_list_timeout_tooltip": "Docker API: konteinerių sąrašo gavimo iš Docker laiko limitas. Jei Docker demonas lėtas, tai apsaugo nuo užstrigimo.",
   "web.advanced.costs_prefix": "kainuoja",
-  "web.advanced.description": "Išplėstiniai nustatymai tiksliam veikimo derinimui. Pakeitimams taikyti reikia konteinerio perkrovimo.",
+  "web.advanced.description": "Išplėstiniai našumo derinimo nustatymai. Pažymėtieji ↻ įsigalioja tik iš naujo paleidus konteinerį; kiti taikomi iškart išsaugojus.",
   "web.advanced.difficulty_dynamic": "Dinamiškos evoliucijos kainos pagal bendruomenės dydį (min. 1.0x)",
   "web.advanced.difficulty_easy": "Lengva",
   "web.advanced.difficulty_easy_btn": "Lengva (0.5x)",

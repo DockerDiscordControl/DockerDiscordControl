@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker 데몬 목록 작업 시간 초과",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Docker에서 전체 컨테이너 목록을 가져오는 시간 초과. Docker 데몬이 느린 경우 작업 중단을 방지합니다.",
   "web.advanced.costs_prefix": "비용",
-  "web.advanced.description": "성능 미세 조정을 위한 고급 설정. 변경 사항은 컨테이너 재시작 후 적용됩니다.",
+  "web.advanced.description": "성능을 미세 조정하기 위한 고급 설정입니다. ↻ 표시가 있는 설정은 컨테이너를 다시 시작해야 적용되며, 나머지는 저장하는 즉시 적용됩니다.",
   "web.advanced.difficulty_dynamic": "커뮤니티 크기에 기반한 동적 진화 비용 (최소 1.0x)",
   "web.advanced.difficulty_easy": "쉬움",
   "web.advanced.difficulty_easy_btn": "쉬움 (0.5x)",

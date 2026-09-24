@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker daemon lista művelet időtúllépés",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Időtúllépés a teljes konténerlista Docker-ből való lekéréséhez. Ha a Docker daemon lassú, ez megakadályozza a függő műveleteket.",
   "web.advanced.costs_prefix": "költség",
-  "web.advanced.description": "Haladó beállítások a teljesítmény finomhangolásához. A módosítások konténer újraindítást igényelnek az érvényesítéshez.",
+  "web.advanced.description": "Speciális beállítások a teljesítmény finomhangolásához. A ↻ jellel jelölt beállítások csak a konténer újraindítása után lépnek életbe; a többi mentéskor azonnal érvényes.",
   "web.advanced.difficulty_dynamic": "Dinamikus evolúciós költségek a közösség mérete alapján (min 1,0x)",
   "web.advanced.difficulty_easy": "Könnyű",
   "web.advanced.difficulty_easy_btn": "Könnyű (0,5x)",

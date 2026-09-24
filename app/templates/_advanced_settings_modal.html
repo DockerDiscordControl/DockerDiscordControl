@@ -21,8 +21,8 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-2">
-                                <label class="form-label">{{ _t('web.advanced.status_update_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.status_update_interval_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_DOCKER_CACHE_DURATION" name="env_DDC_DOCKER_CACHE_DURATION" min="10" max="300" value="{{ (config.env.DDC_DOCKER_CACHE_DURATION if config.env else '') or '' }}" placeholder="30" onchange="updateCacheTTL()">
+                                <label class="form-label">{{ _t('web.advanced.status_update_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.status_update_interval_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_DOCKER_CACHE_DURATION" name="env_DDC_DOCKER_CACHE_DURATION" min="10" max="300" value="{{ (config.env.DDC_DOCKER_CACHE_DURATION if config.env else '') or '' }}" placeholder="30" onchange="updateCacheTTL()">
                                 <div class="form-text"><strong>Discord Bot</strong>: {{ _t('web.advanced.status_update_interval_hint') }}</div>
                             </div>
                             <div class="col-md-2">
@@ -31,18 +31,18 @@
                                 <div class="form-text"><strong>{{ _t('web.advanced.auto_calculated') }}</strong>: {{ _t('web.advanced.cache_ttl_hint') }}</div>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">{{ _t('web.advanced.docker_query_cooldown') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.docker_query_cooldown_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_DOCKER_QUERY_COOLDOWN" name="env_DDC_DOCKER_QUERY_COOLDOWN" min="0" max="60" value="{{ (config.env.DDC_DOCKER_QUERY_COOLDOWN if config.env else '') or '' }}" placeholder="2">
+                                <label class="form-label">{{ _t('web.advanced.docker_query_cooldown') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.docker_query_cooldown_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_DOCKER_QUERY_COOLDOWN" name="env_DDC_DOCKER_QUERY_COOLDOWN" min="0" max="60" value="{{ (config.env.DDC_DOCKER_QUERY_COOLDOWN if config.env else '') or '' }}" placeholder="2">
                                 <div class="form-text"><strong>{{ _t('web.advanced.rate_limiting') }}</strong>: {{ _t('web.advanced.docker_query_cooldown_hint') }}</div>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">{{ _t('web.advanced.docker_max_cache_age') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.docker_max_cache_age_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_DOCKER_MAX_CACHE_AGE" name="env_DDC_DOCKER_MAX_CACHE_AGE" min="1" max="7200" value="{{ (config.env.DDC_DOCKER_MAX_CACHE_AGE if config.env else '') or '' }}" placeholder="300">
+                                <label class="form-label">{{ _t('web.advanced.docker_max_cache_age') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.docker_max_cache_age_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_DOCKER_MAX_CACHE_AGE" name="env_DDC_DOCKER_MAX_CACHE_AGE" min="1" max="7200" value="{{ (config.env.DDC_DOCKER_MAX_CACHE_AGE if config.env else '') or '' }}" placeholder="300">
                                 <div class="form-text"><strong>{{ _t('web.advanced.safety_limit') }}</strong>: {{ _t('web.advanced.docker_max_cache_age_hint') }}</div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4">
-                                    <input class="form-check-input" type="checkbox" id="env_DDC_ENABLE_BACKGROUND_REFRESH" name="env_DDC_ENABLE_BACKGROUND_REFRESH" value="true" {% if not config.env or not config.env.get('DDC_ENABLE_BACKGROUND_REFRESH') or config.env.get('DDC_ENABLE_BACKGROUND_REFRESH').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
+                                    <input class="form-check-input requires-restart" type="checkbox" id="env_DDC_ENABLE_BACKGROUND_REFRESH" name="env_DDC_ENABLE_BACKGROUND_REFRESH" value="true" {% if not config.env or not config.env.get('DDC_ENABLE_BACKGROUND_REFRESH') or config.env.get('DDC_ENABLE_BACKGROUND_REFRESH').lower() in ['true', '1', 'on', 'yes'] %}checked{% endif %}>
                                     <label class="form-check-label" for="env_DDC_ENABLE_BACKGROUND_REFRESH">
                                         {{ _t('web.advanced.enable_bg_refresh') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.enable_bg_refresh_tooltip') }}" tabindex="0" role="button"></i>
                                     </label>
@@ -61,23 +61,23 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">{{ _t('web.advanced.refresh_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.refresh_interval_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_INTERVAL" name="env_DDC_BACKGROUND_REFRESH_INTERVAL" min="30" max="3600" value="{{ (config.env.DDC_BACKGROUND_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="300">
+                                <label class="form-label">{{ _t('web.advanced.refresh_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.refresh_interval_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_BACKGROUND_REFRESH_INTERVAL" name="env_DDC_BACKGROUND_REFRESH_INTERVAL" min="30" max="3600" value="{{ (config.env.DDC_BACKGROUND_REFRESH_INTERVAL if config.env else '') or '' }}" placeholder="300">
                                 <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.refresh_interval_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">{{ _t('web.advanced.bg_refresh_limit') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.bg_refresh_limit_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_LIMIT" name="env_DDC_BACKGROUND_REFRESH_LIMIT" min="1" max="1000" value="{{ (config.env.DDC_BACKGROUND_REFRESH_LIMIT if config.env else '') or '' }}" placeholder="50">
+                                <label class="form-label">{{ _t('web.advanced.bg_refresh_limit') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.bg_refresh_limit_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_BACKGROUND_REFRESH_LIMIT" name="env_DDC_BACKGROUND_REFRESH_LIMIT" min="1" max="1000" value="{{ (config.env.DDC_BACKGROUND_REFRESH_LIMIT if config.env else '') or '' }}" placeholder="50">
                                 <div class="form-text"><strong>{{ _t('web.advanced.performance') }}</strong>: {{ _t('web.advanced.bg_refresh_limit_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">{{ _t('web.advanced.refresh_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.refresh_timeout_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_BACKGROUND_REFRESH_TIMEOUT" name="env_DDC_BACKGROUND_REFRESH_TIMEOUT" min="5" max="300" value="{{ (config.env.DDC_BACKGROUND_REFRESH_TIMEOUT if config.env else '') or '' }}" placeholder="30">
+                                <label class="form-label">{{ _t('web.advanced.refresh_timeout') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.refresh_timeout_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_BACKGROUND_REFRESH_TIMEOUT" name="env_DDC_BACKGROUND_REFRESH_TIMEOUT" min="5" max="300" value="{{ (config.env.DDC_BACKGROUND_REFRESH_TIMEOUT if config.env else '') or '' }}" placeholder="30">
                                 <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.refresh_timeout_hint') }}</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">{{ _t('web.advanced.max_containers_display') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.max_containers_display_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_MAX_CONTAINERS_DISPLAY" name="env_DDC_MAX_CONTAINERS_DISPLAY" min="1" max="500" value="{{ (config.env.DDC_MAX_CONTAINERS_DISPLAY if config.env else '') or '' }}" placeholder="100">
+                                <label class="form-label">{{ _t('web.advanced.max_containers_display') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.max_containers_display_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_MAX_CONTAINERS_DISPLAY" name="env_DDC_MAX_CONTAINERS_DISPLAY" min="1" max="500" value="{{ (config.env.DDC_MAX_CONTAINERS_DISPLAY if config.env else '') or '' }}" placeholder="100">
                                 <div class="form-text"><strong>Web UI</strong>: {{ _t('web.advanced.max_containers_display_hint') }}</div>
                             </div>
                         </div>
@@ -92,18 +92,18 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">{{ _t('web.advanced.scheduler_check_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.scheduler_check_interval_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="60">
+                                <label class="form-label">{{ _t('web.advanced.scheduler_check_interval') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.scheduler_check_interval_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_SCHEDULER_CHECK_INTERVAL" name="env_DDC_SCHEDULER_CHECK_INTERVAL" min="1" max="300" value="{{ (config.env.DDC_SCHEDULER_CHECK_INTERVAL if config.env else '') or '' }}" placeholder="60">
                                 <div class="form-text"><strong>{{ _t('web.advanced.scheduler') }}</strong>: {{ _t('web.advanced.scheduler_check_interval_hint') }}</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">{{ _t('web.advanced.max_concurrent_tasks') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.max_concurrent_tasks_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_MAX_CONCURRENT_TASKS" name="env_DDC_MAX_CONCURRENT_TASKS" min="1" max="50" value="{{ (config.env.DDC_MAX_CONCURRENT_TASKS if config.env else '') or '' }}" placeholder="3">
+                                <label class="form-label">{{ _t('web.advanced.max_concurrent_tasks') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.max_concurrent_tasks_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_MAX_CONCURRENT_TASKS" name="env_DDC_MAX_CONCURRENT_TASKS" min="1" max="50" value="{{ (config.env.DDC_MAX_CONCURRENT_TASKS if config.env else '') or '' }}" placeholder="3">
                                 <div class="form-text"><strong>{{ _t('web.advanced.safety') }}</strong>: {{ _t('web.advanced.max_concurrent_tasks_hint') }}</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">{{ _t('web.advanced.task_batch_size') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.task_batch_size_tooltip') }}" tabindex="0" role="button"></i></label>
-                                <input type="number" class="form-control" id="env_DDC_TASK_BATCH_SIZE" name="env_DDC_TASK_BATCH_SIZE" min="1" max="100" value="{{ (config.env.DDC_TASK_BATCH_SIZE if config.env else '') or '' }}" placeholder="5">
+                                <label class="form-label">{{ _t('web.advanced.task_batch_size') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.task_batch_size_tooltip') }}" tabindex="0" role="button"></i> <span class="badge bg-secondary ms-1 restart-badge" title="{{ _t('web.common.requires_restart') }}"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">{{ _t('web.common.requires_restart') }}</span></span></label>
+                                <input type="number" class="form-control requires-restart" id="env_DDC_TASK_BATCH_SIZE" name="env_DDC_TASK_BATCH_SIZE" min="1" max="100" value="{{ (config.env.DDC_TASK_BATCH_SIZE if config.env else '') or '' }}" placeholder="5">
                                 <div class="form-text"><strong>{{ _t('web.advanced.efficiency') }}</strong>: {{ _t('web.advanced.task_batch_size_hint') }}</div>
                             </div>
                         </div>

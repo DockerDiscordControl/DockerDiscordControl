@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Timeout operácie zoznamu Docker daemon",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Timeout pre načítanie kompletného zoznamu kontajnerov z Docker. Ak je Docker daemon pomalý, zabraňuje to uviaznutiu operácií.",
   "web.advanced.costs_prefix": "stojí",
-  "web.advanced.description": "Pokročilé nastavenia pre jemné ladenie výkonu. Zmeny vyžadujú reštart kontajnera.",
+  "web.advanced.description": "Pokročilé nastavenia na doladenie výkonu. Nastavenia označené ↻ sa prejavia až po reštarte kontajnera; ostatné platia hneď po uložení.",
   "web.advanced.difficulty_dynamic": "Dynamické náklady evolúcie na základe veľkosti komunity (min 1.0x)",
   "web.advanced.difficulty_easy": "Ľahká",
   "web.advanced.difficulty_easy_btn": "Ľahká (0.5x)",

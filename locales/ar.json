@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "مهلة عملية قائمة Docker daemon",
   "web.advanced.container_list_timeout_tooltip": "Docker API: مهلة جلب قائمة الحاويات الكاملة من Docker. إذا كان Docker daemon بطيئاً، هذا يمنع تعليق العمليات.",
   "web.advanced.costs_prefix": "التكلفة",
-  "web.advanced.description": "إعدادات متقدمة لضبط الأداء. التغييرات تتطلب إعادة تشغيل الحاوية لتفعيلها.",
+  "web.advanced.description": "إعدادات متقدمة لضبط الأداء. الإعدادات المعلَّمة بـ ↻ لا تسري إلا بعد إعادة تشغيل الحاوية؛ أما البقية فتسري فور الحفظ.",
   "web.advanced.difficulty_dynamic": "تكاليف تطور ديناميكية بناءً على حجم المجتمع (الحد الأدنى 1.0×)",
   "web.advanced.difficulty_easy": "سهل",
   "web.advanced.difficulty_easy_btn": "سهل (0.5×)",

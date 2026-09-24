@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Tidsgräns för Docker daemon listoperation",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Tidsgräns för att hämta den kompletta containerlistan från Docker. Om Docker daemon är långsam förhindrar detta hängande operationer.",
   "web.advanced.costs_prefix": "kostar",
-  "web.advanced.description": "Avancerade inställningar för finjustering av prestanda. Ändringar kräver containeromstart för att träda i kraft.",
+  "web.advanced.description": "Avancerade inställningar för finjustering av prestanda. Inställningar märkta med ↻ träder i kraft först efter omstart av containern; övriga gäller så snart du sparar.",
   "web.advanced.difficulty_dynamic": "Dynamiska evolutionskostnader baserade på communitystorlek (min 1,0x)",
   "web.advanced.difficulty_easy": "Lätt",
   "web.advanced.difficulty_easy_btn": "Lätt (0,5x)",

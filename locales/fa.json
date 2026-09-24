@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "زمان انقضای عملیات لیست Docker daemon",
   "web.advanced.container_list_timeout_tooltip": "Docker API: زمان انقضا برای دریافت لیست کامل کانتینرها از Docker. اگر Docker daemon کند باشد، از معلق ماندن عملیات جلوگیری می‌کند.",
   "web.advanced.costs_prefix": "هزینه",
-  "web.advanced.description": "تنظیمات پیشرفته برای تنظیم دقیق عملکرد. تغییرات نیاز به راه‌اندازی مجدد کانتینر دارند.",
+  "web.advanced.description": "تنظیمات پیشرفته برای تنظیم دقیق کارایی. تنظیمات دارای نشان ↻ تنها پس از راه‌اندازی مجدد کانتینر اعمال می‌شوند؛ بقیه به‌محض ذخیره اعمال می‌شوند.",
   "web.advanced.difficulty_dynamic": "هزینه‌های تکامل پویا بر اساس اندازه جامعه (حداقل 1.0x)",
   "web.advanced.difficulty_easy": "آسان",
   "web.advanced.difficulty_easy_btn": "آسان (0.5x)",

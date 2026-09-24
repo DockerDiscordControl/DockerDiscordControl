@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Timeout operazione di lista del daemon Docker",
   "web.advanced.container_list_timeout_tooltip": "API Docker: Timeout per il recupero della lista completa dei container da Docker. Se il daemon Docker è lento, questo impedisce operazioni bloccate.",
   "web.advanced.costs_prefix": "costa",
-  "web.advanced.description": "Impostazioni avanzate per la regolazione fine delle prestazioni. Le modifiche richiedono il riavvio del container per avere effetto.",
+  "web.advanced.description": "Impostazioni avanzate per ottimizzare le prestazioni. Quelle contrassegnate con ↻ hanno effetto solo dopo il riavvio del container; le altre si applicano al salvataggio.",
   "web.advanced.difficulty_dynamic": "Costi di evoluzione dinamici basati sulla dimensione della community (min 1.0x)",
   "web.advanced.difficulty_easy": "Facile",
   "web.advanced.difficulty_easy_btn": "Facile (0.5x)",

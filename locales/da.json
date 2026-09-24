@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker daemon listeoperation timeout",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Timeout for hentning af den komplette containerliste fra Docker. Hvis Docker daemon er langsom, forhindrer dette hængende operationer.",
   "web.advanced.costs_prefix": "koster",
-  "web.advanced.description": "Avancerede indstillinger til finjustering af ydeevne. Ændringer kræver containergenstart for at træde i kraft.",
+  "web.advanced.description": "Avancerede indstillinger til finjustering af ydeevnen. Indstillinger markeret med ↻ træder først i kraft efter en genstart af containeren; resten gælder, så snart du gemmer.",
   "web.advanced.difficulty_dynamic": "Dynamiske evolutionsomkostninger baseret på fællesskabsstørrelse (min 1.0x)",
   "web.advanced.difficulty_easy": "Let",
   "web.advanced.difficulty_easy_btn": "Let (0.5x)",

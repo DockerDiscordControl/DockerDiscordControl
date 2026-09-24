@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Thời gian chờ thao tác danh sách Docker daemon",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Thời gian chờ để lấy danh sách container đầy đủ từ Docker. Nếu Docker daemon chậm, điều này ngăn treo thao tác.",
   "web.advanced.costs_prefix": "chi phí",
-  "web.advanced.description": "Cài đặt nâng cao để tinh chỉnh hiệu suất. Thay đổi yêu cầu khởi động lại container để có hiệu lực.",
+  "web.advanced.description": "Cài đặt nâng cao để tinh chỉnh hiệu năng. Các cài đặt có dấu ↻ chỉ có hiệu lực sau khi khởi động lại container; phần còn lại áp dụng ngay khi bạn lưu.",
   "web.advanced.difficulty_dynamic": "Chi phí tiến hóa động dựa trên quy mô cộng đồng (tối thiểu 1.0x)",
   "web.advanced.difficulty_easy": "Dễ",
   "web.advanced.difficulty_easy_btn": "Dễ (0.5x)",

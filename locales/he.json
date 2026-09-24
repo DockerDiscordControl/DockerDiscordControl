@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "זמן קצוב לפעולת רישום Docker daemon",
   "web.advanced.container_list_timeout_tooltip": "Docker API: זמן קצוב לאחזור רשימת הקונטיינרים המלאה מ-Docker. אם Docker daemon איטי, זה מונע חסימת פעולות.",
   "web.advanced.costs_prefix": "עולה",
-  "web.advanced.description": "הגדרות מתקדמות לכוונון ביצועים. שינויים דורשים הפעלה מחדש של הקונטיינר.",
+  "web.advanced.description": "הגדרות מתקדמות לכוונון ביצועים. ההגדרות המסומנות ב-↻ נכנסות לתוקף רק לאחר הפעלה מחדש של הקונטיינר; השאר חלות ברגע השמירה.",
   "web.advanced.difficulty_dynamic": "עלויות התפתחות דינמיות מבוססות גודל קהילה (מינימום 1.0x)",
   "web.advanced.difficulty_easy": "קל",
   "web.advanced.difficulty_easy_btn": "קל (0.5x)",

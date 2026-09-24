@@ -87,11 +87,21 @@ def test_the_dropped_notices_left_every_catalogue(key):
     assert left == [], f"{key} is still in {len(left)} catalogues: {left[:5]}"
 
 
-def test_the_two_fields_that_do_need_it_still_say_so():
+def test_the_fields_that_do_need_it_still_say_so():
     """Counter-check: the blanket notices went, the precise mark stays. Without
-    this, deleting the mark as well would pass the case above."""
+    this, deleting the mark as well would pass the case above.
+
+    OUTSIDE THE ADVANCED DIALOG there are exactly two, and they are the two the
+    bot's Discord connection is built from. The advanced dialog marks eleven
+    more, each measured as frozen at import by
+    test_only_the_frozen_advanced_settings_ask_for_a_restart.py - that file
+    owns them, and repeating the list here would be a second copy to keep in
+    step.
+    """
     marked = set()
     for path in sorted(TEMPLATES.rglob("*.html")):
+        if path.name == "_advanced_settings_modal.html":
+            continue
         markup = path.read_text(encoding="utf-8")
         for tag in re.findall(r"<input\b[^>]*requires-restart[^>]*>", markup):
             found = re.search(r'id="([^"]+)"', tag)

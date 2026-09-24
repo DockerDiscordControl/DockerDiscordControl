@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Временско ограничење операције листе Docker демона",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Временско ограничење за преузимање комплетне листе контејнера из Docker. Ако је Docker демон спор, ово спречава заглављивање операција.",
   "web.advanced.costs_prefix": "кошта",
-  "web.advanced.description": "Напредна подешавања за фино подешавање перформанси. Промене захтевају рестартовање контејнера да би ступиле на снагу.",
+  "web.advanced.description": "Напредна подешавања за фино подешавање перформанси. Подешавања означена са ↻ ступају на снагу тек након поновног покретања контејнера; остала важе чим сачувате.",
   "web.advanced.difficulty_dynamic": "Динамички трошкови еволуције на основу величине заједнице (мин 1,0x)",
   "web.advanced.difficulty_easy": "Лако",
   "web.advanced.difficulty_easy_btn": "Лако (0,5x)",

@@ -873,7 +873,7 @@
   "web.advanced.container_list_timeout_hint": "Docker daemon -listaustoiminnon aikakatkaisu",
   "web.advanced.container_list_timeout_tooltip": "Docker API: Aikakatkaisu täydellisen säilölistan hakemiseen Dockerista. Jos Docker daemon on hidas, tämä estää jumittuneet operaatiot.",
   "web.advanced.costs_prefix": "maksaa",
-  "web.advanced.description": "Edistyneet asetukset suorituskyvyn hienosäätöön. Muutokset vaativat säilön uudelleenkäynnistyksen voimaantuakseen.",
+  "web.advanced.description": "Lisäasetukset suorituskyvyn hienosäätöön. ↻-merkityt asetukset tulevat voimaan vasta kontin uudelleenkäynnistyksen jälkeen; muut heti tallennuksen jälkeen.",
   "web.advanced.difficulty_dynamic": "Dynaamiset evoluutiokustannukset yhteisön koon perusteella (min 1.0x)",
   "web.advanced.difficulty_easy": "Helppo",
   "web.advanced.difficulty_easy_btn": "Helppo (0.5x)",
