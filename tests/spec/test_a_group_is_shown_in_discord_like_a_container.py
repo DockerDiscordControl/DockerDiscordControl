@@ -57,7 +57,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Icarus", "Icarus2"):
+    for name in ("alpha", "beta"):
         (containers / f"{name}.json").write_text(json.dumps(
             {"container_name": name, "docker_name": name, "active": True,
              "allowed_actions": ["status"]}), encoding="utf-8")
@@ -66,7 +66,7 @@ def world(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     group_service.get_group_service().save_group(
-        "Icaruse", ["Icarus", "Icarus2"],
+        "Gameserver", ["alpha", "beta"],
         active=True, allowed_actions=["status", "start", "stop", "restart"])
     return SimpleNamespace(groups=group_service.get_group_service())
 
@@ -93,13 +93,13 @@ def _lines(cache):
 
 def test_a_group_has_a_line_of_its_own(world):
     """THE OPERATOR'S SCREENSHOT: seven containers and no group."""
-    lines = _lines(_cache({"Icarus": True, "Icarus2": True}))
+    lines = _lines(_cache({"alpha": True, "beta": True}))
 
-    assert any("Icaruse" in line for line in lines), lines
+    assert any("Gameserver" in line for line in lines), lines
 
 
 def test_the_line_says_how_many_of_its_members_run(world):
-    lines = "\n".join(_lines(_cache({"Icarus": True, "Icarus2": False})))
+    lines = "\n".join(_lines(_cache({"alpha": True, "beta": False})))
 
     assert "1/2" in lines, lines
 
@@ -107,9 +107,9 @@ def test_the_line_says_how_many_of_its_members_run(world):
 def test_all_running_reads_differently_from_none_running(world):
     """Green, red and yellow are the container lamps; a group of two with one
     up is neither of the first two."""
-    all_up = "\n".join(_lines(_cache({"Icarus": True, "Icarus2": True})))
-    none_up = "\n".join(_lines(_cache({"Icarus": False, "Icarus2": False})))
-    mixed = "\n".join(_lines(_cache({"Icarus": True, "Icarus2": False})))
+    all_up = "\n".join(_lines(_cache({"alpha": True, "beta": True})))
+    none_up = "\n".join(_lines(_cache({"alpha": False, "beta": False})))
+    mixed = "\n".join(_lines(_cache({"alpha": True, "beta": False})))
 
     assert "🟢" in all_up and "2/2" in all_up
     assert "🔴" in none_up and "0/2" in none_up
@@ -117,17 +117,17 @@ def test_all_running_reads_differently_from_none_running(world):
 
 
 def test_a_switched_off_group_is_not_shown(world):
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"], active=False)
-    lines = _lines(_cache({"Icarus": True, "Icarus2": True}))
+    world.groups.save_group("Gameserver", ["alpha", "beta"], active=False)
+    lines = _lines(_cache({"alpha": True, "beta": True}))
 
     assert lines == [], lines
 
 
 def test_a_group_that_may_not_report_status_is_not_shown(world):
     """The group decides here too - the same rule the restart menu follows."""
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+    world.groups.save_group("Gameserver", ["alpha", "beta"],
                             allowed_actions=["restart"])
-    lines = _lines(_cache({"Icarus": True, "Icarus2": True}))
+    lines = _lines(_cache({"alpha": True, "beta": True}))
 
     assert lines == [], lines
 
@@ -135,8 +135,8 @@ def test_a_group_that_may_not_report_status_is_not_shown(world):
 def test_without_groups_nothing_is_added(world, tmp_path):
     """Counter-check: an operator with no groups sees exactly what he saw
     before - no divider, no empty heading."""
-    world.groups.delete_group("Icaruse")
-    lines = _lines(_cache({"Icarus": True}))
+    world.groups.delete_group("Gameserver")
+    lines = _lines(_cache({"alpha": True}))
 
     assert lines == [], lines
 
@@ -144,18 +144,18 @@ def test_without_groups_nothing_is_added(world, tmp_path):
 def test_the_groups_are_set_apart_from_the_containers(world):
     """A group listed among the containers reads as a container with a strange
     name."""
-    lines = _lines(_cache({"Icarus": True, "Icarus2": True}))
+    lines = _lines(_cache({"alpha": True, "beta": True}))
 
     assert len(lines) >= 2, lines
-    assert "Icaruse" not in lines[0], (
+    assert "Gameserver" not in lines[0], (
         "the first line is already a group - nothing separates them")
 
 
 def test_a_group_that_lost_a_container_says_so(world):
     """The same warning the panel gives: a group acting on fewer containers
     than it names must not look complete."""
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2", "Gone"])
-    lines = "\n".join(_lines(_cache({"Icarus": True, "Icarus2": True})))
+    world.groups.save_group("Gameserver", ["alpha", "beta", "Gone"])
+    lines = "\n".join(_lines(_cache({"alpha": True, "beta": True})))
 
     assert "⚠" in lines or "Gone" in lines, lines
 

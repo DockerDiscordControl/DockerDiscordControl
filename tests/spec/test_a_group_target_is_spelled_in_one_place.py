@@ -124,10 +124,10 @@ def test_the_helpers_answer_the_two_questions():
                                                group_target, is_group_target)
 
     assert GROUP_PREFIX == "group:"
-    assert is_group_target("group:Icaruse") is True
-    assert is_group_target("Icaruse") is False
+    assert is_group_target("group:Gameserver") is True
+    assert is_group_target("Gameserver") is False
     assert is_group_target(None) is False
-    assert group_name_of("group:Icaruse") == "Icaruse"
-    assert group_name_of("Icaruse") == "Icaruse", (
+    assert group_name_of("group:Gameserver") == "Gameserver"
+    assert group_name_of("Gameserver") == "Gameserver", (
         "a plain container name must come back unchanged")
-    assert group_target("Icaruse") == "group:Icaruse"
+    assert group_target("Gameserver") == "group:Gameserver"

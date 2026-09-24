@@ -51,31 +51,31 @@ def _orders(form):
 
 def test_the_order_the_operator_arranged_is_saved():
     """THE FINDING: the browser sends the order, and it must arrive."""
-    orders = _orders(_browser_form(["Icarus2", "Icarus", "ProjectZomboid", "Valheim"]))
+    orders = _orders(_browser_form(["beta", "alpha", "ProjectZomboid", "Valheim"]))
 
-    assert orders == {"Icarus2": 0, "Icarus": 1, "ProjectZomboid": 2, "Valheim": 3}, (
+    assert orders == {"beta": 0, "alpha": 1, "ProjectZomboid": 2, "Valheim": 3}, (
         f"the save wrote {orders} - the arranged order was dropped"
     )
 
 
 def test_rearranging_changes_the_saved_order():
     """Not merely 'something other than 999': moving a container moves it."""
-    first = _orders(_browser_form(["Valheim", "Icarus"]))
-    second = _orders(_browser_form(["Icarus", "Valheim"]))
+    first = _orders(_browser_form(["Valheim", "alpha"]))
+    second = _orders(_browser_form(["alpha", "Valheim"]))
 
     # Strict comparisons, not sorted(): with every value at 999, sorted() keeps
     # the insertion order - which is the expected order - and a first version of
     # this test passed against the bug it was written for.
-    assert first["Valheim"] < first["Icarus"], first
-    assert second["Icarus"] < second["Valheim"], second
+    assert first["Valheim"] < first["alpha"], first
+    assert second["alpha"] < second["Valheim"], second
 
 
 def test_an_explicit_order_field_still_wins():
     """COUNTER-CHECK: a client that does send order_<name> keeps its value -
     the parser's existing tests rely on that."""
-    orders = _orders(_browser_form(["Valheim", "Icarus"], extra=[("order_Icarus", "7")]))
+    orders = _orders(_browser_form(["Valheim", "alpha"], extra=[("order_alpha", "7")]))
 
-    assert orders == {"Valheim": 0, "Icarus": 7}
+    assert orders == {"Valheim": 0, "alpha": 7}
 
 
 def test_without_any_order_information_it_is_still_999():

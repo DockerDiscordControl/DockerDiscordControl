@@ -16,7 +16,7 @@ the four actions the way a container does, in its own file, and a member's own
 settings neither limit it nor are changed by it.
 
 WHAT WAS MEASURED BEFORE WRITING THIS (2026-09-24, the operator's server):
-groups.json held `{"name": "Icaruse", "containers": ["Icarus", "Icarus2"]}` and
+groups.json held `{"name": "Gameserver", "containers": ["alpha", "beta"]}` and
 nothing else - there was nowhere to put a permission. The Discord group restart
 in cogs/stack_restart.py dropped every member that was not active in DDC, and
 offered restart and only restart, to every group. Both are the subordination
@@ -113,10 +113,10 @@ def test_a_group_written_before_today_keeps_what_it_could_do(groups, tmp_path):
     Reading it as powerless would take that away from an operator who changed
     nothing."""
     (tmp_path / "groups.json").write_text(
-        json.dumps({"groups": [{"name": "Icaruse", "containers": ["Icarus", "Icarus2"]}]}),
+        json.dumps({"groups": [{"name": "Gameserver", "containers": ["alpha", "beta"]}]}),
         encoding="utf-8")
 
-    group = groups.find("Icaruse")
+    group = groups.find("Gameserver")
 
     assert group.active is True
     assert list(group.allowed_actions) == list(ACTIONS)
@@ -124,12 +124,12 @@ def test_a_group_written_before_today_keeps_what_it_could_do(groups, tmp_path):
 
 def test_the_name_and_the_containers_still_work(groups):
     """Counter-check: the two fields that were there before are untouched."""
-    groups.save_group("Gameserver", ["Valheim", "Icarus 1"])
+    groups.save_group("Gameserver", ["Valheim", "alpha"])
 
     group = groups.find("Gameserver")
 
     assert group.name == "Gameserver"
-    assert group.containers == ["Valheim", "Icarus 1"]
+    assert group.containers == ["Valheim", "alpha"]
 
 
 def test_saving_without_saying_gives_the_four(groups):
@@ -191,8 +191,8 @@ def test_the_api_keeps_the_permissions_when_only_the_members_change(client):
     client.post("/api/groups", json={"name": "Gameserver", "containers": ["Valheim"],
                                      "allowed_actions": ["stop"]}, headers=AUTH)
     client.post("/api/groups", json={"name": "Gameserver",
-                                     "containers": ["Valheim", "Icarus 1"]}, headers=AUTH)
+                                     "containers": ["Valheim", "alpha"]}, headers=AUTH)
     shown = client.get("/api/groups", headers=AUTH).get_json()["groups"][0]
 
     assert shown["allowed_actions"] == ["stop"], "the dialog wiped the group's permissions"
-    assert shown["containers"] == ["Valheim", "Icarus 1"]
+    assert shown["containers"] == ["Valheim", "alpha"]

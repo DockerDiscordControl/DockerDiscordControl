@@ -181,9 +181,9 @@ class TestSdkCallsOffTheEventLoop:
         fetch = DockerStatusFetchService()
         fetch.set_query_cooldown(0)
 
-        name, info, stats = await fetch.fetch_with_retries("Icarus")
+        name, info, stats = await fetch.fetch_with_retries("alpha")
 
-        assert name == "Icarus"
+        assert name == "alpha"
         assert info["_computed"]["cpu_percent"] > 0
         assert stats["is_running"] is True
         # info and stats come from a single Docker query (stats are served from the cache)
@@ -235,12 +235,12 @@ class TestNotFoundKeepsConfig:
     async def test_not_found_does_not_deactivate_container(self, fake_docker, tmp_path, monkeypatch):
         monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
         (tmp_path / "containers").mkdir()
-        cfg = tmp_path / "containers" / "Icarus.json"
-        cfg.write_text(json.dumps({"name": "Icarus", "active": True}), encoding="utf-8")
+        cfg = tmp_path / "containers" / "alpha.json"
+        cfg.write_text(json.dumps({"name": "alpha", "active": True}), encoding="utf-8")
         fake_docker.client = FakeClient(not_found=True)
 
         result = await ContainerStatusService()._fetch_container_status(
-            ContainerStatusRequest(container_name="Icarus"))
+            ContainerStatusRequest(container_name="alpha"))
 
         assert result.success is False
         assert result.error_type == "container_not_found"
@@ -249,13 +249,13 @@ class TestNotFoundKeepsConfig:
     async def test_recreated_container_is_reported_again(self, fake_docker):
         svc = ContainerStatusService()
         fake_docker.client = FakeClient(not_found=True)
-        first = await svc._fetch_container_status(ContainerStatusRequest(container_name="Icarus"))
+        first = await svc._fetch_container_status(ContainerStatusRequest(container_name="alpha"))
         fake_docker.client = FakeClient()
-        second = await svc._fetch_container_status(ContainerStatusRequest(container_name="Icarus"))
+        second = await svc._fetch_container_status(ContainerStatusRequest(container_name="alpha"))
 
         assert first.success is False
         assert second.success is True and second.is_running is True
-        assert "Icarus" not in svc._not_found_logged
+        assert "alpha" not in svc._not_found_logged
 
 
 # --------------------------------------------------------------------------- #

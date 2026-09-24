@@ -57,15 +57,15 @@ def world(tmp_path, monkeypatch):
          "allowed_actions": ["status", "restart"]}), encoding="utf-8")
     # The container the operator's sentence is about: switched off for DDC, and
     # allowed only to be stopped when it is addressed on its own.
-    (containers / "Icarus.json").write_text(json.dumps(
-        {"container_name": "Icarus", "docker_name": "Icarus", "active": False,
+    (containers / "alpha.json").write_text(json.dumps(
+        {"container_name": "alpha", "docker_name": "alpha", "active": False,
          "allowed_actions": ["stop"]}), encoding="utf-8")
 
     from services.config import group_service
 
     group_service.reset_group_service()
     groups = group_service.get_group_service()
-    groups.save_group("Gameserver", ["Valheim", "Icarus"],
+    groups.save_group("Gameserver", ["Valheim", "alpha"],
                       active=True, allowed_actions=["status", "start", "stop", "restart"])
     return SimpleNamespace(groups=groups, path=tmp_path)
 
@@ -73,7 +73,7 @@ def world(tmp_path, monkeypatch):
 def _servers(world):
     """What the server configuration says, the way the cogs read it."""
     return [{"docker_name": "Valheim", "active": True, "allowed_actions": ["status", "restart"]},
-            {"docker_name": "Icarus", "active": False, "allowed_actions": ["stop"]}]
+            {"docker_name": "alpha", "active": False, "allowed_actions": ["stop"]}]
 
 
 # --- the Discord menu ------------------------------------------------------
@@ -88,7 +88,7 @@ def test_a_switched_off_member_is_still_restarted_with_its_group(world, monkeypa
     monkeypatch.setattr(stack_restart, "current_stacks", dict)
     chosen, missed = stack_restart._servers_of("Gameserver")
 
-    assert [s["docker_name"] for s in chosen] == ["Valheim", "Icarus"], (
+    assert [s["docker_name"] for s in chosen] == ["Valheim", "alpha"], (
         "a member that is switched off in DDC was dropped from its group")
     assert missed == []
 
@@ -97,7 +97,7 @@ def test_a_group_that_may_not_restart_is_not_offered(world, monkeypatch):
     from cogs import admin_overview as ao
     from cogs import stack_restart
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"],
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"],
                             allowed_actions=["status"])
     monkeypatch.setattr(ao, "get_server_config_service",
                         lambda: SimpleNamespace(get_all_servers=lambda: _servers(world)))
@@ -111,7 +111,7 @@ def test_a_switched_off_group_is_not_offered(world, monkeypatch):
     from cogs import admin_overview as ao
     from cogs import stack_restart
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"], active=False)
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"], active=False)
     monkeypatch.setattr(ao, "get_server_config_service",
                         lambda: SimpleNamespace(get_all_servers=lambda: _servers(world)))
     monkeypatch.setattr(stack_restart, "current_stacks", dict)
@@ -143,7 +143,7 @@ def _task(action):
 async def test_a_task_refuses_an_action_the_group_is_not_allowed(world, monkeypatch):
     from services.scheduling import group_tasks
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"], allowed_actions=["status"])
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"], allowed_actions=["status"])
     done = _no_side_effects(monkeypatch, group_tasks)
     task = _task("restart")
 
@@ -160,7 +160,7 @@ async def test_a_task_on_an_allowed_action_runs(world, monkeypatch):
     done = _no_side_effects(monkeypatch, group_tasks)
 
     assert await group_tasks.execute_group_task(_task("restart"), 60) is True
-    assert done == ["Valheim", "Icarus"]
+    assert done == ["Valheim", "alpha"]
 
 
 def _no_side_effects(monkeypatch, group_tasks):
@@ -200,7 +200,7 @@ def _rule(action_type):
 def test_a_rule_does_not_act_through_a_group_that_may_not(world):
     from services.automation import automation_service
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"], allowed_actions=["status"])
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"], allowed_actions=["status"])
 
     assert automation_service.containers_of_action(_rule("RESTART")) == []
 
@@ -208,7 +208,7 @@ def test_a_rule_does_not_act_through_a_group_that_may_not(world):
 def test_a_rule_acts_through_a_group_that_may(world):
     from services.automation import automation_service
 
-    assert automation_service.containers_of_action(_rule("RESTART")) == ["Valheim", "Icarus"]
+    assert automation_service.containers_of_action(_rule("RESTART")) == ["Valheim", "alpha"]
 
 
 def test_a_recreate_asks_for_the_restart_box(world):
@@ -216,15 +216,15 @@ def test_a_recreate_asks_for_the_restart_box(world):
     the operator associates with it."""
     from services.automation import automation_service
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"],
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"],
                             allowed_actions=["start", "stop"])
 
     assert automation_service.containers_of_action(_rule("RECREATE")) == []
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"],
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"],
                             allowed_actions=["restart"])
 
-    assert automation_service.containers_of_action(_rule("RECREATE")) == ["Valheim", "Icarus"]
+    assert automation_service.containers_of_action(_rule("RECREATE")) == ["Valheim", "alpha"]
 
 
 def test_a_notification_asks_for_nothing(world):
@@ -232,15 +232,15 @@ def test_a_notification_asks_for_nothing(world):
     a rule that only reports would otherwise go quiet."""
     from services.automation import automation_service
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"], allowed_actions=[])
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"], allowed_actions=[])
 
-    assert automation_service.containers_of_action(_rule("NOTIFY")) == ["Valheim", "Icarus"]
+    assert automation_service.containers_of_action(_rule("NOTIFY")) == ["Valheim", "alpha"]
 
 
 def test_a_switched_off_group_acts_nowhere(world):
     from services.automation import automation_service
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"], active=False)
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"], active=False)
 
     assert automation_service.containers_of_action(_rule("RESTART")) == []
 
@@ -251,7 +251,7 @@ def test_the_trigger_side_is_not_gated(world):
     rule that silently watches nothing."""
     from services.automation import automation_service
 
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus"], allowed_actions=[])
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"], allowed_actions=[])
     rule = SimpleNamespace(trigger=SimpleNamespace(containers=["group:Gameserver"]))
 
     assert automation_service.rule_listens_to(rule, "Valheim") is True

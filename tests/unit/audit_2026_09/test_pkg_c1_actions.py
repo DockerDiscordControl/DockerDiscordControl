@@ -91,7 +91,7 @@ class TestDockerActionServiceStopTimeout:
         monkeypatch.setattr(docker_client_pool, "get_docker_client_async", _client_cm_factory(container))
 
         result = await DockerActionService().execute_docker_action(
-            DockerActionRequest(container_name="Icarus", action=action))
+            DockerActionRequest(container_name="alpha", action=action))
 
         assert result.success is True
         getattr(container, action).assert_called_once_with(timeout=120)
@@ -101,7 +101,7 @@ class TestDockerActionServiceStopTimeout:
         monkeypatch.setattr(docker_client_pool, "get_docker_client_async", _client_cm_factory(container))
 
         result = await DockerActionService().execute_docker_action(
-            DockerActionRequest(container_name="Icarus", action="restart"))
+            DockerActionRequest(container_name="alpha", action="restart"))
 
         assert result.success is True
         container.restart.assert_called_once_with()
@@ -112,7 +112,7 @@ class TestDockerActionServiceStopTimeout:
         monkeypatch.setattr(docker_client_pool, "get_docker_client_async", _client_cm_factory(container))
 
         result = await DockerActionService().execute_docker_action(
-            DockerActionRequest(container_name="Icarus", action="stop"))
+            DockerActionRequest(container_name="alpha", action="stop"))
 
         assert result.success is False
         assert result.error_type == "docker_error"
@@ -130,12 +130,12 @@ class TestDockerUtilsActionStopTimeout:
         container = _container(stop_timeout=90)
         monkeypatch.setattr(docker_utils, "get_docker_client_async", _client_cm_factory(container))
 
-        assert await docker_utils.docker_action("Icarus", action) is True
+        assert await docker_utils.docker_action("alpha", action) is True
         getattr(container, action).assert_called_once_with(timeout=90)
 
     async def test_restart_without_stop_timeout_keeps_default(self, monkeypatch):
         container = _container()
         monkeypatch.setattr(docker_utils, "get_docker_client_async", _client_cm_factory(container))
 
-        assert await docker_utils.docker_action("Icarus", "restart") is True
+        assert await docker_utils.docker_action("alpha", "restart") is True
         container.restart.assert_called_once_with()

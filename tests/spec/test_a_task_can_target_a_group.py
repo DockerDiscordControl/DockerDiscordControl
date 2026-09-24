@@ -37,7 +37,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Valheim", "Icarus 1", "Enshrouded"):
+    for name in ("Valheim", "alpha", "Enshrouded"):
         (containers / f"{name}.json").write_text(
             json.dumps({"container_name": name, "allowed_actions": ["status", "restart"]}),
             encoding="utf-8")
@@ -46,7 +46,7 @@ def world(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     group_service.get_group_service().save_group(
-        "Gameserver", ["Valheim", "Icarus 1", "Enshrouded"])
+        "Gameserver", ["Valheim", "alpha", "Enshrouded"])
 
     asked = []
     sleeps = []
@@ -80,7 +80,7 @@ def test_every_member_gets_the_action(world):
     task = _group_task()
 
     assert asyncio.run(scheduler.execute_task(task)) is True
-    assert world.asked == [("Valheim", "restart"), ("Icarus 1", "restart"),
+    assert world.asked == [("Valheim", "restart"), ("alpha", "restart"),
                            ("Enshrouded", "restart")]
     assert task.last_run_success is True
 
@@ -93,12 +93,12 @@ def test_the_members_are_paced_like_a_bulk_button(world):
 
 
 def test_a_failing_member_does_not_stop_the_others(world):
-    world.result_for = lambda name: name != "Icarus 1"
+    world.result_for = lambda name: name != "alpha"
     task = _group_task()
 
     assert asyncio.run(scheduler.execute_task(task)) is False
-    assert [name for name, _ in world.asked] == ["Valheim", "Icarus 1", "Enshrouded"]
-    assert "Icarus 1" in (task.last_run_error or ""), task.last_run_error
+    assert [name for name, _ in world.asked] == ["Valheim", "alpha", "Enshrouded"]
+    assert "alpha" in (task.last_run_error or ""), task.last_run_error
 
 
 def test_a_failing_run_is_paced_too(world):
@@ -174,7 +174,7 @@ def test_each_member_gets_its_own_stop_timeout(world, monkeypatch):
 
     from services.config import group_service
 
-    group_service.get_group_service().save_group("Gameserver", ["Valheim", "Icarus 1"])
+    group_service.get_group_service().save_group("Gameserver", ["Valheim", "alpha"])
     task = _group_task(action="stop")
 
     asyncio.run(scheduler.execute_task(task, timeout=60))
@@ -184,5 +184,5 @@ def test_each_member_gets_its_own_stop_timeout(world, monkeypatch):
 
 
 async def _stop_timeout_of(name):
-    """Icarus 1 shuts down slowly; Valheim does not say."""
-    return 120 if name == "Icarus 1" else None
+    """alpha shuts down slowly; Valheim does not say."""
+    return 120 if name == "alpha" else None

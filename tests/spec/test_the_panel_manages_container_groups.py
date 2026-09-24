@@ -31,7 +31,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Valheim", "Icarus 1"):
+    for name in ("Valheim", "alpha"):
         (containers / f"{name}.json").write_text(
             json.dumps({"container_name": name, "allowed_actions": ["status", "restart"]}),
             encoding="utf-8")
@@ -52,14 +52,14 @@ def client(tmp_path, monkeypatch):
 
 def test_a_group_is_saved_and_listed(client):
     created = client.post("/api/groups", json={"name": "Gameserver",
-                                               "containers": ["Valheim", "Icarus 1"]},
+                                               "containers": ["Valheim", "alpha"]},
                           headers=AUTH)
 
     assert created.status_code == 200, created.get_data(as_text=True)
     listed = client.get("/api/groups", headers=AUTH).get_json()
 
     assert [g["name"] for g in listed["groups"]] == ["Gameserver"]
-    assert listed["groups"][0]["containers"] == ["Valheim", "Icarus 1"]
+    assert listed["groups"][0]["containers"] == ["Valheim", "alpha"]
 
 
 def test_a_refused_name_comes_back_with_its_reason(client):

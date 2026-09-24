@@ -10,7 +10,7 @@
 OPERATOR DECISION (2026-09-24): a group behaves like ONE container, "only with
 several behind it". Everything in DDC that acts on a container calls
 docker_action_service_first(name, action), so a group is a name like any
-other - ``group:Icaruse``, the same spelling the auto-action rules already use
+other - ``group:Gameserver``, the same spelling the auto-action rules already use
 for their targets.
 
 WHY THIS FILE EXISTS RATHER THAN A SECOND LOOP. services/scheduling/group_tasks.py

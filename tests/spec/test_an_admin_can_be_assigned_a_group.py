@@ -13,7 +13,7 @@ that thing, or is not. Whether the members are theirs one by one does not
 enter into it.
 
 WHAT WAS ALREADY CORRECT: admin_service.may_control() compares the name it is
-given against the admin's list, literally. Hand it "group:Icaruse" and it
+given against the admin's list, literally. Hand it "group:Gameserver" and it
 answers for the group, not for its members. Nothing there had to change.
 
 WHAT WAS MISSING was the panel's ability to SAY it. The assignment dialog is
@@ -32,7 +32,7 @@ HOW THIS TEST CAN FAIL: a dialog that cannot offer a group, a save that
 refuses one, or a save that waves any name through.
 
 COUNTER-CHECK (2026-09-24): red before - the choices held containers only and
-the validation refused "group:Icaruse" by name.
+the validation refused "group:Gameserver" by name.
 """
 
 import json
@@ -50,7 +50,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Icarus", "Icarus2"):
+    for name in ("alpha", "beta"):
         (containers / f"{name}.json").write_text(json.dumps(
             {"container_name": name, "docker_name": name, "active": True,
              "allowed_actions": ["status"]}), encoding="utf-8")
@@ -63,7 +63,7 @@ def client(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     group_service.get_group_service().save_group(
-        "Icaruse", ["Icarus", "Icarus2"],
+        "Gameserver", ["alpha", "beta"],
         active=True, allowed_actions=["status", "restart"])
 
     monkeypatch.setattr(auth_module.auth, "verify_password_callback",
@@ -83,8 +83,8 @@ def test_the_dialog_offers_the_groups(client):
     """THE GAP: the one thing that could not be handed to an admin."""
     choices = _choices(client)
 
-    assert "group:Icaruse" in choices, choices
-    assert "Icarus" in choices and "Icarus2" in choices, choices
+    assert "group:Gameserver" in choices, choices
+    assert "alpha" in choices and "beta" in choices, choices
 
 
 def test_a_group_is_offered_even_when_its_members_are_not_configured(client, tmp_path):
@@ -102,7 +102,7 @@ def test_a_group_is_offered_even_when_its_members_are_not_configured(client, tmp
 def test_a_group_can_be_saved_as_an_assignment(client):
     answer = client.post("/api/admin-users", headers=AUTH, json={
         "discord_admin_users": ["111"],
-        "admin_containers": {"111": ["group:Icaruse"]},
+        "admin_containers": {"111": ["group:Gameserver"]},
     })
 
     assert answer.status_code == 200, answer.get_data(as_text=True)
@@ -128,7 +128,7 @@ def test_the_assignment_decides_for_the_group_alone(client, tmp_path, monkeypatc
     other."""
     client.post("/api/admin-users", headers=AUTH, json={
         "discord_admin_users": ["111"],
-        "admin_containers": {"111": ["group:Icaruse"]},
+        "admin_containers": {"111": ["group:Gameserver"]},
     })
 
     from services.admin import admin_service
@@ -136,14 +136,14 @@ def test_the_assignment_decides_for_the_group_alone(client, tmp_path, monkeypatc
     admin_service.reset_admin_service() if hasattr(admin_service, "reset_admin_service") else None
     service = admin_service.get_admin_service()
 
-    assert service.may_control("111", "group:Icaruse") is True
-    assert service.may_control("111", "Icarus") is False, (
+    assert service.may_control("111", "group:Gameserver") is True
+    assert service.may_control("111", "alpha") is False, (
         "being given the group handed over its members as well")
 
 
 # --- and it has to be readable in the dialog --------------------------------
-# The value stored is `group:Icaruse`, because that is what the bot compares.
-# What the operator READS must not be that: a checkbox labelled "group:Icaruse"
+# The value stored is `group:Gameserver`, because that is what the bot compares.
+# What the operator READS must not be that: a checkbox labelled "group:Gameserver"
 # among plain container names is the same complaint he made about the Discord
 # dropdown, one screen further on.
 

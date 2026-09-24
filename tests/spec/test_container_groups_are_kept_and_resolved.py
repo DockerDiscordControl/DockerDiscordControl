@@ -34,7 +34,7 @@ def groups(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Valheim", "Icarus 1", "AdGuard-Home"):
+    for name in ("Valheim", "alpha", "AdGuard-Home"):
         (containers / f"{name}.json").write_text(
             json.dumps({"container_name": name, "allowed_actions": ["status", "restart"]}),
             encoding="utf-8")
@@ -46,10 +46,10 @@ def groups(tmp_path, monkeypatch):
 
 
 def test_a_group_is_kept(groups):
-    groups.save_group("Gameserver", ["Valheim", "Icarus 1"])
+    groups.save_group("Gameserver", ["Valheim", "alpha"])
 
     assert [g.name for g in groups.get_groups()] == ["Gameserver"]
-    assert groups.members_of("Gameserver").containers == ["Valheim", "Icarus 1"]
+    assert groups.members_of("Gameserver").containers == ["Valheim", "alpha"]
 
 
 def test_a_container_that_is_gone_is_reported_not_dropped(groups):
@@ -79,7 +79,7 @@ def test_the_same_name_twice_is_refused(groups):
     """Counter-check: two groups with one name make every later choice ambiguous."""
     groups.save_group("Gameserver", ["Valheim"])
 
-    result = groups.save_group("gameserver", ["Icarus 1"])
+    result = groups.save_group("gameserver", ["alpha"])
 
     assert result.success is False
     assert "gameserver" in result.error.lower()
@@ -94,8 +94,8 @@ def test_a_group_without_a_name_is_refused(groups):
 def test_renaming_and_deleting(groups):
     groups.save_group("Gameserver", ["Valheim"])
 
-    assert groups.save_group("Gameserver", ["Valheim", "Icarus 1"]).success is True
-    assert groups.members_of("Gameserver").containers == ["Valheim", "Icarus 1"]
+    assert groups.save_group("Gameserver", ["Valheim", "alpha"]).success is True
+    assert groups.members_of("Gameserver").containers == ["Valheim", "alpha"]
     assert groups.delete_group("Gameserver").success is True
     assert groups.get_groups() == []
 

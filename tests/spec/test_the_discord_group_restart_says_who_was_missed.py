@@ -47,7 +47,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Valheim", "Icarus 1", "Sleeper"):
+    for name in ("Valheim", "alpha", "Sleeper"):
         (containers / f"{name}.json").write_text(
             json.dumps({"container_name": name, "allowed_actions": ["status", "restart"]}),
             encoding="utf-8")
@@ -57,10 +57,10 @@ def world(tmp_path, monkeypatch):
     group_service.reset_group_service()
     # "Gone" is not configured at all; "Sleeper" is configured but inactive
     group_service.get_group_service().save_group(
-        "Gameserver", ["Valheim", "Icarus 1", "Sleeper", "Gone"])
+        "Gameserver", ["Valheim", "alpha", "Sleeper", "Gone"])
 
     servers = [{"docker_name": "Valheim", "active": True, "allowed_actions": ["restart"]},
-               {"docker_name": "Icarus 1", "active": True, "allowed_actions": ["restart"]},
+               {"docker_name": "alpha", "active": True, "allowed_actions": ["restart"]},
                {"docker_name": "Sleeper", "active": False, "allowed_actions": ["restart"]}]
 
     def _entry(name):
@@ -118,7 +118,7 @@ async def test_a_complete_group_says_nothing_extra(world):
     """Counter-check: the ordinary case must stay free of noise."""
     from services.config import group_service
 
-    group_service.get_group_service().save_group("Gameserver", ["Valheim", "Icarus 1"])
+    group_service.get_group_service().save_group("Gameserver", ["Valheim", "alpha"])
 
     description = await _restart("Gameserver")
 

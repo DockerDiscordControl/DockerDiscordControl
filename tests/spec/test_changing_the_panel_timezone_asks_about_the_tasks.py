@@ -44,7 +44,7 @@ from services.scheduling.scheduler import ScheduledTask
 
 
 def _task(task_id, timezone_str="Europe/Berlin", time_str="10:00"):
-    return ScheduledTask(task_id=task_id, container_name="Icarus", action="start",
+    return ScheduledTask(task_id=task_id, container_name="alpha", action="start",
                          cycle="daily", schedule_details={"time": time_str},
                          timezone_str=timezone_str)
 

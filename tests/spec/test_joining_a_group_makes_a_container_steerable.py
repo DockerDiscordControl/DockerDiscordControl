@@ -64,7 +64,7 @@ def client(tmp_path, monkeypatch):
     # What the host has. "Ghost" is in neither list, so it is the name that
     # must NOT get a file.
     monkeypatch.setattr(group_routes, "containers_on_the_host",
-                        lambda: ["Valheim", "Icarus", "Icarus2"])
+                        lambda: ["Valheim", "alpha", "beta"])
 
     app = Flask(__name__)
     app.config.update(TESTING=True, SECRET_KEY="groups", WTF_CSRF_ENABLED=False)
@@ -80,34 +80,34 @@ def _config(tmp_path, name):
 def test_a_new_member_gets_a_configuration(client, tmp_path):
     """THE GAP: 18 of his 26 containers could be grouped and not acted on."""
     answer = client.post("/api/groups", json={"name": "Gameserver",
-                                              "containers": ["Valheim", "Icarus"]},
+                                              "containers": ["Valheim", "alpha"]},
                          headers=AUTH)
 
     assert answer.status_code == 200, answer.get_data(as_text=True)
-    assert _config(tmp_path, "Icarus") is not None, (
+    assert _config(tmp_path, "alpha") is not None, (
         "the container joined a group and DDC still has no configuration for it")
 
 
 def test_it_is_written_switched_off_and_without_permissions(client, tmp_path):
     """The operator granted the GROUP. Joining one must not hand the container
     its own four buttons in Discord."""
-    client.post("/api/groups", json={"name": "Gameserver", "containers": ["Icarus"]},
+    client.post("/api/groups", json={"name": "Gameserver", "containers": ["alpha"]},
                 headers=AUTH)
-    written = _config(tmp_path, "Icarus")
+    written = _config(tmp_path, "alpha")
 
     assert written["active"] is False
     assert written["allowed_actions"] == []
-    assert written["container_name"] == "Icarus"
+    assert written["container_name"] == "alpha"
 
 
 def test_the_group_can_then_reach_it(client):
     """The point of the file: the member is no longer reported as gone."""
     client.post("/api/groups", json={"name": "Gameserver",
-                                     "containers": ["Valheim", "Icarus"]}, headers=AUTH)
+                                     "containers": ["Valheim", "alpha"]}, headers=AUTH)
     shown = client.get("/api/groups", headers=AUTH).get_json()["groups"][0]
 
     assert shown["missing"] == [], "the member is still reported as one DDC does not have"
-    assert shown["containers"] == ["Valheim", "Icarus"]
+    assert shown["containers"] == ["Valheim", "alpha"]
 
 
 def test_a_container_the_host_does_not_have_gets_nothing(client, tmp_path):
@@ -144,8 +144,8 @@ def test_the_group_is_still_saved_when_the_host_cannot_be_asked(client, tmp_path
         raise OSError("docker is not listening")
 
     monkeypatch.setattr(group_routes, "containers_on_the_host", _no_docker)
-    answer = client.post("/api/groups", json={"name": "Gameserver", "containers": ["Icarus"]},
+    answer = client.post("/api/groups", json={"name": "Gameserver", "containers": ["alpha"]},
                          headers=AUTH)
 
     assert answer.status_code == 200, answer.get_data(as_text=True)
-    assert _config(tmp_path, "Icarus") is None
+    assert _config(tmp_path, "alpha") is None

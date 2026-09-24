@@ -5,7 +5,7 @@ THE OPERATOR, 2026-09-24: a group behaves like ONE container, only with
 several behind it. Everything that acts on a container in DDC calls
 docker_action_service_first(name, action) - the buttons under a status
 message, the admin overview, a rule, a task. So that is where a group has to
-be a name like any other: `group:Icaruse`, the same spelling the auto-action
+be a name like any other: `group:Gameserver`, the same spelling the auto-action
 rules already use for their targets.
 
 WHY IT IS ONE PLACE AND NOT TWO. services/scheduling/group_tasks.py already
@@ -53,7 +53,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Icarus", "Icarus2"):
+    for name in ("alpha", "beta"):
         (containers / f"{name}.json").write_text(json.dumps(
             {"container_name": name, "docker_name": name, "active": True,
              "allowed_actions": ["status"]}), encoding="utf-8")
@@ -62,7 +62,7 @@ def world(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     groups = group_service.get_group_service()
-    groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+    groups.save_group("Gameserver", ["alpha", "beta"],
                       active=True, allowed_actions=["status", "start", "stop", "restart"])
     return SimpleNamespace(groups=groups)
 
@@ -95,8 +95,8 @@ def test_a_group_name_acts_on_every_member(world, acted):
     """THE POINT: one name, one call, every member."""
     from services.docker_service.docker_action_service import docker_action_service_first
 
-    assert _run(docker_action_service_first("group:Icaruse", "restart")) is True
-    assert acted == [("Icarus", "restart"), ("Icarus2", "restart")]
+    assert _run(docker_action_service_first("group:Gameserver", "restart")) is True
+    assert acted == [("alpha", "restart"), ("beta", "restart")]
 
 
 def test_a_container_is_still_a_container(world, acted):
@@ -114,29 +114,29 @@ def test_a_container_is_still_a_container(world, acted):
     original = module.get_docker_action_service
     module.get_docker_action_service = lambda: _Service()
     try:
-        assert _run(service.docker_action_service_first("Icarus", "restart")) is True
+        assert _run(service.docker_action_service_first("alpha", "restart")) is True
     finally:
         module.get_docker_action_service = original
 
-    assert calls == [("Icarus", "restart")]
+    assert calls == [("alpha", "restart")]
     assert acted == [], "a plain container name went through the group path"
 
 
 def test_a_group_that_may_not_do_it_does_nothing(world, acted):
     from services.docker_service.docker_action_service import docker_action_service_first
 
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"], allowed_actions=["status"])
+    world.groups.save_group("Gameserver", ["alpha", "beta"], allowed_actions=["status"])
 
-    assert _run(docker_action_service_first("group:Icaruse", "restart")) is False
+    assert _run(docker_action_service_first("group:Gameserver", "restart")) is False
     assert acted == [], "it acted on a group that may not"
 
 
 def test_a_switched_off_group_does_nothing(world, acted):
     from services.docker_service.docker_action_service import docker_action_service_first
 
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"], active=False)
+    world.groups.save_group("Gameserver", ["alpha", "beta"], active=False)
 
-    assert _run(docker_action_service_first("group:Icaruse", "restart")) is False
+    assert _run(docker_action_service_first("group:Gameserver", "restart")) is False
     assert acted == []
 
 
@@ -153,21 +153,21 @@ def test_a_member_that_fails_makes_the_whole_run_a_failure(world, monkeypatch):
     import services.docker_service.group_actions as group_actions
 
     async def _act(container, action):
-        return container != "Icarus2"
+        return container != "beta"
 
     monkeypatch.setattr(group_actions, "_act_on_one", _act)
     monkeypatch.setattr(group_actions, "PACE_SECONDS", 0)
     from services.docker_service.docker_action_service import docker_action_service_first
 
-    assert _run(docker_action_service_first("group:Icaruse", "restart")) is False
+    assert _run(docker_action_service_first("group:Gameserver", "restart")) is False
 
 
 def test_a_missing_member_is_reported_not_dropped(world, acted):
     """The outcome names what it could not reach, so a caller can say so."""
     from services.docker_service.group_actions import act_on_group
 
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2", "Gone"])
-    outcome = _run(act_on_group("Icaruse", "restart"))
+    world.groups.save_group("Gameserver", ["alpha", "beta", "Gone"])
+    outcome = _run(act_on_group("Gameserver", "restart"))
 
     assert outcome.missing == ["Gone"]
     assert outcome.success is False, "a group acting on two of three is not a success"

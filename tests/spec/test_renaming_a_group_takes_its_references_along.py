@@ -60,21 +60,21 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Icarus", "Icarus2"):
+    for name in ("alpha", "beta"):
         (containers / f"{name}.json").write_text(json.dumps(
             {"container_name": name, "docker_name": name, "active": True,
              "allowed_actions": ["status"]}), encoding="utf-8")
 
     # A LIST, and the field is `container` - measured on the operator's server.
     (tmp_path / "tasks.json").write_text(json.dumps([
-        {"id": "t1", "container": "Icaruse", "target_is_group": True,
+        {"id": "t1", "container": "Gameserver", "target_is_group": True,
          "action": "restart", "cycle": "daily"},
-        {"id": "t2", "container": "Icarus", "target_is_group": False,
+        {"id": "t2", "container": "alpha", "target_is_group": False,
          "action": "restart", "cycle": "daily"},
         # A CONTAINER that happens to carry the group's name. Only the flag
         # tells the two apart, and without this entry the check below could not
         # fail: nothing else in the file shares the name.
-        {"id": "t3", "container": "Icaruse", "target_is_group": False,
+        {"id": "t3", "container": "Gameserver", "target_is_group": False,
          "action": "restart", "cycle": "daily"},
     ]), encoding="utf-8")
 
@@ -84,22 +84,22 @@ def world(tmp_path, monkeypatch):
         "auto_actions": [
             {"id": "r1", "name": "watch",
              "trigger": {"type": "container_state",
-                         "containers": ["group:Icaruse", "Icarus"]},
-             "action": {"type": "RESTART", "containers": ["group:Icaruse"]}},
+                         "containers": ["group:Gameserver", "alpha"]},
+             "action": {"type": "RESTART", "containers": ["group:Gameserver"]}},
         ]}), encoding="utf-8")
 
     (tmp_path / "admins.json").write_text(json.dumps({
         "discord_admin_users": ["111"],
-        "admin_containers": {"111": ["group:Icaruse", "Icarus"]},
+        "admin_containers": {"111": ["group:Gameserver", "alpha"]},
     }), encoding="utf-8")
 
     from services.config import group_service
 
     group_service.reset_group_service()
     service = group_service.get_group_service()
-    service.save_group("Icaruse", ["Icarus", "Icarus2"],
+    service.save_group("Gameserver", ["alpha", "beta"],
                        active=True, allowed_actions=["status", "restart"])
-    service.save_group("Other", ["Icarus"])
+    service.save_group("Other", ["alpha"])
     return service
 
 
@@ -108,77 +108,77 @@ def _read(tmp_path, name):
 
 
 def test_the_group_keeps_everything_but_its_name(world):
-    result = world.rename_group("Icaruse", "Gameserver")
+    result = world.rename_group("Gameserver", "Homelab")
 
     assert result.success is True, result.error
-    assert world.find("Icaruse") is None
-    renamed = world.find("Gameserver")
+    assert world.find("Gameserver") is None
+    renamed = world.find("Homelab")
 
     assert renamed is not None
-    assert renamed.containers == ["Icarus", "Icarus2"]
+    assert renamed.containers == ["alpha", "beta"]
     assert renamed.allowed_actions == ["status", "restart"]
     assert renamed.active is True
 
 
 def test_a_scheduled_task_follows(world, tmp_path):
     """It holds the plain name, and only when it targets a group."""
-    world.rename_group("Icaruse", "Gameserver")
+    world.rename_group("Gameserver", "Homelab")
     tasks = {task["id"]: task for task in _read(tmp_path, "tasks.json")}
 
-    assert tasks["t1"]["container"] == "Gameserver"
-    assert tasks["t2"]["container"] == "Icarus"
-    assert tasks["t3"]["container"] == "Icaruse", (
+    assert tasks["t1"]["container"] == "Homelab"
+    assert tasks["t2"]["container"] == "alpha"
+    assert tasks["t3"]["container"] == "Gameserver", (
         "a container that happens to share the group's name was renamed too")
 
 
 def test_a_rule_follows_on_both_sides(world, tmp_path):
     """A rule names a group in what it watches AND in what it acts on."""
-    world.rename_group("Icaruse", "Gameserver")
+    world.rename_group("Gameserver", "Homelab")
     rule = _read(tmp_path, "auto_actions.json")["auto_actions"][0]
 
-    assert rule["trigger"]["containers"] == ["group:Gameserver", "Icarus"]
-    assert rule["action"]["containers"] == ["group:Gameserver"]
+    assert rule["trigger"]["containers"] == ["group:Homelab", "alpha"]
+    assert rule["action"]["containers"] == ["group:Homelab"]
 
 
 def test_an_admin_assignment_follows(world, tmp_path):
-    world.rename_group("Icaruse", "Gameserver")
+    world.rename_group("Gameserver", "Homelab")
     assignment = _read(tmp_path, "admins.json")["admin_containers"]["111"]
 
-    assert assignment == ["group:Gameserver", "Icarus"]
+    assert assignment == ["group:Homelab", "alpha"]
 
 
 def test_it_says_how_much_it_moved(world):
     """The operator gets one sentence, not four files to check."""
-    result = world.rename_group("Icaruse", "Gameserver")
+    result = world.rename_group("Gameserver", "Homelab")
 
     assert result.moved == {"tasks": 1, "rules": 2, "admins": 1}, result.moved
 
 
 def test_a_name_another_group_has_is_refused(world):
-    result = world.rename_group("Icaruse", "Other")
+    result = world.rename_group("Gameserver", "Other")
 
     assert result.success is False
     assert "Other" in (result.error or "")
-    assert world.find("Icaruse") is not None, "the group was lost to a refused rename"
+    assert world.find("Gameserver") is not None, "the group was lost to a refused rename"
 
 
 def test_the_name_rules_are_the_same_as_for_a_save(world):
     """A rename is a save of the name; it may not let through what save_group
     refuses."""
     for bad in ("", "   ", "a" * 81, "Media/TV"):
-        result = world.rename_group("Icaruse", bad)
+        result = world.rename_group("Gameserver", bad)
 
         assert result.success is False, bad
-    assert world.find("Icaruse") is not None
+    assert world.find("Gameserver") is not None
 
 
 def test_renaming_to_the_same_name_is_not_an_error(world):
     """Pressing save on an unchanged name must not read as a collision with
     itself."""
-    result = world.rename_group("Icaruse", "Icaruse")
+    result = world.rename_group("Gameserver", "Gameserver")
 
     assert result.success is True, result.error
-    assert world.find("Icaruse") is not None
+    assert world.find("Gameserver") is not None
 
 
 def test_a_group_that_is_gone_is_said_so(world):
@@ -202,14 +202,14 @@ def test_the_references_move_before_the_group(world, tmp_path, monkeypatch):
         raise OSError("interrupted")
 
     monkeypatch.setattr(group_service.GroupService, "_write", _explode)
-    result = world.rename_group("Icaruse", "Gameserver")
+    result = world.rename_group("Gameserver", "Homelab")
 
     assert result.success is False
     assert written == ["groups"], written
     # The references went first and are already on the new name.
     tasks = _read(tmp_path, "tasks.json")
 
-    assert any(task["container"] == "Gameserver" for task in tasks)
+    assert any(task["container"] == "Homelab" for task in tasks)
     monkeypatch.setattr(group_service.GroupService, "_write", real_write)
 
 
@@ -234,8 +234,8 @@ def client(world, monkeypatch):
 
 
 def test_the_panel_can_rename(client):
-    answer = client.post("/api/groups/Icaruse/rename", headers=AUTH,
-                         json={"name": "Gameserver"})
+    answer = client.post("/api/groups/Gameserver/rename", headers=AUTH,
+                         json={"name": "Homelab"})
 
     assert answer.status_code == 200, answer.get_data(as_text=True)
     body = answer.get_json()
@@ -245,7 +245,7 @@ def test_the_panel_can_rename(client):
 
 
 def test_a_refused_rename_says_why(client):
-    answer = client.post("/api/groups/Icaruse/rename", headers=AUTH,
+    answer = client.post("/api/groups/Gameserver/rename", headers=AUTH,
                          json={"name": "Other"})
     body = answer.get_json()
 

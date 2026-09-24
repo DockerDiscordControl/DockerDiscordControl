@@ -33,7 +33,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Valheim", "Icarus 1"):
+    for name in ("Valheim", "alpha"):
         (containers / f"{name}.json").write_text(
             json.dumps({"container_name": name, "allowed_actions": ["status", "restart"]}),
             encoding="utf-8")
@@ -42,7 +42,7 @@ def world(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     servers = [{"docker_name": name, "active": True, "allowed_actions": ["restart"]}
-               for name in ("Valheim", "Icarus 1")]
+               for name in ("Valheim", "alpha")]
 
     def _entry(name):
         result = ContainerStatusResult.success_result(
@@ -88,7 +88,7 @@ async def test_a_group_does_not_bring_it_back(world):
     (test_a_group_is_controlled_where_a_container_is.py). A second door to the
     same room, labelled with a filing box, was the clutter he asked to remove.
     """
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus 1"])
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"])
 
     view = ao.AdminOverviewView(SimpleNamespace(), 42, has_running_containers=True)
 
@@ -131,11 +131,11 @@ async def test_a_compose_stack_does_not_bring_it_either(world, monkeypatch):
 
 
 def test_the_menu_offers_groups_and_stacks(world, monkeypatch):
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus 1"])
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"])
 
     def _with_project(name):
         entry = world.entry(name)
-        entry["data"].compose_project = "blog" if name == "Icarus 1" else None
+        entry["data"].compose_project = "blog" if name == "alpha" else None
         return entry
 
     monkeypatch.setattr(ao, "get_status_cache_service",
@@ -145,7 +145,7 @@ def test_the_menu_offers_groups_and_stacks(world, monkeypatch):
 
     assert "Gameserver" in targets, "the operator's own group is not offered"
     assert "blog" in targets, "a Compose stack is not offered any more"
-    assert [name for name in targets["Gameserver"]] == ["Valheim", "Icarus 1"]
+    assert [name for name in targets["Gameserver"]] == ["Valheim", "alpha"]
 
 
 def test_a_group_member_that_is_gone_is_not_offered_as_present(world):
@@ -164,7 +164,7 @@ async def test_confirming_a_group_restarts_its_containers(world, monkeypatch):
     any more" and nothing was restarted. The menu offered something the confirm
     could not carry out.
     """
-    world.groups.save_group("Gameserver", ["Valheim", "Icarus 1"])
+    world.groups.save_group("Gameserver", ["Valheim", "alpha"])
     restarted = []
 
     async def docker_action(name, action):
@@ -189,6 +189,6 @@ async def test_confirming_a_group_restarts_its_containers(world, monkeypatch):
     button = stack_restart.ConfirmRestartStackButton(cog, 42, "Gameserver")
     await button.callback(interaction)
 
-    assert [name for name, _action in restarted] == ["Valheim", "Icarus 1"], (
+    assert [name for name, _action in restarted] == ["Valheim", "alpha"], (
         f"the group was not restarted: {restarted}")
     assert cog._bulk_operation_in_progress is False, "the bulk lock stayed held"

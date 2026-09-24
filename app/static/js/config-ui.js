@@ -704,7 +704,7 @@ function renderAdminUsers() {
 }
 
 // What an operator READS for one assignable thing. The value stored is the one
-// the bot compares - `group:Icaruse` - and a checkbox labelled that, among
+// the bot compares - `group:Gameserver` - and a checkbox labelled that, among
 // plain container names, is the same complaint the operator made about the
 // Discord dropdown: nothing says which of them is a group, and the prefix is
 // not a name anybody typed. Only the prefix makes a group, so a container

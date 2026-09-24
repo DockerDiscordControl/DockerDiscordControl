@@ -3,18 +3,18 @@
 
 THE OPERATOR, 2026-09-24, after picking his group there:
 
-    Admin control: Icaruse
+    Admin control: Gameserver
     Error: Could not retrieve status. Configuration missing or initial fetch
     failed.                                     [⏹️] [🔄] [ℹ️]
 
-and behind that ℹ️ an empty "Icaruse - Container information" with an edit
+and behind that ℹ️ an empty "Gameserver - Container information" with an edit
 button, a lock, an alarm clock and a log button, the last of which answered
-"Invalid container name format: group:Icaruse".
+"Invalid container name format: group:Gameserver".
 
 Every one of those is the same mistake: the panel was built for a CONTAINER
 and handed the name of a group.
 
-    * the embed asks the status cache for "group:Icaruse", which is not a
+    * the embed asks the status cache for "group:Gameserver", which is not a
       container, so it drew the error a missing container draws;
     * the info button opens a container's info text, its protected text and
       its LOGS - a group has none of the three, and docker refuses the name;
@@ -42,7 +42,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Icarus", "Icarus2"):
+    for name in ("alpha", "beta"):
         (containers / f"{name}.json").write_text(json.dumps(
             {"container_name": name, "docker_name": name, "active": True,
              "allowed_actions": ["status"]}), encoding="utf-8")
@@ -51,7 +51,7 @@ def world(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     groups = group_service.get_group_service()
-    groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+    groups.save_group("Gameserver", ["alpha", "beta"],
                       active=True, allowed_actions=["status", "stop", "restart"])
     return SimpleNamespace(groups=groups)
 
@@ -73,10 +73,10 @@ def test_the_panel_reports_the_group_not_a_missing_container(world):
     """THE COMPLAINT: "Error: Could not retrieve status"."""
     from cogs.group_control import group_panel_embed
 
-    embed = group_panel_embed("Icaruse", _cache({"Icarus": True, "Icarus2": True}))
+    embed = group_panel_embed("Gameserver", _cache({"alpha": True, "beta": True}))
     text = f"{embed.title} {embed.description}"
 
-    assert "Icaruse" in text
+    assert "Gameserver" in text
     assert "Error" not in text and "status" not in text.lower(), text
     assert "2/2" in text, text
 
@@ -84,9 +84,9 @@ def test_the_panel_reports_the_group_not_a_missing_container(world):
 def test_it_says_which_containers_are_in_it(world):
     from cogs.group_control import group_panel_embed
 
-    embed = group_panel_embed("Icaruse", _cache({"Icarus": True}))
+    embed = group_panel_embed("Gameserver", _cache({"alpha": True}))
 
-    assert "Icarus2" in embed.description, embed.description
+    assert "beta" in embed.description, embed.description
     assert "1/2" in embed.description, embed.description
 
 
@@ -94,18 +94,18 @@ def test_the_lamp_follows_the_members(world):
     from cogs.group_control import group_panel_embed
 
     def lamp(running):
-        return group_panel_embed("Icaruse", _cache(running)).description
+        return group_panel_embed("Gameserver", _cache(running)).description
 
-    assert "🟢" in lamp({"Icarus": True, "Icarus2": True})
-    assert "🟡" in lamp({"Icarus": True})
+    assert "🟢" in lamp({"alpha": True, "beta": True})
+    assert "🟡" in lamp({"alpha": True})
     assert "🔴" in lamp({})
 
 
 def test_a_group_that_lost_a_container_says_so(world):
     from cogs.group_control import group_panel_embed
 
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2", "Gone"])
-    embed = group_panel_embed("Icaruse", _cache({"Icarus": True}))
+    world.groups.save_group("Gameserver", ["alpha", "beta", "Gone"])
+    embed = group_panel_embed("Gameserver", _cache({"alpha": True}))
 
     assert "Gone" in embed.description, embed.description
 
@@ -139,8 +139,8 @@ def test_the_view_offers_no_container_buttons(world):
     from cogs.group_control import group_config_for
 
     # EXPANDED, or the view adds nothing at all and this case could not fail.
-    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Icaruse": True}),
-                 group_config_for("group:Icaruse"))
+    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Gameserver": True}),
+                 group_config_for("group:Gameserver"))
     kinds = [type(item).__name__ for item in view.children]
 
     assert kinds, "the view is empty - this case would pass on anything"
@@ -152,8 +152,8 @@ def test_the_view_offers_no_container_buttons(world):
 def test_the_view_offers_exactly_what_the_group_may_do(world):
     from cogs.group_control import group_config_for
 
-    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Icaruse": True}),
-                 group_config_for("group:Icaruse"))
+    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Gameserver": True}),
+                 group_config_for("group:Gameserver"))
     actions = sorted(item.action for item in view.children
                      if type(item).__name__ == "ActionButton")
 
@@ -162,9 +162,9 @@ def test_the_view_offers_exactly_what_the_group_may_do(world):
 
 def test_a_container_keeps_its_buttons(world):
     """Counter-check: nothing was taken from the containers."""
-    config = {"docker_name": "Icarus", "name": "Icarus",
+    config = {"docker_name": "alpha", "name": "alpha",
               "allowed_actions": ["stop", "restart"], "allow_detailed_status": True}
-    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"Icarus": True}), config)
+    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"alpha": True}), config)
     kinds = [type(item).__name__ for item in view.children]
 
     assert "ToggleButton" in kinds, kinds
@@ -181,7 +181,7 @@ def test_the_panel_asks_the_right_source(world):
     asked = []
 
     class _Cog:
-        status_cache_service = _cache({"Icarus": True, "Icarus2": True})
+        status_cache_service = _cache({"alpha": True, "beta": True})
 
         async def _generate_status_embed_and_view(self, *args, **kwargs):
             asked.append(args[1])
@@ -193,21 +193,21 @@ def test_the_panel_asks_the_right_source(world):
             return SimpleNamespace(success=True, is_running=True)
 
     cog = _Cog()
-    group = asyncio.run(admin_panel_embed(cog, 42, "group:Icaruse",
-                                          group_config_for("group:Icaruse"), {}, "Icaruse"))
+    group = asyncio.run(admin_panel_embed(cog, 42, "group:Gameserver",
+                                          group_config_for("group:Gameserver"), {}, "Gameserver"))
 
     assert asked == [], "a group was looked up as a container"
-    assert "Icaruse" in group.title and "2/2" in group.description, group.description
+    assert "Gameserver" in group.title and "2/2" in group.description, group.description
 
     container = asyncio.run(admin_panel_embed(
-        cog, 42, "Icarus", {"docker_name": "Icarus", "name": "Icarus"}, {}, "Icarus"))
+        cog, 42, "alpha", {"docker_name": "alpha", "name": "alpha"}, {}, "alpha"))
 
-    assert asked == ["Icarus"], "a container stopped going the ordinary way"
-    assert "Icarus" in container.title
+    assert asked == ["alpha"], "a container stopped going the ordinary way"
+    assert "alpha" in container.title
 
 
 # --- a group is not on or off ------------------------------------------------
-# THE OPERATOR, 2026-09-24, looking at "🟡 Icaruse 1/2" with only ⏹ and 🔄
+# THE OPERATOR, 2026-09-24, looking at "🟡 Gameserver 1/2" with only ⏹ and 🔄
 # under it: he still has to be able to start the one that is down.
 #
 # That was my own rule, and it was a container's rule. A container is either
@@ -221,11 +221,11 @@ def test_a_half_running_group_can_still_be_started(world):
 
     # His own group may do all four; the fixture above withholds start, which
     # would have made this case pass for the wrong reason.
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"], active=True,
+    world.groups.save_group("Gameserver", ["alpha", "beta"], active=True,
                             allowed_actions=["status", "start", "stop", "restart"])
 
-    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Icaruse": True}),
-                 group_config_for("group:Icaruse"))
+    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Gameserver": True}),
+                 group_config_for("group:Gameserver"))
     actions = sorted(item.action for item in view.children
                      if type(item).__name__ == "ActionButton")
 
@@ -237,11 +237,11 @@ def test_a_group_offers_what_it_may_do_whatever_its_lamp(world):
     state."""
     from cogs.group_control import group_config_for
 
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+    world.groups.save_group("Gameserver", ["alpha", "beta"],
                             active=True, allowed_actions=["status", "start", "stop", "restart"])
     for running in (True, False):
-        view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Icaruse": True}),
-                     group_config_for("group:Icaruse"))
+        view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Gameserver": True}),
+                     group_config_for("group:Gameserver"))
         actions = sorted(item.action for item in view.children
                          if type(item).__name__ == "ActionButton")
 
@@ -252,10 +252,10 @@ def test_a_group_still_offers_only_what_it_is_allowed(world):
     """Counter-check: "always" is about the state, not about the permissions."""
     from cogs.group_control import group_config_for
 
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+    world.groups.save_group("Gameserver", ["alpha", "beta"],
                             active=True, allowed_actions=["status", "start"])
-    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Icaruse": True}),
-                 group_config_for("group:Icaruse"))
+    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Gameserver": True}),
+                 group_config_for("group:Gameserver"))
     actions = sorted(item.action for item in view.children
                      if type(item).__name__ == "ActionButton")
 
@@ -266,12 +266,12 @@ def test_a_container_still_offers_one_or_the_other(world):
     """A container IS on or off, and its panel must keep saying so."""
     from cogs import control_ui
 
-    config = {"docker_name": "Icarus", "name": "Icarus",
+    config = {"docker_name": "alpha", "name": "alpha",
               "allowed_actions": ["start", "stop", "restart"], "allow_detailed_status": False}
 
     async def build(is_running):
         return control_ui.ControlView(
-            SimpleNamespace(pending_actions={}, expanded_states={"Icarus": True}),
+            SimpleNamespace(pending_actions={}, expanded_states={"alpha": True}),
             config, is_running=is_running, channel_has_control_permission=True, channel_id=42)
 
     import asyncio
@@ -289,7 +289,7 @@ def test_a_container_still_offers_one_or_the_other(world):
 # THE OPERATOR, 2026-09-24: he pressed ▶️ on his half-running group, the
 # container came up - the overview said 2/2 - and the panel redrew itself as
 #
-#     ⚠️ Icaruse
+#     ⚠️ Gameserver
 #     Error: Could not retrieve status. Configuration missing or initial fetch
 #     failed.
 #
@@ -304,15 +304,15 @@ def test_the_refresh_after_a_press_builds_the_same_panel(world):
     from cogs.group_control import admin_panel_embed, group_config_for
 
     class _Cog:
-        status_cache_service = _cache({"Icarus": True, "Icarus2": True})
+        status_cache_service = _cache({"alpha": True, "beta": True})
 
         async def _generate_status_embed_and_view(self, *args, **kwargs):
             raise AssertionError("a group was looked up as a container")
 
     embed = asyncio.run(admin_panel_embed(
-        _Cog(), 42, "group:Icaruse", group_config_for("group:Icaruse"), {}, "Icaruse"))
+        _Cog(), 42, "group:Gameserver", group_config_for("group:Gameserver"), {}, "Gameserver"))
 
-    assert "Icaruse" in embed.title and "📁" in embed.title, embed.title
+    assert "Gameserver" in embed.title and "📁" in embed.title, embed.title
     assert "Admin" not in embed.title, embed.title
     assert "2/2" in embed.description, embed.description
 
@@ -326,7 +326,7 @@ def test_a_container_still_gets_its_admin_header(world):
     from cogs.group_control import admin_panel_embed
 
     class _Cog:
-        status_cache_service = _cache({"Icarus": True})
+        status_cache_service = _cache({"alpha": True})
 
         async def _generate_status_embed_and_view(self, *args, **kwargs):
             return discord.Embed(title="raw", description="x"), None, True
@@ -335,9 +335,9 @@ def test_a_container_still_gets_its_admin_header(world):
             return SimpleNamespace(success=True, is_running=True)
 
     embed = asyncio.run(admin_panel_embed(
-        _Cog(), 42, "Icarus", {"docker_name": "Icarus", "name": "Icarus"}, {}, "Icarus 1"))
+        _Cog(), 42, "alpha", {"docker_name": "alpha", "name": "alpha"}, {}, "alpha"))
 
-    assert "Icarus 1" in embed.title, embed.title
+    assert "alpha" in embed.title, embed.title
     assert embed.color == discord.Color.green(), embed.color
 
 

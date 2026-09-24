@@ -1150,7 +1150,7 @@ class ControlView(DDCView):
             channel_has_control_permission, config, channel_id)
         # A GROUP has no info text, no protected text and no logs, and docker
         # refuses its name outright ("Invalid container name format:
-        # group:Icaruse"). The button opened all three (operator, 2026-09-24).
+        # group:Gameserver"). The button opened all three (operator, 2026-09-24).
         if is_group_target(docker_name):
             channel_has_info_permission = False
 

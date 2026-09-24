@@ -13,8 +13,8 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'app', 'static'
   'rule_targets.js'), 'utf8'), sandbox);
 const { targetCheckboxes, saveWidensToEveryContainer } = sandbox;
 
-const GROUPS = [{ name: 'Gameserver', containers: ['Valheim', 'Icarus 1'] }];
-const CONTAINERS = ['Valheim', 'Icarus 1', 'AdGuard-Home'];
+const GROUPS = [{ name: 'Gameserver', containers: ['Valheim', 'alpha'] }];
+const CONTAINERS = ['Valheim', 'alpha', 'AdGuard-Home'];
 
 const cases = {
   'a group the rule watches is ticked'() {

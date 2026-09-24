@@ -32,7 +32,7 @@ def counted(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Valheim", "Icarus 1", "AdGuard-Home"):
+    for name in ("Valheim", "alpha", "AdGuard-Home"):
         (containers / f"{name}.json").write_text(
             json.dumps({"container_name": name, "allowed_actions": ["status"]}),
             encoding="utf-8")
@@ -41,7 +41,7 @@ def counted(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     service = group_service.get_group_service()
-    service.save_group("Gameserver", ["Valheim", "Icarus 1"])
+    service.save_group("Gameserver", ["Valheim", "alpha"])
 
     reads = []
     real = server_config_service.ServerConfigService.get_all_servers

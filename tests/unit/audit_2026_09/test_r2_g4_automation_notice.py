@@ -137,8 +137,8 @@ class TestOnlyIfRunningNotice:
 
     async def test_skipped_rule_posts_one_notice_in_trigger_channel(self, automation, config_service,
                                                                      state_service, docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"])).success
-        _running_states(monkeypatch, {"Icarus": False})
+        assert config_service.add_rule(_rule(["alpha"])).success
+        _running_states(monkeypatch, {"alpha": False})
         bot = FakeBot()
 
         assert await automation.process_message(_ctx(), bot) == []
@@ -146,39 +146,39 @@ class TestOnlyIfRunningNotice:
         docker_action.assert_not_awaited()
         notices = _skip_notices(bot)
         assert len(notices) == 1
-        assert RULE_NAME in notices[0] and "`Icarus`" in notices[0]
+        assert RULE_NAME in notices[0] and "`alpha`" in notices[0]
         assert "only if running" in notices[0]
         # Enforcement and history unchanged
         assert [e["result"] for e in state_service.get_history()] == ["SKIPPED"]
 
     async def test_multi_container_rule_posts_a_single_notice(self, automation, config_service,
                                                               docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus", "Icarus2"])).success
-        _running_states(monkeypatch, {"Icarus": False, "Icarus2": False})
+        assert config_service.add_rule(_rule(["alpha", "beta"])).success
+        _running_states(monkeypatch, {"alpha": False, "beta": False})
         bot = FakeBot()
 
         await automation.process_message(_ctx(), bot)
 
         notices = _skip_notices(bot)
         assert len(notices) == 1
-        assert "`Icarus`" in notices[0] and "`Icarus2`" in notices[0]
+        assert "`alpha`" in notices[0] and "`beta`" in notices[0]
 
     async def test_partially_skipped_rule_names_only_the_stopped_target(self, automation, config_service,
                                                                         docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus", "Icarus2"])).success
-        _running_states(monkeypatch, {"Icarus": True, "Icarus2": False})
+        assert config_service.add_rule(_rule(["alpha", "beta"])).success
+        _running_states(monkeypatch, {"alpha": True, "beta": False})
         bot = FakeBot()
 
         assert await automation.process_message(_ctx(), bot) == [RULE_NAME]
 
-        docker_action.assert_awaited_once_with("Icarus", "restart")
+        docker_action.assert_awaited_once_with("alpha", "restart")
         notices = _skip_notices(bot)
         assert len(notices) == 1
-        assert "`Icarus2`" in notices[0] and "`Icarus`," not in notices[0]
+        assert "`beta`" in notices[0] and "`alpha`," not in notices[0]
 
     async def test_silent_rule_posts_nothing(self, automation, config_service, docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"], silent=True)).success
-        _running_states(monkeypatch, {"Icarus": False})
+        assert config_service.add_rule(_rule(["alpha"], silent=True)).success
+        _running_states(monkeypatch, {"alpha": False})
         bot = FakeBot()
 
         await automation.process_message(_ctx(), bot)
@@ -187,8 +187,8 @@ class TestOnlyIfRunningNotice:
 
     async def test_notice_goes_to_configured_notification_channel(self, automation, config_service,
                                                                   docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"], notification_channel_id=NOTIFY_CHANNEL_ID)).success
-        _running_states(monkeypatch, {"Icarus": False})
+        assert config_service.add_rule(_rule(["alpha"], notification_channel_id=NOTIFY_CHANNEL_ID)).success
+        _running_states(monkeypatch, {"alpha": False})
         bot = FakeBot()
 
         await automation.process_message(_ctx(), bot)
@@ -198,8 +198,8 @@ class TestOnlyIfRunningNotice:
 
     async def test_running_container_gets_no_skip_notice(self, automation, config_service,
                                                          docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"])).success
-        _running_states(monkeypatch, {"Icarus": True})
+        assert config_service.add_rule(_rule(["alpha"])).success
+        _running_states(monkeypatch, {"alpha": True})
         bot = FakeBot()
 
         assert await automation.process_message(_ctx(), bot) == [RULE_NAME]
@@ -208,8 +208,8 @@ class TestOnlyIfRunningNotice:
         assert any("RESTART" in m for m in bot.sent(CHANNEL_ID))  # normal ⚡ feedback unchanged
 
     async def test_without_bot_nothing_breaks(self, automation, config_service, docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"])).success
-        _running_states(monkeypatch, {"Icarus": False})
+        assert config_service.add_rule(_rule(["alpha"])).success
+        _running_states(monkeypatch, {"alpha": False})
 
         assert await automation.process_message(_ctx()) == []
 

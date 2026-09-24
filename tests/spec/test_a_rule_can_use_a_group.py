@@ -35,7 +35,7 @@ def groups(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Valheim", "Icarus 1", "AdGuard-Home"):
+    for name in ("Valheim", "alpha", "AdGuard-Home"):
         (containers / f"{name}.json").write_text(
             json.dumps({"container_name": name, "allowed_actions": ["status", "restart"]}),
             encoding="utf-8")
@@ -44,7 +44,7 @@ def groups(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     service = group_service.get_group_service()
-    service.save_group("Gameserver", ["Valheim", "Icarus 1"])
+    service.save_group("Gameserver", ["Valheim", "alpha"])
     return service
 
 
@@ -63,7 +63,7 @@ def test_a_group_as_a_filter_matches_its_members(groups):
     rule = _rule(trigger_containers=["group:Gameserver"])
 
     assert rule_listens_to(rule, "Valheim") is True
-    assert rule_listens_to(rule, "Icarus 1") is True
+    assert rule_listens_to(rule, "alpha") is True
     assert rule_listens_to(rule, "AdGuard-Home") is False
 
 
@@ -89,7 +89,7 @@ def test_a_group_as_a_target_resolves_to_its_members(groups):
     from services.automation.automation_service import containers_of_action
 
     assert containers_of_action(_rule(action_containers=["group:Gameserver"])) == [
-        "Valheim", "Icarus 1"]
+        "Valheim", "alpha"]
 
 
 def test_a_target_group_that_is_gone_is_empty_not_everything(groups):
@@ -106,7 +106,7 @@ def test_containers_and_groups_can_be_mixed(groups):
 
     assert rule_listens_to(rule, "AdGuard-Home") is True
     assert rule_listens_to(rule, "Valheim") is True
-    assert containers_of_action(rule) == ["Valheim", "Icarus 1", "AdGuard-Home"]
+    assert containers_of_action(rule) == ["Valheim", "alpha", "AdGuard-Home"]
 
 
 def test_a_member_named_twice_is_acted_on_once(groups):
@@ -115,7 +115,7 @@ def test_a_member_named_twice_is_acted_on_once(groups):
 
     rule = _rule(action_containers=["group:Gameserver", "Valheim"])
 
-    assert containers_of_action(rule) == ["Valheim", "Icarus 1"]
+    assert containers_of_action(rule) == ["Valheim", "alpha"]
 
 
 async def _true():
@@ -158,7 +158,7 @@ async def test_the_action_really_acts_on_the_whole_group(groups, monkeypatch):
                                 SimpleNamespace(message=None, channel_id=None),
                                 {"protected_containers": []}, bot=None)
 
-    assert [name for name, _action in asked] == ["Valheim", "Icarus 1"], (
+    assert [name for name, _action in asked] == ["Valheim", "alpha"], (
         f"the action did not reach the group's containers: {asked}")
 
 

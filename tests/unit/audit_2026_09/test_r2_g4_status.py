@@ -110,22 +110,22 @@ class TestNotFoundDetection:
         monkeypatch.setattr("services.docker_service.docker_client_pool.get_docker_client_async",
                             lambda *a, **kw: _fake_cm())
         svc = ContainerStatusService()
-        request = ContainerStatusRequest(container_name="Icarus", include_stats=False)
+        request = ContainerStatusRequest(container_name="alpha", include_stats=False)
 
         assert (await svc.get_container_status(request)).success is False
-        assert svc.is_container_not_found("Icarus") is True
+        assert svc.is_container_not_found("alpha") is True
         assert svc.is_container_not_found("other") is False
 
         client.not_found = False  # container recreated
         assert (await svc.get_container_status(request)).success is True
-        assert svc.is_container_not_found("Icarus") is False
+        assert svc.is_container_not_found("alpha") is False
 
     def test_not_found_result_is_a_determined_offline_state(self):
-        result = ContainerStatusResult.not_found_result("icarus", "Icarus")
+        result = ContainerStatusResult.not_found_result("icarus", "alpha")
 
         assert result.success is True and result.is_running is False
         assert result.not_found is True and result.error_type == "not_found"
-        assert ContainerStatusResult.offline_result("icarus", "Icarus").not_found is False
+        assert ContainerStatusResult.offline_result("icarus", "alpha").not_found is False
 
     async def test_bulk_fetch_returns_not_found_result(self):
         mixin = StatusHandlersMixin()

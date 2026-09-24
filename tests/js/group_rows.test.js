@@ -67,7 +67,7 @@ const cases = {
 
   // --- what the search shows -----------------------------------------------
   'a group matches its own name'() {
-    assert.strictEqual(groupMatches({ name: 'Icaruse', containers: [] }, 'icar'), true);
+    assert.strictEqual(groupMatches({ name: 'Gameserver', containers: [] }, 'ames'), true);
   },
   'a group matches by a container it holds'() {
     // The question an operator has when they type a container name is "where

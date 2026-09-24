@@ -3,7 +3,7 @@
 
 THE OPERATOR, 2026-09-24, on the first version of the Discord group display:
 
-* the admin dropdown reads "Icaruse" between "Valheim" and "Enshrouded" with
+* the admin dropdown reads "Gameserver" between "Valheim" and "Enshrouded" with
   nothing to say it is not a container - he asked for an indicator;
 * the separation in the ADMIN overview looked wrong, and it did: that view
   draws no box, it stacks blocks, so the `├──` divider and the leading `│`
@@ -53,7 +53,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Icarus", "Icarus2"):
+    for name in ("alpha", "beta"):
         (containers / f"{name}.json").write_text(json.dumps(
             {"container_name": name, "docker_name": name, "active": True,
              "allowed_actions": ["status"]}), encoding="utf-8")
@@ -62,7 +62,7 @@ def world(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     groups = group_service.get_group_service()
-    groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+    groups.save_group("Gameserver", ["alpha", "beta"],
                       active=True, allowed_actions=["status", "start", "stop", "restart"])
     return SimpleNamespace(groups=groups)
 
@@ -84,7 +84,7 @@ def _lines(boxed):
     from cogs import overview_embeds
 
     return overview_embeds.group_status_lines(
-        _cache({"Icarus": True, "Icarus2": True}), lambda text: text, boxed=boxed)
+        _cache({"alpha": True, "beta": True}), lambda text: text, boxed=boxed)
 
 
 # --- the admin overview: blocks, not a box ---------------------------------
@@ -108,11 +108,11 @@ def test_it_says_what_follows_it(world):
 
 
 def test_a_group_line_reads_like_a_container_line(world):
-    """"Indikator Symbol, Icaruse 2/2" - the same shape as the lines above."""
+    """"Indikator Symbol, Gameserver 2/2" - the same shape as the lines above."""
     line = _lines(boxed=False)[1]
 
     assert line.startswith("🟢"), line
-    assert "Icaruse" in line and "2/2" in line, line
+    assert "Gameserver" in line and "2/2" in line, line
 
 
 # --- the server overview: the box he liked ---------------------------------
@@ -132,12 +132,12 @@ def test_both_styles_show_the_same_groups(world):
     boxed = "\n".join(_lines(boxed=True))
     plain = "\n".join(_lines(boxed=False))
 
-    for shown in ("Icaruse", "2/2", "🟢"):
+    for shown in ("Gameserver", "2/2", "🟢"):
         assert shown in boxed and shown in plain, shown
 
 
 def test_nothing_is_added_when_there_are_no_groups(world):
-    world.groups.delete_group("Icaruse")
+    world.groups.delete_group("Gameserver")
 
     assert _lines(boxed=True) == []
     assert _lines(boxed=False) == []
@@ -146,7 +146,7 @@ def test_nothing_is_added_when_there_are_no_groups(world):
 # --- the dropdown ----------------------------------------------------------
 
 def test_the_dropdown_marks_a_group(world):
-    """THE COMPLAINT: "Icaruse" between "Valheim" and "Enshrouded", with
+    """THE COMPLAINT: "Gameserver" between "Valheim" and "Enshrouded", with
     nothing saying it is not a container."""
     from cogs.group_control import GROUP_EMOJI, group_entries
 
@@ -165,7 +165,7 @@ def test_only_the_group_is_marked(world):
     entries = controllable_entries([{"docker_name": "Valheim", "order": 1}])
     marked = [entry for entry in entries if entry.get("emoji")]
 
-    assert [entry["docker_name"] for entry in marked] == ["group:Icaruse"], marked
+    assert [entry["docker_name"] for entry in marked] == ["group:Gameserver"], marked
 
 
 def test_the_panel_uses_the_same_mark():
@@ -195,7 +195,7 @@ def test_the_option_carries_it(world):
     by_value = {option.value: option for option in dropdown.options}
 
     assert by_value["Valheim"].emoji is None, "a container was marked as a group"
-    marked = by_value["group:Icaruse"]
+    marked = by_value["group:Gameserver"]
 
     assert marked.emoji is not None, "the group option carries no indicator"
 
@@ -237,13 +237,13 @@ def _world_entries():
     return {name: {"data": ContainerStatusResult.success_result(
         docker_name=name, display_name=name, is_running=True, cpu="1%", ram="1024 MB",
         uptime="1h", details_allowed=True), "timestamp": datetime.now(timezone.utc)}
-        for name in ("Icarus", "Icarus2")}
+        for name in ("alpha", "beta")}
 
 
 def test_the_group_section_is_spaced_like_the_containers(world):
     """THE COMPLAINT: it stood closer together than everything above it."""
     servers = [{"docker_name": name, "name": name, "display_name": name,
-                "allowed_actions": ["restart"]} for name in ("Icarus", "Icarus2")]
+                "allowed_actions": ["restart"]} for name in ("alpha", "beta")]
     description = _admin_description(servers, _world_entries())
 
     separator = "\nㅤ\n"
@@ -252,9 +252,9 @@ def test_the_group_section_is_spaced_like_the_containers(world):
     heading = [block for block in blocks if "Container groups" in block]
 
     assert heading, f"the heading is not a block of its own: {description!r}"
-    assert "Icaruse" not in heading[0], (
+    assert "Gameserver" not in heading[0], (
         "the heading and the group line are one block, so nothing spaces them")
-    assert any("Icaruse" in block for block in blocks), description
+    assert any("Gameserver" in block for block in blocks), description
 
 
 def test_the_header_still_counts_containers_only(world):
@@ -263,7 +263,7 @@ def test_the_header_still_counts_containers_only(world):
     import re
 
     servers = [{"docker_name": name, "name": name, "display_name": name,
-                "allowed_actions": ["restart"]} for name in ("Icarus", "Icarus2")]
+                "allowed_actions": ["restart"]} for name in ("alpha", "beta")]
     description = _admin_description(servers, _world_entries())
     line = next(l for l in description.splitlines() if l.startswith("Container:"))
 

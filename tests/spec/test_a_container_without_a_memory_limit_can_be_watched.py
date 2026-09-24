@@ -98,7 +98,7 @@ def test_the_cpu_watcher_is_untouched():
     """Counter-check: the unit is memory's business only."""
     watcher = ResourceWatcher("cpu", 90, 5)
 
-    events = _run(watcher, {"Icarus": 95.0}, 5)
+    events = _run(watcher, {"alpha": 95.0}, 5)
 
     assert len(events) == 1
     assert "CPU" in events[0].reason and "%" in events[0].reason

@@ -8,7 +8,7 @@ admin list and are acted on like a container.
 
 AND ONE LAMP MEANS TWO THINGS NOW. 🟡 on a container line is "an action is
 running"; on a group line it is "some of its containers are up". The count
-beside it says which - "🟡 Icaruse 1/2" cannot be an action - but a help text
+beside it says which - "🟡 Gameserver 1/2" cannot be an action - but a help text
 that explains the first and not the second leaves the operator to work that
 out.
 

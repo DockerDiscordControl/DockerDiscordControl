@@ -10,7 +10,7 @@
 OPERATOR DECISION (2026-09-24): a group behaves like ONE container, only with
 several behind it. It is picked where a container is picked - the admin
 button's list - and the buttons behind it are the same ones, because every
-action goes through docker_action_service_first(), and "group:Icaruse" is a
+action goes through docker_action_service_first(), and "group:Gameserver" is a
 name that understands (services/docker_service/group_actions.py).
 
 The stack button that used to open a menu of groups and Compose stacks is gone
@@ -100,7 +100,7 @@ def controllable_entries(servers) -> list:
 
     A display name stored as a LIST is what the panel writes for some
     containers; both old loops unwrapped it, and so does this one, or the
-    dropdown reads "['Icarus 2', 'x']".
+    dropdown reads "['Beta Server', 'x']".
     """
     entries = []
     for server in servers or []:
@@ -149,7 +149,7 @@ def group_panel_embed(name: str, status_cache_service):
     with room.
 
     NOT A CONTAINER'S STATUS. The panel used to ask the status cache for
-    "group:Icaruse", which is not a container, so it drew the error a missing
+    "group:Gameserver", which is not a container, so it drew the error a missing
     container draws - "Could not retrieve status. Configuration missing or
     initial fetch failed" - under the group's own name (operator, 2026-09-24).
     """

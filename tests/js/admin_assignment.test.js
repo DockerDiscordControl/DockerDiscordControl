@@ -25,12 +25,12 @@ const cases = {
   },
   'a group loses the prefix it is stored under'() {
     // `group:` is what the bot compares; it is not a name anybody typed.
-    assert.ok(!adminAssignmentLabel('group:Icaruse').includes('group:'),
-      adminAssignmentLabel('group:Icaruse'));
-    assert.ok(adminAssignmentLabel('group:Icaruse').includes('Icaruse'));
+    assert.ok(!adminAssignmentLabel('group:Gameserver').includes('group:'),
+      adminAssignmentLabel('group:Gameserver'));
+    assert.ok(adminAssignmentLabel('group:Gameserver').includes('Gameserver'));
   },
   'and is marked as a group'() {
-    assert.notStrictEqual(adminAssignmentLabel('group:Icaruse'), 'Icaruse');
+    assert.notStrictEqual(adminAssignmentLabel('group:Gameserver'), 'Gameserver');
   },
   'a container whose name merely contains the word is untouched'() {
     // "mygroup:thing" is not a group; only the prefix makes one.

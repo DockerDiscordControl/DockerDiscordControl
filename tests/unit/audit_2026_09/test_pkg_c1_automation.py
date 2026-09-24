@@ -12,7 +12,7 @@ Audit 2026-09, package C1 - Auto-Actions.
 Regression tests for:
     C1-2  multi-container rules: global cooldown checked once, all cooldowns set in one
           locked operation, nothing stays locked when the rule is blocked
-          (live case: "Icarus Update Watcher" on [Icarus, Icarus2] never executed)
+          (live case: "Icarus Update Watcher" on [alpha, beta] never executed)
     C1-5  the ReDoS check no longer rejects ordinary regex triggers
     C1-6  the rule option only_if_running is enforced before acting
 """
@@ -127,30 +127,30 @@ def _results(state_service):
 class TestMultiContainerLocks:
 
     def test_all_containers_locked_together(self, state_service):
-        ok, reason, blocked = state_service.acquire_execution_locks("r1", ["Icarus", "Icarus2"], 30, 1440)
+        ok, reason, blocked = state_service.acquire_execution_locks("r1", ["alpha", "beta"], 30, 1440)
 
         assert (ok, reason, blocked) == (True, "", None)
-        assert state_service.container_cooldowns["Icarus"] > 0
-        assert state_service.container_cooldowns["Icarus2"] > 0
+        assert state_service.container_cooldowns["alpha"] > 0
+        assert state_service.container_cooldowns["beta"] > 0
         assert state_service.global_last_triggered > 0
 
     def test_blocked_container_leaves_nothing_locked(self, state_service):
-        state_service.container_cooldowns["Icarus2"] = time.time()
+        state_service.container_cooldowns["beta"] = time.time()
 
-        ok, reason, blocked = state_service.acquire_execution_locks("r1", ["Icarus", "Icarus2"], 30, 1440)
+        ok, reason, blocked = state_service.acquire_execution_locks("r1", ["alpha", "beta"], 30, 1440)
 
-        assert ok is False and blocked == "Icarus2"
-        assert "Icarus2" in reason
-        assert "Icarus" not in state_service.container_cooldowns
+        assert ok is False and blocked == "beta"
+        assert "beta" in reason
+        assert "alpha" not in state_service.container_cooldowns
         assert state_service.global_last_triggered == 0.0
         assert "r1" not in state_service.rule_cooldowns
 
     def test_global_cooldown_leaves_nothing_locked(self, state_service):
         state_service.global_last_triggered = time.time()
 
-        ok, reason, blocked = state_service.acquire_execution_locks("r1", ["Icarus", "Icarus2"], 30, 1440)
+        ok, reason, blocked = state_service.acquire_execution_locks("r1", ["alpha", "beta"], 30, 1440)
 
-        assert ok is False and blocked == "Icarus"
+        assert ok is False and blocked == "alpha"
         assert "Global cooldown" in reason
         assert state_service.container_cooldowns == {}
 
@@ -164,27 +164,27 @@ class TestMultiContainerRuleExecution:
 
     async def test_rule_restarts_every_target(self, automation, config_service, state_service,
                                               docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus", "Icarus2"])).success
-        _running_states(monkeypatch, {"Icarus": True, "Icarus2": True})
+        assert config_service.add_rule(_rule(["alpha", "beta"])).success
+        _running_states(monkeypatch, {"alpha": True, "beta": True})
 
         assert await automation.process_message(_ctx()) == [RULE_NAME]
 
-        assert [c.args for c in docker_action.await_args_list] == [("Icarus", "restart"), ("Icarus2", "restart")]
-        assert {k: v[0] for k, v in _results(state_service).items()} == {"Icarus": "SUCCESS", "Icarus2": "SUCCESS"}
+        assert [c.args for c in docker_action.await_args_list] == [("alpha", "restart"), ("beta", "restart")]
+        assert {k: v[0] for k, v in _results(state_service).items()} == {"alpha": "SUCCESS", "beta": "SUCCESS"}
 
     async def test_blocked_rule_does_not_lock_other_targets(self, automation, config_service, state_service,
                                                             docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus", "Icarus2"])).success
-        _running_states(monkeypatch, {"Icarus": True, "Icarus2": True})
-        state_service.container_cooldowns["Icarus2"] = time.time()
+        assert config_service.add_rule(_rule(["alpha", "beta"])).success
+        _running_states(monkeypatch, {"alpha": True, "beta": True})
+        state_service.container_cooldowns["beta"] = time.time()
 
         assert await automation.process_message(_ctx()) == []
 
         docker_action.assert_not_awaited()
-        assert "Icarus" not in state_service.container_cooldowns
+        assert "alpha" not in state_service.container_cooldowns
         history = state_service.get_history()
         assert len(history) == 1
-        assert (history[0]["container"], history[0]["result"]) == ("Icarus2", "SKIPPED")
+        assert (history[0]["container"], history[0]["result"]) == ("beta", "SKIPPED")
 
 
 # --------------------------------------------------------------------------- #
@@ -195,44 +195,44 @@ class TestOnlyIfRunning:
 
     async def test_stopped_container_is_not_restarted(self, automation, config_service, state_service,
                                                       docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"])).success
-        _running_states(monkeypatch, {"Icarus": False})
+        assert config_service.add_rule(_rule(["alpha"])).success
+        _running_states(monkeypatch, {"alpha": False})
 
         assert await automation.process_message(_ctx()) == []
 
         docker_action.assert_not_awaited()
-        result, details = _results(state_service)["Icarus"]
+        result, details = _results(state_service)["alpha"]
         assert result == "SKIPPED" and "only_if_running" in details
         # Nothing was executed, so the container cooldown was released again
-        assert not state_service.container_cooldowns.get("Icarus")
+        assert not state_service.container_cooldowns.get("alpha")
 
     async def test_only_running_targets_are_restarted(self, automation, config_service, state_service,
                                                       docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus", "Icarus2"])).success
-        _running_states(monkeypatch, {"Icarus": True, "Icarus2": False})
+        assert config_service.add_rule(_rule(["alpha", "beta"])).success
+        _running_states(monkeypatch, {"alpha": True, "beta": False})
 
         assert await automation.process_message(_ctx()) == [RULE_NAME]
 
-        docker_action.assert_awaited_once_with("Icarus", "restart")
+        docker_action.assert_awaited_once_with("alpha", "restart")
         results = _results(state_service)
-        assert results["Icarus"][0] == "SUCCESS"
-        assert results["Icarus2"][0] == "SKIPPED"
+        assert results["alpha"][0] == "SUCCESS"
+        assert results["beta"][0] == "SKIPPED"
 
     async def test_stop_rule_skips_stopped_container(self, automation, config_service, state_service,
                                                      docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"], action="STOP")).success
-        _running_states(monkeypatch, {"Icarus": False})
+        assert config_service.add_rule(_rule(["alpha"], action="STOP")).success
+        _running_states(monkeypatch, {"alpha": False})
 
         assert await automation.process_message(_ctx()) == []
         docker_action.assert_not_awaited()
 
     async def test_flag_off_restarts_stopped_container(self, automation, config_service,
                                                        docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"], only_if_running=False)).success
-        info = _running_states(monkeypatch, {"Icarus": False})
+        assert config_service.add_rule(_rule(["alpha"], only_if_running=False)).success
+        info = _running_states(monkeypatch, {"alpha": False})
 
         assert await automation.process_message(_ctx()) == [RULE_NAME]
-        docker_action.assert_awaited_once_with("Icarus", "restart")
+        docker_action.assert_awaited_once_with("alpha", "restart")
         info.assert_not_awaited()
 
     @pytest.mark.parametrize("info_mock", [
@@ -241,18 +241,18 @@ class TestOnlyIfRunning:
     ])
     async def test_unknown_state_does_not_block(self, info_mock, automation, config_service,
                                                 docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"])).success
+        assert config_service.add_rule(_rule(["alpha"])).success
         monkeypatch.setattr(auto_mod, "get_docker_info", info_mock)
 
         assert await automation.process_message(_ctx()) == [RULE_NAME]
-        docker_action.assert_awaited_once_with("Icarus", "restart")
+        docker_action.assert_awaited_once_with("alpha", "restart")
 
     async def test_start_rules_are_not_gated(self, automation, config_service, docker_action, monkeypatch):
-        assert config_service.add_rule(_rule(["Icarus"], action="START")).success
-        info = _running_states(monkeypatch, {"Icarus": False})
+        assert config_service.add_rule(_rule(["alpha"], action="START")).success
+        info = _running_states(monkeypatch, {"alpha": False})
 
         assert await automation.process_message(_ctx()) == [RULE_NAME]
-        docker_action.assert_awaited_once_with("Icarus", "start")
+        docker_action.assert_awaited_once_with("alpha", "start")
         info.assert_not_awaited()
 
 
@@ -326,7 +326,7 @@ class TestRegexValidation:
         assert ok is False and "too long" in msg
 
     def test_rule_with_regex_trigger_can_be_saved(self, config_service):
-        payload = _rule(["Icarus"], regex=r"server (crashed|down)")
+        payload = _rule(["alpha"], regex=r"server (crashed|down)")
         ok, msg, _ = validate_rule_data(payload)
         assert ok is True, msg
         assert config_service.add_rule(payload).success

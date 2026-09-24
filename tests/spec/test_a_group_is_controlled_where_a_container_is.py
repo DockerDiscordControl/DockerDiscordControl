@@ -12,7 +12,7 @@ where a container is already controlled: the admin button's list. One menu,
 containers and groups in it, and the same buttons behind either.
 
 WHAT MAKES THAT POSSIBLE is the seam built an hour earlier: every action goes
-through docker_action_service_first(name, action), and `group:Icaruse` is a
+through docker_action_service_first(name, action), and `group:Gameserver` is a
 name it understands (test_a_group_is_one_target_for_an_action.py). So a group
 entry needs no new button, no new action path - only a configuration shaped
 like a container's, with the GROUP's own permissions in it.
@@ -50,7 +50,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     containers = tmp_path / "containers"
     containers.mkdir()
-    for name in ("Icarus", "Icarus2"):
+    for name in ("alpha", "beta"):
         (containers / f"{name}.json").write_text(json.dumps(
             {"container_name": name, "docker_name": name, "active": True,
              "allowed_actions": ["status"]}), encoding="utf-8")
@@ -59,7 +59,7 @@ def world(tmp_path, monkeypatch):
 
     group_service.reset_group_service()
     groups = group_service.get_group_service()
-    groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+    groups.save_group("Gameserver", ["alpha", "beta"],
                       active=True, allowed_actions=["status", "restart"])
     return SimpleNamespace(groups=groups)
 
@@ -74,31 +74,31 @@ def test_the_list_offers_the_groups(world):
     """THE POINT: one menu, containers and groups in it."""
     entries = _entries()
 
-    assert [entry["display"] for entry in entries] == ["Icaruse"]
-    assert entries[0]["docker_name"] == "group:Icaruse", entries[0]
+    assert [entry["display"] for entry in entries] == ["Gameserver"]
+    assert entries[0]["docker_name"] == "group:Gameserver", entries[0]
 
 
 def test_a_group_brings_its_own_permissions(world):
     """Not its members'. A group that may only restart offers only restart."""
     from cogs import group_control
 
-    config = group_control.group_config_for("group:Icaruse")
+    config = group_control.group_config_for("group:Gameserver")
 
     assert config["allowed_actions"] == ["status", "restart"]
-    assert config["docker_name"] == "group:Icaruse"
-    assert config["name"] == "Icaruse"
+    assert config["docker_name"] == "group:Gameserver"
+    assert config["name"] == "Gameserver"
 
 
 def test_a_group_that_may_not_be_controlled_is_not_offered(world):
     """The group decides here too."""
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"], active=False)
+    world.groups.save_group("Gameserver", ["alpha", "beta"], active=False)
 
     assert _entries() == []
 
 
 def test_a_group_with_no_action_at_all_is_not_offered(world):
     """A menu entry that can do nothing is a menu entry that wastes a press."""
-    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"], allowed_actions=["status"])
+    world.groups.save_group("Gameserver", ["alpha", "beta"], allowed_actions=["status"])
     entries = _entries()
 
     assert entries == [], entries
@@ -114,11 +114,11 @@ def test_a_group_is_running_when_its_members_are(world):
             docker_name=name, display_name=name, is_running=running.get(name, False),
             cpu="1%", ram="1MB", uptime="1h", details_allowed=True)})
 
-    assert group_control.group_is_running("Icaruse", cache({"Icarus": True, "Icarus2": True})) is True
-    assert group_control.group_is_running("Icaruse", cache({})) is False
+    assert group_control.group_is_running("Gameserver", cache({"alpha": True, "beta": True})) is True
+    assert group_control.group_is_running("Gameserver", cache({})) is False
     # One up, one down: a press of either button still does something, so the
     # group counts as running and gets the stop button too.
-    assert group_control.group_is_running("Icaruse", cache({"Icarus": True})) is True
+    assert group_control.group_is_running("Gameserver", cache({"alpha": True})) is True
 
 
 def test_the_admin_list_asks_for_them(world):
@@ -201,26 +201,26 @@ def test_both_buttons_ask_the_same_place(world):
 def test_the_one_list_holds_containers_and_groups(world):
     from cogs.group_control import controllable_entries
 
-    servers = [{"docker_name": "Icarus", "display_name": "Icarus 1", "order": 2},
-               {"docker_name": "Icarus2", "display_name": ["Icarus 2", "x"], "order": 1}]
+    servers = [{"docker_name": "alpha", "display_name": "alpha", "order": 2},
+               {"docker_name": "beta", "display_name": ["Beta Server", "x"], "order": 1}]
     entries = controllable_entries(servers)
     by_name = {entry["docker_name"]: entry for entry in entries}
 
-    assert "group:Icaruse" in by_name, entries
-    assert by_name["Icarus"]["display"] == "Icarus 1"
+    assert "group:Gameserver" in by_name, entries
+    assert by_name["alpha"]["display"] == "alpha"
     # A display name stored as a LIST is what the panel writes for some
-    # containers; the dropdown must show the name, not "['Icarus 2', 'x']".
-    assert by_name["Icarus2"]["display"] == "Icarus 2"
+    # containers; the dropdown must show the name, not "['Beta Server', 'x']".
+    assert by_name["beta"]["display"] == "Beta Server"
 
 
 def test_the_groups_come_after_the_containers(world):
     from cogs.group_control import controllable_entries
 
-    entries = controllable_entries([{"docker_name": "Icarus", "order": 999}])
+    entries = controllable_entries([{"docker_name": "alpha", "order": 999}])
     orders = [entry["order"] for entry in entries]
 
     assert orders == sorted(orders), orders
-    assert entries[-1]["docker_name"] == "group:Icaruse", entries
+    assert entries[-1]["docker_name"] == "group:Gameserver", entries
 
 
 def test_an_entry_without_a_name_is_left_out(world):
@@ -229,4 +229,4 @@ def test_an_entry_without_a_name_is_left_out(world):
 
     entries = controllable_entries([{"order": 1}, {"docker_name": "", "order": 2}])
 
-    assert [entry["docker_name"] for entry in entries] == ["group:Icaruse"]
+    assert [entry["docker_name"] for entry in entries] == ["group:Gameserver"]

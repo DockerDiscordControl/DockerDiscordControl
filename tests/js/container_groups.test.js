@@ -60,18 +60,18 @@ const cases = {
   // The picker: 26 containers as a Ctrl-click multi-select was easy to lose by
   // one stray click, so it is a checkbox list with a search box now.
   'the search matches anywhere in the name'() {
-    assert.deepStrictEqual(matchingContainers(['Icarus', 'Icarus2', 'Valheim'], 'car'),
-      ['Icarus', 'Icarus2']);
+    assert.deepStrictEqual(matchingContainers(['web-alpha', 'web-beta', 'nginx'], 'eb'),
+      ['web-alpha', 'web-beta']);
   },
   'the search ignores case, because the names do not agree on one'() {
-    assert.deepStrictEqual(matchingContainers(['Icarus', 'valheim'], 'VAL'), ['valheim']);
+    assert.deepStrictEqual(matchingContainers(['alpha', 'valheim'], 'VAL'), ['valheim']);
   },
   'an empty search shows everything, not nothing'() {
-    assert.deepStrictEqual(matchingContainers(['Icarus', 'Valheim'], '   '),
-      ['Icarus', 'Valheim']);
+    assert.deepStrictEqual(matchingContainers(['alpha', 'Valheim'], '   '),
+      ['alpha', 'Valheim']);
   },
   'a search nothing matches is empty, not everything'() {
-    assert.deepStrictEqual(matchingContainers(['Icarus'], 'zzz'), []);
+    assert.deepStrictEqual(matchingContainers(['alpha'], 'zzz'), []);
   },
   'the count says how many of how many are picked'() {
     // With the checkbox list the picked ones can be scrolled out of sight, so

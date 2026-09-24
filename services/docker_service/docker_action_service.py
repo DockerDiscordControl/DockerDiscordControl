@@ -288,7 +288,7 @@ async def docker_action_service_first(container_name: str, action: str, timeout:
         bool: True if successful, False otherwise
     """
     # A GROUP is a name like any other (operator, 2026-09-24): everything that
-    # acts on a container comes through here, so this is where "group:Icaruse"
+    # acts on a container comes through here, so this is where "group:Gameserver"
     # becomes its members. The walk itself lives in one place, shared with the
     # scheduled tasks - see services/docker_service/group_actions.py.
     from services.docker_service.group_actions import act_on_group, group_name_of, is_group_target
