@@ -14,7 +14,11 @@ function makeEnv() {
     'aasRuleIsWebhook', 'aasRuleActionType', 'aasRuleDelay', 'aasRuleCooldown', 'aasRuleCooldownScope',
     'aasRuleOnlyRunning', 'aasRuleTriggerType', 'aasRuleRestartThreshold', 'aasRuleRestartWindow',
     'aasMessageTriggerFields', 'aasContainerTriggerFields', 'aasRuleCpuThreshold',
-    'aasRuleMemoryThreshold', 'aasRuleResourceMinutes'];
+    'aasRuleMemoryThreshold', 'aasRuleResourceMinutes',
+    // Added 2026-09-24 with the memory watchdog's second threshold: the form
+    // reads it on every save and on every edit, so leaving it out of the
+    // stand-in made every case here fail on a null element.
+    'aasRuleMemoryThresholdMb'];
   for (const id of ids) {
     els[id] = { id, value: '', checked: false, focus() {}, style: {},
       classList: { add() {}, remove() {}, toggle() {} } };
@@ -24,15 +28,58 @@ function makeEnv() {
   els.aasRuleCooldownScope.value = 'container';
   els.aasRuleTriggerType.value = 'message';
   const containers = ['web', 'db'].map(value => ({ value, checked: false }));
+  // A rule may target a GROUP as well as a container since 2026-09-23, and the
+  // save reads one combined selector for both (auto_actions.js). The stand-in
+  // answered only the container half and returned nothing for the combined
+  // string, so every save here sent an empty target list.
+  const groups = ['group:Gameserver'].map(value => ({ value, checked: false }));
+
+  // Opening a rule for editing REDRAWS the target checkboxes: the editor writes
+  // them into this wrapper as HTML, and the browser then has the boxes the save
+  // reads back. The stand-in does the same thing by reading what the editor
+  // just wrote - so a rule that holds a target it cannot see keeps it, which is
+  // the whole point of rule_targets.js. Without this the wrapper swallowed the
+  // HTML and every edited rule saved an empty target list.
+  const targetWrapper = {
+    id: 'aasRuleTargetContainersWrapper', style: {},
+    classList: { add() {}, remove() {}, toggle() {} },
+    set innerHTML(html) {
+      containers.length = 0;
+      groups.length = 0;
+      const box = /<input[^>]*class="[^"]*aas-(container|group)-checkbox"[^>]*>/g;
+      for (const [tag, kind] of [...html.matchAll(box)].map(m => [m[0], m[1]])) {
+        const value = /value="([^"]*)"/.exec(tag);
+        (kind === 'group' ? groups : containers).push(
+          { value: value ? value[1] : '', checked: /\bchecked\b/.test(tag) });
+      }
+    },
+    get innerHTML() { return ''; },
+  };
   const states = ['stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory']
     .map(value => ({ value, checked: false }));
   const feedback = [{ value: '', checked: true }, { value: '555', checked: false }];
+  els.aasRuleTargetContainersWrapper = targetWrapper;
   const document = {
     getElementById: id => els[id] || null,
+    // escapeHtml() escapes by writing text into a node and reading the markup
+    // back. Only the four characters that matter here, so a group called
+    // Plex "4K" is still escaped the way the browser would escape it.
+    createElement: () => ({
+      textContent: '',
+      get innerHTML() {
+        return String(this.textContent)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      },
+    }),
     addEventListener() {},
     querySelectorAll(sel) {
       if (sel === '.aas-container-checkbox:checked') return containers.filter(b => b.checked);
       if (sel === '.aas-container-checkbox') return containers;
+      if (sel === '.aas-group-checkbox:checked') return groups.filter(b => b.checked);
+      if (sel === '.aas-group-checkbox') return groups;
+      if (sel === '.aas-container-checkbox:checked, .aas-group-checkbox:checked') {
+        return containers.concat(groups).filter(b => b.checked);
+      }
       if (sel === '.aas-state-checkbox:checked') return states.filter(b => b.checked);
       if (sel === '.aas-state-checkbox') return states;
       if (sel === 'input[name="aasFeedbackChannel"]') return feedback;
@@ -57,10 +104,17 @@ function makeEnv() {
     showNotification() {},
   };
   vm.createContext(ctx);
-  const source = fs.readFileSync(path.join(__dirname, '..', '..', 'app', 'static', 'js', 'auto_actions.js'), 'utf8');
-  vm.runInContext(source, ctx);
+  // BOTH files, in the order _scripts.html loads them. auto_actions.js calls
+  // saveWidensToEveryContainer(), which lives in rule_targets.js - loading only
+  // auto_actions.js left every case here failing with "not defined" from
+  // 2026-09-23 (commit 2652aafd) until 2026-09-24, because this file only ever
+  // runs by hand and nobody ran it. The sandbox mirrors the page.
+  const js = (name) => fs.readFileSync(
+    path.join(__dirname, '..', '..', 'app', 'static', 'js', name), 'utf8');
+  vm.runInContext(js('rule_targets.js'), ctx);
+  vm.runInContext(js('auto_actions.js'), ctx);
   ctx.loadAASRules = () => {};
-  return { ctx, els, containers, states, sent, alerts };
+  return { ctx, els, containers, groups, states, sent, alerts };
 }
 
 const tests = {
