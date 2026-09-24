@@ -47,6 +47,29 @@ MAX_NAME_LENGTH = 80  # Discord shows a select option's label up to 100 characte
 # a log line the same way.
 FORBIDDEN_IN_NAME = ("/", "\\", "\n", "\r", "\t")
 
+# How DDC says "this name is a group and not a container": in an auto-action
+# rule's targets, in a per-admin assignment, in the name a button hands to the
+# action service. ONE definition, because four copies of one word that must
+# agree only look harmless until one of them changes - then every target
+# written by one half stops being read by the other, silently, since an unknown
+# name is simply not a group.
+GROUP_PREFIX = "group:"
+
+
+def is_group_target(name) -> bool:
+    """Whether this name means a group rather than a container."""
+    return isinstance(name, str) and name.startswith(GROUP_PREFIX)
+
+
+def group_name_of(name: str) -> str:
+    """The group's own name; a container name comes back unchanged."""
+    return name[len(GROUP_PREFIX):] if is_group_target(name) else name
+
+
+def group_target(name: str) -> str:
+    """The name of that group as a target."""
+    return f"{GROUP_PREFIX}{name}"
+
 # What a group may be allowed to do. The same four a container offers, because
 # they are the four buttons Discord can press - an action outside this list
 # would be stored, drawn as a tick and do nothing when pressed.

@@ -37,11 +37,11 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional
 
+from services.config.group_service import (GROUP_PREFIX, group_name_of,  # noqa: F401
+                                           is_group_target)
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('group_actions')
-
-GROUP_PREFIX = "group:"
 
 # The same pacing the bulk buttons use, counted by ATTEMPTS: tied to successes
 # it would not pause at all on a daemon where every call fails, which is the
@@ -68,15 +68,6 @@ class GroupActionOutcome:
         if self.missing:
             problems.append(f"no longer in DDC: {', '.join(self.missing)}")
         return "; ".join(problems) if problems else None
-
-
-def is_group_target(name: str) -> bool:
-    """Whether this name is a group rather than a container."""
-    return isinstance(name, str) and name.startswith(GROUP_PREFIX)
-
-
-def group_name_of(name: str) -> str:
-    return name[len(GROUP_PREFIX):] if is_group_target(name) else name
 
 
 async def _act_on_one(container: str, action: str) -> bool:

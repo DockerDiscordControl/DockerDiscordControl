@@ -112,7 +112,7 @@ cogs/channel_lifecycle.py	627	v3rev2:1-646
 cogs/control_helpers.py	284	pass1:s01:plan pass2:s01:1-205  [79 of 284 lines never in a package]
 cogs/control_ui.py	3461	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
 cogs/ddc_ui.py	94	passE:written-2026-09-21
-cogs/group_control.py	145	NONE
+cogs/group_control.py	146	NONE
 cogs/docker_control.py	1326	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	645	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
@@ -132,7 +132,7 @@ services/admin/admin_service.py	417	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/auto_action_config_service.py	859	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	364	passE:bothscans+E25
-services/automation/automation_service.py	791	passE:bothscans+E25 v3rev:1-676
+services/automation/automation_service.py	792	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	173	v3rev:1-157
 services/automation/image_updates.py	164	v3rev:1-164
 services/automation/own_actions.py	70	NONE
@@ -146,8 +146,8 @@ services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 line
 services/config/config_service.py	1259	passE:E26+bothscans:252-352,354-512,793-910
 services/config/config_validation_service.py	212	passE:read-in-full:no-findings
 services/config/container_config_save_service.py	150	passE:read-in-full:no-findings
-services/config/group_references.py	134	NONE
-services/config/group_service.py	392	NONE
+services/config/group_references.py	133	NONE
+services/config/group_service.py	415	NONE
 services/config/server_config_service.py	233	passE:E33:read-in-full
 services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	509	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
@@ -160,7 +160,7 @@ services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	105	v3rev:1-105
 services/docker_service/docker_action_service.py	308	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
-services/docker_service/group_actions.py	151	NONE
+services/docker_service/group_actions.py	142	NONE
 services/docker_service/docker_utils.py	1163	pass1:s16:1-1404  [28 of 1432 lines never in a package]
 services/docker_service/reachability.py	87	v3rev:1-87
 services/docker_service/server_order.py	111	pass1:s16:1-111

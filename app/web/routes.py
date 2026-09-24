@@ -49,9 +49,9 @@ def _assignable_names() -> set:
              get_server_config_service().get_all_servers()
              if isinstance(server, dict) and server.get("docker_name")}
     try:
-        from services.config.group_service import get_group_service
+        from services.config.group_service import get_group_service, group_target
 
-        names |= {f"group:{group.name}" for group in get_group_service().get_groups()}
+        names |= {group_target(group.name) for group in get_group_service().get_groups()}
     except OSError as e:
         # The containers are still assignable; a groups file that cannot be read
         # costs the groups, not the whole dialog.

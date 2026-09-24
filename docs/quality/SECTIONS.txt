@@ -75,7 +75,7 @@ services/automation/auto_action_config_service.py:1-859
 
 ## Section 11  (1970 lines, 6 pieces)
 services/automation/auto_action_state_service.py:1-364
-services/automation/automation_service.py:1-791
+services/automation/automation_service.py:1-792
 services/automation/container_watch.py:1-173
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
 # config_cache_service.py left for section 12; both are small.
@@ -116,7 +116,7 @@ services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-308
 # group_actions.py joined on 2026-09-24 (new: one walk over a group's
 # containers, shared by the action service and the scheduled tasks).
-services/docker_service/group_actions.py:1-151
+services/docker_service/group_actions.py:1-142
 
 ## Section 15  (930 lines, 3 pieces)
 services/docker_service/client_factory.py:1-105
@@ -373,8 +373,8 @@ utils/key_crypto.py:1-84
 utils/token_security.py:1-278
 # group_references.py joined on 2026-09-24 (new: everything outside
 # groups.json that points at a group by name, moved by a rename).
-services/config/group_references.py:1-134
-services/config/group_service.py:1-392
+services/config/group_references.py:1-133
+services/config/group_service.py:1-415
 
 ## Section 38  (871 lines, 7 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
@@ -391,7 +391,7 @@ app/web/compat.py:1-102
 cogs/ddc_ui.py:1-94
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
-cogs/group_control.py:1-145
+cogs/group_control.py:1-146
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).

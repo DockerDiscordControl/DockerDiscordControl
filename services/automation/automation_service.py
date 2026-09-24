@@ -71,7 +71,8 @@ class TriggerContext:
         """Discord message link."""
         return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.message_id}"
 
-GROUP_PREFIX = "group:"
+# One spelling for every group target (services/config/group_service.py).
+from services.config.group_service import GROUP_PREFIX
 
 
 # What a rule's action needs the group to be allowed to do. RECREATE has no box

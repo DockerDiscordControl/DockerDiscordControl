@@ -25,6 +25,7 @@ instead of carrying the answers.
 
 from typing import Optional, Tuple
 
+from services.config.group_service import group_target
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('group_control')
@@ -65,7 +66,7 @@ def group_entries() -> list:
         entries.append({
             'name': group.name,
             'display': group.name,
-            'docker_name': f"group:{group.name}",
+            'docker_name': group_target(group.name),
             'order': GROUP_ORDER,
             'emoji': GROUP_EMOJI,
         })

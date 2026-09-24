@@ -31,13 +31,12 @@ from __future__ import annotations
 import json
 from typing import Dict
 
+from services.config.group_service import GROUP_PREFIX
 from utils.atomic_io import atomic_write_json, cross_process_lock
 from utils.config_paths import get_config_dir
 from utils.logging_utils import get_module_logger
 
 logger = get_module_logger('group_references')
-
-GROUP_PREFIX = "group:"
 
 
 def _rewrite(filename: str, change) -> int:
