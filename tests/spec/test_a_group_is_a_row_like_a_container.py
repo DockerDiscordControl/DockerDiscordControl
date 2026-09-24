@@ -199,3 +199,29 @@ def test_the_member_count_keeps_its_placeholder():
         text = json.loads(path.read_text(encoding="utf-8"))["web.server.group_members"]
 
         assert "{count}" in text, f"{path.name} has no place for the number"
+
+
+# --- the search finds them too ----------------------------------------------
+# THE GAP (2026-09-24): the search box above the table filters the container
+# rows and left the group rows standing, whatever was typed. With one group
+# that is invisible; with twenty it is a table that ignores the search.
+
+def test_the_search_filters_the_groups_as_well():
+    source = _without_comments(ROWS.read_text(encoding="utf-8"))
+
+    assert "container-search" in source, (
+        "the group rows do not listen to the search box")
+    assert "groupMatches" in source, "there is no rule for what a group matches"
+
+
+def test_a_group_matches_by_its_members_too():
+    """Typing a container's name shows the container AND the groups it is in -
+    which is the question an operator actually has when they type one."""
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not installed here - run tests/js/group_rows.test.js by hand")
+    result = subprocess.run([node, str(ROOT / "tests" / "js" / "group_rows.test.js")],
+                            capture_output=True, text=True, timeout=60)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "matches" in result.stdout, result.stdout

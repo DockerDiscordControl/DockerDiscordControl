@@ -22,7 +22,7 @@ sandbox.window = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'app', 'static', 'js',
   'group_rows.js'), 'utf8'), sandbox);
-const { withPermission } = sandbox;
+const { withPermission, groupMatches } = sandbox;
 
 // Copied into THIS realm before comparing: an array built inside the vm
 // context carries that context's Array prototype, and deepStrictEqual would
@@ -63,6 +63,25 @@ const cases = {
   },
   'a missing list is read as no permissions, not as a crash'() {
     assert.deepStrictEqual(after(undefined, 'status', true), ['status']);
+  },
+
+  // --- what the search shows -----------------------------------------------
+  'a group matches its own name'() {
+    assert.strictEqual(groupMatches({ name: 'Icaruse', containers: [] }, 'icar'), true);
+  },
+  'a group matches by a container it holds'() {
+    // The question an operator has when they type a container name is "where
+    // is this thing", and a group holding it is part of the answer.
+    assert.strictEqual(groupMatches({ name: 'Gameserver', containers: ['Valheim'] }, 'valh'),
+      true);
+  },
+  'and is hidden when neither matches'() {
+    assert.strictEqual(groupMatches({ name: 'Gameserver', containers: ['Valheim'] }, 'zzz'),
+      false);
+  },
+  'an empty search shows every group'() {
+    assert.strictEqual(groupMatches({ name: 'Gameserver', containers: [] }, ''), true);
+    assert.strictEqual(groupMatches({ name: 'Gameserver', containers: [] }, '   '), true);
   },
 };
 

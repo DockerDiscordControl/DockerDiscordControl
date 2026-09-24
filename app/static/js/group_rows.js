@@ -38,8 +38,26 @@ function withPermission(actions, action, checked) {
     return GROUP_ACTIONS.filter(known => had.has(known));
 }
 
+// Whether the search above the table should show this group.
+//
+// THE GAP (2026-09-24): the search filtered the container rows and left the
+// group rows standing, whatever was typed. With one group that is invisible;
+// with twenty it is a table that ignores its own search box.
+//
+// A GROUP ALSO MATCHES BY ITS MEMBERS. The question behind typing a container
+// name is "where is this thing", and a group holding it is part of the
+// answer - the row even lists the members underneath, so a match there is
+// visible rather than mysterious.
+function groupMatches(group, query) {
+    const wanted = (query || '').trim().toLowerCase();
+    if (!wanted) { return true; }          // an empty search shows everything
+    const names = [group.name].concat(group.containers || []);
+    return names.some(name => String(name).toLowerCase().includes(wanted));
+}
+
 if (typeof window !== 'undefined') {
     window.withPermission = withPermission;
+    window.groupMatches = groupMatches;
 }
 
 // --- the page itself -------------------------------------------------------
@@ -191,14 +209,25 @@ if (typeof document !== 'undefined' && document.addEventListener) {
             return tr;
         }
 
+        const search = document.getElementById('container-search');
+
         function render() {
             body.innerHTML = '';
-            const rows = groups.map(group => {
+            const query = search ? search.value : '';
+            const shown = [];
+            for (const group of groups) {
                 const tr = row(group);
                 body.appendChild(tr);
-                return tr;
-            });
-            if (pager) { pager.show(rows); }
+                // Hidden, not left out: the pager is handed the MATCHES, so
+                // its pages are pages of the search result rather than of
+                // everything with the misses left as gaps (paging.js).
+                if (groupMatches(group, query)) {
+                    shown.push(tr);
+                } else {
+                    tr.hidden = true;
+                }
+            }
+            if (pager) { pager.show(shown); }
         }
 
         async function load() {
@@ -218,6 +247,11 @@ if (typeof document !== 'undefined' && document.addEventListener) {
         // reloaded - which is exactly the bug the operator hit with the old
         // dropdown on 2026-09-24.
         document.addEventListener('ddc:groups-changed', load);
+        // The same box the containers listen to: one search over one table.
+        search?.addEventListener('input', () => {
+            if (pager) { pager.reset(); }
+            render();
+        });
         load();
     });
 }
