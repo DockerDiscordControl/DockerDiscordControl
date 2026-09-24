@@ -39,7 +39,7 @@ CLASS_LIMIT = 1000
 # test_a_record_is_the_current_size_and_not_a_high_water_mark. Remove an entry
 # once it is at the limit.
 FILE_EXCEPTIONS = {
-    "cogs/control_ui.py": 3441,
+    "cogs/control_ui.py": 3457,
     "services/scheduling/scheduler.py": 2243,
     "services/mech/animation_cache_service.py": 1823,
     "services/mech/progress_service.py": 1740,

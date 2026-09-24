@@ -1176,6 +1176,22 @@ class ControlView(DDCView):
         if is_group_target(docker_name):
             channel_has_info_permission = False
 
+        # A GROUP IS NOT ON OR OFF (operator, 2026-09-24). A container is, so
+        # its panel offers stop-and-restart OR start. A group has a COUNT, and
+        # at 1/2 all three do something: start the one that is down, stop the
+        # one that is up, restart what is running. So it offers everything it
+        # is allowed, always, and the lamp in its embed says where it stands.
+        if is_group_target(docker_name):
+            if channel_has_control_permission:
+                for action, style, emoji in (
+                        ("start", discord.ButtonStyle.secondary, "▶️"),
+                        ("stop", discord.ButtonStyle.secondary, "⏹️"),
+                        ("restart", discord.ButtonStyle.secondary, "🔄")):
+                    if action in allowed_actions:
+                        self.add_item(ActionButton(cog_instance, server_config, action,
+                                                   style, None, emoji, row=0))
+            return
+
         # Add buttons based on state and permissions
         if is_running:
             # Toggle button for running containers with details allowed

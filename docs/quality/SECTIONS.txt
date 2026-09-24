@@ -30,7 +30,7 @@ cogs/control_ui.py:1-1832
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1833-3441
+cogs/control_ui.py:1833-3457
 
 ## Section 04  (1612 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.

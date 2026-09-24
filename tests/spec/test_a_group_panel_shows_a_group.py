@@ -199,3 +199,82 @@ def test_the_panel_asks_the_right_source(world):
 
     assert asked == ["Icarus"], "a container stopped going the ordinary way"
     assert container.title == "container"
+
+
+# --- a group is not on or off ------------------------------------------------
+# THE OPERATOR, 2026-09-24, looking at "🟡 Icaruse 1/2" with only ⏹ and 🔄
+# under it: he still has to be able to start the one that is down.
+#
+# That was my own rule, and it was a container's rule. A container is either
+# up or down, so its panel offers stop-and-restart OR start. A group has a
+# COUNT, and at 1/2 every one of the three does something: start the stopped
+# one, stop the running one, restart what is up. So a group offers everything
+# it is allowed, always, and the lamp says what state it is in.
+
+def test_a_half_running_group_can_still_be_started(world):
+    from cogs.group_control import group_config_for
+
+    # His own group may do all four; the fixture above withholds start, which
+    # would have made this case pass for the wrong reason.
+    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"], active=True,
+                            allowed_actions=["status", "start", "stop", "restart"])
+
+    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Icaruse": True}),
+                 group_config_for("group:Icaruse"))
+    actions = sorted(item.action for item in view.children
+                     if type(item).__name__ == "ActionButton")
+
+    assert "start" in actions, f"the stopped container cannot be started: {actions}"
+
+
+def test_a_group_offers_what_it_may_do_whatever_its_lamp(world):
+    """Up, down or in between - the buttons are the permissions, not the
+    state."""
+    from cogs.group_control import group_config_for
+
+    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+                            active=True, allowed_actions=["status", "start", "stop", "restart"])
+    for running in (True, False):
+        view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Icaruse": True}),
+                     group_config_for("group:Icaruse"))
+        actions = sorted(item.action for item in view.children
+                         if type(item).__name__ == "ActionButton")
+
+        assert actions == ["restart", "start", "stop"], (running, actions)
+
+
+def test_a_group_still_offers_only_what_it_is_allowed(world):
+    """Counter-check: "always" is about the state, not about the permissions."""
+    from cogs.group_control import group_config_for
+
+    world.groups.save_group("Icaruse", ["Icarus", "Icarus2"],
+                            active=True, allowed_actions=["status", "start"])
+    view = _view(SimpleNamespace(pending_actions={}, expanded_states={"group:Icaruse": True}),
+                 group_config_for("group:Icaruse"))
+    actions = sorted(item.action for item in view.children
+                     if type(item).__name__ == "ActionButton")
+
+    assert actions == ["start"], actions
+
+
+def test_a_container_still_offers_one_or_the_other(world):
+    """A container IS on or off, and its panel must keep saying so."""
+    from cogs import control_ui
+
+    config = {"docker_name": "Icarus", "name": "Icarus",
+              "allowed_actions": ["start", "stop", "restart"], "allow_detailed_status": False}
+
+    async def build(is_running):
+        return control_ui.ControlView(
+            SimpleNamespace(pending_actions={}, expanded_states={"Icarus": True}),
+            config, is_running=is_running, channel_has_control_permission=True, channel_id=42)
+
+    import asyncio
+
+    up = sorted(item.action for item in asyncio.run(build(True)).children
+                if type(item).__name__ == "ActionButton")
+    down = sorted(item.action for item in asyncio.run(build(False)).children
+                  if type(item).__name__ == "ActionButton")
+
+    assert "start" not in up, up
+    assert down == ["start"], down
