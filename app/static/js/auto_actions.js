@@ -37,6 +37,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Whether the global settings on screen are the ones the server holds; see
+// loadAASGlobalSettings().
+let aasSettingsLoaded = false;
+
 function isContainerStateRule() {
     const select = document.getElementById('aasRuleTriggerType');
     return !!select && select.value === 'container_state';
@@ -839,13 +843,27 @@ function testAASRule() {
 // --- Global Settings & History ---
 
 async function loadAASGlobalSettings() {
+    aasSettingsLoaded = false;
     try {
         const response = await fetch('/api/automation/settings');
+        // fetch() rejects on a network failure and on nothing else. Without
+        // this the error body fell into the lines below, the form kept its own
+        // start values, and saveAASGlobalSettings() wrote them back - with
+        // protected_containers, the list a rule may never touch, as an empty
+        // one (review E22, the same shape in the admin dialog).
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+        }
         const settings = await response.json();
+        if (!settings || typeof settings.enabled === 'undefined') {
+            throw new Error('unreadable automation settings');
+        }
 
         document.getElementById('aasGlobalToggle').checked = settings.enabled;
         document.getElementById('aasGlobalCooldown').value = settings.global_cooldown_seconds;
-        document.getElementById('aasProtectedContainers').value = settings.protected_containers.join(',');
+        document.getElementById('aasProtectedContainers').value =
+            (settings.protected_containers || []).join(',');
+        aasSettingsLoaded = true;
 
         // Populate audit channel dropdown
         const auditSelect = document.getElementById('aasAuditChannelSelect');
@@ -870,6 +888,12 @@ async function loadAASGlobalSettings() {
 }
 
 async function saveAASGlobalSettings() {
+    if (!aasSettingsLoaded) {
+        // The form holds its own start values, not the server's. Saving here
+        // would empty protected_containers.
+        alert(t('aas.refuse_save_unloaded'));
+        return;
+    }
     const settings = {
         enabled: document.getElementById('aasGlobalToggle').checked,
         global_cooldown_seconds: parseInt(document.getElementById('aasGlobalCooldown').value),

@@ -3,11 +3,30 @@
 // A static file is not covered by that meta tag.
 // No Jinja in here; pinned by tests/spec/test_the_page_is_not_mostly_one_script.py
 
+// Whether the settings on screen are the ones the server holds.
+//
+// Review E22 in the admin dialog, one endpoint further on: fetch() rejects on
+// a network failure and on nothing else - not on the 500 this route answers a
+// read failure with (review D9). The error body fell into the success path,
+// the dialog stayed open showing the HTML start values, and Save posted all of
+// them: every command and button cooldown reset to the template's numbers.
+// Nothing may be written back until a read has succeeded.
+let spamSettingsLoaded = false;
+
 // Load spam protection settings when modal opens
 document.getElementById('spamProtectionModal').addEventListener('shown.bs.modal', function () {
+    spamSettingsLoaded = false;
     fetch('/api/spam-protection')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data || !data.global_settings) {
+                throw new Error('unreadable spam protection settings');
+            }
             // Set global settings
             document.getElementById('spamProtectionEnabled').checked = data.global_settings.enabled;
             document.getElementById('cooldownMessage').checked = data.global_settings.cooldown_message;
@@ -22,10 +41,11 @@ document.getElementById('spamProtectionModal').addEventListener('shown.bs.modal'
             }
 
             // Set button cooldowns
-            for (const [btn, cooldown] of Object.entries(data.button_cooldowns)) {
+            for (const [btn, cooldown] of Object.entries(data.button_cooldowns || {})) {
                 const element = document.getElementById('button_' + btn);
                 if (element) element.value = cooldown;
             }
+            spamSettingsLoaded = true;
         })
         .catch(error => {
             console.error('Error loading spam protection settings:', error);
@@ -34,6 +54,12 @@ document.getElementById('spamProtectionModal').addEventListener('shown.bs.modal'
 });
 
 function saveSpamProtection() {
+    if (!spamSettingsLoaded) {
+        // The form is showing its own start values, not the server's. Saving
+        // here is what cost the settings in the admin dialog (review E22).
+        alert(t('web.spam.refuse_save_unloaded'));
+        return;
+    }
     // Trigger unsaved changes warning to show that settings have changed
     if (typeof showUnsavedChangesAlert === 'function') {
         showUnsavedChangesAlert(false); // Spam protection settings don't require restart
