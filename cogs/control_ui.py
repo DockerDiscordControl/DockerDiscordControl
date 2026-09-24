@@ -1080,6 +1080,27 @@ class ControlView(DDCView):
         # This ensures consistency with status_handlers.py and prevents state loss on name changes
         docker_name = server_config.get('docker_name')
         is_expanded = cog_instance.expanded_states.get(docker_name, False)
+
+        # A GROUP IS NOT ON OR OFF (operator, 2026-09-24). A container is, so
+        # its panel offers stop-and-restart OR start. A group has a COUNT, and
+        # at 1/2 all three do something: start the one that is down, stop the
+        # one that is up, restart what is running. So it offers everything it
+        # is allowed, always, and the lamp in its embed says where it stands.
+        #
+        # IT ANSWERS BEFORE THE INFO LOOKUP BELOW. A group has no info text and
+        # no logs; asking made the info service refuse the name and log an
+        # ERROR on every panel build (operator's log, 2026-09-24).
+        if is_group_target(docker_name):
+            if channel_has_control_permission:
+                for action, style, emoji in (
+                        ("start", discord.ButtonStyle.secondary, "▶️"),
+                        ("stop", discord.ButtonStyle.secondary, "⏹️"),
+                        ("restart", discord.ButtonStyle.secondary, "🔄")):
+                    if action in allowed_actions:
+                        self.add_item(ActionButton(cog_instance, server_config, action,
+                                                   style, None, emoji, row=0))
+            return
+
         # Load info from service
         from services.infrastructure.container_info_service import get_container_info_service
         info_service = get_container_info_service()
@@ -1093,27 +1114,6 @@ class ControlView(DDCView):
         config = load_config()
         channel_has_info_permission = self._channel_has_info_permission(
             channel_has_control_permission, config, channel_id)
-        # A GROUP has no info text, no protected text and no logs, and docker
-        # refuses its name outright ("Invalid container name format:
-        # group:Gameserver"). The button opened all three (operator, 2026-09-24).
-        if is_group_target(docker_name):
-            channel_has_info_permission = False
-
-        # A GROUP IS NOT ON OR OFF (operator, 2026-09-24). A container is, so
-        # its panel offers stop-and-restart OR start. A group has a COUNT, and
-        # at 1/2 all three do something: start the one that is down, stop the
-        # one that is up, restart what is running. So it offers everything it
-        # is allowed, always, and the lamp in its embed says where it stands.
-        if is_group_target(docker_name):
-            if channel_has_control_permission:
-                for action, style, emoji in (
-                        ("start", discord.ButtonStyle.secondary, "▶️"),
-                        ("stop", discord.ButtonStyle.secondary, "⏹️"),
-                        ("restart", discord.ButtonStyle.secondary, "🔄")):
-                    if action in allowed_actions:
-                        self.add_item(ActionButton(cog_instance, server_config, action,
-                                                   style, None, emoji, row=0))
-            return
 
         # Add buttons based on state and permissions
         if is_running:

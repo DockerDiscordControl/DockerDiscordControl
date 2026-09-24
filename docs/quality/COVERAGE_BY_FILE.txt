@@ -123,7 +123,7 @@ cogs/overview_embeds.py	1058	v3rev2:1-964
 cogs/slash_commands.py	855	NONE
 cogs/stack_restart.py	320	v3rev:1-196
 cogs/status_handlers.py	1404	passE:E15,E16:80-200,560-700 v3rev2:1-1400
-cogs/status_info_integration.py	1252	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1252
+cogs/status_info_integration.py	1261	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	97	passE:E32:read-in-full

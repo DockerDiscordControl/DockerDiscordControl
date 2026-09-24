@@ -16,6 +16,7 @@ from services.config.config_service import load_config
 from discord.ui import View, Button
 from typing import Dict, Any, Optional, List
 from utils.logging_utils import get_module_logger
+from services.config.group_service import is_group_target
 from services.infrastructure.container_info_service import get_container_info_service
 from utils.time_utils import get_datetime_imports
 
@@ -1158,6 +1159,14 @@ def create_enhanced_status_embed(
 
     # Skip enrichments for Admin Control messages
     if server_config.get('_is_admin_control', False):
+        return original_embed
+
+    # A GROUP HAS NO INFO SECTION. A container's info lives in its own
+    # config/containers/<name>.json; a group has no such file and is not meant
+    # to. Asking anyway made the service refuse the name and write an ERROR to
+    # the log for a thing working exactly as designed (operator's log,
+    # 2026-09-24) - and a log full of those is one nobody reads.
+    if is_group_target(server_config.get('docker_name')):
         return original_embed
 
     try:

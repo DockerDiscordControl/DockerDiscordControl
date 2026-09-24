@@ -63,7 +63,7 @@ cogs/enhanced_info_modal_simple.py:1-694
 cogs/status_handlers.py:1-1404
 
 ## Section 09  (1234 lines, 1 piece)
-cogs/status_info_integration.py:1-1252
+cogs/status_info_integration.py:1-1261
 
 ## Section 10  (1502 lines, 7 pieces)
 cogs/translation_manager.py:1-149
