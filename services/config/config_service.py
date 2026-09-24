@@ -1254,14 +1254,6 @@ def change_web_ui_password(new_password: str, *, enforce_min_length: bool = True
 
 # === Form Parsing Functions (delegated to ConfigFormParserService) ===
 
-def _parse_servers_from_form(form_data: Dict[str, Any]) -> list:
-    """Legacy wrapper: Delegate to ConfigFormParserService."""
-    return ConfigFormParserService.parse_servers_from_form(form_data)
-
-def _parse_channel_permissions_from_form(form_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Legacy wrapper: Delegate to ConfigFormParserService."""
-    return ConfigFormParserService.parse_channel_permissions_from_form(form_data)
-
 def process_config_form(form_data: Dict[str, Any], current_config: Dict[str, Any]) -> Tuple[Dict[str, Any], bool, str]:
     """Legacy wrapper: Delegate to ConfigFormParserService."""
     return ConfigFormParserService.process_config_form(form_data, current_config, get_config_service())

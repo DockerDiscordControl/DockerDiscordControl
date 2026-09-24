@@ -206,25 +206,6 @@ class ChannelLifecycleMixin:
         except Exception as e:
             logger.error(f"Error setting up channel {channel_id}: {e}", exc_info=True)
 
-    async def _clean_sweep_bot_messages(self, channel, reason: str):
-        """Clean sweep: Delete all bot messages in channel using ChannelCleanupService."""
-        try:
-            result = await self.cleanup_service.clean_sweep_bot_messages(
-                channel=channel,
-                reason=reason,
-                message_limit=100
-            )
-
-            if result.success:
-                logger.info(f"✅ CLEAN SWEEP SUCCESS: Cleaned {result.messages_deleted}/{result.messages_found} "
-                           f"bot messages from channel {channel.id} in {result.execution_time_ms:.1f}ms")
-            else:
-                logger.warning(f"⚠️ CLEAN SWEEP PARTIAL: Cleaned {result.messages_deleted}/{result.messages_found} "
-                              f"messages from channel {channel.id} (error: {result.error})")
-
-        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
-            logger.error(f"❌ CLEAN SWEEP FAILED for channel {channel.id}: {e}", exc_info=True)
-
     # Send helpers (remain here as they interact closely with Cog state)
     async def _send_control_panel_and_statuses(self, channel: discord.TextChannel) -> None:
         """Send Admin Overview to control channels."""

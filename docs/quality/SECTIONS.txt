@@ -26,13 +26,16 @@ cogs/control_helpers.py:1-284
 # no longer holds its lines.
 cogs/control_ui.py:1-1832
 
-## Section 03  (1948 lines, 1 piece)
-cogs/control_ui.py:1833-3777
+## Section 03  (1630 lines, 1 piece)
+# 315 lines shorter since 2026-09-24: six private helpers in this half of
+# control_ui.py were called by nothing and were deleted (see
+# tests/spec/test_no_private_helper_is_wired_to_nothing.py).
+cogs/control_ui.py:1833-3462
 
 ## Section 04  (1612 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
 # Step 5 (2026-09-22): channel setup/teardown/regeneration moved to channel_lifecycle.py.
-cogs/channel_lifecycle.py:1-646
+cogs/channel_lifecycle.py:1-627
 cogs/docker_control.py:1-863
 cogs/loop_safety.py:1-103
 
@@ -93,7 +96,7 @@ services/config/config_migration_service.py:1-466
 # neighbours sit, is at 1,920 and had no room either.
 
 ## Section 13  (1920 lines, 6 pieces)
-services/config/config_service.py:1-1267
+services/config/config_service.py:1-1259
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-233
@@ -246,7 +249,7 @@ services/web/i18n_service.py:1-214
 ## Section 30  (1841 lines, 5 pieces)
 services/web/mech_music_service.py:1-224
 services/web/mech_status_details_service.py:1-410
-services/web/mech_web_service.py:1-676
+services/web/mech_web_service.py:1-640
 services/web/performance_stats_service.py:1-181
 services/web/security_service.py:1-350
 

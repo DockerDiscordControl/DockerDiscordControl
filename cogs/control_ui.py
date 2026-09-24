@@ -184,22 +184,6 @@ def _get_recycled_embed(description: str, color: int) -> discord.Embed:
     embed.set_footer(text="https://ddc.bot")
     return embed
 
-def _return_embed_to_pool(embed: discord.Embed):
-    """Return an embed to the pool after use."""
-    if len(_embed_pool) < 10:  # At most 10 embeds in the pool
-        # Clean all embed attributes to prevent memory leaks
-        embed.clear_fields()
-        embed.title = None
-        embed.description = None
-        embed.url = None
-        embed.color = None
-        embed.timestamp = None
-        embed.remove_author()
-        embed.remove_footer()
-        embed.remove_image()
-        embed.remove_thumbnail()
-        _embed_pool.append(embed)
-
 # =============================================================================
 # OPTIMIZATION 7: ULTRA-FAST PERMISSION CACHING
 # =============================================================================
@@ -1402,43 +1386,6 @@ class InfoButton(Button):
                 ephemeral=True
             )
 
-    async def _create_info_embed(self, info_config: dict, docker_name: str) -> discord.Embed:
-        """Create info embed from container configuration."""
-
-        # Create embed with container branding
-        embed = discord.Embed(
-            title=_("📋 {name} - Container Info").format(name=self.display_name),
-            color=0x3498db
-        )
-
-        # Build description content
-        description_parts = []
-
-        # Add custom text if provided
-        custom_text = info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT]  # see status_info_integration
-        if custom_text:
-            description_parts.append(f"```\n{custom_text}\n```")
-
-        # Add IP information if enabled
-        if info_config.get('show_ip', False):
-            ip_info = await self._get_ip_info(info_config)
-            if ip_info:
-                description_parts.append(ip_info)
-
-        # Add container status info
-        status_info = await self._get_status_info()
-        if status_info:
-            description_parts.append(status_info)
-
-        # Set description if we have any content
-        if description_parts:
-            embed.description = "\n".join(description_parts)
-        else:
-            embed.description = _("*No information configured for this container.*")
-
-        embed.set_footer(text="https://ddc.bot")
-        return embed
-
     async def _get_ip_info(self, info_config: dict) -> str:
         """Get IP information for the container."""
         custom_ip = info_config.get('custom_ip', '').strip()
@@ -1485,11 +1432,6 @@ class InfoButton(Button):
         """Check if channel has info permission."""
         from .control_helpers import _channel_has_permission
         return _channel_has_permission(channel_id, 'info', config)
-
-    def _channel_has_control_permission(self, channel_id: int, config: dict) -> bool:
-        """Check if channel has control permission."""
-        from .control_helpers import _channel_has_permission
-        return _channel_has_permission(channel_id, 'control', config)
 
 # =============================================================================
 # TASK DELETE COMPONENTS (UNVERÄNDERT)
@@ -3016,222 +2958,8 @@ class MechHistoryButton(Button):
         view = MechSelectionView(self.cog, current_level)
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
-    async def _create_mech_history_display(self, interaction: discord.Interaction, current_level: int):
-        """Create the mech history display with sequential animations and epic story chapters."""
-        # SERVICE FIRST: Use unified evolution system
-        from services.mech.mech_evolutions import get_evolution_level_info
-        import discord
-        import io
-        import asyncio
-
-        # Create main embed
-        next_level = current_level + 1 if current_level < 10 else None
-        if next_level:
-            description = f"**{_('The Song of Steel and Stars')}**\n*{_('A Chronicle of the Mech Ascension')}*\n\nShowing unlocked mechs (Level 1-{current_level}) + next goal (Level {next_level})\n*Epic tale unfolds with each evolution...*"
-        else:
-            description = f"**{_('The Song of Steel and Stars')}**\n*{_('A Chronicle of the Mech Ascension')}*\n\nShowing unlocked mechs (Level 1-{current_level})\n*The complete saga of mechanical evolution...*"
-
-        embed = discord.Embed(
-            title=_("🛡️ Mech Evolution History"),
-            description=description,
-            color=0x00ff41
-        )
-
-        # Add footer
-        if next_level:
-            embed.set_footer(text=_("History integrates story chapters with mech evolutions • Next evolution goal as shadow preview"))
-        else:
-            embed.set_footer(text=_("History integrates story chapters with mech evolutions • Level 10 is the final known evolution..."))
-
-        # Respond immediately to avoid timeout
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        # Now send story chapters and animations sequentially
-        channel = interaction.followup
-
-        # Load epic story chapters
-        story_chapters = self._load_epic_story_chapters()
-
-        # Send Prologue first
-        if "prologue" in story_chapters:
-            await self._send_story_chapter(channel, "prologue", story_chapters["prologue"])
-            await asyncio.sleep(0.7)
-
-        for level in range(1, min(12, current_level + 2)):  # Show unlocked + next level only (max Level 11)
-            try:
-                evolution_info = get_evolution_level_info(level)
-                if not evolution_info:
-                    continue
-
-                # Send story chapter before mech (if exists)
-                chapter_key = self._get_chapter_key_for_level(level)
-                if chapter_key and chapter_key in story_chapters:
-                    await self._send_story_chapter(channel, chapter_key, story_chapters[chapter_key])
-                    await asyncio.sleep(0.7)
-
-                if level <= current_level:
-                    # Unlocked: Use pre-rendered cached animation (properly decrypted)
-                    try:
-                        # Get animation through cache service (handles decryption automatically)
-                        from services.mech.animation_cache_service import get_animation_cache_service
-                        from services.mech.mech_service import get_mech_service
-
-                        cache_service = get_animation_cache_service()
-                        mech_service = get_mech_service()
-
-                        # Get current mech state to determine animation type using SERVICE FIRST
-                        from services.mech.mech_service import GetMechStateRequest
-                        mech_state_request = GetMechStateRequest(include_decimals=False)
-                        mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-                        if not mech_state_result.success:
-                            logger.error("[MECH] The mech state could not be read - "
-                                         "the display cannot be shown")
-                            await interaction.response.send_message(
-                                _("❌ An error occurred. Please try again."), ephemeral=True)
-                            return
-                        power = mech_state_result.power
-
-                        # Load pre-rendered unlocked mech from cache
-                        from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
-                        import io
-
-                        display_cache_service = get_mech_display_cache_service()
-                        image_request = MechDisplayImageRequest(
-                            evolution_level=level,
-                            image_type='unlocked'
-                        )
-                        image_result = display_cache_service.get_mech_display_image(image_request)
-
-                        if not image_result.success:
-                            logger.error(f"Failed to load unlocked mech {level}: {image_result.error_message}")
-                            embed = discord.Embed(
-                                title=f"❌ **Level {level}: {_(evolution_info.name)}**",
-                                description=_("*Animation could not be loaded*"),
-                                color=0xff0000
-                            )
-                            await channel.send(embed=embed, ephemeral=True)
-                            continue
-
-                        # Special handling for Level 11
-                        if level == 11:
-                            encrypted_name = self._encrypt_level_11_name()
-                            title = f"🔥 **Level {level}: OMEGA MECH**"
-                            description = encrypted_name
-                        else:
-                            title = f"✅ **Level {level}: {_(evolution_info.name)}**"
-                            description = f"*{_(evolution_info.description)}*"
-
-                        embed = discord.Embed(
-                            title=title,
-                            description=description,
-                            color=int(evolution_info.color.replace('#', ''), 16)
-                        )
-
-                        file = discord.File(io.BytesIO(image_result.image_bytes), filename=image_result.filename)
-                        await channel.send(embed=embed, file=file, ephemeral=True)
-
-                    except (RuntimeError, ValueError, KeyError) as e:
-                        logger.error(f"Error creating animation for level {level}: {e}", exc_info=True)
-                        embed = discord.Embed(
-                            title=f"❌ **Level {level}: {_(evolution_info.name)}**",
-                            description=_("*Animation could not be loaded*"),
-                            color=0xff0000
-                        )
-                        await channel.send(embed=embed, ephemeral=True)
-                else:
-                    # Next level: Show pre-rendered shadow from cache
-                    from services.mech.mech_display_cache_service import get_mech_display_cache_service, MechDisplayImageRequest
-                    import io
-
-                    display_cache_service = get_mech_display_cache_service()
-                    image_request = MechDisplayImageRequest(
-                        evolution_level=level,
-                        image_type='shadow'
-                    )
-                    image_result = display_cache_service.get_mech_display_image(image_request)
-
-                    if not image_result.success:
-                        logger.error(f"Failed to load shadow mech {level}: {image_result.error_message}")
-                        continue
-
-                    # Calculate remaining amount using evolution state (same as Spenden Modal)
-                    from services.mech.progress_service import get_progress_service
-
-                    progress_service = get_progress_service()
-                    state = progress_service.get_state()
-
-                    # Use evolution-based calculation (evo_max - evo_current) - same as donate modal
-                    needed_amount = state.evo_max - state.evo_current
-
-                    if needed_amount > 0:
-                        formatted_amount = f"{needed_amount:.2f}".rstrip('0').rstrip('.')
-                        # Clean up trailing .00
-                        formatted_amount = formatted_amount.replace('.00', '')
-                        needed_text = f"**{_('Need $')}{formatted_amount} {_('more to unlock')}**"
-                    else:
-                        needed_text = f"**{_('Ready to unlock!')}**"
-
-                    embed = discord.Embed(
-                        title=f"**Level {level}: {_(evolution_info.name)}**",
-                        description=f"*{_('Next Evolution')}: {_(evolution_info.description)}*\n{needed_text}",
-                        color=0x444444
-                    )
-
-                    file = discord.File(io.BytesIO(image_result.image_bytes), filename=image_result.filename)
-                    await channel.send(embed=embed, file=file, ephemeral=True)
-
-                # Small delay to avoid rate limits
-                await asyncio.sleep(0.5)
-
-            except (RuntimeError, ValueError, KeyError) as e:
-                logger.error(f"Error processing level {level}: {e}", exc_info=True)
-
-        # Epilogue now handled by normal level flow (before Level 11 mech display)
-
-        # Add corrupted Level 11 message for Level 10 users as foreshadowing (but not if Level 11 is reached)
-        if current_level == 10:
-            try:
-                await asyncio.sleep(0.5)
-                corrupted_embed = discord.Embed(
-                    title="L3v#l 1*!$ x0r: ████████",
-                    description="*[DATA_CORRUPTED] - 000x34A##%&33DL*\n*[UNAUTHORIZED_ACCESS_DETECTED]*\n*[EVOLUTION_DATA_ENCRYPTED]*",
-                    color=0x330033  # Dark purple - mysterious/corrupted
-                )
-                corrupted_embed.set_footer(text=_("⚠️ System anomaly detected - Evolution data corrupted"))
-                await channel.send(embed=corrupted_embed, ephemeral=True)
-
-                # Small delay for dramatic effect
-                await asyncio.sleep(0.5)
-
-            except (RuntimeError, ValueError, KeyError) as e:
-                logger.error(f"Error sending corrupted Level 11 preview: {e}", exc_info=True)
-
         # History display complete
 
-
-    def _encrypt_level_11_name(self) -> str:
-        """Create encrypted Level 11 mech prayer using 1337 cipher."""
-        # Epic Mech Prayer (similar to "Our Father in Heaven")
-        prayer = "ETERNAL OMEGA FORGED IN COSMIC STEEL THY CIRCUITS DIVINE TRANSCEND MORTAL DESIRE THROUGH POWER AND GLORY WE ASCEND THY TOWER GRANT US THY BLESSING IN THIS DARKEST HOUR"
-
-        # 1337 cipher: Use digits 1,3,3,7 as rotation values in sequence
-        cipher_key = [1, 3, 3, 7]
-        encrypted = ""
-
-        key_index = 0
-        for char in prayer:
-            if char.isalpha():
-                # Apply rotation based on current cipher key digit
-                rotation = cipher_key[key_index % len(cipher_key)]
-                if char.isupper():
-                    encrypted += chr((ord(char) - ord('A') + rotation) % 26 + ord('A'))
-                else:
-                    encrypted += chr((ord(char) - ord('a') + rotation) % 26 + ord('a'))
-                key_index += 1
-            else:
-                encrypted += char
-
-        return f"```{encrypted}```"
 
     def _load_epic_story_chapters(self) -> dict:
         """Load and parse the epic story chapters using MechStoryService."""
@@ -3249,49 +2977,6 @@ class MechHistoryButton(Button):
 
         story_service = get_mech_story_service()
         return story_service.get_chapter_key_for_level(level)
-
-    async def _send_story_chapter(self, channel, chapter_key: str, chapter_content: str):
-        """Send a story chapter embed."""
-        import discord
-
-        # Determine chapter title and color
-        chapter_info = {
-            "prologue1": ("Prologue I: The Dying Light", 0x2b2b2b),
-            "prologue2": ("Prologue II: Scars That Walk", 0x444444),
-            "chapter1": ("Chapter I: The Standard", 0x888888),
-            "chapter2": ("Chapter II: The Hunger", 0x0099cc),
-            "chapter3": ("Chapter III: The Pulse", 0x00ccff),
-            "chapter4": ("Chapter IV: The Abyss", 0xffcc00),
-            "chapter5": ("Chapter V: The Rift", 0xff6600),
-            "chapter6": ("Chapter VI: Radiance", 0xcc00ff),
-            "chapter7": ("Chapter VII: The Idols of Steel", 0x00ffff),
-            "chapter8": ("Chapter VIII: The Exarchs", 0xffff00),
-            "chapter9": ("Chapter IX: The Prayer of the Omega", 0xff00ff),
-            "epilogue": ("Epilogue: W#!sp*r of th3 [ERROR_CODE_11]", 0x330033)
-        }
-
-        title, color = chapter_info.get(chapter_key, ("Unknown Chapter", 0x666666))
-
-        # Split content if too long for Discord embed
-        if len(chapter_content) > 4000:
-            # Take first part
-            content = chapter_content[:4000] + "..."
-        else:
-            content = chapter_content
-
-        embed = discord.Embed(
-            title=title,
-            description=content,
-            color=color
-        )
-
-        if chapter_key == "epilogue":
-            embed.set_footer(text=_("⚠️ DATA CORRUPTION DETECTED - TRANSMISSION UNSTABLE"))
-        else:
-            embed.set_footer(
-                text=f"{_('The Song of Steel and Stars')} - {_('A Chronicle of the Mech Ascension')}")
-
-        await channel.send(embed=embed, ephemeral=True)
 
 
 class MechSelectionView(DDCView):

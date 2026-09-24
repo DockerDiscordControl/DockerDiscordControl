@@ -366,42 +366,6 @@ class MechWebService:
             self.logger.debug(f"Could not get power bar maximum: {e}")
         return None
 
-    def _create_donation_animation(self, total_donations: float, donor_name: str, amount: str) -> Optional[bytes]:
-        """Create donation animation using internal methods (no circular deps)."""
-        try:
-            from services.mech.mech_data_store import get_mech_data_store, PowerDataRequest
-
-            data_store = get_mech_data_store()
-
-            # MECHDATASTORE: Get power info with decimals for proper animation
-            power_request = PowerDataRequest(include_decimals=True)
-            power_result = data_store.get_power_info(power_request)
-
-            if not power_result.success:
-                self.logger.error("Failed to get power info from MechDataStore for animation")
-                return None
-
-            # Get current Power and total donated for proper animation
-            current_power = power_result.current_power
-            total_donated = power_result.total_donated or total_donations
-
-            # DIRECT CALL: Use self.get_live_animation instead of circular PngToWebpService
-            request = MechAnimationRequest(
-                force_power=total_donated,  # Use donation amount as power context
-                resolution="small"
-            )
-            
-            result = self.get_live_animation(request)
-
-            if result.success:
-                return result.animation_bytes
-            return None
-
-        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
-            # Service/data errors (missing services, invalid types, missing attributes/keys)
-            self.logger.error(f"Service error creating donation animation: {e}", exc_info=True)
-            return None
-
     def _create_fallback_animation(self, total_donations: float) -> MechAnimationResult:
         """Create fallback static image when animation fails."""
         try:
