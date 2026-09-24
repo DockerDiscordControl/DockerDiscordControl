@@ -37,6 +37,11 @@ ISSUER = "DockerDiscordControl"
 # Paths the second factor never stands in front of: the code page itself, what
 # it needs to render, the container healthcheck and the first-time setup.
 EXEMPT_PREFIXES = ("/static/", "/security/2fa/verify", "/health", "/setup", "/logout",
+                   # The way out needs no passed second factor: it exists for
+                   # somebody who cannot pass one - the authenticator is gone,
+                   # or TLS was switched off. It still takes the panel password
+                   # and a current code (PLAIN_HTTP_WAY_OUT below).
+                   "/security/2fa/disable",
                    # The password comes first; sending an unauthenticated
                    # browser to the code page instead of the form leaves it
                    # with nothing to type.
@@ -68,6 +73,22 @@ def _safe_next(target: str) -> str:
 # browser needs to render the page that says why.
 ALWAYS_PLAIN = ("/static/", "/health")
 
+# THE WAY OUT IS REACHABLE WITHOUT TLS. Once the second factor is on, DDC
+# answers only over HTTPS - and whoever switches TLS off afterwards would be
+# locked into a factor he can no longer confirm, with no way to switch it off
+# either. The route said so in a comment of its own since it was written; the
+# gate below refused it first, so the promise was never kept (operator,
+# 2026-09-25: "2FA must always be optional").
+#
+# It is NOT in ALWAYS_PLAIN: that returns before the state file is read, and an
+# unreadable state file must still close everything - refusing to guess whether
+# the factor is on is a separate promise, and an older one. This exemption
+# skips the HTTPS requirement and nothing else.
+#
+# It still takes the panel password AND a current code, so it opens nothing -
+# it only keeps the door out of a room whose lock is out of reach.
+PLAIN_HTTP_WAY_OUT = "/security/2fa/disable"
+
 
 def _require_second_factor():
     if request.path.startswith(ALWAYS_PLAIN):
@@ -83,7 +104,7 @@ def _require_second_factor():
         # behind a TLS-terminating proxy (DDC_TLS_MODE=off, the default) handed
         # that cookie out over the plain port as well, and took codes there too.
         current_app.config["SESSION_COOKIE_SECURE"] = True
-        if not request.is_secure:
+        if not request.is_secure and not request.path.startswith(PLAIN_HTTP_WAY_OUT):
             return Response(
                 "Two-factor authentication is on, so DDC answers only over HTTPS.\n"
                 "Open the panel through your reverse proxy, or set DDC_TLS_MODE.\n",
