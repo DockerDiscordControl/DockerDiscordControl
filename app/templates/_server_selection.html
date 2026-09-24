@@ -266,18 +266,20 @@
 
                     {# IP and Port Settings - Top Row #}
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <div class="mb-2">
                                 <label for="modal-info-custom-ip" class="form-label">{{ _t('web.server.custom_ip_label') }}</label>
-                                <input type="text" class="form-control" name="info_custom_ip" id="modal-info-custom-ip" placeholder="{{ _t('web.server.custom_ip_placeholder') }}">
                                 <div class="form-text">{{ _t('web.server.custom_ip_help') }}</div>
+                                <input type="text" class="form-control mt-auto" name="info_custom_ip" id="modal-info-custom-ip" placeholder="{{ _t('web.server.custom_ip_placeholder') }}">
+
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <div class="mb-2">
                                 <label for="modal-info-custom-port" class="form-label">{{ _t('web.server.custom_port_label') }}</label>
-                                <input type="text" class="form-control" name="info_custom_port" id="modal-info-custom-port" placeholder="{{ _t('web.server.custom_port_placeholder') }}">
                                 <div class="form-text">{{ _t('web.server.custom_port_help') }}</div>
+                                <input type="text" class="form-control mt-auto" name="info_custom_port" id="modal-info-custom-port" placeholder="{{ _t('web.server.custom_port_placeholder') }}">
+
                             </div>
                         </div>
                     </div>
@@ -318,17 +320,18 @@
                         <h6 class="mb-1">{{ _t('web.server.query_section_title') }}</h6>
                         <div class="form-text mb-3">{{ _t('web.server.query_section_help') }}</div>
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <div class="mb-2">
                                     <label for="modal-query-protocol" class="form-label">{{ _t('web.server.query_protocol') }}</label>
                                     {# no name= : edited via JS by id and round-tripped into the hidden query_protocol_<name>; a bare name would leak into top-level config.json #}
-                                    <select class="form-select" id="modal-query-protocol">
+                                    <div class="form-text">{{ _t('web.server.query_protocol_help') }}</div>
+                                    <select class="form-select mt-auto" id="modal-query-protocol">
                                         <option value="source">Source / A2S</option>
                                         <option value="minecraft">Minecraft</option>
                                         <option value="satisfactory">Satisfactory</option>
                                         <option value="palworld">Palworld</option>
                                     </select>
-                                    <div class="form-text">{{ _t('web.server.query_protocol_help') }}</div>
+
                                 </div>
                             </div>
                             <div class="col-md-4 d-flex flex-column">

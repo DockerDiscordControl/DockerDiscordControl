@@ -82,23 +82,26 @@
                     <div class="tab-pane fade" id="aas-settings-view" role="tabpanel">
                         <form id="aasGlobalSettingsForm">
                             <div class="row g-3">
-                                <div class="col-md-6">
+                                <div class="col-md-6 d-flex flex-column">
                                     <label class="form-label">{{ _t('web.aas.global_cooldown_label') }}</label>
-                                    <input type="number" class="form-control" id="aasGlobalCooldown" min="0" value="30">
                                     <div class="form-text">{{ _t('web.aas.global_cooldown_hint') }}</div>
+                                    <input type="number" class="form-control mt-auto" id="aasGlobalCooldown" min="0" value="30">
+
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6 d-flex flex-column">
                                     <label class="form-label">{{ _t('web.aas.audit_channel_label') }}</label>
-                                    <select class="form-select" id="aasAuditChannelSelect">
+                                    <div class="form-text">{{ _t('web.aas.audit_channel_hint') }}</div>
+                                    <select class="form-select mt-auto" id="aasAuditChannelSelect">
                                         <option value="">{{ _t('web.aas.none') }}</option>
                                         <!-- Options loaded via JS -->
                                     </select>
-                                    <div class="form-text">{{ _t('web.aas.audit_channel_hint') }}</div>
+
                                 </div>
-                                <div class="col-12">
+                                <div class="col-12 d-flex flex-column">
                                     <label class="form-label">{{ _t('web.aas.protected_containers_label') }}</label>
-                                    <input type="text" class="form-control" id="aasProtectedContainers" value="ddc,portainer">
                                     <div class="form-text">{{ _t('web.aas.protected_containers_hint') }}</div>
+                                    <input type="text" class="form-control mt-auto" id="aasProtectedContainers" value="ddc,portainer">
+
                                 </div>
                                 <div class="col-12 mt-4">
                                     <button type="button" class="btn btn-success" onclick="saveAASGlobalSettings()">
@@ -129,14 +132,15 @@
                     <!-- Section: Basic Info -->
                     <h6 class="border-bottom pb-2 mb-3 text-primary">1. {{ _t('web.aas.section_basic') }}</h6>
                     <div class="row g-3 mb-4">
-                        <div class="col-md-8">
+                        <div class="col-md-8 d-flex flex-column">
                             <label class="form-label fw-bold">{{ _t('web.aas.rule_name') }}</label>
-                            <input type="text" class="form-control" id="aasRuleName" placeholder="{{ _t('web.aas.rule_name_placeholder') }}" required>
+                            <input type="text" class="form-control mt-auto" id="aasRuleName" placeholder="{{ _t('web.aas.rule_name_placeholder') }}" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 d-flex flex-column">
                             <label class="form-label">{{ _t('web.aas.priority') }}</label>
-                            <input type="number" class="form-control" id="aasRulePriority" value="10" min="1" max="100">
                             <div class="form-text">{{ _t('web.aas.priority_hint') }}</div>
+                            <input type="number" class="form-control mt-auto" id="aasRulePriority" value="10" min="1" max="100">
+
                         </div>
                     </div>
 
@@ -211,7 +215,7 @@
                     </div>
                     <div id="aasMessageTriggerFields">
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <label class="form-label fw-bold">
                                 {{ _t('web.aas.monitored_channels') }}
                                 <i class="bi bi-info-circle text-info ms-1"
@@ -219,10 +223,11 @@
                                    data-bs-placement="top"
                                    title="{{ _t('web.aas.monitored_channels_tooltip') }}" tabindex="0" role="button"></i>
                             </label>
-                            <input type="text" class="form-control" id="aasRuleChannelIds" placeholder="{{ _t('web.aas.channel_id_placeholder') }}" required>
                             <div class="form-text">{{ _t('web.aas.channel_ids_hint') }}</div>
+                            <input type="text" class="form-control mt-auto" id="aasRuleChannelIds" placeholder="{{ _t('web.aas.channel_id_placeholder') }}" required>
+
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <label class="form-label">
                                 {{ _t('web.aas.allowed_users') }}
                                 <i class="bi bi-info-circle text-info ms-1"
@@ -230,11 +235,12 @@
                                    data-bs-placement="top"
                                    title="{{ _t('web.aas.allowed_users_tooltip') }}" tabindex="0" role="button"></i>
                             </label>
-                            <input type="text" class="form-control" id="aasRuleUsers" placeholder="{{ _t('web.aas.allowed_users_placeholder') }}">
                             <div class="form-text">{{ _t('web.aas.allowed_users_hint') }}</div>
+                            <input type="text" class="form-control mt-auto" id="aasRuleUsers" placeholder="{{ _t('web.aas.allowed_users_placeholder') }}">
+
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <label class="form-label fw-bold">
                                 {{ _t('web.aas.required_keywords') }}
                                 <i class="bi bi-info-circle text-info ms-1"
@@ -244,17 +250,19 @@
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-key"></i></span>
-                                <input type="text" class="form-control" id="aasRuleRequiredKeywords" placeholder="{{ _t('web.aas.required_keywords_placeholder') }}">
-                            </div>
                             <div class="form-text">{{ _t('web.aas.required_keywords_hint') }}</div>
+                                <input type="text" class="form-control mt-auto" id="aasRuleRequiredKeywords" placeholder="{{ _t('web.aas.required_keywords_placeholder') }}">
+
+                            </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <label class="form-label fw-bold">{{ _t('web.aas.trigger_keywords') }}</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-tags"></i></span>
-                                <input type="text" class="form-control" id="aasRuleKeywords" placeholder="{{ _t('web.aas.trigger_keywords_placeholder') }}">
-                            </div>
                             <div class="form-text">{{ _t('web.aas.trigger_keywords_hint') }}</div>
+                                <input type="text" class="form-control mt-auto" id="aasRuleKeywords" placeholder="{{ _t('web.aas.trigger_keywords_placeholder') }}">
+
+                            </div>
                         </div>
 
                         <div class="col-md-12">
@@ -264,9 +272,9 @@
                             <div class="collapse mt-2" id="aasAdvancedTrigger">
                                 <div class="card card-body bg-secondary">
                                     <div class="row g-2">
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 d-flex flex-column">
                                             <label class="form-label">{{ _t('web.aas.match_mode') }}</label>
-                                            <select class="form-select" id="aasRuleMatchMode">
+                                            <select class="form-select mt-auto" id="aasRuleMatchMode">
                                                 <option value="any">{{ _t('web.aas.match_any') }}</option>
                                                 <option value="all">{{ _t('web.aas.match_all') }}</option>
                                             </select>
@@ -303,9 +311,9 @@
                     <!-- Section: Action -->
                     <h6 class="border-bottom pb-2 mb-3 text-primary">3. {{ _t('web.aas.section_action') }}</h6>
                     <div class="row g-3 mb-4">
-                        <div class="col-md-4">
+                        <div class="col-md-4 d-flex flex-column">
                             <label class="form-label fw-bold">{{ _t('web.aas.action_type') }}</label>
-                            <select class="form-select" id="aasRuleActionType">
+                            <select class="form-select mt-auto" id="aasRuleActionType">
                                 <option value="RESTART">{{ _t('web.aas.action_restart') }}</option>
                                 <option value="STOP">{{ _t('web.aas.action_stop') }}</option>
                                 <option value="START">{{ _t('web.aas.action_start') }}</option>
@@ -321,7 +329,7 @@
                             <div class="form-text">{{ _t('web.aas.target_containers_hint') }}</div>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 d-flex flex-column">
                             <label class="form-label">
                                 {{ _t('web.aas.delay') }}
                                 <i class="bi bi-info-circle text-info ms-1"
@@ -329,7 +337,7 @@
                                    data-bs-placement="top"
                                    title="{{ _t('web.aas.delay_tooltip') }}" tabindex="0" role="button"></i>
                             </label>
-                            <input type="number" class="form-control" id="aasRuleDelay" value="0" min="0">
+                            <input type="number" class="form-control mt-auto" id="aasRuleDelay" value="0" min="0">
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">{{ _t('web.aas.feedback_channels') }}</label>

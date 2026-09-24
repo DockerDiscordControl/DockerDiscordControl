@@ -3,32 +3,35 @@
     <h4 class="mt-2"><i class="bi bi-globe2"></i> {{ _t('web.lang.title') }}</h4>
     <p class="form-text">{{ _t('web.lang.description') }}</p>
     <div class="row">
-        <div class="col-md-4 mb-3">
+        <div class="col-md-4 mb-3 d-flex flex-column">
             <label for="ui_language" class="form-label">{{ _t('web.lang.ui_language_label') }}</label>
-            <select class="form-select" id="ui_language" name="ui_language" data-immediate-effect="true" onchange="switchUiLanguage(this.value)">
+            <div class="form-text">{{ _t('web.lang.ui_language_help') }} <strong>{{ _t('web.lang.immediate_effect') }}</strong></div>
+            <select class="form-select mt-auto" id="ui_language" name="ui_language" data-immediate-effect="true" onchange="switchUiLanguage(this.value)">
                 {% for lang in available_languages %}
                     <option value="{{ lang.code }}" {% if ui_language == lang.code %}selected{% endif %}>{{ lang.native }} ({{ lang.name }})</option>
                 {% endfor %}
             </select>
-            <div class="form-text">{{ _t('web.lang.ui_language_help') }} <strong>{{ _t('web.lang.immediate_effect') }}</strong></div>
+
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-4 mb-3 d-flex flex-column">
             <label for="language" class="form-label">{{ _t('web.lang.bot_language_label') }}</label>
-            <select class="form-select" id="language" name="language" data-immediate-effect="true">
+            <div class="form-text">{{ _t('web.lang.bot_language_help') }} <strong>{{ _t('web.lang.immediate_effect') }}</strong></div>
+            <select class="form-select mt-auto" id="language" name="language" data-immediate-effect="true">
                 {% for lang in available_languages %}
                     <option value="{{ lang.code }}" {% if config.language == lang.code %}selected{% endif %}>{{ lang.native }} ({{ lang.name }})</option>
                 {% endfor %}
             </select>
-            <div class="form-text">{{ _t('web.lang.bot_language_help') }} <strong>{{ _t('web.lang.immediate_effect') }}</strong></div>
+
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-4 mb-3 d-flex flex-column">
             <label for="timezone" class="form-label">{{ _t('web.lang.timezone_label') }}</label>
-            <select class="form-select" id="timezone" name="timezone" data-immediate-effect="true">
+            <div class="form-text">{{ _t('web.lang.timezone_help') }} <strong>{{ _t('web.lang.immediate_effect') }}</strong></div>
+            <select class="form-select mt-auto" id="timezone" name="timezone" data-immediate-effect="true">
                 {% for tz in common_timezones %}
                     <option value="{{ tz }}" {% if config.timezone == tz %}selected{% endif %}>{{ tz }}</option>
                 {% endfor %}
             </select>
-            <div class="form-text">{{ _t('web.lang.timezone_help') }} <strong>{{ _t('web.lang.immediate_effect') }}</strong></div>
+
         </div>
     </div>
 
@@ -58,9 +61,9 @@
             <div class="card bg-secondary bg-opacity-25 p-3 mb-3">
                 <h6 class="mb-3 text-light"><i class="bi bi-key"></i> {{ _t('web.lang.translation_provider_title') }}</h6>
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-4 d-flex flex-column">
                         <label class="form-label text-light">{{ _t('web.lang.provider_label') }}</label>
-                        <select class="form-select" id="ctProvider">
+                        <select class="form-select mt-auto" id="ctProvider">
                             <option value="deepl">DeepL</option>
                             <option value="google">Google Translate</option>
                             <option value="microsoft">Microsoft Translator</option>
@@ -75,9 +78,9 @@
                             </button>
                         </div>
                     </div>
-                    <div class="col-md-4" id="ctDeeplUrlGroup">
+                    <div class="col-md-4 d-flex flex-column" id="ctDeeplUrlGroup">
                         <label class="form-label text-light">{{ _t('web.lang.deepl_tier_label') }}</label>
-                        <select class="form-select" id="ctDeeplUrl">
+                        <select class="form-select mt-auto" id="ctDeeplUrl">
                             <option value="https://api-free.deepl.com/v2/translate">{{ _t('web.lang.deepl_free') }}</option>
                             <option value="https://api.deepl.com/v2/translate">{{ _t('web.lang.deepl_pro') }}</option>
                         </select>

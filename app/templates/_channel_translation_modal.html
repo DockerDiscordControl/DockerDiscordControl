@@ -18,31 +18,33 @@
 
                     <div class="row g-3">
                         <!-- Source Channel -->
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <label class="form-label">{{ _t('web.ct.source_channel_id') }}</label>
-                            <input type="text" class="form-control" id="ctSourceChannelId" placeholder="{{ _t('web.ct.discord_channel_id_placeholder') }}" required>
                             <div class="form-text">{{ _t('web.ct.source_channel_hint') }}</div>
+                            <input type="text" class="form-control mt-auto" id="ctSourceChannelId" placeholder="{{ _t('web.ct.discord_channel_id_placeholder') }}" required>
+
                         </div>
 
                         <!-- Target Channel -->
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <label class="form-label">{{ _t('web.ct.target_channel_id') }}</label>
-                            <input type="text" class="form-control" id="ctTargetChannelId" placeholder="{{ _t('web.ct.discord_channel_id_placeholder') }}" required>
                             <div class="form-text">{{ _t('web.ct.target_channel_hint') }}</div>
+                            <input type="text" class="form-control mt-auto" id="ctTargetChannelId" placeholder="{{ _t('web.ct.discord_channel_id_placeholder') }}" required>
+
                         </div>
 
                         <!-- Target Language -->
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <label class="form-label">{{ _t('web.ct.target_language') }}</label>
-                            <select class="form-select" id="ctTargetLanguage">
+                            <select class="form-select mt-auto" id="ctTargetLanguage">
                                 <!-- Populated by JS -->
                             </select>
                         </div>
 
                         <!-- Source Language -->
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-flex flex-column">
                             <label class="form-label">{{ _t('web.ct.source_language') }}</label>
-                            <select class="form-select" id="ctSourceLanguage">
+                            <select class="form-select mt-auto" id="ctSourceLanguage">
                                 <option value="">{{ _t('web.ct.auto_detect') }}</option>
                                 <!-- Additional options populated by JS -->
                             </select>

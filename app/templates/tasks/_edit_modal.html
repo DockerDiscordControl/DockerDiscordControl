@@ -27,9 +27,9 @@
                     <div class="field-group">
                         <div class="field-group-title">{{ _t('web.tasks.basic_settings') }}</div>
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-6 d-flex flex-column">
                                 <label for="editTaskContainer" class="form-label">{{ _t('web.tasks.col_container') }}</label>
-                                <select class="form-select" id="editTaskContainer" name="container" required>
+                                <select class="form-select mt-auto" id="editTaskContainer" name="container" required>
                                     <option selected disabled value="">{{ _t('web.tasks.select_container') }}</option>
                                     {% if active_containers %}
                                         {% for container_name in active_containers %}
@@ -46,9 +46,9 @@
                                     <optgroup id="edit-target-group" label="{{ _t('web.groups.title') }}" hidden></optgroup>
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6 d-flex flex-column">
                                 <label for="editTaskAction" class="form-label">{{ _t('web.tasks.col_action') }}</label>
-                                <select class="form-select" id="editTaskAction" name="action" required>
+                                <select class="form-select mt-auto" id="editTaskAction" name="action" required>
                                     <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
                                     <option value="start">{{ _t('web.tasks.action_start') }}</option>
                                     <option value="stop">{{ _t('web.tasks.action_stop') }}</option>
@@ -61,9 +61,9 @@
                     <div class="field-group">
                         <div class="field-group-title">{{ _t('web.tasks.schedule_config') }}</div>
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <label for="editTaskCycle" class="form-label">{{ _t('web.tasks.col_cycle') }}</label>
-                                <select class="form-select" id="editTaskCycle" name="cycle" required>
+                                <select class="form-select mt-auto" id="editTaskCycle" name="cycle" required>
                                     <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
                                     <option value="once">{{ _t('web.tasks.cycle_once') }}</option>
                                     <option value="daily">{{ _t('web.tasks.cycle_daily') }}</option>
@@ -73,9 +73,9 @@
                                     <option value="cron">{{ _t('web.tasks.cycle_cron') }}</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4 d-flex flex-column">
                                 <label for="editTaskTime" class="form-label">{{ _t('web.tasks.time_label') }}</label>
-                                <input type="time" class="form-control" id="editTaskTime" name="time" required>
+                                <input type="time" class="form-control mt-auto" id="editTaskTime" name="time" required>
                             </div>
                             <div class="col-md-4" id="editDateFieldsContainer">
                                 <label class="form-label">{{ _t('web.tasks.date_label') }}</label>
@@ -100,10 +100,11 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-12" id="editTaskCronStringRow" style="display: none;">
+                            <div class="col-md-12 d-flex flex-column" id="editTaskCronStringRow" style="display: none;">
                                 <label for="editTaskCronString" class="form-label">{{ _t('web.tasks.cron_string_label') }}</label>
-                                <input type="text" class="form-control" id="editTaskCronString" name="cron_string" placeholder="0 0 * * *">
                                 <div class="form-text">{{ _t('web.tasks.cron_format_help') }}</div>
+                                <input type="text" class="form-control mt-auto" id="editTaskCronString" name="cron_string" placeholder="0 0 * * *">
+
                             </div>
                         </div>
                     </div>

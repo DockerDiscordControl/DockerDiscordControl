@@ -4,9 +4,10 @@
 <!-- Task Add Form - Removed outer border/padding -->
 <div id="taskFormContainer">
     <div class="row g-3">
-        <div class="col-md-6">
+        <div class="col-md-6 d-flex flex-column">
             <label for="taskContainer" class="form-label">{{ _t('web.tasks.col_container') }}</label>
-            <select class="form-select" id="taskContainer" name="container" required>
+            <div class="form-text">{{ _t('web.tasks.container_help') }}</div>
+            <select class="form-select mt-auto" id="taskContainer" name="container" required>
                 <option selected disabled value="">{{ _t('web.tasks.select_container') }}</option>
                 {% if active_containers %}
                     {% for container_name in active_containers %}
@@ -21,22 +22,24 @@
                    kind it is, and data-group tells the form. #}
                 <optgroup id="task-target-group" label="{{ _t('web.groups.title') }}" hidden></optgroup>
             </select>
-            <div class="form-text">{{ _t('web.tasks.container_help') }}</div>
+
         </div>
-        <div class="col-md-6">
+        <div class="col-md-6 d-flex flex-column">
             <label for="taskAction" class="form-label">{{ _t('web.tasks.col_action') }}</label>
-            <select class="form-select" id="taskAction" name="action" required>
+            <div class="form-text">{{ _t('web.tasks.action_help') }}</div>
+            <select class="form-select mt-auto" id="taskAction" name="action" required>
                 <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
                 <option value="start">{{ _t('web.tasks.action_start') }}</option>
                 <option value="stop">{{ _t('web.tasks.action_stop') }}</option>
                 <option value="restart">{{ _t('web.tasks.action_restart') }}</option>
                 <!-- Add more actions here -->
             </select>
-            <div class="form-text">{{ _t('web.tasks.action_help') }}</div>
+
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 d-flex flex-column">
             <label for="taskCycle" class="form-label">{{ _t('web.tasks.col_cycle') }}</label>
-            <select class="form-select" id="taskCycle" name="cycle" required>
+            <div class="form-text">{{ _t('web.tasks.cycle_help') }}</div>
+            <select class="form-select mt-auto" id="taskCycle" name="cycle" required>
                 <option selected disabled value="">{{ _t('web.tasks.please_select') }}</option>
                 <option value="once">{{ _t('web.tasks.cycle_once') }}</option>
                 <option value="daily">{{ _t('web.tasks.cycle_daily') }}</option>
@@ -45,12 +48,13 @@
                 <option value="yearly">{{ _t('web.tasks.cycle_yearly') }}</option>
                 <option value="cron">{{ _t('web.tasks.cycle_cron') }}</option>
             </select>
-            <div class="form-text">{{ _t('web.tasks.cycle_help') }}</div>
+
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 d-flex flex-column">
             <label for="taskTime" class="form-label">{{ _t('web.tasks.time_label') }} <span class="text-info">{{ timezone_name }}</span></label>
-            <input type="time" class="form-control" id="taskTime" name="time" required>
             <div class="form-text">{{ _t('web.tasks.time_help') }} {{ timezone_str }}</div>
+            <input type="time" class="form-control mt-auto" id="taskTime" name="time" required>
+
         </div>
         
         <!-- Date fields in one row -->
@@ -79,10 +83,11 @@
             <div class="form-text">{{ _t('web.tasks.date_help') }}</div>
         </div>
         
-        <div class="col-md-12" id="taskCronStringRow" style="display: none;">
+        <div class="col-md-12 d-flex flex-column" id="taskCronStringRow" style="display: none;">
             <label for="taskCronString" class="form-label">{{ _t('web.tasks.cron_string_label') }}</label>
-            <input type="text" class="form-control" id="taskCronString" name="cron_string">
             <div class="form-text">{{ _t('web.tasks.cron_string_help') }}</div>
+            <input type="text" class="form-control mt-auto" id="taskCronString" name="cron_string">
+
         </div>
         
         <!-- Hidden field for server-side timezone -->

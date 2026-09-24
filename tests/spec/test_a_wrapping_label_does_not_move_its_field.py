@@ -89,10 +89,23 @@ def _control_is_last(inner):
 
     A hint line under the field changes the shape: holding the input at the
     bottom would take the hint down with it.
+
+    A CONTROL'S OWN CONTENT IS NOT "AFTER" IT. The first version of this read
+    from the end of the control's OPENING tag, so a <select> was followed by
+    its own <option>s and its own </select> - and every dropdown in the panel
+    was quietly judged "not last" and skipped. Seventeen columns, found only
+    when the operator asked whether the other dialogs had been checked too
+    (2026-09-24). A scanner that silently sees less than it claims is the
+    defect this whole suite is built against, and it was in the suite.
     """
     control = list(CONTROL.finditer(inner))[-1]
-    after = inner[control.end():]
-    after = re.sub(r"<(/?)(input|br|hr|img)\b[^>]*>", "", after, flags=re.I)
+    tag = control.group(1).lower()
+    if tag in ("select", "textarea"):
+        closing = inner.lower().find(f"</{tag}>", control.end())
+        end = closing + len(tag) + 3 if closing != -1 else control.end()
+    else:
+        end = inner.find(">", control.end()) + 1 or control.end()
+    after = re.sub(r"<(/?)(input|br|hr|img)\b[^>]*>", "", inner[end:], flags=re.I)
     return not re.search(r"<\w+", after)
 
 
@@ -153,6 +166,29 @@ def test_the_sweep_still_finds_the_row_it_was_written_for():
     assert len(found) >= 3, f"only {len(found)} columns of this shape found"
     assert any(name == "_auth_settings.html" for name, _ in found), (
         "the row the finding was written about is not in the sweep any more")
+
+
+def test_the_sweep_sees_dropdowns_too():
+    """FOUND BY SABOTAGE (2026-09-24), and it is the sharpest case here.
+
+    _control_is_last used to read from the end of the control's OPENING tag, so
+    a <select> was followed by its own <option>s and its own </select>. Every
+    dropdown in the panel was quietly judged "not last" and skipped -
+    seventeen columns, found only because the operator asked whether the other
+    dialogs had been checked too.
+
+    Restoring that blindness made NOTHING fail: the columns were already
+    fixed, so the sweep simply saw fewer of them and demanded less. A rule that
+    can silently see less than it claims is the defect this suite exists to
+    catch, so the sweep's reach is pinned here rather than only its verdict.
+    """
+    found = list(_shaped_columns())
+    with_a_dropdown = [name for name, _classes, inner in found if "<select" in inner]
+
+    assert len(found) >= 100, f"the sweep reaches only {len(found)} columns"
+    assert len(with_a_dropdown) >= 5, (
+        f"only {len(with_a_dropdown)} dropdown columns are seen - the scanner is "
+        "counting a <select>'s own options as content after it again")
 
 
 def test_every_such_column_lays_its_content_out_as_a_column():
