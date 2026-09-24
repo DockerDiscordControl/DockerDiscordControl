@@ -46,7 +46,7 @@ GROUP_TEXTS = (
     "all of its containers are running",
     "some are running",
     "none is running",
-    "Choose one in the Admin panel to control it as one",
+    "Pick one in the Admin panel to control all its containers at once",
 )
 
 

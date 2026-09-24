@@ -139,7 +139,7 @@ def group_help_field():
         f"🟢 {_('all of its containers are running')}"
         f" · 🟡 {_('some are running')}"
         f" · 🔴 {_('none is running')}\n"
-        f"{_('Choose one in the Admin panel to control it as one')}"
+        f"{_('Pick one in the Admin panel to control all its containers at once')}"
         "\n\u200b")
 
 
