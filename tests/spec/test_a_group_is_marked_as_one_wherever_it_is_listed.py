@@ -159,3 +159,73 @@ def test_the_option_carries_it(world):
     marked = by_value["group:Icaruse"]
 
     assert marked.emoji is not None, "the group option carries no indicator"
+
+
+# --- the spacing in the admin overview -------------------------------------
+# THE OPERATOR, once the pipes were gone: the group section stands closer
+# together than everything above it. It did - the whole block was appended as
+# ONE entry, so the separator the view puts between container lines never got
+# between the heading and the group under it.
+
+def _admin_description(servers, entries):
+    """The admin overview's description, rendered the way the view builds it."""
+    import asyncio
+    from datetime import datetime, timezone
+    from unittest.mock import MagicMock, patch
+
+    from cogs.docker_control import DockerControlCog
+
+    cog = object.__new__(DockerControlCog)
+    cog.status_cache_service = SimpleNamespace(get=entries.get)
+    cog._status_update_semaphore = asyncio.Semaphore(1)
+    cog._last_status_cache_refresh = 0.0
+    cog._status_fetch_failed = set()
+    cog.pending_actions = {}
+    info_service = MagicMock()
+    info_service.get_container_info.return_value = SimpleNamespace(success=False, data=None)
+    with patch("cogs.overview_embeds.load_config", return_value={}), \
+         patch("services.infrastructure.container_info_service.get_container_info_service",
+               return_value=info_service):
+        embed, _file, _running = asyncio.run(cog._create_admin_overview_embed(servers, {}))
+    return embed.description
+
+
+def _world_entries():
+    from datetime import datetime, timezone
+
+    from services.docker_status.models import ContainerStatusResult
+
+    return {name: {"data": ContainerStatusResult.success_result(
+        docker_name=name, display_name=name, is_running=True, cpu="1%", ram="1024 MB",
+        uptime="1h", details_allowed=True), "timestamp": datetime.now(timezone.utc)}
+        for name in ("Icarus", "Icarus2")}
+
+
+def test_the_group_section_is_spaced_like_the_containers(world):
+    """THE COMPLAINT: it stood closer together than everything above it."""
+    servers = [{"docker_name": name, "name": name, "display_name": name,
+                "allowed_actions": ["restart"]} for name in ("Icarus", "Icarus2")]
+    description = _admin_description(servers, _world_entries())
+
+    separator = "\nㅤ\n"
+    assert separator in description, "the view stopped separating its lines"
+    blocks = description.split(separator)
+    heading = [block for block in blocks if "Container groups" in block]
+
+    assert heading, f"the heading is not a block of its own: {description!r}"
+    assert "Icaruse" not in heading[0], (
+        "the heading and the group line are one block, so nothing spaces them")
+    assert any("Icaruse" in block for block in blocks), description
+
+
+def test_the_header_still_counts_containers_only(world):
+    """Counter-check: the groups are blocks like the containers now, and the
+    header must not start counting them."""
+    import re
+
+    servers = [{"docker_name": name, "name": name, "display_name": name,
+                "allowed_actions": ["restart"]} for name in ("Icarus", "Icarus2")]
+    description = _admin_description(servers, _world_entries())
+    line = next(l for l in description.splitlines() if l.startswith("Container:"))
+
+    assert int(re.findall(r"(\d+)", line)[0]) == 2, line

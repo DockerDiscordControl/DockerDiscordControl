@@ -768,12 +768,15 @@ class OverviewEmbedsMixin:
         # the other two views, so a group cannot appear in one and not another.
         group_lines = group_status_lines(getattr(self, 'status_cache_service', None), translate,
                                          boxed=False)
-        if group_lines:
-            container_lines.append("\n".join(group_lines))
+        # EACH LINE ITS OWN BLOCK, not one joined block (operator, 2026-09-24):
+        # this view spaces its entries with a separator, and a joined block got
+        # none of it - the group section stood closer together than everything
+        # above it.
+        container_lines.extend(group_lines)
 
         # The lines that were actually built. The groups are NOT counted here:
         # the header says how many CONTAINERS there are, and a group is not one.
-        total_containers = len(container_lines) - (1 if group_lines else 0)
+        total_containers = len(container_lines) - len(group_lines)
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with consistent spacing between container lines
