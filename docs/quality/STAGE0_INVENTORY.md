@@ -440,6 +440,9 @@ As a counterexample: the player-count formatting *is* centralised
   (`/Volumes/appdata/dockerdiscordcontrol/config/containers`) and writes real data there
   (`:45-48`). `encrypt_mech_images.py:96` deletes original graphics before the dependent write
   at `:251` is known to have succeeded. **[verified for `test_order_change.py`]**
+  *(2026-09-24: `test_order_change.py` was deleted with seventeen other unreferenced
+  one-off scripts from the v1 migration - see the commit that removed them. The finding
+  about `encrypt_mech_images.py` stands.)*
 
 ---
 
