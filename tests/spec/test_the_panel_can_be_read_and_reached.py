@@ -34,8 +34,16 @@ stylesheet, so changing the colour without changing the text colour is red.
 The tooltip check reads every template for the tooltip pattern and requires
 each one to be focusable.
 
+WHAT WAS WIDENED ON 2026-09-24: the scan only ever looked at `<i>` tags,
+because that is what the 47 were. Ten more sat on `<th>` elements in
+_permissions_table.html - two columns of each of its two tables carried their
+tooltip on a focusable icon and the other five carried it on the header
+itself, three of those next to a question-mark icon that explained nothing.
+Same table, same row, same icon, and the keyboard reached two of seven. The
+pattern now matches any tag and asks the same question of all of them.
+
 COUNTER-CHECK (2026-09-23): red before - white on #4299e1 is 3.05, and 47 of
-47 tooltip elements had no tabindex.
+47 tooltip elements had no tabindex. (2026-09-24: red again, at 10.)
 """
 
 import re
@@ -48,7 +56,14 @@ TEMPLATES = ROOT / "app" / "templates"
 # no-cache. The tooltips are markup and stayed in the templates.
 THEME = ROOT / "app" / "static" / "css" / "theme.css"
 
-TOOLTIP = re.compile(r'<i[^>]*data-bs-toggle="tooltip"[^>]*>')
+# ANY tag, not just <i>. Written as `<i[^>]*` it matched the shape of the day
+# the finding was made and nothing else - and on 2026-09-24 it was quietly
+# green over ten tooltips sitting on <th> elements in _permissions_table.html,
+# in the same table rows as two that had been fixed. A rule about what may
+# carry a tooltip is not a rule about tooltips.
+TOOLTIP = re.compile(r'<(\w+)((?:[^>"]|"[^"]*")*data-bs-toggle="tooltip"(?:[^>"]|"[^"]*")*)>')
+# Focusable without being told to be. Everything else needs tabindex.
+FOCUSABLE_BY_NATURE = ("button", "a", "input", "select", "textarea")
 
 
 def _luminance(colour):
@@ -101,9 +116,10 @@ def test_every_help_tooltip_can_be_focused():
     """THE FINDING: all 47 of them could not, so their text was mouse-only."""
     unreachable = []
     for path in sorted(TEMPLATES.rglob("*.html")):
-        for tag in TOOLTIP.findall(path.read_text(encoding="utf-8")):
-            if "tabindex" not in tag:
-                unreachable.append(f"{path.name}: {tag[:70]}")
+        for tag, attributes in TOOLTIP.findall(path.read_text(encoding="utf-8")):
+            if tag in FOCUSABLE_BY_NATURE or "tabindex" in attributes:
+                continue
+            unreachable.append(f"{path.name}: <{tag} {attributes.strip()[:60]}")
 
     assert unreachable == [], (
         f"{len(unreachable)} tooltip(s) cannot be reached from the keyboard, "
