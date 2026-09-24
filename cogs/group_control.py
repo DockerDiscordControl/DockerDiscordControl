@@ -73,6 +73,38 @@ def group_entries() -> list:
     return entries
 
 
+def controllable_entries(servers) -> list:
+    """Everything the admin list may offer: the containers, then the groups.
+
+    ONE LIST, ASKED TWICE. Two buttons open "choose something to control" -
+    the one in control_ui.py and AdminOverviewAdminButton in admin_overview.py
+    - and each built this from get_all_servers() on its own. Wiring the groups
+    into one of them left the other exactly as it was, which is how a control
+    channel ended up with no groups in its menu (operator, 2026-09-24).
+
+    A display name stored as a LIST is what the panel writes for some
+    containers; both old loops unwrapped it, and so does this one, or the
+    dropdown reads "['Icarus 2', 'x']".
+    """
+    entries = []
+    for server in servers or []:
+        if not isinstance(server, dict):
+            continue
+        docker_name = server.get('docker_name') or server.get('container_name')
+        if not docker_name:
+            continue
+        display = server.get('display_name', docker_name)
+        if isinstance(display, list):
+            display = display[0] if display else docker_name
+        entries.append({
+            'name': docker_name,
+            'display': display or docker_name,
+            'docker_name': docker_name,
+            'order': server.get('order', 999),
+        })
+    return entries + group_entries()
+
+
 def group_config_for(docker_name: str) -> Optional[dict]:
     """A group's configuration, shaped like a container's, or None.
 

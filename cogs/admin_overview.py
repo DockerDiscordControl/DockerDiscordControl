@@ -286,26 +286,14 @@ class AdminOverviewAdminButton(Button):
                 )
                 return
 
-            # Sort containers by order field (from Web UI configuration)
-            containers = sorted(all_servers, key=lambda s: s.get('order', 999))
+            # Containers and groups, from the one place that builds this list
+            # (cogs/group_control.py). This button had its own copy of the
+            # loop, so the groups wired into the other one never reached a
+            # control channel (operator, 2026-09-24).
+            from .group_control import controllable_entries
 
-            # Transform to the format expected by AdminContainerSelectView
-            formatted_containers = []
-            for server in containers:
-                docker_name = server.get('docker_name')
-                if docker_name:
-                    # Get display name from server config
-                    display_name = server.get('display_name', [docker_name, docker_name])
-                    if isinstance(display_name, list) and len(display_name) > 0:
-                        display_name = display_name[0]
-
-                    formatted_containers.append({
-                        'display': display_name,
-                        'docker_name': docker_name,
-                        'order': server.get('order', 999)  # Include order for dropdown sorting
-                    })
-
-            containers = formatted_containers
+            containers = sorted(controllable_entries(all_servers),
+                                key=lambda entry: entry.get('order', 999))
 
             if not containers:
                 await interaction.followup.send(

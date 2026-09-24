@@ -31,7 +31,8 @@ from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
 from .ddc_ui import DDCView
-from .group_control import group_config_for, group_entries, running_state_for
+from .group_control import (controllable_entries, group_config_for,
+                            group_entries, running_state_for)
 
 logger = get_module_logger('control_ui')
 
@@ -1997,27 +1998,9 @@ class AdminButton(Button):
             server_config_service = get_server_config_service()
             all_servers = server_config_service.get_all_servers()
 
-            # Collect active containers
-            active_containers = []
-            for container_data in all_servers:
-                try:
-                    # Container is already active (filtered by service)
-                    container_name = container_data.get('container_name', container_data.get('docker_name'))
-                    display_name = container_data.get('display_name', [container_name, container_name])
-                    if isinstance(display_name, list) and len(display_name) > 0:
-                        display_name = display_name[0]
-
-                    active_containers.append({
-                        'name': container_name,
-                        'display': display_name,
-                        'docker_name': container_data.get('docker_name', container_name),
-                        'order': container_data.get('order', 999)  # Include order field directly
-                    })
-                except (RuntimeError, ValueError, KeyError) as e:
-                    logger.error(f"Error processing container data: {e}", exc_info=True)
-                    continue
-
-            active_containers.extend(group_entries())   # one menu for both
+            # Containers and groups, from the one place that builds this list
+            # (cogs/group_control.py): the other button asks it too.
+            active_containers = controllable_entries(all_servers)
 
             if not active_containers:
                 await interaction.followup.send(_("📦 No active containers found."), ephemeral=True)

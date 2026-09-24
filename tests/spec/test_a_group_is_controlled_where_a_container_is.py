@@ -122,17 +122,28 @@ def test_a_group_is_running_when_its_members_are(world):
 
 
 def test_the_admin_list_asks_for_them(world):
-    """Structural, so the list cannot quietly stop offering groups."""
-    source = (ROOT / "cogs" / "control_ui.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    calls = [ast.unparse(node.func) for node in ast.walk(tree) if isinstance(node, ast.Call)]
+    """Structural, so the list cannot quietly stop offering groups.
 
-    assert any("group_entries" in call for call in calls), (
+    The list itself is built one level down since 2026-09-24 - both buttons
+    ask controllable_entries() - so this reads the two questions that are
+    still control_ui's own, and the group half is checked where it lives."""
+    calls = [ast.unparse(node.func) for node in
+             ast.walk(ast.parse((ROOT / "cogs" / "control_ui.py").read_text(encoding="utf-8")))
+             if isinstance(node, ast.Call)]
+
+    assert any("controllable_entries" in call for call in calls), (
         "nothing adds the groups to the admin list")
     assert any("group_config_for" in call for call in calls), (
         "nothing builds a group's configuration when one is picked")
     assert any("running_state_for" in call for call in calls), (
         "nothing answers whether a picked group is running")
+
+    builder = [ast.unparse(node.func) for node in
+               ast.walk(ast.parse((ROOT / "cogs" / "group_control.py").read_text(encoding="utf-8")))
+               if isinstance(node, ast.Call)]
+
+    assert any("group_entries" in call for call in builder), (
+        "the one list stopped adding the groups")
 
 
 def test_the_stack_button_is_not_drawn_any_more():
@@ -164,3 +175,58 @@ def test_old_messages_with_that_button_still_answer():
 
     assert "class AdminOverviewRestartStackButton" in source, (
         "the class is gone, so a click on an old message answers nothing")
+
+
+# --- both buttons, one list -------------------------------------------------
+# THE OPERATOR, 2026-09-24: in a CONTROL channel, the tools button offers no
+# groups. It did not - and the reason is the defect this suite spent the night
+# on. There are TWO buttons that open "choose something to control": the one in
+# cogs/control_ui.py and AdminOverviewAdminButton in cogs/admin_overview.py,
+# each building the list from get_all_servers() on its own. Wiring the groups
+# into one of them left the other exactly as it was.
+
+def test_both_buttons_ask_the_same_place(world):
+    """One list, asked twice - not two lists that happen to agree."""
+    import ast
+
+    for module in ("cogs/control_ui.py", "cogs/admin_overview.py"):
+        tree = ast.parse((ROOT / module).read_text(encoding="utf-8"))
+        calls = [ast.unparse(node.func) for node in ast.walk(tree)
+                 if isinstance(node, ast.Call)]
+
+        assert any("controllable_entries" in call for call in calls), (
+            f"{module} builds its own list instead of asking for one")
+
+
+def test_the_one_list_holds_containers_and_groups(world):
+    from cogs.group_control import controllable_entries
+
+    servers = [{"docker_name": "Icarus", "display_name": "Icarus 1", "order": 2},
+               {"docker_name": "Icarus2", "display_name": ["Icarus 2", "x"], "order": 1}]
+    entries = controllable_entries(servers)
+    by_name = {entry["docker_name"]: entry for entry in entries}
+
+    assert "group:Icaruse" in by_name, entries
+    assert by_name["Icarus"]["display"] == "Icarus 1"
+    # A display name stored as a LIST is what the panel writes for some
+    # containers; the dropdown must show the name, not "['Icarus 2', 'x']".
+    assert by_name["Icarus2"]["display"] == "Icarus 2"
+
+
+def test_the_groups_come_after_the_containers(world):
+    from cogs.group_control import controllable_entries
+
+    entries = controllable_entries([{"docker_name": "Icarus", "order": 999}])
+    orders = [entry["order"] for entry in entries]
+
+    assert orders == sorted(orders), orders
+    assert entries[-1]["docker_name"] == "group:Icaruse", entries
+
+
+def test_an_entry_without_a_name_is_left_out(world):
+    """Counter-check on the move: the old loops both skipped those."""
+    from cogs.group_control import controllable_entries
+
+    entries = controllable_entries([{"order": 1}, {"docker_name": "", "order": 2}])
+
+    assert [entry["docker_name"] for entry in entries] == ["group:Icaruse"]
