@@ -200,6 +200,60 @@ def ensure_self_signed_certificate(directory, now: Optional[datetime.datetime] =
                        cert.not_valid_after_utc, created=True)
 
 
+# The first byte of a TLS connection is the record type of a ClientHello:
+# 0x16, "handshake" (RFC 8446 §5.1). Every HTTP request starts with a method,
+# so with an ASCII letter. One byte tells the two apart.
+TLS_HANDSHAKE_BYTE = 0x16
+
+
+def looks_like_tls(first_byte: bytes) -> bool:
+    """Whether a connection that has sent this much is speaking TLS."""
+    return bool(first_byte) and first_byte[0] == TLS_HANDSHAKE_BYTE
+
+
+def redirect_to_https(request_head: bytes, port: int) -> bytes:
+    """The answer for a plain HTTP request that arrived on the HTTPS port.
+
+    THE OPERATOR ASKED FOR AN AUTOMATIC REDIRECT (2026-09-25). On one port
+    that needs this, because there is otherwise no HTTP request to answer: the
+    TLS handshake fails first and the browser shows a connection error, not a
+    page. So the first byte decides, and a plain request gets a 301 to the
+    same address over HTTPS.
+
+    The Host header is used, not a configured name: the operator reaches the
+    panel by IP, by hostname, or through whatever else resolves to it, and a
+    redirect to a name his browser cannot resolve is worse than none. A Host
+    with a port has it replaced - the port is the one we are listening on.
+    A request without a Host header (HTTP/1.0) cannot be redirected anywhere
+    sensible and is told so.
+    """
+    lines = request_head.split(b"\r\n")
+    path = b"/"
+    if lines and b" " in lines[0]:
+        parts = lines[0].split(b" ")
+        if len(parts) >= 2 and parts[1].startswith(b"/"):
+            path = parts[1]
+    host = b""
+    for line in lines[1:]:
+        if line.lower().startswith(b"host:"):
+            host = line.split(b":", 1)[1].strip()
+            break
+    if not host:
+        body = b"DDC speaks HTTPS on this port. Use https://\n"
+        return (b"HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n"
+                b"Content-Length: " + str(len(body)).encode() + b"\r\n"
+                b"Connection: close\r\n\r\n" + body)
+    # Strip a port the client sent, including the brackets of an IPv6 literal.
+    if host.startswith(b"["):
+        name, _, rest = host.partition(b"]")
+        host = name + b"]"
+    elif b":" in host:
+        host = host.rsplit(b":", 1)[0]
+    location = b"https://" + host + b":" + str(port).encode() + path
+    return (b"HTTP/1.1 301 Moved Permanently\r\nLocation: " + location +
+            b"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+
+
 def make_tls_server(app, host: str, port: int, certificate: Certificate):
     """A threaded HTTPS server for the self-signed mode.
 
@@ -207,10 +261,57 @@ def make_tls_server(app, host: str, port: int, certificate: Certificate):
     real client address (so the rate limits still count per client), and ships
     with Flask - no new dependency. gevent's server is not used: DDC does not
     monkey-patch, so its blocking Docker calls would serialise every request.
+
+    IT ALSO ANSWERS PLAIN HTTP WITH A REDIRECT. werkzeug wraps the LISTENING
+    socket in TLS, so a plain request dies in the handshake before any code
+    sees it. Here the listening socket stays plain and each connection is
+    looked at first: a TLS one is wrapped and handed on unchanged, a plain one
+    is sent to the same address over HTTPS and closed. Raising OSError
+    afterwards is how socketserver is told there is no request to serve - it
+    catches exactly that around get_request and carries on.
     """
     from werkzeug.serving import make_server
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(str(certificate.cert_path), str(certificate.key_path))
-    return make_server(host, port, app, threaded=True, ssl_context=context)
+    server = make_server(host, port, app, threaded=True)      # plain listener
+
+    def get_request():
+        connection, address = server.socket.accept()
+        try:
+            first = connection.recv(1, socket.MSG_PEEK)
+        except OSError:
+            connection.close()
+            raise
+        if looks_like_tls(first):
+            return context.wrap_socket(connection, server_side=True), address
+        # The port we are BOUND to, not the one we were asked for: they differ
+        # whenever port 0 was given, and a redirect to the wrong port is a
+        # redirect to nothing.
+        _answer_with_a_redirect(connection, server.socket.getsockname()[1])
+        raise OSError("plain HTTP on the HTTPS port - answered with a redirect")
+
+    server.get_request = get_request
+    server.ssl_context = context          # what werkzeug sets when it wraps
+    return server
+
+
+def _answer_with_a_redirect(connection, port: int) -> None:
+    """Read just enough of the request to build a Location, then say goodbye."""
+    try:
+        connection.settimeout(5)
+        head = b""
+        while b"\r\n\r\n" not in head and len(head) < 8192:
+            chunk = connection.recv(1024)
+            if not chunk:
+                break
+            head += chunk
+        connection.sendall(redirect_to_https(head, port))
+    except OSError as error:
+        logger.debug(f"Could not redirect a plain HTTP request: {error}")
+    finally:
+        try:
+            connection.close()
+        except OSError:
+            pass

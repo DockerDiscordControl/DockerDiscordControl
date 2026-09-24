@@ -135,6 +135,7 @@ if docker run -d \
   -e LOGGING_LEVEL="INFO" \
   -e DDC_DOCKER_CACHE_DURATION="120" \
   -e DDC_DISCORD_SKIP_TOKEN_LOCK="true" \
+  -e DDC_TLS_MODE="${DDC_TLS_MODE:-self-signed}" \
   --restart unless-stopped \
   --log-driver json-file \
   --log-opt max-size=10m \
@@ -153,9 +154,17 @@ if docker run -d \
     # Get local IP address
     LOCAL_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || ip route get 1 | awk '{print $7}' 2>/dev/null || echo "localhost")
     
-    echo -e "${WHITE}   📍 Local:    ${CYAN}http://localhost:9374${NC}"
+    # The scheme follows the TLS mode, or the line below sends the operator to
+    # a URL the panel no longer answers on.
+    if [ "${DDC_TLS_MODE:-self-signed}" = "self-signed" ]; then SCHEME="https"; else SCHEME="http"; fi
+    echo -e "${WHITE}   📍 Local:    ${CYAN}${SCHEME}://localhost:9374${NC}"
     if [ "$LOCAL_IP" != "localhost" ] && [ -n "$LOCAL_IP" ]; then
-        echo -e "${WHITE}   🌍 Network:  ${CYAN}http://${LOCAL_IP}:9374${NC}"
+        echo -e "${WHITE}   🌍 Network:  ${CYAN}${SCHEME}://${LOCAL_IP}:9374${NC}"
+    fi
+    if [ "$SCHEME" = "https" ]; then
+        echo -e "${WHITE}   🔒 Self-signed certificate: your browser warns once. The log line${NC}"
+        echo -e "${WHITE}      starting 🔒 carries the SHA-256 fingerprint to compare it with.${NC}"
+        echo -e "${WHITE}      Set DDC_TLS_MODE=off or =proxy to change this (app/web/tls.py).${NC}"
     fi
     echo ""
 else
