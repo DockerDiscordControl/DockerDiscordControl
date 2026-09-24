@@ -77,28 +77,46 @@ async def test_without_a_group_or_a_stack_the_button_is_not_there(world):
 
 
 @pytest.mark.asyncio
-async def test_a_group_brings_the_button_back(world):
+async def test_a_group_does_not_bring_it_back(world):
+    """REVERSED BY THE OPERATOR (2026-09-24), and rewritten rather than
+    deleted so the reversal is readable.
+
+    The button was made conditional because it could do nothing on a server
+    with no groups and no Compose stacks. Then a group became a thing that
+    behaves like a container: it stands in the overview by name, and it is
+    picked and pressed in the admin list beside the containers
+    (test_a_group_is_controlled_where_a_container_is.py). A second door to the
+    same room, labelled with a filing box, was the clutter he asked to remove.
+    """
     world.groups.save_group("Gameserver", ["Valheim", "Icarus 1"])
 
     view = ao.AdminOverviewView(SimpleNamespace(), 42, has_running_containers=True)
 
-    assert _group_button(view) is not None
-    assert len(_buttons(view)) == 5
+    assert _group_button(view) is None, "the stack button is drawn again"
+    assert len(_buttons(view)) == 4
 
 
 @pytest.mark.asyncio
-async def test_the_button_carries_no_text(world):
-    world.groups.save_group("Gameserver", ["Valheim"])
+async def test_a_click_on_an_old_message_is_still_answered(world):
+    """What `every_button` is for: a message posted before today still carries
+    that button, and py-cord answers a click only for the custom_ids it was
+    registered with."""
+    view = ao.AdminOverviewView(SimpleNamespace(), 42, has_running_containers=True,
+                                every_button=True)
 
-    button = _group_button(ao.AdminOverviewView(SimpleNamespace(), 42, has_running_containers=True))
+    button = _group_button(view)
 
+    assert button is not None, "a click on yesterday's overview answers nothing"
     assert not button.label, f"the button widens the row with the text {button.label!r}"
     assert button.emoji is not None
 
 
 @pytest.mark.asyncio
-async def test_a_compose_stack_alone_also_brings_it(world, monkeypatch):
-    """Counter-check: installations that use Compose keep their stacks."""
+async def test_a_compose_stack_does_not_bring_it_either(world, monkeypatch):
+    """Compose stacks were the other half of what the button offered. They are
+    still found - the panel sorts the container table by them - but they are
+    not worth a button of their own: measured on the operator's server, 0 of
+    26 containers carry the label."""
     def _with_project(name):
         entry = world.entry(name)
         entry["data"].compose_project = "blog"
@@ -109,7 +127,7 @@ async def test_a_compose_stack_alone_also_brings_it(world, monkeypatch):
 
     view = ao.AdminOverviewView(SimpleNamespace(), 42, has_running_containers=True)
 
-    assert _group_button(view) is not None
+    assert _group_button(view) is None
 
 
 def test_the_menu_offers_groups_and_stacks(world, monkeypatch):

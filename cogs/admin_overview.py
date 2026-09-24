@@ -174,23 +174,6 @@ def _restart_summary(counts) -> str:
     return description
 
 
-def _there_is_a_group_or_a_stack() -> bool:
-    """True when the group/stack button has something to offer.
-
-    Read on every render of the overview, so it never raises: a failure here
-    must not cost the admin the whole view, only this one button.
-    """
-    try:
-        from cogs.stack_restart import current_targets
-
-        # want_stacks=False: one group is enough to answer this, and the stacks
-        # cost a full scan of the container configuration - on every redraw.
-        return bool(current_targets(want_stacks=False))
-    except Exception as e:  # noqa: BLE001 - one button is not worth a broken overview
-        logger.error(f"Could not tell whether there are groups or stacks: {e}", exc_info=True)
-        return False
-
-
 class AdminOverviewView(DDCView):
     """View for admin overview in control channels with bulk container management."""
 
@@ -210,10 +193,16 @@ class AdminOverviewView(DDCView):
         self.add_item(AdminOverviewAdminButton(cog_instance, channel_id))
         self.add_item(AdminOverviewRestartAllButton(cog_instance, channel_id, enabled=has_running_containers))
         self.add_item(AdminOverviewStopAllButton(cog_instance, channel_id, enabled=has_running_containers))
-        # Only when there is something to offer - a group the operator defined or
-        # a Compose stack DDC found. A button that can do nothing still takes a
-        # place in a row that holds five.
-        if every_button or _there_is_a_group_or_a_stack():
+        # THE STACK BUTTON IS NOT DRAWN ANY MORE (operator, 2026-09-24). It
+        # opened a menu of "groups and Compose stacks", which was the only way
+        # to reach a group from Discord; a group is now offered in the admin
+        # list beside the containers, where an operator already looks for one
+        # (tests/spec/test_a_group_is_controlled_where_a_container_is.py).
+        # `every_button` still builds it for bot.add_view: a message posted
+        # before today carries that button, and py-cord answers a click only
+        # for the custom_ids it was registered with
+        # (test_buttons_on_old_messages_keep_working.py).
+        if every_button:
             self.add_item(AdminOverviewRestartStackButton(cog_instance, channel_id,
                                                           enabled=has_running_containers))
         self.add_item(AdminOverviewDonateButton(cog_instance, channel_id))

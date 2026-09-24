@@ -31,6 +31,8 @@ from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
 from .ddc_ui import DDCView
+# A group is offered and pressed like a container (cogs/group_control.py).
+from .group_control import group_config_for, group_entries, running_state_for
 
 logger = get_module_logger('control_ui')
 
@@ -2016,6 +2018,8 @@ class AdminButton(Button):
                     logger.error(f"Error processing container data: {e}", exc_info=True)
                     continue
 
+            active_containers.extend(group_entries())   # one menu for both
+
             if not active_containers:
                 await interaction.followup.send(_("📦 No active containers found."), ephemeral=True)
                 return
@@ -2226,6 +2230,9 @@ class AdminContainerDropdown(discord.ui.Select):
                         container_config = server
                         break
 
+            # A group has no container configuration; it has its own.
+            container_config = container_config or group_config_for(selected_container)
+
             if not container_config:
                 await interaction.edit_original_response(
                     content=_("❌ Container configuration not found for '{name}'").format(
@@ -2275,17 +2282,9 @@ class AdminContainerDropdown(discord.ui.Select):
                     force_collapse=False
                 )
 
-                # Get container status using cog's method
-                status_result = await self.cog.get_status(container_config)
-                is_running = False
-                status_known = True
-
-                if not status_result.success:
-                    # Status unknown (error)
-                    status_known = False
-                else:
-                    # status_result is ContainerStatusResult
-                    is_running = status_result.is_running
+                # A container is asked; a group is answered from its members.
+                is_running, status_known = await running_state_for(
+                    self.cog, selected_container, container_config)
 
                 # Create control view with buttons
                 control_view = ControlView(
