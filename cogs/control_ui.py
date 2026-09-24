@@ -25,8 +25,7 @@ from utils.time_utils import format_datetime_with_timezone
 from .control_helpers import (_admin_may_control, _admin_may_control_task,
                               _channel_has_permission, _get_pending_embed,
                               _is_registered_admin, is_private_panel_message)
-from .action_effect import (not_confirmed_embed, refresh_the_caches,
-                            wait_until_the_action_took_effect)
+from .action_effect import not_confirmed_embed, wait_until_the_action_took_effect
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
 from services.infrastructure.action_logger import log_user_action
@@ -565,11 +564,12 @@ class ActionButton(Button):
                     # the state they are drawn from was confirmed above.
                     async def update_all_views():
                         try:
+                            # No refresh here: the wait above just asked every
+                            # target and wrote the answers. A second pass made
+                            # sense when a blind sleep sat between them; without
+                            # it, it asked the same questions again and left the
+                            # overview seventeen seconds behind the panel.
                             logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
-
-                            # The same targets the wait used, refreshed once
-                            # more after the pause (cogs/action_effect.py).
-                            await refresh_the_caches(self.cog, self.docker_name)
 
                             # FIRST: Update Admin Control message (if it was an admin control action)
                             if is_admin_message:

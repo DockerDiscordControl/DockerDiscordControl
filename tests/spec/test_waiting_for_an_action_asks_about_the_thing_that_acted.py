@@ -239,28 +239,46 @@ def test_a_stop_that_left_one_running_is_not_success(world):
     assert took is False
 
 
-def test_the_second_refresh_also_covers_a_group(world):
-    """FOUND BY SABOTAGE (2026-09-24): removing this call left every case
-    green. The button refreshes once more after its stabilising pause, and
-    that pass was container-only too - so the overview was redrawn from the
-    state from before the press, fifteen seconds further down the same
-    callback."""
+def test_each_target_is_asked_once_per_press(world):
+    """ONE PRESS, ONE ROUND OF QUESTIONS.
+
+    There used to be a second refresh pass after this one, from the days when
+    a blind fifteen-second sleep sat between them - by then the answers really
+    were old. With the sleep gone (2026-09-24) it ran milliseconds after this
+    and asked Docker the same questions again: two members, two extra calls,
+    six seconds, and it invalidated the caches once more immediately before
+    the overview was built, which then refetched everything. The operator saw
+    his group panel say 2/2 while the overview beside it still said 1/2,
+    seventeen seconds behind (his screenshot, 18:30).
+
+    So the wait is the only refresh, and one confirmed press asks each member
+    exactly once.
+    """
     cog = _Cog({"alpha": True, "beta": True})
 
-    asyncio.run(world.module.refresh_the_caches(cog, "group:Gameserver"))
+    asyncio.run(world.module.wait_until_the_action_took_effect(
+        cog, "group:Gameserver", "Gameserver", "start"))
 
-    assert sorted(set(cog.asked)) == ["alpha", "beta"], cog.asked
-    assert set(cog.status_cache_service.entries) == {"alpha", "beta"}
+    assert sorted(cog.asked) == ["alpha", "beta"], (
+        f"asked {len(cog.asked)} times for two members: {cog.asked}")
 
 
-def test_the_button_still_makes_that_second_pass(world):
-    """The call site, or the refresh above is a function nobody runs."""
+def test_there_is_no_second_refresh_left(world):
+    """The function AND its call site, or the extra round comes back the next
+    time somebody wonders whether the caches are current."""
+    import ast
     from pathlib import Path as _Path
 
-    source = (_Path(__file__).resolve().parents[2] / "cogs" / "control_ui.py").read_text(
-        encoding="utf-8")
+    root = _Path(__file__).resolve().parents[2]
+    for name in ("cogs/action_effect.py", "cogs/control_ui.py"):
+        source = (root / name).read_text(encoding="utf-8")
+        names = {node.name for node in ast.walk(ast.parse(source))
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        calls = {ast.unparse(node.func) for node in ast.walk(ast.parse(source))
+                 if isinstance(node, ast.Call)}
 
-    assert "refresh_the_caches(self.cog, self.docker_name)" in source
+        assert "refresh_the_caches" not in names, f"{name} still defines it"
+        assert not any("refresh_the_caches" in c for c in calls), f"{name} still calls it"
 
 
 def test_the_wait_left_control_ui(world):

@@ -77,27 +77,6 @@ def _has_taken_effect(action: str, running: List[bool]) -> bool:
     return all(running)                     # start, restart
 
 
-async def refresh_the_caches(cog, docker_name: str) -> None:
-    """Drop and refill the cached status of whatever was acted on.
-
-    The button does this once more after its stabilising pause. Written for a
-    container it refreshed nothing at all for a group, so the overview was
-    redrawn from the state from before the press - the same gap as in the wait,
-    fifteen seconds further down the same callback.
-    """
-    from services.infrastructure.container_status_service import get_container_status_service
-
-    container_status_service = get_container_status_service()
-    for server in _targets(docker_name):
-        name = server.get('docker_name')
-        if cog.status_cache_service.get(name):
-            cog.status_cache_service.remove(name)
-        container_status_service.invalidate_container(name)
-        status = await cog.get_status(server)
-        if status.success:
-            cog.status_cache_service.set(name, status, datetime.now(timezone.utc))
-
-
 async def wait_until_the_action_took_effect(cog, docker_name: str, display_name: str,
                                             action: str) -> Optional[bool]:
     """Wait for the action to show, refreshing the caches on the way.
