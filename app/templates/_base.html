@@ -163,11 +163,10 @@ Licensed under the MIT License
     </div>
 
     <div id="unsaved-changes-alert" class="alert alert-warning position-fixed bottom-0 start-0 m-3 shadow d-flex align-items-center force-hide" role="alert" style="display: none; z-index:1051; padding: 0.5rem 1rem">
-        <strong class="me-2">Warning:</strong> 
-        <span>You have unsaved changes!</span>
+        <span>{{ _t('web.common.unsaved_changes') }}</span>
         <div class="ms-auto d-flex">
-            <button type="button" class="btn btn-primary btn-sm mx-2" id="floating-save-button">Save</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="floating-discard-button">Discard</button>
+            <button type="button" class="btn btn-primary btn-sm mx-2" id="floating-save-button">{{ _t('web.common.save') }}</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="floating-discard-button">{{ _t('web.common.discard') }}</button>
         </div>
     </div>
 

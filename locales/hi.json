@@ -1799,5 +1799,10 @@
   "web.restart.needed": "इन बदलावों के लिए कंटेनर को पुनः आरंभ करना आवश्यक है।",
   "web.restart.now": "अभी पुनः आरंभ करें",
   "web.restart.running": "DDC पुनः आरंभ हो रहा है…",
-  "web.restart.failed": "पुनः आरंभ शुरू नहीं किया जा सका।"
+  "web.restart.failed": "पुनः आरंभ शुरू नहीं किया जा सका।",
+  "web.common.unsaved_changes": "आपके पास सहेजे न गए बदलाव हैं।",
+  "web.common.save": "सहेजें",
+  "web.common.discard": "छोड़ें",
+  "web.logs.debug_level_saved": "लॉग स्तर सहेजा गया।",
+  "web.logs.debug_level_failed": "लॉग स्तर सहेजा नहीं जा सका।"
 }

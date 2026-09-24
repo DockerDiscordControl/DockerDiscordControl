@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Bu değişiklikler için kapsayıcının yeniden başlatılması gerekir.",
   "web.restart.now": "Şimdi yeniden başlat",
   "web.restart.running": "DDC yeniden başlatılıyor…",
-  "web.restart.failed": "Yeniden başlatma başlatılamadı."
+  "web.restart.failed": "Yeniden başlatma başlatılamadı.",
+  "web.common.unsaved_changes": "Kaydedilmemiş değişiklikleriniz var.",
+  "web.common.save": "Kaydet",
+  "web.common.discard": "Vazgeç",
+  "web.logs.debug_level_saved": "Günlük düzeyi kaydedildi.",
+  "web.logs.debug_level_failed": "Günlük düzeyi kaydedilemedi."
 }

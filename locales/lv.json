@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Šīm izmaiņām nepieciešama konteinera restartēšana.",
   "web.restart.now": "Restartēt tagad",
   "web.restart.running": "DDC tiek restartēts…",
-  "web.restart.failed": "Restartēšanu neizdevās sākt."
+  "web.restart.failed": "Restartēšanu neizdevās sākt.",
+  "web.common.unsaved_changes": "Jums ir nesaglabātas izmaiņas.",
+  "web.common.save": "Saglabāt",
+  "web.common.discard": "Atmest",
+  "web.logs.debug_level_saved": "Žurnāla līmenis saglabāts.",
+  "web.logs.debug_level_failed": "Žurnāla līmenis netika saglabāts."
 }

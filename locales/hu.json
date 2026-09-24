@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Ezekhez a módosításokhoz a konténer újraindítása szükséges.",
   "web.restart.now": "Újraindítás most",
   "web.restart.running": "A DDC újraindul…",
-  "web.restart.failed": "Az újraindítást nem sikerült elindítani."
+  "web.restart.failed": "Az újraindítást nem sikerült elindítani.",
+  "web.common.unsaved_changes": "Vannak nem mentett módosításai.",
+  "web.common.save": "Mentés",
+  "web.common.discard": "Elvetés",
+  "web.logs.debug_level_saved": "A naplószint mentve.",
+  "web.logs.debug_level_failed": "A naplószint nem lett mentve."
 }

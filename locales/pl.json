@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Te zmiany wymagają ponownego uruchomienia kontenera.",
   "web.restart.now": "Uruchom ponownie",
   "web.restart.running": "Ponowne uruchamianie DDC…",
-  "web.restart.failed": "Nie udało się rozpocząć ponownego uruchomienia."
+  "web.restart.failed": "Nie udało się rozpocząć ponownego uruchomienia.",
+  "web.common.unsaved_changes": "Masz niezapisane zmiany.",
+  "web.common.save": "Zapisz",
+  "web.common.discard": "Odrzuć",
+  "web.logs.debug_level_saved": "Poziom logowania zapisany.",
+  "web.logs.debug_level_failed": "Nie zapisano poziomu logowania."
 }

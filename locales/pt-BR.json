@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Estas alterações exigem reiniciar o contêiner.",
   "web.restart.now": "Reiniciar agora",
   "web.restart.running": "Reiniciando o DDC…",
-  "web.restart.failed": "Não foi possível iniciar a reinicialização."
+  "web.restart.failed": "Não foi possível iniciar a reinicialização.",
+  "web.common.unsaved_changes": "Você tem alterações não salvas.",
+  "web.common.save": "Salvar",
+  "web.common.discard": "Descartar",
+  "web.logs.debug_level_saved": "Nível de log salvo.",
+  "web.logs.debug_level_failed": "Nível de log não salvo."
 }

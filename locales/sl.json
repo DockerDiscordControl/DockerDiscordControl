@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Te spremembe zahtevajo ponovni zagon vsebnika.",
   "web.restart.now": "Ponovno zaženi",
   "web.restart.running": "DDC se ponovno zaganja…",
-  "web.restart.failed": "Ponovnega zagona ni bilo mogoče začeti."
+  "web.restart.failed": "Ponovnega zagona ni bilo mogoče začeti.",
+  "web.common.unsaved_changes": "Imate neshranjene spremembe.",
+  "web.common.save": "Shrani",
+  "web.common.discard": "Zavrzi",
+  "web.logs.debug_level_saved": "Raven dnevnika shranjena.",
+  "web.logs.debug_level_failed": "Ravni dnevnika ni bilo mogoče shraniti."
 }

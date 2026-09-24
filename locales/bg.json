@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Тези промени изискват рестарт на контейнера.",
   "web.restart.now": "Рестартирай сега",
   "web.restart.running": "DDC се рестартира…",
-  "web.restart.failed": "Рестартът не можа да бъде стартиран."
+  "web.restart.failed": "Рестартът не можа да бъде стартиран.",
+  "web.common.unsaved_changes": "Имате незапазени промени.",
+  "web.common.save": "Запази",
+  "web.common.discard": "Отхвърли",
+  "web.logs.debug_level_saved": "Нивото на дневника е запазено.",
+  "web.logs.debug_level_failed": "Нивото на дневника не е запазено."
 }

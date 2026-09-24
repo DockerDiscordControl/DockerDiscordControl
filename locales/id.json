@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Perubahan ini memerlukan kontainer dimulai ulang.",
   "web.restart.now": "Mulai ulang sekarang",
   "web.restart.running": "Memulai ulang DDC…",
-  "web.restart.failed": "Mulai ulang tidak dapat dijalankan."
+  "web.restart.failed": "Mulai ulang tidak dapat dijalankan.",
+  "web.common.unsaved_changes": "Ada perubahan yang belum disimpan.",
+  "web.common.save": "Simpan",
+  "web.common.discard": "Buang",
+  "web.logs.debug_level_saved": "Level log disimpan.",
+  "web.logs.debug_level_failed": "Level log gagal disimpan."
 }

@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Tyto změny vyžadují restart kontejneru.",
   "web.restart.now": "Restartovat",
   "web.restart.running": "Restartuje se DDC…",
-  "web.restart.failed": "Restart se nepodařilo spustit."
+  "web.restart.failed": "Restart se nepodařilo spustit.",
+  "web.common.unsaved_changes": "Máte neuložené změny.",
+  "web.common.save": "Uložit",
+  "web.common.discard": "Zahodit",
+  "web.logs.debug_level_saved": "Úroveň logu uložena.",
+  "web.logs.debug_level_failed": "Úroveň logu se neuložila."
 }

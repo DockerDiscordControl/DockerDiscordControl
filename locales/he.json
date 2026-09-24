@@ -1799,5 +1799,10 @@
   "web.restart.needed": "שינויים אלה מחייבים הפעלה מחדש של הקונטיינר.",
   "web.restart.now": "הפעל מחדש עכשיו",
   "web.restart.running": "מפעיל מחדש את DDC…",
-  "web.restart.failed": "לא ניתן היה להתחיל את ההפעלה מחדש."
+  "web.restart.failed": "לא ניתן היה להתחיל את ההפעלה מחדש.",
+  "web.common.unsaved_changes": "יש לך שינויים שלא נשמרו.",
+  "web.common.save": "שמור",
+  "web.common.discard": "בטל",
+  "web.logs.debug_level_saved": "רמת היומן נשמרה.",
+  "web.logs.debug_level_failed": "רמת היומן לא נשמרה."
 }

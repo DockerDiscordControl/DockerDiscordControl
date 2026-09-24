@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Disse ændringer kræver en genstart af containeren.",
   "web.restart.now": "Genstart nu",
   "web.restart.running": "DDC genstarter…",
-  "web.restart.failed": "Genstarten kunne ikke startes."
+  "web.restart.failed": "Genstarten kunne ikke startes.",
+  "web.common.unsaved_changes": "Du har ugemte ændringer.",
+  "web.common.save": "Gem",
+  "web.common.discard": "Kassér",
+  "web.logs.debug_level_saved": "Logniveau gemt.",
+  "web.logs.debug_level_failed": "Logniveau blev ikke gemt."
 }

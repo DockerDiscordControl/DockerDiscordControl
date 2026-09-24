@@ -540,46 +540,63 @@
         // --- Debug Level Toggle Listener ---
         const debugLevelCheckbox = document.getElementById('debugLevelToggle');
         if (debugLevelCheckbox) {
-            debugLevelCheckbox.addEventListener('change', function() {
-                showUnsavedChangesAlert(false); // Simple change, doesn't require restart
-                
-                // Information popup about setting change
-                let message = this.checked ? 
-                    "Debug Level enabled. Save configuration to activate detailed logging." : 
-                    "Debug Level disabled. Save configuration to switch to Info level logging.";
-                
-                // Create temporary notification
-                const notification = document.createElement('div');
-                notification.classList.add('toast', 'align-items-center', 'text-white', 'bg-info', 'border-0');
-                notification.setAttribute('role', 'alert');
-                notification.setAttribute('aria-live', 'assertive');
-                notification.setAttribute('aria-atomic', 'true');
-                notification.style.position = 'fixed';
-                notification.style.bottom = '20px';
-                notification.style.right = '20px';
-                notification.style.zIndex = '9999';
-                
-                notification.innerHTML = `
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            ${message}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                    </div>
-                `;
-                
-                document.body.appendChild(notification);
-                
-                // Show and auto-hide the notification
-                const toast = new bootstrap.Toast(notification, { delay: 5000 });
-                toast.show();
-                
-                // Remove from DOM after hiding
-                notification.addEventListener('hidden.bs.toast', function() {
-                    document.body.removeChild(notification);
-                });
+            // IT SAVES ITSELF (operator, 2026-09-24). It is a control on the log
+            // view, not a field of the settings form: one bit of state that takes
+            // effect the moment it is stored. It used to raise the
+            // unsaved-changes warning and pop a toast reading "Save configuration
+            // to activate detailed logging" - hard-coded English, and untrue even
+            // then, because the switch was wired to a key nothing read.
+            debugLevelCheckbox.addEventListener('change', async function () {
+                const texts = window.DDC_DEBUG_TEXTS || {};
+                const wanted = this.checked;
+                this.disabled = true;
+                let answer = null;
+                try {
+                    answer = await fetch('/api/debug-level', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled: wanted })
+                    });
+                } catch (error) {
+                    answer = null;
+                }
+                this.disabled = false;
+                if (!answer || !answer.ok) {
+                    // Put the switch back where the server still has it, so a
+                    // failed save does not sit on screen looking like a success.
+                    this.checked = !wanted;
+                    showDebugLevelNotice(texts.failed || 'Not saved', 'danger');
+                    return;
+                }
+                showDebugLevelNotice(texts.saved || 'Saved', 'success');
             });
         }
+
+        // A short word under the switch, in the operator's language.
+        function showDebugLevelNotice(text, level) {
+            const notice = document.createElement('div');
+            notice.className = 'toast align-items-center text-white border-0 bg-' +
+                (level === 'danger' ? 'danger' : 'success');
+            notice.setAttribute('role', 'alert');
+            notice.setAttribute('aria-live', 'assertive');
+            notice.setAttribute('aria-atomic', 'true');
+            notice.style.position = 'fixed';
+            notice.style.bottom = '20px';
+            notice.style.right = '20px';
+            notice.style.zIndex = '9999';
+            const body = document.createElement('div');
+            body.className = 'toast-body';
+            body.textContent = text;          // never innerHTML: this is a message
+            const row = document.createElement('div');
+            row.className = 'd-flex';
+            row.appendChild(body);
+            notice.appendChild(row);
+            document.body.appendChild(notice);
+            const toast = new bootstrap.Toast(notice, { delay: 2500 });
+            toast.show();
+            notice.addEventListener('hidden.bs.toast', () => notice.remove());
+        }
+
         // --- End Debug Level Toggle Listener ---
 
         if (refreshLogsBtn) {

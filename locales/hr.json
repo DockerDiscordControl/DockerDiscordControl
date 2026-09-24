@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Ove promjene zahtijevaju ponovno pokretanje kontejnera.",
   "web.restart.now": "Pokreni ponovno",
   "web.restart.running": "DDC se ponovno pokreće…",
-  "web.restart.failed": "Ponovno pokretanje nije bilo moguće započeti."
+  "web.restart.failed": "Ponovno pokretanje nije bilo moguće započeti.",
+  "web.common.unsaved_changes": "Imate nespremljene promjene.",
+  "web.common.save": "Spremi",
+  "web.common.discard": "Odbaci",
+  "web.logs.debug_level_saved": "Razina zapisa spremljena.",
+  "web.logs.debug_level_failed": "Razina zapisa nije spremljena."
 }

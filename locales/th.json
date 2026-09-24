@@ -1799,5 +1799,10 @@
   "web.restart.needed": "การเปลี่ยนแปลงเหล่านี้ต้องรีสตาร์ตคอนเทนเนอร์",
   "web.restart.now": "รีสตาร์ตเดี๋ยวนี้",
   "web.restart.running": "กำลังรีสตาร์ต DDC…",
-  "web.restart.failed": "ไม่สามารถเริ่มการรีสตาร์ตได้"
+  "web.restart.failed": "ไม่สามารถเริ่มการรีสตาร์ตได้",
+  "web.common.unsaved_changes": "คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก",
+  "web.common.save": "บันทึก",
+  "web.common.discard": "ยกเลิก",
+  "web.logs.debug_level_saved": "บันทึกระดับบันทึกแล้ว",
+  "web.logs.debug_level_failed": "บันทึกระดับบันทึกไม่สำเร็จ"
 }

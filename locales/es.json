@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Estos cambios requieren reiniciar el contenedor.",
   "web.restart.now": "Reiniciar ahora",
   "web.restart.running": "Reiniciando DDC…",
-  "web.restart.failed": "No se pudo iniciar el reinicio."
+  "web.restart.failed": "No se pudo iniciar el reinicio.",
+  "web.common.unsaved_changes": "Tiene cambios sin guardar.",
+  "web.common.save": "Guardar",
+  "web.common.discard": "Descartar",
+  "web.logs.debug_level_saved": "Nivel de registro guardado.",
+  "web.logs.debug_level_failed": "No se pudo guardar el nivel de registro."
 }

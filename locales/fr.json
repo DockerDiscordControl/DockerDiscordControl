@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Un redémarrage du conteneur est nécessaire pour ces modifications.",
   "web.restart.now": "Redémarrer",
   "web.restart.running": "Redémarrage de DDC…",
-  "web.restart.failed": "Le redémarrage n'a pas pu être lancé."
+  "web.restart.failed": "Le redémarrage n'a pas pu être lancé.",
+  "web.common.unsaved_changes": "Vous avez des modifications non enregistrées.",
+  "web.common.save": "Enregistrer",
+  "web.common.discard": "Annuler",
+  "web.logs.debug_level_saved": "Niveau de journal enregistré.",
+  "web.logs.debug_level_failed": "Niveau de journal non enregistré."
 }

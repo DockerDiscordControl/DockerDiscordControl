@@ -1799,5 +1799,10 @@
   "web.restart.needed": "这些更改需要重启容器。",
   "web.restart.now": "立即重启",
   "web.restart.running": "正在重启 DDC…",
-  "web.restart.failed": "无法启动重启。"
+  "web.restart.failed": "无法启动重启。",
+  "web.common.unsaved_changes": "有未保存的更改。",
+  "web.common.save": "保存",
+  "web.common.discard": "放弃",
+  "web.logs.debug_level_saved": "日志级别已保存。",
+  "web.logs.debug_level_failed": "日志级别未保存。"
 }

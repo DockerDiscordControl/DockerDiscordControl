@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Šiems pakeitimams reikia iš naujo paleisti konteinerį.",
   "web.restart.now": "Paleisti iš naujo",
   "web.restart.running": "DDC paleidžiamas iš naujo…",
-  "web.restart.failed": "Nepavyko pradėti paleidimo iš naujo."
+  "web.restart.failed": "Nepavyko pradėti paleidimo iš naujo.",
+  "web.common.unsaved_changes": "Turite neįrašytų pakeitimų.",
+  "web.common.save": "Įrašyti",
+  "web.common.discard": "Atmesti",
+  "web.logs.debug_level_saved": "Žurnalo lygis įrašytas.",
+  "web.logs.debug_level_failed": "Žurnalo lygis neįrašytas."
 }

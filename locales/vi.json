@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Những thay đổi này cần khởi động lại container.",
   "web.restart.now": "Khởi động lại ngay",
   "web.restart.running": "Đang khởi động lại DDC…",
-  "web.restart.failed": "Không thể bắt đầu khởi động lại."
+  "web.restart.failed": "Không thể bắt đầu khởi động lại.",
+  "web.common.unsaved_changes": "Bạn có thay đổi chưa lưu.",
+  "web.common.save": "Lưu",
+  "web.common.discard": "Hủy",
+  "web.logs.debug_level_saved": "Đã lưu mức nhật ký.",
+  "web.logs.debug_level_failed": "Không lưu được mức nhật ký."
 }

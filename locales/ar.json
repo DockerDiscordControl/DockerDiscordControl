@@ -1799,5 +1799,10 @@
   "web.restart.needed": "تتطلب هذه التغييرات إعادة تشغيل الحاوية.",
   "web.restart.now": "أعد التشغيل الآن",
   "web.restart.running": "جارٍ إعادة تشغيل DDC…",
-  "web.restart.failed": "تعذّر بدء إعادة التشغيل."
+  "web.restart.failed": "تعذّر بدء إعادة التشغيل.",
+  "web.common.unsaved_changes": "لديك تغييرات غير محفوظة.",
+  "web.common.save": "حفظ",
+  "web.common.discard": "تجاهل",
+  "web.logs.debug_level_saved": "تم حفظ مستوى السجل.",
+  "web.logs.debug_level_failed": "تعذّر حفظ مستوى السجل."
 }

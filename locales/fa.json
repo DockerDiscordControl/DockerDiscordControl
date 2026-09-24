@@ -1799,5 +1799,10 @@
   "web.restart.needed": "این تغییرات نیازمند راه‌اندازی مجدد کانتینر است.",
   "web.restart.now": "اکنون راه‌اندازی مجدد",
   "web.restart.running": "در حال راه‌اندازی مجدد DDC…",
-  "web.restart.failed": "راه‌اندازی مجدد آغاز نشد."
+  "web.restart.failed": "راه‌اندازی مجدد آغاز نشد.",
+  "web.common.unsaved_changes": "تغییرات ذخیره‌نشده دارید.",
+  "web.common.save": "ذخیره",
+  "web.common.discard": "نادیده گرفتن",
+  "web.logs.debug_level_saved": "سطح گزارش ذخیره شد.",
+  "web.logs.debug_level_failed": "سطح گزارش ذخیره نشد."
 }

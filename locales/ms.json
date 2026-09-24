@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Perubahan ini memerlukan bekas dimulakan semula.",
   "web.restart.now": "Mulakan semula sekarang",
   "web.restart.running": "Memulakan semula DDC…",
-  "web.restart.failed": "Mulakan semula tidak dapat dijalankan."
+  "web.restart.failed": "Mulakan semula tidak dapat dijalankan.",
+  "web.common.unsaved_changes": "Anda mempunyai perubahan yang belum disimpan.",
+  "web.common.save": "Simpan",
+  "web.common.discard": "Buang",
+  "web.logs.debug_level_saved": "Aras log disimpan.",
+  "web.logs.debug_level_failed": "Aras log gagal disimpan."
 }

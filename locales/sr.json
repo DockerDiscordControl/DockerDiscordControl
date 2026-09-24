@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Ове промене захтевају поновно покретање контејнера.",
   "web.restart.now": "Покрени поново",
   "web.restart.running": "DDC се поново покреће…",
-  "web.restart.failed": "Поновно покретање није могло да се започне."
+  "web.restart.failed": "Поновно покретање није могло да се започне.",
+  "web.common.unsaved_changes": "Имате несачуване измене.",
+  "web.common.save": "Сачувај",
+  "web.common.discard": "Одбаци",
+  "web.logs.debug_level_saved": "Ниво записа сачуван.",
+  "web.logs.debug_level_failed": "Ниво записа није сачуван."
 }

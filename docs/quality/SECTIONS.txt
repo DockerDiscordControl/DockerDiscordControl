@@ -273,7 +273,6 @@ app/blueprints/login_routes.py:1-123
 app/blueprints/log_routes.py:1-242
 
 ## Section 32  (1929 lines, 3 pieces)
-app/blueprints/system_routes.py:1-51
 app/blueprints/main_routes.py:1-1490
 app/blueprints/tasks_bp.py:1-348
 app/blueprints/action_log_routes.py:1-91
@@ -426,3 +425,10 @@ cogs/task_ui.py:1-1233
 # Phase 4d (2026-09-22): the image-update check. Section 11, where the other
 # automation files live, is at 1,987 of its 2,000 lines.
 services/automation/image_updates.py:1-164
+
+## Section 43  (104 lines, 1 piece)
+# The self-restart and debug-level routes (operator, 2026-09-24). Section
+# 32, where the other blueprints live, was at 1,929 of its 2,000 lines and
+# this file put it over - the same reason main_routes.py could not hold the
+# routes in the first place.
+app/blueprints/system_routes.py:1-104

@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Voor deze wijzigingen is een herstart van de container nodig.",
   "web.restart.now": "Nu herstarten",
   "web.restart.running": "DDC wordt herstart…",
-  "web.restart.failed": "De herstart kon niet worden gestart."
+  "web.restart.failed": "De herstart kon niet worden gestart.",
+  "web.common.unsaved_changes": "U hebt niet-opgeslagen wijzigingen.",
+  "web.common.save": "Opslaan",
+  "web.common.discard": "Verwerpen",
+  "web.logs.debug_level_saved": "Logniveau opgeslagen.",
+  "web.logs.debug_level_failed": "Logniveau niet opgeslagen."
 }

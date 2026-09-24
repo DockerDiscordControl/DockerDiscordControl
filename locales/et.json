@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Need muudatused nõuavad konteineri taaskäivitamist.",
   "web.restart.now": "Taaskäivita kohe",
   "web.restart.running": "DDC taaskäivitub…",
-  "web.restart.failed": "Taaskäivitust ei õnnestunud alustada."
+  "web.restart.failed": "Taaskäivitust ei õnnestunud alustada.",
+  "web.common.unsaved_changes": "Teil on salvestamata muudatusi.",
+  "web.common.save": "Salvesta",
+  "web.common.discard": "Loobu",
+  "web.logs.debug_level_saved": "Logitase salvestatud.",
+  "web.logs.debug_level_failed": "Logitaset ei salvestatud."
 }

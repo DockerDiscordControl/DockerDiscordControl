@@ -1799,5 +1799,10 @@
   "web.restart.needed": "これらの変更にはコンテナの再起動が必要です。",
   "web.restart.now": "今すぐ再起動",
   "web.restart.running": "DDC を再起動しています…",
-  "web.restart.failed": "再起動を開始できませんでした。"
+  "web.restart.failed": "再起動を開始できませんでした。",
+  "web.common.unsaved_changes": "保存していない変更があります。",
+  "web.common.save": "保存",
+  "web.common.discard": "破棄",
+  "web.logs.debug_level_saved": "ログレベルを保存しました。",
+  "web.logs.debug_level_failed": "ログレベルを保存できませんでした。"
 }

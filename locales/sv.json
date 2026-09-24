@@ -1799,5 +1799,10 @@
   "web.restart.needed": "De här ändringarna kräver en omstart av containern.",
   "web.restart.now": "Starta om nu",
   "web.restart.running": "DDC startas om…",
-  "web.restart.failed": "Omstarten kunde inte startas."
+  "web.restart.failed": "Omstarten kunde inte startas.",
+  "web.common.unsaved_changes": "Du har osparade ändringar.",
+  "web.common.save": "Spara",
+  "web.common.discard": "Kasta",
+  "web.logs.debug_level_saved": "Loggnivån sparad.",
+  "web.logs.debug_level_failed": "Loggnivån sparades inte."
 }

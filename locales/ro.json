@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Aceste modificări necesită repornirea containerului.",
   "web.restart.now": "Repornește acum",
   "web.restart.running": "Se repornește DDC…",
-  "web.restart.failed": "Repornirea nu a putut fi pornită."
+  "web.restart.failed": "Repornirea nu a putut fi pornită.",
+  "web.common.unsaved_changes": "Aveți modificări nesalvate.",
+  "web.common.save": "Salvează",
+  "web.common.discard": "Renunță",
+  "web.logs.debug_level_saved": "Nivelul de jurnal a fost salvat.",
+  "web.logs.debug_level_failed": "Nivelul de jurnal nu a fost salvat."
 }

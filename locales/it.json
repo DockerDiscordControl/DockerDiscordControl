@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Queste modifiche richiedono il riavvio del container.",
   "web.restart.now": "Riavvia ora",
   "web.restart.running": "Riavvio di DDC…",
-  "web.restart.failed": "Non è stato possibile avviare il riavvio."
+  "web.restart.failed": "Non è stato possibile avviare il riavvio.",
+  "web.common.unsaved_changes": "Ci sono modifiche non salvate.",
+  "web.common.save": "Salva",
+  "web.common.discard": "Annulla",
+  "web.logs.debug_level_saved": "Livello di log salvato.",
+  "web.logs.debug_level_failed": "Livello di log non salvato."
 }

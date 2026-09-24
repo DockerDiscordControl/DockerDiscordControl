@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Für diese Änderungen ist ein Container-Neustart nötig.",
   "web.restart.now": "Jetzt neu starten",
   "web.restart.running": "DDC wird neu gestartet …",
-  "web.restart.failed": "Der Neustart konnte nicht gestartet werden."
+  "web.restart.failed": "Der Neustart konnte nicht gestartet werden.",
+  "web.common.unsaved_changes": "Sie haben ungespeicherte Änderungen.",
+  "web.common.save": "Speichern",
+  "web.common.discard": "Verwerfen",
+  "web.logs.debug_level_saved": "Log-Level gespeichert.",
+  "web.logs.debug_level_failed": "Log-Level nicht gespeichert."
 }

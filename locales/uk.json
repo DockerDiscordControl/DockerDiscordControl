@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Для цих змін потрібен перезапуск контейнера.",
   "web.restart.now": "Перезапустити",
   "web.restart.running": "Перезапуск DDC…",
-  "web.restart.failed": "Не вдалося розпочати перезапуск."
+  "web.restart.failed": "Не вдалося розпочати перезапуск.",
+  "web.common.unsaved_changes": "Є незбережені зміни.",
+  "web.common.save": "Зберегти",
+  "web.common.discard": "Скасувати",
+  "web.logs.debug_level_saved": "Рівень журналу збережено.",
+  "web.logs.debug_level_failed": "Рівень журналу не збережено."
 }

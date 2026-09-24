@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Αυτές οι αλλαγές απαιτούν επανεκκίνηση του container.",
   "web.restart.now": "Επανεκκίνηση τώρα",
   "web.restart.running": "Επανεκκίνηση του DDC…",
-  "web.restart.failed": "Δεν ήταν δυνατή η έναρξη της επανεκκίνησης."
+  "web.restart.failed": "Δεν ήταν δυνατή η έναρξη της επανεκκίνησης.",
+  "web.common.unsaved_changes": "Υπάρχουν μη αποθηκευμένες αλλαγές.",
+  "web.common.save": "Αποθήκευση",
+  "web.common.discard": "Απόρριψη",
+  "web.logs.debug_level_saved": "Το επίπεδο καταγραφής αποθηκεύτηκε.",
+  "web.logs.debug_level_failed": "Το επίπεδο καταγραφής δεν αποθηκεύτηκε."
 }

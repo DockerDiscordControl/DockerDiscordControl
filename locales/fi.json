@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Nämä muutokset vaativat kontin uudelleenkäynnistyksen.",
   "web.restart.now": "Käynnistä uudelleen",
   "web.restart.running": "DDC käynnistyy uudelleen…",
-  "web.restart.failed": "Uudelleenkäynnistystä ei voitu aloittaa."
+  "web.restart.failed": "Uudelleenkäynnistystä ei voitu aloittaa.",
+  "web.common.unsaved_changes": "Sinulla on tallentamattomia muutoksia.",
+  "web.common.save": "Tallenna",
+  "web.common.discard": "Hylkää",
+  "web.logs.debug_level_saved": "Lokitaso tallennettu.",
+  "web.logs.debug_level_failed": "Lokitasoa ei tallennettu."
 }

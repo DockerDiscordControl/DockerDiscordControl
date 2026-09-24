@@ -1799,5 +1799,10 @@
   "web.restart.needed": "A container restart is needed for these changes.",
   "web.restart.now": "Restart now",
   "web.restart.running": "Restarting DDC…",
-  "web.restart.failed": "The restart could not be started."
+  "web.restart.failed": "The restart could not be started.",
+  "web.common.unsaved_changes": "You have unsaved changes.",
+  "web.common.save": "Save",
+  "web.common.discard": "Discard",
+  "web.logs.debug_level_saved": "Log level saved.",
+  "web.logs.debug_level_failed": "Log level not saved."
 }

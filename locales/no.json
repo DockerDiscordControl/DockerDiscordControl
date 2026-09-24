@@ -1799,5 +1799,10 @@
   "web.restart.needed": "Disse endringene krever omstart av containeren.",
   "web.restart.now": "Start om nå",
   "web.restart.running": "DDC starter om…",
-  "web.restart.failed": "Omstarten kunne ikke startes."
+  "web.restart.failed": "Omstarten kunne ikke startes.",
+  "web.common.unsaved_changes": "Du har ulagrede endringer.",
+  "web.common.save": "Lagre",
+  "web.common.discard": "Forkast",
+  "web.logs.debug_level_saved": "Loggnivå lagret.",
+  "web.logs.debug_level_failed": "Loggnivået ble ikke lagret."
 }
