@@ -30,7 +30,7 @@ cogs/control_ui.py:1-1832
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1833-3457
+cogs/control_ui.py:1833-3422
 
 ## Section 04  (1612 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -391,7 +391,7 @@ app/web/compat.py:1-102
 cogs/ddc_ui.py:1-94
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
-cogs/group_control.py:1-287
+cogs/group_control.py:1-306
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).

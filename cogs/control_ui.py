@@ -32,7 +32,7 @@ from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
 from .ddc_ui import DDCView
 from .group_control import (controllable_entries, group_config_for, group_entries,
-                            group_help_field, is_group_target, panel_embed_for,
+                            group_help_field, is_group_target, admin_panel_embed,
                             running_state_for)
 
 logger = get_module_logger('control_ui')
@@ -652,25 +652,12 @@ class ActionButton(Button):
                                     # local for the WHOLE scope (review E38 - the
                                     # same mistake as E34, caught by the same
                                     # guard two hours later).
-                                    admin_embed, _view, _running = await self.cog._generate_status_embed_and_view(
-                                        interaction.channel.id,
-                                        self.display_name,
-                                        self.server_config,
-                                        config,
-                                        allow_toggle=False,
-                                        force_collapse=False
-                                    )
+                                    admin_embed = await admin_panel_embed(
+                                        self.cog, interaction.channel.id, self.docker_name,
+                                        self.server_config, config, self.display_name)
+                                    is_running, _known = await running_state_for(
+                                        self.cog, self.docker_name, self.server_config)
 
-                                    # Get fresh status for color
-                                    cached_entry = self.cog.status_cache_service.get(self.docker_name)
-                                    fresh_status_data = cached_entry.get('data') if cached_entry else None
-                                    is_running = False
-                                    if fresh_status_data and not isinstance(fresh_status_data, Exception):
-                                        from services.docker_status.models import ContainerStatusResult
-                                        if isinstance(fresh_status_data, ContainerStatusResult):
-                                            is_running = fresh_status_data.is_running
-
-                                    # Create admin view
                                     admin_view = ControlView(
                                         self.cog,
                                         self.server_config,
@@ -680,15 +667,6 @@ class ActionButton(Button):
                                     )
 
                                     if admin_embed:
-                                        admin_embed.title = _("🛠️ Admin Control: {name}").format(name=self.display_name)
-                                        if not fresh_status_data or isinstance(fresh_status_data, Exception):
-                                            admin_embed.color = discord.Color.gold()
-                                        elif is_running:
-                                            admin_embed.color = discord.Color.green()
-                                        else:
-                                            admin_embed.color = discord.Color.red()
-
-                                        # Update the Admin Control message
                                         await interaction.edit_original_response(embed=admin_embed, view=admin_view)
                                         logger.info(f"[ACTION_BTN] Updated Admin Control message for {self.display_name}")
 
@@ -2280,10 +2258,8 @@ class AdminContainerDropdown(discord.ui.Select):
                 # caught by test_the_translation_function_is_not_shadowed).
                 # A container is asked about; a group is answered from its
                 # members (cogs/group_control.py).
-                embed = await panel_embed_for(self.cog, self.channel_id,
-                                              selected_container, container_config, config)
-
-                # The same, for whether it counts as running.
+                embed = await admin_panel_embed(self.cog, self.channel_id, selected_container,
+                                                container_config, config, display_name)
                 is_running, status_known = await running_state_for(
                     self.cog, selected_container, container_config)
 
@@ -2291,17 +2267,6 @@ class AdminContainerDropdown(discord.ui.Select):
                     self.cog, container_config, is_running=is_running,
                     channel_has_control_permission=True,   # an admin always has it
                     allow_toggle=False)                    # no toggle in this panel
-
-                # A group's embed keeps its own title and colour: both already
-                # say what it is and how much of it is up.
-                if not is_group_target(selected_container):
-                    embed.title = _("🛠️ Admin Control: {name}").format(name=display_name)
-                    if not status_known:
-                        embed.color = discord.Color.gold()    # unknown
-                    elif is_running:
-                        embed.color = discord.Color.green()
-                    else:
-                        embed.color = discord.Color.red()
 
                 # Clean up temporary marker after everything is done
                 container_config.pop('_is_admin_control', None)

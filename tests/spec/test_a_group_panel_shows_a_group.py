@@ -176,7 +176,7 @@ def test_the_panel_asks_the_right_source(world):
     left every case here green, which is a check that cannot fail."""
     import asyncio
 
-    from cogs.group_control import group_config_for, panel_embed_for
+    from cogs.group_control import admin_panel_embed, group_config_for
 
     asked = []
 
@@ -185,20 +185,25 @@ def test_the_panel_asks_the_right_source(world):
 
         async def _generate_status_embed_and_view(self, *args, **kwargs):
             asked.append(args[1])
-            return SimpleNamespace(title="container", description="", color=None), None, True
+            import discord
+
+            return discord.Embed(title="container", description=""), None, True
+
+        async def get_status(self, config):
+            return SimpleNamespace(success=True, is_running=True)
 
     cog = _Cog()
-    group = asyncio.run(panel_embed_for(cog, 42, "group:Icaruse",
-                                        group_config_for("group:Icaruse"), {}))
+    group = asyncio.run(admin_panel_embed(cog, 42, "group:Icaruse",
+                                          group_config_for("group:Icaruse"), {}, "Icaruse"))
 
     assert asked == [], "a group was looked up as a container"
     assert "Icaruse" in group.title and "2/2" in group.description, group.description
 
-    container = asyncio.run(panel_embed_for(
-        cog, 42, "Icarus", {"docker_name": "Icarus", "name": "Icarus"}, {}))
+    container = asyncio.run(admin_panel_embed(
+        cog, 42, "Icarus", {"docker_name": "Icarus", "name": "Icarus"}, {}, "Icarus"))
 
     assert asked == ["Icarus"], "a container stopped going the ordinary way"
-    assert container.title == "container"
+    assert "Icarus" in container.title
 
 
 # --- a group is not on or off ------------------------------------------------
@@ -278,3 +283,74 @@ def test_a_container_still_offers_one_or_the_other(world):
 
     assert "start" not in up, up
     assert down == ["start"], down
+
+
+# --- and again after a press -------------------------------------------------
+# THE OPERATOR, 2026-09-24: he pressed ▶️ on his half-running group, the
+# container came up - the overview said 2/2 - and the panel redrew itself as
+#
+#     ⚠️ Icaruse
+#     Error: Could not retrieve status. Configuration missing or initial fetch
+#     failed.
+#
+# The panel is built in TWO places: when a target is picked, and again after a
+# button was pressed. The first one had learned about groups; the second had
+# not. One builder now, asked by both, or a third place will make the same
+# mistake a third time.
+
+def test_the_refresh_after_a_press_builds_the_same_panel(world):
+    import asyncio
+
+    from cogs.group_control import admin_panel_embed, group_config_for
+
+    class _Cog:
+        status_cache_service = _cache({"Icarus": True, "Icarus2": True})
+
+        async def _generate_status_embed_and_view(self, *args, **kwargs):
+            raise AssertionError("a group was looked up as a container")
+
+    embed = asyncio.run(admin_panel_embed(
+        _Cog(), 42, "group:Icaruse", group_config_for("group:Icaruse"), {}, "Icaruse"))
+
+    assert "Icaruse" in embed.title and "📁" in embed.title, embed.title
+    assert "Admin" not in embed.title, embed.title
+    assert "2/2" in embed.description, embed.description
+
+
+def test_a_container_still_gets_its_admin_header(world):
+    """Counter-check: the header and the colour a container's panel has."""
+    import asyncio
+
+    import discord
+
+    from cogs.group_control import admin_panel_embed
+
+    class _Cog:
+        status_cache_service = _cache({"Icarus": True})
+
+        async def _generate_status_embed_and_view(self, *args, **kwargs):
+            return discord.Embed(title="raw", description="x"), None, True
+
+        async def get_status(self, config):
+            return SimpleNamespace(success=True, is_running=True)
+
+    embed = asyncio.run(admin_panel_embed(
+        _Cog(), 42, "Icarus", {"docker_name": "Icarus", "name": "Icarus"}, {}, "Icarus 1"))
+
+    assert "Icarus 1" in embed.title, embed.title
+    assert embed.color == discord.Color.green(), embed.color
+
+
+def test_both_places_ask_the_one_builder():
+    """Structural: the picking path and the after-a-press path."""
+    import ast
+    from pathlib import Path
+
+    source = (Path(__file__).resolve().parents[2] / "cogs" / "control_ui.py").read_text(
+        encoding="utf-8")
+    calls = [ast.unparse(node.func) for node in ast.walk(ast.parse(source))
+             if isinstance(node, ast.Call)]
+
+    assert calls.count("admin_panel_embed") == 2, (
+        f"the admin panel is built {calls.count('admin_panel_embed')} times from the "
+        f"one builder; there are two places that build it")

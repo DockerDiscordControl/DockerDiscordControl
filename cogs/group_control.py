@@ -25,6 +25,8 @@ instead of carrying the answers.
 
 from typing import Optional, Tuple
 
+import discord
+
 from services.config.group_service import (group_target,  # noqa: F401
                                            is_group_target)
 from utils.logging_utils import get_module_logger
@@ -248,22 +250,39 @@ def group_is_running(name: str, status_cache_service) -> bool:
                for container in members.containers)
 
 
-async def panel_embed_for(cog, channel_id, selected: str, config: dict, app_config):
-    """The embed the admin panel shows for whatever was picked.
+async def admin_panel_embed(cog, channel_id, selected: str, config: dict, app_config,
+                            display_name: str):
+    """The finished embed of the admin panel, for whatever was picked.
 
     A group has no container to ask about, so asking drew the error a missing
     container draws - under the group's own name (operator, 2026-09-24). It
-    gets the embed its overview line describes; a container goes the ordinary
-    way. Both answers are given here rather than branched at the call site,
-    for the same reason running_state_for() is.
+    gets the embed its overview line describes, with its own title and its own
+    colour: both already say what it is and how much of it is up.
+
+    ONE BUILDER FOR TWO PLACES. The panel is built when a target is picked and
+    again after a button was pressed, and the second one still asked for a
+    container status after the first had learned better - so a press on a group
+    redrew the panel as an error over a group that had just done what it was
+    told. A third place would make the same mistake a third time.
     """
+    from .translation_manager import _ as translate
+
+    cache = getattr(cog, 'status_cache_service', None)
     if is_group_target(selected):
-        return group_panel_embed(config.get('name'),
-                                 getattr(cog, 'status_cache_service', None))
+        return group_panel_embed(config.get('name'), cache)
+
     embed, _view, _running = await cog._generate_status_embed_and_view(
         channel_id, selected, config, app_config,
         allow_toggle=False,     # no toggle button in the admin panel
         force_collapse=False)
+    if not embed:
+        return embed
+    embed.title = translate("🛠️ Admin Control: {name}").format(name=display_name)
+    running, known = await running_state_for(cog, selected, config)
+    if not known:
+        embed.color = discord.Color.gold()
+    else:
+        embed.color = discord.Color.green() if running else discord.Color.red()
     return embed
 
 
