@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Ще не підтверджено",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** отримав команду {action_process_text}, і Docker її прийняв, але через {seconds} секунд статус не змінився. Можливо, операція ще триває.",
-  "web.tabs.logs": "Журнали"
+  "web.tabs.logs": "Журнали",
+  "web.restart.needed": "Для цих змін потрібен перезапуск контейнера.",
+  "web.restart.now": "Перезапустити",
+  "web.restart.running": "Перезапуск DDC…",
+  "web.restart.failed": "Не вдалося розпочати перезапуск."
 }

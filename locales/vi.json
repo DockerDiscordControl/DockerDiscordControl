@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Chưa được xác nhận",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** đã nhận lệnh {action_process_text} và Docker đã chấp nhận, nhưng sau {seconds} giây trạng thái vẫn chưa thay đổi. Có thể vẫn đang xử lý.",
-  "web.tabs.logs": "Nhật ký"
+  "web.tabs.logs": "Nhật ký",
+  "web.restart.needed": "Những thay đổi này cần khởi động lại container.",
+  "web.restart.now": "Khởi động lại ngay",
+  "web.restart.running": "Đang khởi động lại DDC…",
+  "web.restart.failed": "Không thể bắt đầu khởi động lại."
 }

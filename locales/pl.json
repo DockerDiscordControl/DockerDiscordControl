@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Jeszcze niepotwierdzone",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** otrzymał polecenie {action_process_text}, a Docker je przyjął, ale po {seconds} sekundach status się nie zmienił. Operacja może nadal trwać.",
-  "web.tabs.logs": "Dzienniki"
+  "web.tabs.logs": "Dzienniki",
+  "web.restart.needed": "Te zmiany wymagają ponownego uruchomienia kontenera.",
+  "web.restart.now": "Uruchom ponownie",
+  "web.restart.running": "Ponowne uruchamianie DDC…",
+  "web.restart.failed": "Nie udało się rozpocząć ponownego uruchomienia."
 }

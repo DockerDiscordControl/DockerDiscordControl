@@ -15,6 +15,11 @@
 <script src="{{ url_for('static', filename='js/channel_translation.js') }}"></script>
 <script>
     // Flask names the routes; app/static/js/panel.js reads them from here.
+    // The restart button's own words (app/static/js/panel.js).
+    window.DDC_RESTART_TEXTS = {
+        running: {{ _t('web.restart.running')|tojson }},
+        failed: {{ _t('web.restart.failed')|tojson }}
+    };
     window.DDC_PANEL_URLS = {
         refreshContainers: "{{ url_for('main_bp.refresh_containers') }}",
         saveConfig: "{{ url_for('main_bp.save_config_api') }}",

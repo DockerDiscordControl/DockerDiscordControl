@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ עדיין לא אושר",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "הפקודה {action_process_text} נשלחה אל **{server_name}** ו-Docker קיבל אותה, אך לאחר {seconds} שניות המצב לא השתנה. ייתכן שהפעולה עדיין מתבצעת.",
-  "web.tabs.logs": "יומנים"
+  "web.tabs.logs": "יומנים",
+  "web.restart.needed": "שינויים אלה מחייבים הפעלה מחדש של הקונטיינר.",
+  "web.restart.now": "הפעל מחדש עכשיו",
+  "web.restart.running": "מפעיל מחדש את DDC…",
+  "web.restart.failed": "לא ניתן היה להתחיל את ההפעלה מחדש."
 }

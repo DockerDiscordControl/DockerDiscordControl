@@ -171,10 +171,18 @@ Licensed under the MIT License
         </div>
     </div>
 
+    {# Shown only when a restart-requiring field was actually CHANGED - the
+       question app/static/js/restart_notice.js answers. The button that does
+       the restart lives in here rather than getting a rule of its own, so the
+       two can never disagree about whether it is needed (operator,
+       2026-09-24). Its text used to be hard-coded English in a panel that
+       speaks forty languages. #}
     <div id="restart-required-alert" class="alert alert-info position-fixed bottom-0 end-0 m-3 shadow d-flex align-items-center force-hide" role="alert" style="display: none; z-index:1051; padding: 0.5rem 1rem;">
-        <strong class="me-2">Info:</strong> 
-        <span>Container restart required for changes!</span>
-        <button type="button" class="btn-close ms-3" data-bs-dismiss="alert" aria-label="Close"></button>
+        <span>{{ _t('web.restart.needed') }}</span>
+        <button type="button" class="btn btn-sm btn-warning ms-3 text-nowrap" id="restart-now-button">
+            <i class="bi bi-arrow-repeat" aria-hidden="true"></i> {{ _t('web.restart.now') }}
+        </button>
+        <button type="button" class="btn-close ms-3" data-bs-dismiss="alert" aria-label="{{ _t('web.common.close') }}"></button>
     </div>
 
     <footer class="text-center fixed-bottom py-2">

@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Veel kinnitamata",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** sai käsu {action_process_text} ja Docker võttis selle vastu, kuid {seconds} sekundi pärast ei olnud olek muutunud. Töö võib veel käia.",
-  "web.tabs.logs": "Logid"
+  "web.tabs.logs": "Logid",
+  "web.restart.needed": "Need muudatused nõuavad konteineri taaskäivitamist.",
+  "web.restart.now": "Taaskäivita kohe",
+  "web.restart.running": "DDC taaskäivitub…",
+  "web.restart.failed": "Taaskäivitust ei õnnestunud alustada."
 }

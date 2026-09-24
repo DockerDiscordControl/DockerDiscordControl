@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Još nije potvrđeno",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** je primio naredbu {action_process_text} i Docker ju je prihvatio, ali nakon {seconds} sekundi stanje se nije promijenilo. Možda je još u tijeku.",
-  "web.tabs.logs": "Zapisi"
+  "web.tabs.logs": "Zapisi",
+  "web.restart.needed": "Ove promjene zahtijevaju ponovno pokretanje kontejnera.",
+  "web.restart.now": "Pokreni ponovno",
+  "web.restart.running": "DDC se ponovno pokreće…",
+  "web.restart.failed": "Ponovno pokretanje nije bilo moguće započeti."
 }

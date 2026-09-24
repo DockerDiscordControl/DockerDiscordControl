@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (Stack)",
   "⏱️ Not confirmed yet": "⏱️ Noch nicht bestätigt",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** hat den Befehl {action_process_text} erhalten und Docker hat ihn angenommen, aber nach {seconds} Sekunden hatte sich der Status nicht geändert. Möglicherweise läuft der Vorgang noch.",
-  "web.tabs.logs": "Logs"
+  "web.tabs.logs": "Logs",
+  "web.restart.needed": "Für diese Änderungen ist ein Container-Neustart nötig.",
+  "web.restart.now": "Jetzt neu starten",
+  "web.restart.running": "DDC wird neu gestartet …",
+  "web.restart.failed": "Der Neustart konnte nicht gestartet werden."
 }

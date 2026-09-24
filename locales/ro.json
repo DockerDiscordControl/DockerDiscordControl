@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Încă neconfirmat",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** a primit comanda {action_process_text} și Docker a acceptat-o, dar după {seconds} secunde starea nu se schimbase. Este posibil să fie încă în curs.",
-  "web.tabs.logs": "Jurnale"
+  "web.tabs.logs": "Jurnale",
+  "web.restart.needed": "Aceste modificări necesită repornirea containerului.",
+  "web.restart.now": "Repornește acum",
+  "web.restart.running": "Se repornește DDC…",
+  "web.restart.failed": "Repornirea nu a putut fi pornită."
 }

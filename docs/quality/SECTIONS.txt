@@ -113,6 +113,7 @@ services/discord/channel_cleanup_service.py:1-509
 services/discord/conditional_update_cache_service.py:1-184
 services/discord/embed_helper_service.py:1-209
 services/discord/status_overview_service.py:1-365
+services/docker_service/self_restart.py:1-122
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-308
 # group_actions.py joined on 2026-09-24 (new: one walk over a group's
@@ -272,6 +273,7 @@ app/blueprints/login_routes.py:1-123
 app/blueprints/log_routes.py:1-242
 
 ## Section 32  (1929 lines, 3 pieces)
+app/blueprints/system_routes.py:1-51
 app/blueprints/main_routes.py:1-1490
 app/blueprints/tasks_bp.py:1-348
 app/blueprints/action_log_routes.py:1-91
@@ -328,7 +330,7 @@ app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-68
 app/web/background.py:1-85
-app/web/blueprints.py:1-37
+app/web/blueprints.py:1-39
 
 ## Section 35  (1710 lines, 14 pieces)
 # utils/config_cache.py left for section 38 on 2026-09-24: /health stopped

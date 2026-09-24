@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Not confirmed yet",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.",
-  "web.tabs.logs": "Logs"
+  "web.tabs.logs": "Logs",
+  "web.restart.needed": "A container restart is needed for these changes.",
+  "web.restart.now": "Restart now",
+  "web.restart.running": "Restarting DDC…",
+  "web.restart.failed": "The restart could not be started."
 }

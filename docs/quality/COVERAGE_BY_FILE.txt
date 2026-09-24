@@ -54,6 +54,7 @@ app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 27
 app/blueprints/group_routes.py	169	NONE
 app/blueprints/login_routes.py	123	new 2026-09-23 (the panel form login and logout), written test-first
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
+app/blueprints/system_routes.py	51	pass2:s32:1-51  [self-restart route, added 2026-09-24]
 app/blueprints/main_routes.py	1490	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
 app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
 app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
@@ -91,7 +92,7 @@ app/web/__init__.py	12	pass1:s34:1-12
 app/web/action_logger.py	20	pass1:s34:1-20
 app/web/app_factory.py	68	pass1:s34:1-61 v3rev2:1-68
 app/web/background.py	85	pass1:s34:1-85
-app/web/blueprints.py	37	pass1:s34:1-31
+app/web/blueprints.py	39	pass1:s34:1-31
 app/web/compat.py	102	pass1:s34:1-102
 app/web/config.py	169	pass1:s35:1-169
 app/web/csrf.py	125	pass1:s35:1-125
@@ -157,6 +158,7 @@ services/discord/embed_helper_service.py	209	pass1:s14:plan pass2:s14:1-163  [10
 services/discord/status_overview_service.py	365	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	281	v3rev:1-272
+services/docker_service/self_restart.py	122	pass2:s34:1-117  [self-restart, added 2026-09-24]
 services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	105	v3rev:1-105
 services/docker_service/docker_action_service.py	308	pass1:s14:plan pass2:s14:1-276

@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Ei vielä vahvistettu",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** sai komennon {action_process_text} ja Docker hyväksyi sen, mutta {seconds} sekunnin jälkeen tila ei ollut muuttunut. Se voi olla yhä käynnissä.",
-  "web.tabs.logs": "Lokit"
+  "web.tabs.logs": "Lokit",
+  "web.restart.needed": "Nämä muutokset vaativat kontin uudelleenkäynnistyksen.",
+  "web.restart.now": "Käynnistä uudelleen",
+  "web.restart.running": "DDC käynnistyy uudelleen…",
+  "web.restart.failed": "Uudelleenkäynnistystä ei voitu aloittaa."
 }

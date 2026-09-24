@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ 尚未確認",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "已向 **{server_name}** 傳送 {action_process_text}，Docker 已接受，但 {seconds} 秒後狀態仍未改變。可能仍在處理中。",
-  "web.tabs.logs": "日誌"
+  "web.tabs.logs": "日誌",
+  "web.restart.needed": "這些變更需要重新啟動容器。",
+  "web.restart.now": "立即重新啟動",
+  "web.restart.running": "正在重新啟動 DDC…",
+  "web.restart.failed": "無法啟動重新啟動。"
 }

@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Още не е потвърдено",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** получи командата {action_process_text} и Docker я прие, но след {seconds} секунди статусът не се беше променил. Възможно е още да работи.",
-  "web.tabs.logs": "Дневници"
+  "web.tabs.logs": "Дневници",
+  "web.restart.needed": "Тези промени изискват рестарт на контейнера.",
+  "web.restart.now": "Рестартирай сега",
+  "web.restart.running": "DDC се рестартира…",
+  "web.restart.failed": "Рестартът не можа да бъде стартиран."
 }

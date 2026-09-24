@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ هنوز تأیید نشده",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "دستور {action_process_text} به **{server_name}** ارسال شد و Docker آن را پذیرفت، اما پس از {seconds} ثانیه وضعیت تغییر نکرده بود. ممکن است هنوز در حال انجام باشد.",
-  "web.tabs.logs": "گزارش‌ها"
+  "web.tabs.logs": "گزارش‌ها",
+  "web.restart.needed": "این تغییرات نیازمند راه‌اندازی مجدد کانتینر است.",
+  "web.restart.now": "اکنون راه‌اندازی مجدد",
+  "web.restart.running": "در حال راه‌اندازی مجدد DDC…",
+  "web.restart.failed": "راه‌اندازی مجدد آغاز نشد."
 }

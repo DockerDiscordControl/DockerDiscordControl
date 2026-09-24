@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ अभी पुष्टि नहीं हुई",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** को {action_process_text} भेजा गया और Docker ने इसे स्वीकार किया, लेकिन {seconds} सेकंड बाद भी स्थिति नहीं बदली। यह अभी भी काम कर रहा हो सकता है।",
-  "web.tabs.logs": "लॉग"
+  "web.tabs.logs": "लॉग",
+  "web.restart.needed": "इन बदलावों के लिए कंटेनर को पुनः आरंभ करना आवश्यक है।",
+  "web.restart.now": "अभी पुनः आरंभ करें",
+  "web.restart.running": "DDC पुनः आरंभ हो रहा है…",
+  "web.restart.failed": "पुनः आरंभ शुरू नहीं किया जा सका।"
 }

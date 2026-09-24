@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Henüz doğrulanmadı",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** için {action_process_text} komutu gönderildi ve Docker kabul etti, ancak {seconds} saniye sonra durum değişmemişti. Hâlâ çalışıyor olabilir.",
-  "web.tabs.logs": "Günlükler"
+  "web.tabs.logs": "Günlükler",
+  "web.restart.needed": "Bu değişiklikler için kapsayıcının yeniden başlatılması gerekir.",
+  "web.restart.now": "Şimdi yeniden başlat",
+  "web.restart.running": "DDC yeniden başlatılıyor…",
+  "web.restart.failed": "Yeniden başlatma başlatılamadı."
 }

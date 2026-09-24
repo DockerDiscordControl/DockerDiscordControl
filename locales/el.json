@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Δεν επιβεβαιώθηκε ακόμη",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "Ο **{server_name}** έλαβε την εντολή {action_process_text} και το Docker την αποδέχτηκε, αλλά μετά από {seconds} δευτερόλεπτα η κατάσταση δεν είχε αλλάξει. Ίσως εκτελείται ακόμη.",
-  "web.tabs.logs": "Αρχεία καταγραφής"
+  "web.tabs.logs": "Αρχεία καταγραφής",
+  "web.restart.needed": "Αυτές οι αλλαγές απαιτούν επανεκκίνηση του container.",
+  "web.restart.now": "Επανεκκίνηση τώρα",
+  "web.restart.running": "Επανεκκίνηση του DDC…",
+  "web.restart.failed": "Δεν ήταν δυνατή η έναρξη της επανεκκίνησης."
 }

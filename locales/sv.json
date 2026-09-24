@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Inte bekräftat än",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** fick kommandot {action_process_text} och Docker accepterade det, men efter {seconds} sekunder hade statusen inte ändrats. Det kan fortfarande pågå.",
-  "web.tabs.logs": "Loggar"
+  "web.tabs.logs": "Loggar",
+  "web.restart.needed": "De här ändringarna kräver en omstart av containern.",
+  "web.restart.now": "Starta om nu",
+  "web.restart.running": "DDC startas om…",
+  "web.restart.failed": "Omstarten kunde inte startas."
 }

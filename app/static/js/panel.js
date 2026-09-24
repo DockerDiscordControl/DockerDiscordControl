@@ -25,6 +25,42 @@
             console.log('Restart alert is displayed (via classList.remove)');
         }
     }
+
+    // The button inside that notice. It asks the panel to restart DDC's own
+    // container - which DDC can do, because restarting containers is its job
+    // and its own is one of them (services/docker_service/self_restart.py).
+    // The answer comes back BEFORE the restart happens, so a success here
+    // means "it has been asked for", not "it is done"; the page says so and
+    // then waits for the panel to come back.
+    function wireRestartButton() {
+        const button = document.getElementById('restart-now-button');
+        if (!button) { return; }
+        button.addEventListener('click', async () => {
+            const texts = window.DDC_RESTART_TEXTS || {};
+            button.disabled = true;
+            button.textContent = texts.running || 'Restarting…';
+            let answer = null;
+            try {
+                answer = await fetch('/api/restart-self', { method: 'POST' });
+            } catch (error) {
+                answer = null;          // the connection dropping IS the restart
+            }
+            if (answer && !answer.ok) {
+                button.disabled = false;
+                button.textContent = texts.failed || 'Restart failed';
+                return;
+            }
+            // Wait for the panel to answer again, then reload on its own.
+            const startedAt = Date.now();
+            const poll = setInterval(async () => {
+                if (Date.now() - startedAt > 120000) { clearInterval(poll); return; }
+                try {
+                    const probe = await fetch('/health', { cache: 'no-store' });
+                    if (probe.ok) { clearInterval(poll); window.location.reload(); }
+                } catch (error) { /* still down - keep waiting */ }
+            }, 2000);
+        });
+    }
     // --- End Restart Alert --- 
 
     function showUnsavedChangesAlert(requiresRestart = false) {
@@ -107,6 +143,8 @@
             console.log("Timezone field data-immediate-effect:", timezoneField.getAttribute('data-immediate-effect'));
         }
         
+        wireRestartButton();
+
         // Check form
         configForm = document.getElementById('config-form');
         console.log("Config form found:", !!configForm);

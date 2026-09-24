@@ -1795,5 +1795,9 @@
   "{name} (stack)": "{name} (stack)",
   "⏱️ Not confirmed yet": "⏱️ Zatiaľ nepotvrdené",
   "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** dostal príkaz {action_process_text} a Docker ho prijal, ale po {seconds} sekundách sa stav nezmenil. Možno stále prebieha.",
-  "web.tabs.logs": "Protokoly"
+  "web.tabs.logs": "Protokoly",
+  "web.restart.needed": "Tieto zmeny vyžadujú reštart kontajnera.",
+  "web.restart.now": "Reštartovať",
+  "web.restart.running": "Reštartuje sa DDC…",
+  "web.restart.failed": "Reštart sa nepodarilo spustiť."
 }

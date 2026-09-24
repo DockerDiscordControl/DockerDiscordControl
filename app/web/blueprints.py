@@ -21,6 +21,7 @@ from app.blueprints.group_routes import group_bp
 from app.blueprints.translation_routes import translation_bp
 from app.blueprints.login_routes import login_bp
 from app.blueprints.two_factor_routes import two_factor_bp
+from app.blueprints.system_routes import system_bp
 
 
 def register_blueprints(app: Flask) -> None:
@@ -35,3 +36,4 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(translation_bp)
     app.register_blueprint(login_bp)
     app.register_blueprint(two_factor_bp)
+    app.register_blueprint(system_bp)
