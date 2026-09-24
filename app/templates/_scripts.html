@@ -1,4 +1,7 @@
 {# --- JavaScript at the end --- #}
+{# First, because the others use it: turning a server or browser message
+   into text the page can hold (app/static/js/escape.js). #}
+<script src="{{ url_for('static', filename='js/escape.js') }}"></script>
 <script src="{{ url_for('static', filename='js/config-ui.js') }}"></script>
 <script src="{{ url_for('static', filename='js/stack_order.js') }}"></script>
 <script src="{{ url_for('static', filename='js/task_added_notice.js') }}"></script>

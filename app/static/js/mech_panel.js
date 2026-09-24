@@ -1020,8 +1020,8 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Mech animation error:', error);
-                preview.innerHTML = '<div class="alert alert-danger">Error generating animation: ' + error.message + '<br>Check browser console for details.<br><small>Make sure the spritesheet exists at app/static/animatedmech.png</small></div>';
-                stats.innerHTML = 'Error: ' + error.message;
+                preview.innerHTML = '<div class="alert alert-danger">Error generating animation: ' + ddcEscapeHtml(error.message) + '<br>Check browser console for details.<br><small>Make sure the spritesheet exists at app/static/animatedmech.png</small></div>';
+                stats.textContent = 'Error: ' + error.message;
             });
         }
         
@@ -1116,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Speed control error:', error);
-                preview.innerHTML = '<div class="alert alert-danger">Error: ' + error + '<br>Check browser console for details.</div>';
+                preview.innerHTML = '<div class="alert alert-danger">Error: ' + ddcEscapeHtml(error) + '<br>Check browser console for details.</div>';
                 stats.innerHTML = 'Error occurred';
             });
         }

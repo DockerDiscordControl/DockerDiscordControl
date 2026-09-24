@@ -1641,7 +1641,7 @@
                      const configList = document.createElement('div');
                      configList.className = 'small mt-2';
                      configList.innerHTML = 'Saved configuration files: ' + 
-                         data.config_files.map(file => `<code>${file}</code>`).join(', ');
+                         data.config_files.map(file => `<code>${ddcEscapeHtml(file)}</code>`).join(', ');
                      notification.appendChild(configList);
                  }
              } else {
@@ -1770,14 +1770,14 @@
                 }
                 return true;
             } else {
-                logContentElement.innerHTML = `<span class="text-danger">Error loading logs: ${response.statusText}</span>`;
+                logContentElement.innerHTML = `<span class="text-danger">Error loading logs: ${ddcEscapeHtml(response.statusText)}</span>`;
             }
         } catch (error) {
             console.error('Error fetching logs:', error);
             // Only show error if not auto-refreshing
             const autoRefreshToggle = document.getElementById('autoRefreshToggle');
             if (!autoRefreshToggle || !autoRefreshToggle.checked) {
-                logContentElement.innerHTML = `<span class="text-danger">Error loading logs: ${error.message}</span>`;
+                logContentElement.innerHTML = `<span class="text-danger">Error loading logs: ${ddcEscapeHtml(error.message)}</span>`;
             }
         } finally {
             // Reset fetch in progress flag
@@ -1885,7 +1885,7 @@
                 }
             } else {
                 // Error occurred
-                statusElement.innerHTML = `<span class="text-danger">Error: ${data.message}</span>`;
+                statusElement.innerHTML = `<span class="text-danger">Error: ${ddcEscapeHtml(data.message)}</span>`;
                 enableButton.disabled = false;
             }
         })
@@ -1933,7 +1933,7 @@
                 // Refresh the status display
                 refreshTempDebugStatus();
             } else {
-                statusElement.innerHTML = `<span class="text-danger">Error: ${data.message}</span>`;
+                statusElement.innerHTML = `<span class="text-danger">Error: ${ddcEscapeHtml(data.message)}</span>`;
             }
         })
         .catch(error => {
@@ -1966,7 +1966,7 @@
                 // Refresh the status display
                 refreshTempDebugStatus();
             } else {
-                statusElement.innerHTML = `<span class="text-danger">Error: ${data.message}</span>`;
+                statusElement.innerHTML = `<span class="text-danger">Error: ${ddcEscapeHtml(data.message)}</span>`;
             }
         })
         .catch(error => {
@@ -2555,7 +2555,7 @@
             } catch (error) {
                 console.error('Diagnostics error:', error);
                 diagnosticsModalContent.innerHTML = `<div class="text-danger">
-                    <strong>Error running diagnostics:</strong> ${error.message}
+                    <strong>Error running diagnostics:</strong> ${ddcEscapeHtml(error.message)}
                     <br><small>Check browser console for details.</small>
                 </div>`;
                 diagnosticsModalResult.classList.remove('d-none');

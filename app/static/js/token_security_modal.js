@@ -32,7 +32,7 @@ async function refreshTokenStatusModal() {
             <div class="alert alert-danger mb-0">
                 <i class="bi bi-exclamation-triangle"></i>
                 <strong>${t('web.common.error')}:</strong> ${t('web.token_security.error_checking_status')}
-                <br><small>${error.message}</small>
+                <br><small>${ddcEscapeHtml(error.message)}</small>
             </div>
         `;
     }

@@ -935,7 +935,7 @@ async function loadAASHistory() {
         }).join('');
         
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Error: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Error: ${ddcEscapeHtml(error.message)}</td></tr>`;
     }
 }
 
