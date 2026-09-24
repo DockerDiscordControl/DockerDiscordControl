@@ -397,6 +397,14 @@ class TestR37Version:
         assert not re.search(r'^VERSION="\d', text, re.M)
 
     def test_health_reports_image_version(self, monkeypatch):
+        """R37: the version DDC reports is the image's, not one typed twice.
+
+        Asked as a LOGGED-IN caller since 2026-09-24: the version left the
+        public body, because it told any caller on the open internet which
+        published issues apply to this installation
+        (tests/spec/test_health_describes_the_service_not_the_installation.py).
+        What R37 is about - one source for the version - is unchanged.
+        """
         from flask import Flask
 
         from app.web import routes
@@ -404,6 +412,7 @@ class TestR37Version:
         monkeypatch.setattr(routes, "load_config", lambda: {"web_ui_password_hash": "x"})
         monkeypatch.setattr(routes, "get_server_config_service",
                             lambda: SimpleNamespace(get_all_servers=lambda: []))
+        monkeypatch.setattr(routes, "session_user", lambda: "admin")
         app = Flask(__name__)
         routes.register_routes(app)
         client = app.test_client()

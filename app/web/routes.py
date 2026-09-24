@@ -18,7 +18,7 @@ from typing import Any, Dict, List
 
 from flask import Flask, jsonify, request
 
-from app.auth import auth
+from app.auth import auth, session_user, verify_password
 from services.admin.admin_service import get_admin_service
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
@@ -157,36 +157,68 @@ def register_routes(app: Flask) -> None:
             app.logger.error("Error saving admin data: %s", e, exc_info=True)
             return jsonify({"success": False, "error": "An internal error occurred while saving admin data"})
 
+    def _caller_is_logged_in():
+        """Whether this request carries a login - either way in.
+
+        /health has no decorator, on purpose: the container probe holds no
+        credentials. So the two ways a human gets in are asked by hand - the
+        panel's session cookie, and the Basic auth an operator types into curl.
+        """
+        if session_user():
+            return True
+        credentials = request.authorization
+        return bool(credentials and verify_password(credentials.username,
+                                                    credentials.password))
+
     @app.route("/health")
     def health_check():
         try:
+            # THE PUBLIC ANSWER (2026-09-24): whether the service is up, and no
+            # more. It used to carry the exact version and the number of
+            # containers to any caller on the open internet - the same finding
+            # as review D8's cache_directory, and nothing in DDC reads either:
+            # the probe in the Dockerfile opens this URL and checks that it
+            # does not raise.
             health_data = {
                 "status": "healthy",
                 "service": "DockerDiscordControl",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                # DDC_VERSION is set by the Dockerfile (single source for the version)
-                "version": f"v{os.environ['DDC_VERSION']}" if os.environ.get("DDC_VERSION") else "unknown",
             }
+            detailed = _caller_is_logged_in()
+            if detailed:
+                # DDC_VERSION is set by the Dockerfile (single source for the version)
+                health_data["version"] = (f"v{os.environ['DDC_VERSION']}"
+                                          if os.environ.get("DDC_VERSION") else "unknown")
 
             try:
                 config = load_config()
-                health_data["config_loaded"] = True
                 server_config_service = get_server_config_service()
                 servers = server_config_service.get_all_servers()
-                health_data["servers_configured"] = len(servers)
+                if detailed:
+                    health_data["config_loaded"] = True
+                    health_data["servers_configured"] = len(servers)
 
                 if config.get("web_ui_password_hash") is None:
+                    # Said in public, and only in this state: with no password
+                    # set the setup page is open to anybody who loads the
+                    # panel, so this describes nothing a visitor cannot see.
                     health_data["first_time_setup_needed"] = True
                     health_data["setup_instructions"] = "Visit /setup for easy web setup, or set DDC_ADMIN_PASSWORD env var"
                     health_data["setup_url"] = "/setup"
-                else:
+                elif detailed:
                     health_data["first_time_setup_needed"] = False
             except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError):
-                health_data["config_loaded"] = False
-                health_data["servers_configured"] = 0
+                if detailed:
+                    health_data["config_loaded"] = False
+                    health_data["servers_configured"] = 0
 
             # Proxy or Docker? Reported, not failed: a container restart does not
             # bring a dead daemon back (services/docker_service/reachability.py).
+            # PUBLIC, unlike the version and the container count: whether DDC can
+            # reach Docker at all is what "healthy" means for this service, and
+            # v3.0 step 11 exists so that a healthcheck can tell a dead proxy
+            # from a dead daemon. That is the operator's first question at 3am
+            # and it must not need a password.
             import services.docker_service.reachability as reachability
             host = os.environ.get("DOCKER_HOST") or reachability.DEFAULT_HOST
             health_data["docker"] = reachability.docker_reachability(

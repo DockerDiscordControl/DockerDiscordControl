@@ -996,8 +996,11 @@ class TestWebRoutes:
         assert resp.status_code == 200
         body = resp.get_json()
         assert body["status"] == "healthy"
-        assert body["first_time_setup_needed"] is False
-        assert body["servers_configured"] == 0
+        # 2026-09-24: the installation detail moved behind the login. What an
+        # unauthenticated caller is told, and what it takes to get the rest, is
+        # pinned in tests/spec/test_health_describes_the_service_not_the_installation.py;
+        # this case is about the route being attached at all.
+        assert body["service"] == "DockerDiscordControl"
 
     def test_health_endpoint_first_time_setup(self, monkeypatch):
         from flask import Flask
@@ -1013,8 +1016,11 @@ class TestWebRoutes:
         )
         web_routes.register_routes(app)
         body = app.test_client().get("/health").get_json()
+        # A panel with no password says so in public on purpose: in that state
+        # the setup page is open to anybody who loads it anyway.
         assert body["first_time_setup_needed"] is True
-        assert body["servers_configured"] == 2
+        assert body["setup_url"] == "/setup"
+        assert "servers_configured" not in body
 
     def test_health_endpoint_handles_config_load_error(self, monkeypatch):
         from flask import Flask
@@ -1027,11 +1033,14 @@ class TestWebRoutes:
         monkeypatch.setattr(web_routes, "load_config", explode)
         web_routes.register_routes(app)
         resp = app.test_client().get("/health")
-        # Inner OSError caught, outer JSON response is healthy with config_loaded=False.
+        # Inner OSError caught, outer JSON response is still healthy. Since
+        # 2026-09-24 an unauthenticated caller is not told WHAT failed - a
+        # configuration that cannot be read describes the installation too.
         assert resp.status_code == 200
         body = resp.get_json()
-        assert body["config_loaded"] is False
-        assert body["servers_configured"] == 0
+        assert body["status"] == "healthy"
+        assert "config_loaded" not in body
+        assert "servers_configured" not in body
 
     def test_admin_users_get_returns_admin_data(self, monkeypatch):
         from flask import Flask

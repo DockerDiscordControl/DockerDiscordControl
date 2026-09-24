@@ -323,21 +323,25 @@ app/web/app_factory.py:1-68
 app/web/background.py:1-85
 app/web/blueprints.py:1-37
 
-## Section 35  (1985 lines, 15 pieces)
+## Section 35  (1710 lines, 14 pieces)
+# utils/config_cache.py left for section 38 on 2026-09-24: /health stopped
+# describing the installation to unauthenticated callers, app/web/routes.py
+# went 204 -> 232 lines, and this section reached 2,013 of the 2,000 a section
+# may hold. 38 is the emptiest one and the caching sits fine beside the
+# security pieces there.
 app/web/config.py:1-169
 app/web/csrf.py:1-125
 app/web/diagnostics.py:1-30
 app/web/extensions.py:1-84
 app/web/i18n.py:1-64
 app/web/logging.py:1-60
-app/web/routes.py:1-204
+app/web/routes.py:1-236
 app/web/security.py:1-102
 app/web_ui.py:1-36
 utils/__init__.py:1-7
 utils/app_commands_helper.py:1-150
 utils/atomic_io.py:1-99
 utils/common_helpers.py:1-501
-utils/config_cache.py:1-307
 utils/config_paths.py:1-47
 
 ## Section 36  (1856 lines, 6 pieces)
@@ -363,7 +367,7 @@ utils/key_crypto.py:1-84
 utils/token_security.py:1-278
 services/config/group_service.py:1-330
 
-## Section 38  (426 lines, 5 pieces)
+## Section 38  (733 lines, 6 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
 # lines a section may hold, and the next repair in main_routes.py (review D25)
 # did not fit. The section cut is an instrument for reading the code, not a
@@ -378,6 +382,8 @@ app/web/compat.py:1-102
 cogs/ddc_ui.py:1-94
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
+# utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).
+utils/config_cache.py:1-307
 
 ## Section 39  (933 lines, 6 pieces)
 # New on 2026-09-22 for v3.0: the allowlist proxy in front of the Docker
