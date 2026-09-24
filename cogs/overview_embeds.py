@@ -49,6 +49,68 @@ def power_consumption_line(decay_per_day) -> str:
     return f"{label}: 🔻 {decay_per_day}{translate('per_day_suffix')}"
 
 
+def group_status_lines(status_cache_service, translate) -> list:
+    """The operator's container groups, as lines for the overview.
+
+    THE OPERATOR, 2026-09-24, with a screenshot of the overview: he could not
+    see his group in Discord. A group carries its own Active and its own four
+    actions and the panel shows it as a row in the container table - but in
+    Discord it existed only inside a menu behind a button. His instruction was
+    that a group behaves like a container IN THE DISPLAY too, and the overview
+    is the display.
+
+    THE COUNT is the one thing a container line cannot have: how many members
+    are running. Green when they all are, red when none is, YELLOW when they
+    disagree - a group of two with one up is neither of the first two, and
+    drawing it as either would be a lie about one of them.
+
+    THE GROUP DECIDES, here as everywhere: one the operator switched off is not
+    shown, and neither is one he did not allow to report status.
+
+    Empty for an operator with no groups: no divider, no heading, nothing. The
+    overview he had yesterday is the overview he keeps.
+    """
+    try:
+        from services.config.group_service import get_group_service
+
+        service = get_group_service()
+        groups = service.get_groups()
+    except OSError as e:
+        # The containers are still worth showing; the groups are said to be
+        # missing in the log rather than silently reported as "none defined".
+        logger.error(f"Groups could not be read for the overview: {e}")
+        return []
+
+    lines = []
+    for group in groups:
+        if not group.active or "status" not in group.allowed_actions:
+            continue
+        members = service.members_of(group.name)
+        present = members.containers
+        running = 0
+        for container in present:
+            entry = status_cache_service.get(container) if status_cache_service else None
+            data = entry.get('data') if entry else None
+            if data is not None and getattr(data, 'is_running', False):
+                running += 1
+        total = len(present)
+        if running and running == total:
+            lamp = "🟢"
+        elif running:
+            lamp = "🟡"
+        else:
+            lamp = "🔴"
+        name = group.name[:20] + "." if len(group.name) > 20 else group.name
+        gone = " ⚠️" if members.missing else ""
+        lines.append(f"│ {lamp} {name} {running}/{total}{gone}")
+
+    if not lines:
+        return []
+    # Set apart, the way the panel sets them apart: a group listed among the
+    # containers reads as a container with a strange name.
+    return [f"├── {translate('Container groups')} ──────"] + lines
+
+
 def with_website_footer(embed) -> None:
     """The website line in the footer, keeping whatever was put there first.
 
@@ -182,6 +244,10 @@ class OverviewEmbedsMixin:
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
                 line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                 content_lines.append(line)
+
+        # The operator's groups, below the containers and set apart from them
+        # (group_status_lines). Empty when he has none.
+        content_lines.extend(group_status_lines(getattr(self, 'status_cache_service', None), translate))
 
         # Close server status box
         content_lines.append("└───────────────────────────")
@@ -687,7 +753,15 @@ class OverviewEmbedsMixin:
         # The lines that were actually built, not the configured entries: the loop
         # above skips an entry without a display name or docker name, and the
         # header used to promise more containers than it showed.
-        total_containers = len(container_lines)
+        # The groups, as their own block after the containers. Same helper as
+        # the other two views, so a group cannot appear in one and not another.
+        group_lines = group_status_lines(getattr(self, 'status_cache_service', None), translate)
+        if group_lines:
+            container_lines.append("\n".join(group_lines))
+
+        # The lines that were actually built. The groups are NOT counted here:
+        # the header says how many CONTAINERS there are, and a group is not one.
+        total_containers = len(container_lines) - (1 if group_lines else 0)
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with consistent spacing between container lines
@@ -827,6 +901,10 @@ class OverviewEmbedsMixin:
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
                 line = f"│ {status_emoji} {truncated_name}{info_indicator}"
                 content_lines.append(line)
+
+        # The operator's groups, below the containers and set apart from them
+        # (group_status_lines). Empty when he has none.
+        content_lines.extend(group_status_lines(getattr(self, 'status_cache_service', None), translate))
 
         # Close server status box
         content_lines.append("└───────────────────────────")

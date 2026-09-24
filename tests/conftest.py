@@ -167,10 +167,25 @@ def sample_container_info():
 
 @pytest.fixture(autouse=True)
 def cleanup_after_test():
-    """Automatic cleanup after each test."""
+    """Automatic cleanup after each test.
+
+    THE GROUP SERVICE IS A SINGLETON bound to the configuration directory it
+    first saw. Sixteen test files reset it on the way IN and none on the way
+    out, so a test that made a group in a tmp directory left the service
+    pointing there - harmless until 2026-09-24, when the Discord overview
+    started showing groups. Two overview tests then failed only in a full run,
+    and passed alone: they were reading somebody else's group.
+
+    A fixture leaves the world as it found it, so the reset happens here, once,
+    for every test.
+    """
     yield
-    # Cleanup any test artifacts, reset mocks, etc.
-    # This runs after each test automatically
+    try:
+        from services.config.group_service import reset_group_service
+
+        reset_group_service()
+    except ImportError:
+        pass
 
 
 # Performance testing fixtures
