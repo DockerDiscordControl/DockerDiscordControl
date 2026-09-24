@@ -370,7 +370,6 @@
   "Power Consumption": "Κατανάλωση ενέργειας",
   "Power/Donate": "Δωρεά / Φόρτιση",
   "Priority": "Προτεραιότητα",
-  "Processing...": "Επεξεργασία...",
   "Protected Info": "Προστατευμένες πληροφορίες",
   "Protected Information": "Προστατευμένες πληροφορίες",
   "Protected info (control channels only)": "Προστατευμένες πληροφορίες (μόνο κανάλια ελέγχου)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Ανάκτηση δεδομένων container...",
   "Background process running": "Διεργασία παρασκηνίου εκτελείται",
   "Please wait for fresh data": "Παρακαλώ περίμενε για νέα δεδομένα",
-  "Updating container status...": "Ενημέρωση κατάστασης container...",
-  "Please wait ~15 seconds": "Παρακαλώ περίμενε ~15 δευτερόλεπτα",
   "all": "όλα",
   "collapse": "-",
   "disabled": "απενεργοποιημένο",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Δεν επιβεβαιώθηκε ακόμη",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "Ο **{server_name}** έλαβε την εντολή {action_process_text} και το Docker την αποδέχτηκε, αλλά μετά από {seconds} δευτερόλεπτα η κατάσταση δεν είχε αλλάξει. Ίσως εκτελείται ακόμη."
 }

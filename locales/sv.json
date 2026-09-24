@@ -370,7 +370,6 @@
   "Power Consumption": "Energiförbrukning",
   "Power/Donate": "Donera / Ladda",
   "Priority": "Prioritet",
-  "Processing...": "Bearbetar...",
   "Protected Info": "Skyddad info",
   "Protected Information": "Skyddad information",
   "Protected info (control channels only)": "Skyddad info (bara kontrollkanaler)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Hämtar containerdata...",
   "Background process running": "Bakgrundsprocess körs",
   "Please wait for fresh data": "Vänta på färsk data",
-  "Updating container status...": "Uppdaterar containerstatus...",
-  "Please wait ~15 seconds": "Vänta ~15 sekunder",
   "all": "alla",
   "collapse": "-",
   "disabled": "inaktiverad",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Inte bekräftat än",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** fick kommandot {action_process_text} och Docker accepterade det, men efter {seconds} sekunder hade statusen inte ändrats. Det kan fortfarande pågå."
 }

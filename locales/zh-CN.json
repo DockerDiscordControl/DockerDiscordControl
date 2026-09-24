@@ -370,7 +370,6 @@
   "Power Consumption": "能量消耗",
   "Power/Donate": "捐赠 / 充能",
   "Priority": "优先级",
-  "Processing...": "处理中...",
   "Protected Info": "受保护信息",
   "Protected Information": "受保护信息",
   "Protected info (control channels only)": "受保护信息（仅限控制频道）",
@@ -626,8 +625,6 @@
   "Fetching container data...": "正在获取容器数据...",
   "Background process running": "后台进程运行中",
   "Please wait for fresh data": "请等待最新数据",
-  "Updating container status...": "正在更新容器状态...",
-  "Please wait ~15 seconds": "请等待约 15 秒",
   "all": "全部",
   "collapse": "-",
   "disabled": "已禁用",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ 尚未确认",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "已向 **{server_name}** 发送 {action_process_text}，Docker 已接受，但 {seconds} 秒后状态仍未改变。可能仍在处理中。"
 }

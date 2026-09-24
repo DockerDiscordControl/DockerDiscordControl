@@ -370,7 +370,6 @@
   "Power Consumption": "Споживання енергії",
   "Power/Donate": "Донат / Зарядити",
   "Priority": "Пріоритет",
-  "Processing...": "Обробка...",
   "Protected Info": "Захищена інфо",
   "Protected Information": "Захищена інформація",
   "Protected info (control channels only)": "Захищена інфо (лише канали керування)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Отримання даних контейнера...",
   "Background process running": "Фоновий процес працює",
   "Please wait for fresh data": "Зачекайте на свіжі дані",
-  "Updating container status...": "Оновлення статусу контейнера...",
-  "Please wait ~15 seconds": "Зачекайте ~15 секунд",
   "all": "all",
   "collapse": "-",
   "disabled": "вимкнено",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Ще не підтверджено",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** отримав команду {action_process_text}, і Docker її прийняв, але через {seconds} секунд статус не змінився. Можливо, операція ще триває."
 }

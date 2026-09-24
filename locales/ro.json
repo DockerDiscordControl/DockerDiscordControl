@@ -370,7 +370,6 @@
   "Power Consumption": "Consum de Putere",
   "Power/Donate": "Donează / Încarcă",
   "Priority": "Prioritate",
-  "Processing...": "Se procesează...",
   "Protected Info": "Info Protejat",
   "Protected Information": "Informații Protejate",
   "Protected info (control channels only)": "Info protejat (doar canale de control)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Se preiau datele containerului...",
   "Background process running": "Proces de fundal în execuție",
   "Please wait for fresh data": "Așteptați datele actualizate",
-  "Updating container status...": "Se actualizează starea containerului...",
-  "Please wait ~15 seconds": "Așteptați ~15 secunde",
   "all": "toate",
   "collapse": "-",
   "disabled": "dezactivat",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Încă neconfirmat",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** a primit comanda {action_process_text} și Docker a acceptat-o, dar după {seconds} secunde starea nu se schimbase. Este posibil să fie încă în curs."
 }

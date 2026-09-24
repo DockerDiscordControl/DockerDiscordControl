@@ -370,7 +370,6 @@
   "Power Consumption": "Tiêu thụ năng lượng",
   "Power/Donate": "Đóng góp / Nạp",
   "Priority": "Ưu tiên",
-  "Processing...": "Đang xử lý...",
   "Protected Info": "Thông tin được bảo vệ",
   "Protected Information": "Thông tin được bảo vệ",
   "Protected info (control channels only)": "Thông tin được bảo vệ (chỉ kênh điều khiển)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Đang lấy dữ liệu container...",
   "Background process running": "Tiến trình nền đang chạy",
   "Please wait for fresh data": "Vui lòng chờ dữ liệu mới",
-  "Updating container status...": "Đang cập nhật trạng thái container...",
-  "Please wait ~15 seconds": "Vui lòng chờ ~15 giây",
   "all": "tất cả",
   "collapse": "-",
   "disabled": "đã tắt",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Chưa được xác nhận",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** đã nhận lệnh {action_process_text} và Docker đã chấp nhận, nhưng sau {seconds} giây trạng thái vẫn chưa thay đổi. Có thể vẫn đang xử lý."
 }

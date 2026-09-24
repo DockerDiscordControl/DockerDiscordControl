@@ -370,7 +370,6 @@
   "Power Consumption": "การใช้พลังงาน",
   "Power/Donate": "บริจาค / ชาร์จ",
   "Priority": "ลำดับความสำคัญ",
-  "Processing...": "กำลังประมวลผล...",
   "Protected Info": "ข้อมูลที่ป้องกัน",
   "Protected Information": "ข้อมูลที่ป้องกัน",
   "Protected info (control channels only)": "ข้อมูลที่ป้องกัน (เฉพาะช่องควบคุม)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "กำลังดึงข้อมูล Container...",
   "Background process running": "กระบวนการพื้นหลังทำงานอยู่",
   "Please wait for fresh data": "กรุณารอข้อมูลล่าสุด",
-  "Updating container status...": "กำลังอัปเดตสถานะ Container...",
-  "Please wait ~15 seconds": "กรุณารอ ~15 วินาที",
   "all": "ทั้งหมด",
   "collapse": "-",
   "disabled": "ปิดใช้งาน",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ ยังไม่ได้รับการยืนยัน",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "ส่งคำสั่ง {action_process_text} ไปยัง **{server_name}** แล้ว และ Docker รับคำสั่งแล้ว แต่หลังจาก {seconds} วินาที สถานะยังไม่เปลี่ยน อาจยังทำงานอยู่"
 }

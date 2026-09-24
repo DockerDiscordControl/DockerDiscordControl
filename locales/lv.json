@@ -370,7 +370,6 @@
   "Power Consumption": "Enerģijas patēriņš",
   "Power/Donate": "Ziedot / Uzlādēt",
   "Priority": "Prioritāte",
-  "Processing...": "Apstrādā...",
   "Protected Info": "Aizsargātā informācija",
   "Protected Information": "Aizsargātā informācija",
   "Protected info (control channels only)": "Aizsargātā informācija (tikai vadības kanāli)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Iegūst konteinera datus...",
   "Background process running": "Fona process darbojas",
   "Please wait for fresh data": "Lūdzu, uzgaidiet jaunos datus",
-  "Updating container status...": "Atjaunina konteinera statusu...",
-  "Please wait ~15 seconds": "Lūdzu, uzgaidiet ~15 sekundes",
   "all": "visi",
   "collapse": "-",
   "disabled": "atspējots",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Vēl nav apstiprināts",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** saņēma komandu {action_process_text}, un Docker to pieņēma, bet pēc {seconds} sekundēm statuss nebija mainījies. Iespējams, tas vēl darbojas."
 }

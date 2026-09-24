@@ -97,8 +97,16 @@ def test_a_failed_action_is_reported_as_failed(monkeypatch):
     assert not any("Processing" in s for s in shown), "'processing' shown for a failed action"
 
 
-def test_a_successful_action_shows_processing(monkeypatch):
-    """Counter-check: success must not be reported as failure."""
+def test_a_successful_action_is_not_reported_as_a_failure(monkeypatch):
+    """Counter-check: success must not be reported as failure.
+
+    It looked for the word "Processing", which was the message announcing a
+    blind fifteen-second wait. That message went on 2026-09-24 together with
+    the wait, leaving the pending embed as what a press shows - so the case
+    names that instead. What it is actually guarding, the absence of a failure
+    notice after a successful action, is unchanged.
+    """
     shown = _run(monkeypatch, success=True)
-    assert any("Processing" in s for s in shown), shown
+
+    assert any("Pending" in s for s in shown), shown
     assert not any("Server Action Failed" in s for s in shown), shown

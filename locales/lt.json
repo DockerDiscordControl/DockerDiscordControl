@@ -370,7 +370,6 @@
   "Power Consumption": "Energijos suvartojimas",
   "Power/Donate": "Aukoti / Įkrauti",
   "Priority": "Prioritetas",
-  "Processing...": "Apdorojama...",
   "Protected Info": "Apsaugota informacija",
   "Protected Information": "Apsaugota informacija",
   "Protected info (control channels only)": "Apsaugota informacija (tik valdymo kanalai)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Gaunami konteinerio duomenys...",
   "Background process running": "Foninis procesas vyksta",
   "Please wait for fresh data": "Palaukite naujų duomenų",
-  "Updating container status...": "Atnaujinama konteinerio būsena...",
-  "Please wait ~15 seconds": "Palaukite ~15 sekundžių",
   "all": "visi",
   "collapse": "-",
   "disabled": "išjungta",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Dar nepatvirtinta",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** gavo komandą {action_process_text}, ir Docker ją priėmė, bet po {seconds} sekundžių būsena nepasikeitė. Gali būti, kad jis vis dar dirba."
 }

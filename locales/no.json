@@ -370,7 +370,6 @@
   "Power Consumption": "Kraftforbruk",
   "Power/Donate": "Doner / Lad",
   "Priority": "Prioritet",
-  "Processing...": "Behandler...",
   "Protected Info": "Beskyttet info",
   "Protected Information": "Beskyttet informasjon",
   "Protected info (control channels only)": "Beskyttet info (kun kontrollkanaler)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Henter containerdata...",
   "Background process running": "Bakgrunnsprosess kjører",
   "Please wait for fresh data": "Vennligst vent på ferske data",
-  "Updating container status...": "Oppdaterer containerstatus...",
-  "Please wait ~15 seconds": "Vennligst vent ~15 sekunder",
   "all": "alle",
   "collapse": "-",
   "disabled": "deaktivert",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Ikke bekreftet ennå",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** fikk kommandoen {action_process_text}, og Docker godtok den, men etter {seconds} sekunder hadde statusen ikke endret seg. Den kan fortsatt jobbe."
 }

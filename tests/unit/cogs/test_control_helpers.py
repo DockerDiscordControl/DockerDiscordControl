@@ -121,41 +121,58 @@ def pending_env(monkeypatch):
 
 
 class TestPendingEmbed:
+    """The message a press leaves on screen while the action runs.
+
+    THESE CASES USED TO PIN THE DEFECT. They required a ┌── │ └── frame exactly
+    28 characters wide, a name truncated with "…" to keep that width, and the
+    timestamp above the code block. That is the frame the operator photographed
+    on a phone on 2026-09-19, broken into pieces because a code block does not
+    reflow. It was fixed in the "Processing..." message beside this one and not
+    in this one, and the cases here then held the unfixed half in place.
+
+    With the blind fifteen-second wait gone (2026-09-24) the neighbour went
+    with it, so this is the only thing a press shows. Plain lines, and the name
+    is no longer cut to fit a width that no longer exists.
+    """
+
     def test_returns_a_gold_embed(self, pending_env):
         embed = _get_pending_embed("alpha")
         assert isinstance(embed, discord.Embed)
         assert embed.color == discord.Color.gold()
 
-    def test_contains_the_container_name_and_status(self, pending_env):
+    def test_it_says_what_is_pending_and_which_container(self, pending_env):
         embed = _get_pending_embed("alpha")
+        assert "Pending..." in embed.title
         assert "alpha" in embed.description
-        assert "Pending..." in embed.description
 
-    def test_timestamp_line_sits_above_the_code_block(self, pending_env):
-        embed = _get_pending_embed("alpha")
-        first_line = embed.description.split("\n")[0]
-        assert first_line == "Pending since: 12:34"
+    def test_it_says_since_when(self, pending_env):
+        assert "Pending since: 12:34" in _get_pending_embed("alpha").description
 
     def test_footer_is_the_project_url(self, pending_env):
         assert _get_pending_embed("alpha").footer.text == "https://ddc.bot"
 
-    def test_long_names_are_truncated_so_the_box_keeps_its_width(self, pending_env):
-        """Without truncation a long name would break the drawn box."""
-        embed = _get_pending_embed("a-very-long-container-name-that-overflows")
-        header = [ln for ln in embed.description.split("\n") if ln.startswith("┌")][0]
-        assert "…" in header
-        assert len(header) <= 28
-
-    def test_short_name_box_lines_have_the_same_width(self, pending_env):
+    def test_nothing_is_drawn_as_a_box(self, pending_env):
+        """THE FINDING: a fixed-width frame in a code block, on a phone."""
         embed = _get_pending_embed("alpha")
-        lines = embed.description.split("\n")
-        header = [ln for ln in lines if ln.startswith("┌")][0]
-        footer = [ln for ln in lines if ln.startswith("└")][0]
-        assert len(header) == len(footer) == 28
+        visible = f"{embed.title or ''}\n{embed.description or ''}"
 
-    def test_empty_name_still_produces_a_valid_box(self, pending_env):
+        assert "```" not in visible, "a code block does not reflow on a phone"
+        assert not set("┌│└─") & set(visible), "box-drawing characters break apart"
+
+    def test_a_long_name_is_shown_whole(self, pending_env):
+        """It was cut at 24 characters to keep the frame square. Without a
+        frame there is nothing to keep square, and a truncated name is the one
+        thing on this message the operator needs to read."""
+        name = "a-very-long-container-name-that-overflows"
+        embed = _get_pending_embed(name)
+
+        assert name in embed.description
+        assert "…" not in embed.description
+
+    def test_an_empty_name_is_survived(self, pending_env):
         embed = _get_pending_embed("")
-        assert "┌" in embed.description and "└" in embed.description
+
+        assert "Pending..." in embed.title
 
 
 # ---------------------------------------------------------------------------

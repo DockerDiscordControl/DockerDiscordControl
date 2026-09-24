@@ -370,7 +370,6 @@
   "Power Consumption": "مصرف قدرت",
   "Power/Donate": "کمک مالی / شارژ",
   "Priority": "اولویت",
-  "Processing...": "در حال پردازش...",
   "Protected Info": "اطلاعات محافظت‌شده",
   "Protected Information": "اطلاعات محافظت‌شده",
   "Protected info (control channels only)": "اطلاعات محافظت‌شده (فقط کانال‌های کنترل)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "دریافت داده‌های کانتینر...",
   "Background process running": "فرآیند پس‌زمینه در حال اجرا",
   "Please wait for fresh data": "لطفاً برای داده‌های تازه صبر کنید",
-  "Updating container status...": "به‌روزرسانی وضعیت کانتینر...",
-  "Please wait ~15 seconds": "لطفاً ~15 ثانیه صبر کنید",
   "all": "همه",
   "collapse": "-",
   "disabled": "غیرفعال",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ هنوز تأیید نشده",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "دستور {action_process_text} به **{server_name}** ارسال شد و Docker آن را پذیرفت، اما پس از {seconds} ثانیه وضعیت تغییر نکرده بود. ممکن است هنوز در حال انجام باشد."
 }

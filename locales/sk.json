@@ -370,7 +370,6 @@
   "Power Consumption": "Spotreba energie",
   "Power/Donate": "Prispieť / Nabiť",
   "Priority": "Priorita",
-  "Processing...": "Spracúvanie...",
   "Protected Info": "Chránené info",
   "Protected Information": "Chránené informácie",
   "Protected info (control channels only)": "Chránené info (iba ovládacie kanály)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Získavanie dát kontajnera...",
   "Background process running": "Proces na pozadí beží",
   "Please wait for fresh data": "Počkajte na čerstvé dáta",
-  "Updating container status...": "Aktualizácia stavu kontajnera...",
-  "Please wait ~15 seconds": "Počkajte prosím ~15 sekúnd",
   "all": "všetky",
   "collapse": "-",
   "disabled": "vypnuté",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Zatiaľ nepotvrdené",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** dostal príkaz {action_process_text} a Docker ho prijal, ale po {seconds} sekundách sa stav nezmenil. Možno stále prebieha."
 }

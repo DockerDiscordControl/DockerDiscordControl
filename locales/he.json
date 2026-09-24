@@ -370,7 +370,6 @@
   "Power Consumption": "צריכת כוח",
   "Power/Donate": "תרומה / טעינה",
   "Priority": "עדיפות",
-  "Processing...": "מעבד...",
   "Protected Info": "מידע מוגן",
   "Protected Information": "מידע מוגן",
   "Protected info (control channels only)": "מידע מוגן (ערוצי בקרה בלבד)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "מאחזר נתוני קונטיינר...",
   "Background process running": "תהליך רקע פועל",
   "Please wait for fresh data": "אנא המתן לנתונים מעודכנים",
-  "Updating container status...": "מעדכן סטטוס קונטיינר...",
-  "Please wait ~15 seconds": "אנא המתן ~15 שניות",
   "all": "הכל",
   "collapse": "-",
   "disabled": "מושבת",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ עדיין לא אושר",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "הפקודה {action_process_text} נשלחה אל **{server_name}** ו-Docker קיבל אותה, אך לאחר {seconds} שניות המצב לא השתנה. ייתכן שהפעולה עדיין מתבצעת."
 }

@@ -370,7 +370,6 @@
   "Power Consumption": "전력 소비",
   "Power/Donate": "기부 / 충전",
   "Priority": "우선순위",
-  "Processing...": "처리 중...",
   "Protected Info": "보호된 정보",
   "Protected Information": "보호된 정보",
   "Protected info (control channels only)": "보호된 정보 (제어 채널 전용)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "컨테이너 데이터 가져오는 중...",
   "Background process running": "백그라운드 프로세스 실행 중",
   "Please wait for fresh data": "새 데이터를 기다려 주세요",
-  "Updating container status...": "컨테이너 상태 업데이트 중...",
-  "Please wait ~15 seconds": "약 15초 기다려 주세요",
   "all": "전체",
   "collapse": "-",
   "disabled": "비활성화됨",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ 아직 확인되지 않음",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** 에 {action_process_text} 명령을 보냈고 Docker가 수락했지만, {seconds}초가 지나도 상태가 바뀌지 않았습니다. 아직 진행 중일 수 있습니다."
 }

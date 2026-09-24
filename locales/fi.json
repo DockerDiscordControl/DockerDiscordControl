@@ -370,7 +370,6 @@
   "Power Consumption": "Virrankulutus",
   "Power/Donate": "Lahjoita / Lataa",
   "Priority": "Prioriteetti",
-  "Processing...": "Käsitellään...",
   "Protected Info": "Suojatut tiedot",
   "Protected Information": "Suojatut tiedot",
   "Protected info (control channels only)": "Suojatut tiedot (vain ohjauskanavat)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Haetaan säilötietoja...",
   "Background process running": "Taustaprosessi käynnissä",
   "Please wait for fresh data": "Odota tuoreita tietoja",
-  "Updating container status...": "Päivitetään säilön tilaa...",
-  "Please wait ~15 seconds": "Odota ~15 sekuntia",
   "all": "kaikki",
   "collapse": "-",
   "disabled": "pois käytöstä",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Ei vielä vahvistettu",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** sai komennon {action_process_text} ja Docker hyväksyi sen, mutta {seconds} sekunnin jälkeen tila ei ollut muuttunut. Se voi olla yhä käynnissä."
 }

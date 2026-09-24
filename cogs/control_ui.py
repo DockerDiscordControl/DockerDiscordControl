@@ -25,7 +25,8 @@ from utils.time_utils import format_datetime_with_timezone
 from .control_helpers import (_admin_may_control, _admin_may_control_task,
                               _channel_has_permission, _get_pending_embed,
                               _is_registered_admin, is_admin_panel_message)
-from .action_effect import refresh_the_caches, wait_until_the_action_took_effect
+from .action_effect import (not_confirmed_embed, refresh_the_caches,
+                            wait_until_the_action_took_effect)
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
 from services.infrastructure.action_logger import log_user_action
@@ -349,11 +350,12 @@ class ActionButton(Button):
     async def _say_the_panel_is_stale(self, interaction, *, action_done: bool) -> None:
         """Take the message off an intermediate state when the press fell over.
 
-        A press walks the message through the pending embed and then
-        "⏳ Processing..." with view=None - no buttons - and only the
-        background refresh ever edits it again. When that refresh died with a
-        type the handlers did not list, the message stayed on "please wait"
-        for good: visible, permanent, and wrong. The container was fine and
+        A press leaves the message on the pending embed with view=None - no
+        buttons - and only the background refresh ever edits it again. When
+        that refresh died with a type the handlers did not list, the message
+        stayed on "pending" for good: visible, permanent, and wrong. (Until
+        2026-09-24 it stood on a "⏳ Processing... please wait ~15 seconds"
+        embed instead; that one is gone, the stuck message is not.) The container was fine and
         controllable from a freshly rendered panel; it was THIS message that
         was dead, and it is the one the operator is looking at (review D31).
 
@@ -530,8 +532,9 @@ class ActionButton(Button):
 
                     # What the press did, waited for where that question
                     # belongs: a container waits for itself, a group for all
-                    # of its members (cogs/action_effect.py).
-                    await wait_until_the_action_took_effect(
+                    # of its members (cogs/action_effect.py). It returns the
+                    # moment it knows, so nothing after it waits on a clock.
+                    took_effect = await wait_until_the_action_took_effect(
                         self.cog, self.docker_name, self.display_name, self.action)
 
                     # Which panel this button sits on, asked of the cog's own
@@ -545,32 +548,24 @@ class ActionButton(Button):
                     except (discord.errors.DiscordException, AttributeError, KeyError) as e:
                         logger.error(f"[ACTION_BTN] Error checking admin status: {e}", exc_info=True)
 
-                    # Show immediate "Processing..." message
-                    try:
-                        # Plain lines, no box: this used to draw a ┌── │ └── frame inside
-                        # a code block. A code block does not reflow, so on a phone the
-                        # frame broke apart - worst with the longer translations
-                        # (operator's screenshot, 2026-09-19). The footer was a
-                        # hard-coded English "Container action in progress" under the
-                        # translated text; the title already says it.
-                        processing_embed = discord.Embed(
-                            title=f"⏳ {_('Processing...')}",
-                            description=f"{_('Updating container status...')}\n"
-                                        f"🔄 {_('Please wait ~15 seconds')}",
-                            color=0xffa500  # Orange
-                        )
-                        processing_embed.set_footer(text="https://ddc.bot")
-                        await interaction.edit_original_response(embed=processing_embed, view=None)
-                        logger.info(f"[ACTION_BTN] Showing processing message for {self.display_name}")
-                    except (discord.NotFound, discord.HTTPException) as e:
-                        logger.warning(f"[ACTION_BTN] Failed to show processing message: {e}")
+                    # A "Processing... please wait ~15 seconds" message used to
+                    # stand here, after the waiting above had already finished,
+                    # and was followed by a blind sleep(15). The operator sat
+                    # through it on containers that were up in three seconds
+                    # (2026-09-24). The wait answers as soon as it knows; the
+                    # only thing left to say is when it never did.
+                    if took_effect is False:
+                        try:
+                            await interaction.edit_original_response(
+                                embed=not_confirmed_embed(self.display_name, self.action),
+                                view=None)
+                        except (discord.NotFound, discord.HTTPException) as e:
+                            logger.warning(f"[ACTION_BTN] Failed to show the notice: {e}")
 
-                    # Schedule BOTH updates (Admin Control + Server Overview) after 15 seconds
+                    # Both views (Admin Control + Server Overview), redrawn now:
+                    # the state they are drawn from was confirmed above.
                     async def update_all_views():
                         try:
-                            # STABLE UPDATE: Wait 15 seconds for container to fully stabilize
-                            logger.info(f"[ACTION_BTN] Waiting 15 seconds for {self.display_name} to stabilize...")
-                            await asyncio.sleep(15)
                             logger.info(f"[ACTION_BTN] Updating status overview for {self.display_name}")
 
                             # The same targets the wait used, refreshed once
@@ -683,7 +678,7 @@ class ActionButton(Button):
                             raise
                         except BaseException as e:
                             # Deliberately not a type list. At this point the
-                            # message stands on "⏳ Processing..." with no
+                            # message stands on the pending embed with no
                             # buttons and only this task ever edits it again,
                             # so whatever went wrong it must not be left there
                             # (review D31).

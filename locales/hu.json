@@ -370,7 +370,6 @@
   "Power Consumption": "Energiafogyasztás",
   "Power/Donate": "Adományozás / Töltés",
   "Priority": "Prioritás",
-  "Processing...": "Feldolgozás...",
   "Protected Info": "Védett infó",
   "Protected Information": "Védett információ",
   "Protected info (control channels only)": "Védett infó (csak vezérlőcsatornák)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Konténer adatok lekérése...",
   "Background process running": "Háttérfolyamat fut",
   "Please wait for fresh data": "Kérjük, várj a friss adatokra",
-  "Updating container status...": "Konténer állapot frissítése...",
-  "Please wait ~15 seconds": "Kérjük, várj ~15 másodpercet",
   "all": "összes",
   "collapse": "-",
   "disabled": "letiltva",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Még nincs megerősítve",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** megkapta a(z) {action_process_text} parancsot, és a Docker elfogadta, de {seconds} másodperc után az állapot nem változott. Lehet, hogy még dolgozik."
 }

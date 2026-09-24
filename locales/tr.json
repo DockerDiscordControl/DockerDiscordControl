@@ -370,7 +370,6 @@
   "Power Consumption": "Güç Tüketimi",
   "Power/Donate": "Bağış / Şarj",
   "Priority": "Öncelik",
-  "Processing...": "İşleniyor...",
   "Protected Info": "Korunan Bilgi",
   "Protected Information": "Korunan Bilgiler",
   "Protected info (control channels only)": "Korunan bilgi (yalnızca kontrol kanalları)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Konteyner verileri alınıyor...",
   "Background process running": "Arka plan işlemi çalışıyor",
   "Please wait for fresh data": "Lütfen güncel verileri bekleyin",
-  "Updating container status...": "Konteyner durumu güncelleniyor...",
-  "Please wait ~15 seconds": "Lütfen ~15 saniye bekleyin",
   "all": "tümü",
   "collapse": "-",
   "disabled": "devre dışı",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Henüz doğrulanmadı",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** için {action_process_text} komutu gönderildi ve Docker kabul etti, ancak {seconds} saniye sonra durum değişmemişti. Hâlâ çalışıyor olabilir."
 }

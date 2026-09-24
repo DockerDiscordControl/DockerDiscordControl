@@ -370,7 +370,6 @@
   "Power Consumption": "Consumo de energía",
   "Power/Donate": "Donar / Cargar",
   "Priority": "Prioridad",
-  "Processing...": "Procesando...",
   "Protected Info": "Info protegida",
   "Protected Information": "Información protegida",
   "Protected info (control channels only)": "Info protegida (solo canales de control)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Obteniendo datos del contenedor...",
   "Background process running": "Proceso en segundo plano en ejecución",
   "Please wait for fresh data": "Por favor, espere datos actualizados",
-  "Updating container status...": "Actualizando estado del contenedor...",
-  "Please wait ~15 seconds": "Por favor, espere ~15 segundos",
   "all": "todos",
   "collapse": "-",
   "disabled": "desactivado",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Aún sin confirmar",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** recibió el comando {action_process_text} y Docker lo aceptó, pero después de {seconds} segundos el estado no había cambiado. Puede que siga en curso."
 }

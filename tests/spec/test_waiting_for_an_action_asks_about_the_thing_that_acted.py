@@ -198,6 +198,47 @@ def test_a_name_nothing_knows_does_not_raise(world):
     assert cog.asked == []
 
 
+def test_the_verdict_says_what_happened(world):
+    """FOUND BY SABOTAGE (2026-09-24): making the wait always report success
+    left every case green, because they all measured how long it slept and
+    never what it concluded. The verdict is what the button shows the operator
+    a notice by, so it is the part that must not lie.
+
+        True   it showed
+        False  the ladder ran out and it had not
+        None   there was nothing to ask, so nothing is claimed
+    """
+    up = _Cog({"alpha": True, "beta": True})
+    took = asyncio.run(world.module.wait_until_the_action_took_effect(
+        up, "group:Gameserver", "Gameserver", "start"))
+
+    assert took is True
+
+    half = _Cog({"alpha": True, "beta": False})
+    took = asyncio.run(world.module.wait_until_the_action_took_effect(
+        half, "group:Gameserver", "Gameserver", "start"))
+
+    assert took is False, "a group that never came up was reported as started"
+
+    nothing = _Cog({})
+    took = asyncio.run(world.module.wait_until_the_action_took_effect(
+        nothing, "ghost", "ghost", "start"))
+
+    assert took is None, "a name nothing knows must not be claimed either way"
+
+
+def test_a_stop_that_left_one_running_is_not_success(world):
+    """The sharpest form: "running" is true of the group, and the press was a
+    stop. Reporting the last state seen instead of the verdict made that read
+    as if something had worked."""
+    cog = _Cog({"alpha": False, "beta": True})
+
+    took = asyncio.run(world.module.wait_until_the_action_took_effect(
+        cog, "group:Gameserver", "Gameserver", "stop"))
+
+    assert took is False
+
+
 def test_the_second_refresh_also_covers_a_group(world):
     """FOUND BY SABOTAGE (2026-09-24): removing this call left every case
     green. The button refreshes once more after its stabilising pause, and

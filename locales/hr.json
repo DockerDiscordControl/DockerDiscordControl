@@ -370,7 +370,6 @@
   "Power Consumption": "Potrošnja energije",
   "Power/Donate": "Donacija / Punjenje",
   "Priority": "Prioritet",
-  "Processing...": "Obrada...",
   "Protected Info": "Zaštićene informacije",
   "Protected Information": "Zaštićene informacije",
   "Protected info (control channels only)": "Zaštićene informacije (samo kontrolni kanali)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Dohvaćanje podataka kontejnera...",
   "Background process running": "Pozadinski proces radi",
   "Please wait for fresh data": "Molimo pričekajte svježe podatke",
-  "Updating container status...": "Ažuriranje statusa kontejnera...",
-  "Please wait ~15 seconds": "Molimo pričekajte ~15 sekundi",
   "all": "sve",
   "collapse": "-",
   "disabled": "onemogućeno",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Još nije potvrđeno",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** je primio naredbu {action_process_text} i Docker ju je prihvatio, ali nakon {seconds} sekundi stanje se nije promijenilo. Možda je još u tijeku."
 }

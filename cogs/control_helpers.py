@@ -183,46 +183,27 @@ def _admin_may_control_task(user_id, task_id: str) -> bool:
 
 
 def _get_pending_embed(display_name: str) -> discord.Embed:
-    """Generates a standardized embed for the pending status in the box design."""
-    # --- Start: Adjusted box formatting for Pending --- #
-    config = load_config()  # Performance optimization: use cache instead of load_config()
-    language = config.get('language', 'de') # Needed for translation context
-    status_text = _("Pending...") # Use translated text
-    current_emoji = "⏳"
-    BOX_WIDTH = 28
+    """The message a press leaves on screen while the action runs.
 
-    header_text = f"── {display_name} "
-    max_name_len = BOX_WIDTH - 4 # Account for ┌──  ──┐
-    if len(header_text) > max_name_len:
-         header_text = header_text[:max_name_len-1] + "… " # Truncate name
-
-    padding_width = max(1, BOX_WIDTH - 1 - len(header_text))
-    header_line = f"┌{header_text}{'─' * padding_width}"
-    footer_line = f"└{'─' * (BOX_WIDTH - 1)}"
-
-    description = f"```\n{header_line}\n"
-    description += f"│ {current_emoji} {status_text}\n"
-    description += f"{footer_line}\n"
-    description += f"```"
-
+    PLAIN LINES, NO BOX. It used to draw a ┌── │ └── frame 28 characters wide
+    inside a code block. A code block does not reflow, so on a phone the frame
+    broke into pieces - the operator reported exactly that on 2026-09-19 with a
+    screenshot, and it was fixed in the "Processing..." message NEXT TO this
+    one, not in this one. That neighbour has since gone (2026-09-24, the blind
+    fifteen-second wait it announced went with it), which leaves this as the
+    only thing a press shows. The name is no longer truncated to fit a width
+    that no longer exists.
+    """
+    config = load_config()
     embed = discord.Embed(
-        description="", # Initialize description as empty
-        color=discord.Color.gold() # Yellow
-    )
+        title=f"⏳ {_('Pending...')}",
+        description=display_name,
+        color=discord.Color.gold())
 
-    # Add footer similar to the normal status message
-    now_footer = datetime.now(timezone.utc)
-    last_update_text = _("Pending since")
-    # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
-    current_time = format_datetime_with_timezone(now_footer, config.get('timezone'), time_only=True)
-
-    # Insert timestamp above the code block
-    timestamp_line = f"{last_update_text}: {current_time}"
-    embed.description = f"{timestamp_line}\n{description}"
-
-    # Adjusted footer: Only the URL
-    embed.set_footer(text=f"https://ddc.bot")
-    # --- End: Adjusted box formatting for Pending --- #
+    current_time = format_datetime_with_timezone(datetime.now(timezone.utc),
+                                                 config.get('timezone'), time_only=True)
+    embed.description = f"{display_name}\n{_('Pending since')}: {current_time}"
+    embed.set_footer(text="https://ddc.bot")
     return embed
 
 

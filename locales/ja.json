@@ -370,7 +370,6 @@
   "Power Consumption": "パワー消費",
   "Power/Donate": "寄付 / チャージ",
   "Priority": "優先度",
-  "Processing...": "処理中...",
   "Protected Info": "保護情報",
   "Protected Information": "保護情報",
   "Protected info (control channels only)": "保護情報（コントロールチャンネルのみ）",
@@ -626,8 +625,6 @@
   "Fetching container data...": "コンテナデータを取得中...",
   "Background process running": "バックグラウンドプロセス実行中",
   "Please wait for fresh data": "最新データをお待ちください",
-  "Updating container status...": "コンテナステータスを更新中...",
-  "Please wait ~15 seconds": "約15秒お待ちください",
   "all": "すべて",
   "collapse": "-",
   "disabled": "無効",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ まだ確認できていません",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** に {action_process_text} を送信し Docker は受け付けましたが、{seconds} 秒経ってもステータスが変わりませんでした。まだ処理中の可能性があります。"
 }

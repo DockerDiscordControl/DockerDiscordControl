@@ -370,7 +370,6 @@
   "Power Consumption": "Energiatarbimine",
   "Power/Donate": "Anneta / Lae",
   "Priority": "Prioriteet",
-  "Processing...": "Töötlemisel...",
   "Protected Info": "Kaitstud info",
   "Protected Information": "Kaitstud teave",
   "Protected info (control channels only)": "Kaitstud info (ainult juhtkanalid)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Konteineri andmete hankimine...",
   "Background process running": "Taustaprotsess töötab",
   "Please wait for fresh data": "Palun oota värskeid andmeid",
-  "Updating container status...": "Konteineri oleku uuendamine...",
-  "Please wait ~15 seconds": "Palun oota ~15 sekundit",
   "all": "kõik",
   "collapse": "-",
   "disabled": "keelatud",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Veel kinnitamata",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** sai käsu {action_process_text} ja Docker võttis selle vastu, kuid {seconds} sekundi pärast ei olnud olek muutunud. Töö võib veel käia."
 }

@@ -370,7 +370,6 @@
   "Power Consumption": "Konsumsi Power",
   "Power/Donate": "Donasi / Isi Daya",
   "Priority": "Prioritas",
-  "Processing...": "Memproses...",
   "Protected Info": "Info Terlindungi",
   "Protected Information": "Informasi Terlindungi",
   "Protected info (control channels only)": "Info terlindungi (hanya channel kontrol)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "Mengambil data kontainer...",
   "Background process running": "Proses latar belakang berjalan",
   "Please wait for fresh data": "Mohon tunggu data terbaru",
-  "Updating container status...": "Memperbarui status kontainer...",
-  "Please wait ~15 seconds": "Mohon tunggu ~15 detik",
   "all": "semua",
   "collapse": "-",
   "disabled": "dinonaktifkan",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ Belum terkonfirmasi",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "**{server_name}** menerima perintah {action_process_text} dan Docker menerimanya, tetapi setelah {seconds} detik status belum berubah. Mungkin masih berjalan."
 }

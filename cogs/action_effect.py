@@ -22,6 +22,9 @@ import asyncio
 from datetime import datetime, timezone
 from typing import List, Optional
 
+import discord
+
+from cogs.translation_manager import _
 from services.config.group_service import group_name_of, is_group_target
 from utils.logging_utils import get_module_logger
 
@@ -99,8 +102,16 @@ async def wait_until_the_action_took_effect(cog, docker_name: str, display_name:
                                             action: str) -> Optional[bool]:
     """Wait for the action to show, refreshing the caches on the way.
 
-    Returns the last state seen, or None if nothing could be asked - a name the
-    configuration no longer knows must still let the press finish and redraw.
+    THE VERDICT IS THE POINT, and it used to be thrown away:
+
+        True   the action showed - every member running after a start or a
+               restart, none running after a stop
+        False  the whole ladder ran out and it still had not
+        None   there was nothing to ask about, so there is nothing to claim
+
+    A caller that ignores False draws a container that never came up exactly
+    like one that did (operator, 2026-09-24). It returns as soon as it knows,
+    which is why nothing afterwards needs to wait on the clock.
     """
     from services.infrastructure.container_status_service import get_container_status_service
 
@@ -139,6 +150,35 @@ async def wait_until_the_action_took_effect(cog, docker_name: str, display_name:
                     f"after '{action}' (attempt {attempt}/{len(RETRY_DELAYS)}, {waited}s)")
 
         if _has_taken_effect(action, running):
-            return last_seen
+            return True
 
-    return last_seen
+    # The ladder ran out. Said plainly rather than as the last state seen: a
+    # stop that left one member up is not "running", it is "not done".
+    logger.warning(f"[ACTION_EFFECT] '{display_name}' did not show the '{action}' "
+                   f"after {sum(RETRY_DELAYS)}s")
+    return False if last_seen is not None else None
+
+
+def not_confirmed_embed(display_name: str, action: str) -> discord.Embed:
+    """What a press says when Docker took it but nothing confirmed it.
+
+    The wait gives up after the capped ladder and used to hand that fact to
+    nobody, so a container that never came up was drawn exactly like one that
+    did - stopped, with no explanation (operator, 2026-09-24). It is not a
+    failure: Docker accepted the command, and a game server can still be
+    booting, which is why this is gold rather than red.
+
+    The seconds come from the ladder, not from a number written out a second
+    time - the panel start values were exactly that defect, one screen on.
+    """
+    embed = discord.Embed(
+        title=_("⏱️ Not confirmed yet"),
+        description=_("**{server_name}** was sent the {action_process_text} and Docker "
+                      "accepted it, but the status had not changed after {seconds} "
+                      "seconds. It may still be working.").format(
+            server_name=display_name,
+            action_process_text=f"({_(action.capitalize())})",
+            seconds=sum(RETRY_DELAYS)),
+        color=discord.Color.gold())
+    embed.set_footer(text="https://ddc.bot")
+    return embed

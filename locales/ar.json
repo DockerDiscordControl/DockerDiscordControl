@@ -370,7 +370,6 @@
   "Power Consumption": "استهلاك الطاقة",
   "Power/Donate": "تبرع / اشحن",
   "Priority": "الأولوية",
-  "Processing...": "جارٍ المعالجة...",
   "Protected Info": "معلومات محمية",
   "Protected Information": "معلومات محمية",
   "Protected info (control channels only)": "معلومات محمية (قنوات التحكم فقط)",
@@ -626,8 +625,6 @@
   "Fetching container data...": "جارٍ جلب بيانات الحاوية...",
   "Background process running": "عملية خلفية قيد التشغيل",
   "Please wait for fresh data": "يرجى الانتظار للبيانات الحديثة",
-  "Updating container status...": "جارٍ تحديث حالة الحاوية...",
-  "Please wait ~15 seconds": "يرجى الانتظار ~15 ثانية",
   "all": "الكل",
   "collapse": "-",
   "disabled": "معطّل",
@@ -1799,5 +1796,7 @@
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
   "{name} (group)": "{name} (group)",
-  "{name} (stack)": "{name} (stack)"
+  "{name} (stack)": "{name} (stack)",
+  "⏱️ Not confirmed yet": "⏱️ لم يتم التأكيد بعد",
+  "**{server_name}** was sent the {action_process_text} and Docker accepted it, but the status had not changed after {seconds} seconds. It may still be working.": "تم إرسال {action_process_text} إلى **{server_name}** وقبِلها Docker، لكن بعد {seconds} ثانية لم تتغير الحالة. قد تكون العملية ما زالت جارية."
 }

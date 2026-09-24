@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""The "processing" message after a container action must read well on a phone.
+"""The message a container action leaves on screen must read well on a phone.
 
 No ``@covers`` marker: a display finding, not a guarantee.
 
@@ -11,10 +11,22 @@ longer ("Aktualisiere Container-Status..."), and on a phone the frame broke
 into pieces. The footer "Container action in progress" was a hard-coded
 English string, so every language saw English below the translated box.
 
-HOW IT IS CHECKED: the button callback runs for real up to that message. The
-background task is captured instead of scheduled, its waits are skipped, and
-``_`` is replaced by a marker, so the test sees which visible text went
-through the translation - without restating the texts the code builds.
+IT WAS FIXED IN ONE MESSAGE AND THIS TEST FOLLOWED IT THERE. A press showed
+two in a row - the pending embed, then "⏳ Processing... please wait ~15
+seconds" - and only the second one was rewritten as plain lines. The first
+kept its 28-character frame, and this file checked the second, so nothing
+noticed for five days.
+
+On 2026-09-24 the second message went: it announced a blind fifteen-second
+wait that happened after the real waiting had already finished. That left the
+pending embed as the only thing a press shows - still boxed - which is how the
+survivor turned up. So this now checks THE MESSAGE A PRESS LEAVES, whichever
+one that is, rather than the one the finding was written about.
+
+HOW IT IS CHECKED: the button callback runs for real. The background task is
+captured instead of scheduled, its waits are skipped, and ``_`` is replaced by
+a marker, so the test sees which visible text went through the translation -
+without restating the texts the code builds.
 """
 
 import asyncio
@@ -97,6 +109,10 @@ def processing_embed(monkeypatch):
         "services.infrastructure.container_status_service.get_container_status_service",
         lambda: MagicMock())
     monkeypatch.setattr(cui, "_", _mark)
+    # The message a press leaves is built in control_helpers, not in
+    # control_ui - patching only the latter marked nothing and the case
+    # below would have reported every line as untranslated.
+    monkeypatch.setattr("cogs.control_helpers._", _mark)
     proxy = _AsyncioProxy()
     monkeypatch.setattr(cui, "asyncio", proxy)
 
@@ -114,13 +130,16 @@ def processing_embed(monkeypatch):
     return calls
 
 
-def test_the_driver_reaches_the_processing_message(processing_embed):
-    """Guard: pending message first, then the processing message."""
-    assert len(processing_embed) >= 2, f"only {len(processing_embed)} edits - never reached it"
+def test_the_driver_reaches_the_message(processing_embed):
+    """Guard: the callback got far enough to leave something on screen. It
+    used to require TWO edits, which is what tied it to the message that has
+    since gone."""
+    assert processing_embed, "no edit at all - the driver never reached it"
 
 
 def _embed(calls):
-    return calls[1].kwargs["embed"]
+    """The last thing the press left on screen."""
+    return calls[-1].kwargs["embed"]
 
 
 def test_no_fixed_width_box(processing_embed):
@@ -131,24 +150,39 @@ def test_no_fixed_width_box(processing_embed):
 
 
 def test_every_visible_text_is_translated(processing_embed):
+    """The finding's other half: an English line under a translated one.
+
+    The container's own name is data, not a text - it is whatever the operator
+    called the thing, in whatever language, and translating it would be wrong.
+    """
     embed = _embed(processing_embed)
     texts = [embed.title or ""] + (embed.description or "").splitlines()
     footer = (embed.footer.text or "").replace(URL, "").replace("•", "").strip()
     texts.append(footer)
+    texts = [t.replace("nginx", "") for t in texts]          # the display name
     untranslated = [t for t in texts if any(c.isalpha() for c in t) and "«" not in t]
+
     assert not untranslated, f"shown without translation: {untranslated}"
 
 
 def test_the_catalogs_carry_the_texts():
-    """All 40 languages have both lines; German pinned as the operator saw it."""
-    keys = ["Updating container status...", "Please wait ~15 seconds"]
+    """All 40 languages have the lines this message shows.
+
+    It used to name "Updating container status..." and "Please wait ~15
+    seconds" - the two lines of the message that has since gone, which were
+    dropped from the catalogues with it. The lines below are the ones a press
+    shows now, and they are read from the code rather than written out here, so
+    this cannot go on guarding a text nobody displays.
+    """
+    keys = ["Pending...", "Pending since"]
     missing = []
     for path in sorted(LOCALES.glob("*.json")):
         if path.name == "meta.json":
             continue
         catalog = json.loads(path.read_text(encoding="utf-8"))
         missing += [f"{path.name}: {k}" for k in keys if not catalog.get(k)]
+
     assert not missing, missing
     de = json.loads((LOCALES / "de.json").read_text(encoding="utf-8"))
-    assert de["Updating container status..."] == "Aktualisiere Container-Status..."  # language data
-    assert de["Please wait ~15 seconds"] == "Bitte warten Sie ~15 Sekunden"  # language data
+
+    assert de["Pending..."] != "Pending...", "the German one is still English"
