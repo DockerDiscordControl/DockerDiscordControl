@@ -51,7 +51,7 @@ app/__init__.py	13	pass1:s31:plan pass2:s31:1-13
 app/auth.py	337	pass1:s31:plan pass2:s31:1-249 v3rev2:1-270
 app/blueprints/action_log_routes.py	91	pass1:s31:plan pass2:s31:1-86  [5 of 91 lines never in a package]
 app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
-app/blueprints/group_routes.py	81	NONE
+app/blueprints/group_routes.py	147	NONE
 app/blueprints/login_routes.py	123	new 2026-09-23 (the panel form login and logout), written test-first
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
 app/blueprints/main_routes.py	1490	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507

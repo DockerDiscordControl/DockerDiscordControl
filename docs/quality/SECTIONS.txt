@@ -274,7 +274,7 @@ app/blueprints/action_log_routes.py:1-91
 # groups) and moved on the same day: section 32 reached 2,019 lines when
 # tasks_bp.py grew with the timezone answer. It is the smallest piece
 # there, so moving it costs the least reading context.
-app/blueprints/group_routes.py:1-81
+app/blueprints/group_routes.py:1-147
 app/blueprints/translation_routes.py:1-364
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
