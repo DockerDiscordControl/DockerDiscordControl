@@ -31,8 +31,9 @@ from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
 from .ddc_ui import DDCView
-from .group_control import (controllable_entries, group_config_for,
-                            group_entries, running_state_for)
+from .group_control import (controllable_entries, group_config_for, group_entries,
+                            group_help_field, is_group_target, panel_embed_for,
+                            running_state_for)
 
 logger = get_module_logger('control_ui')
 
@@ -1169,6 +1170,11 @@ class ControlView(DDCView):
         config = load_config()
         channel_has_info_permission = self._channel_has_info_permission(
             channel_has_control_permission, config, channel_id)
+        # A GROUP has no info text, no protected text and no logs, and docker
+        # refuses its name outright ("Invalid container name format:
+        # group:Icaruse"). The button opened all three (operator, 2026-09-24).
+        if is_group_target(docker_name):
+            channel_has_info_permission = False
 
         # Add buttons based on state and permissions
         if is_running:
@@ -2256,38 +2262,30 @@ class AdminContainerDropdown(discord.ui.Select):
                 # every _() before this line would raise UnboundLocalError and
                 # every one after it would call a tuple element (review E34,
                 # caught by test_the_translation_function_is_not_shadowed).
-                embed, view, _running = await self.cog._generate_status_embed_and_view(
-                    self.channel_id,
-                    selected_container,  # Use container name, not display name
-                    container_config,
-                    config,
-                    allow_toggle=False,  # No toggle button needed for admin control
-                    force_collapse=False
-                )
+                # A container is asked about; a group is answered from its
+                # members (cogs/group_control.py).
+                embed = await panel_embed_for(self.cog, self.channel_id,
+                                              selected_container, container_config, config)
 
-                # A container is asked; a group is answered from its members.
+                # The same, for whether it counts as running.
                 is_running, status_known = await running_state_for(
                     self.cog, selected_container, container_config)
 
-                # Create control view with buttons
                 control_view = ControlView(
-                    self.cog,
-                    container_config,
-                    is_running=is_running,
-                    channel_has_control_permission=True,  # Admin always has control
-                    allow_toggle=False  # No toggle for admin control
-                )
+                    self.cog, container_config, is_running=is_running,
+                    channel_has_control_permission=True,   # an admin always has it
+                    allow_toggle=False)                    # no toggle in this panel
 
-                # Add admin header to embed
-                embed.title = _("🛠️ Admin Control: {name}").format(name=display_name)
-
-                # Dynamic color based on container status
-                if not status_known:
-                    embed.color = discord.Color.gold()  # Yellow/Gold for unknown
-                elif is_running:
-                    embed.color = discord.Color.green()  # Green for online
-                else:
-                    embed.color = discord.Color.red()  # Red for offline
+                # A group's embed keeps its own title and colour: both already
+                # say what it is and how much of it is up.
+                if not is_group_target(selected_container):
+                    embed.title = _("🛠️ Admin Control: {name}").format(name=display_name)
+                    if not status_known:
+                        embed.color = discord.Color.gold()    # unknown
+                    elif is_running:
+                        embed.color = discord.Color.green()
+                    else:
+                        embed.color = discord.Color.red()
 
                 # Clean up temporary marker after everything is done
                 container_config.pop('_is_admin_control', None)
@@ -2370,19 +2368,18 @@ class HelpButton(Button):
 
             embed = discord.Embed(title=_("DDC Help & Information"), color=discord.Color.blue())
 
-            # Commands
             embed.add_field(name=f"**{_('Commands')}**", value=f"`/ss` - {_('(Re)generates the Server Overview panel in status channels')}\n`/control` - {_('(Re)generates the Admin Overview in control channels')}" + "\n\u200b", inline=False)
 
-            # Status Indicators
             embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
 
-            # Buttons in Server Overview
             embed.add_field(name=f"**{_('Buttons')}**", value=f"**{_('Mech')}** - {_('Shows detailed mech stats and donation system')}\nℹ️ **{_('Info')}** - {_('Shows container details (if configured)')}\n🛠️ **{_('Admin')}** - {_('Opens admin control panel')}\n❓ **{_('Help')}** - {_('Shows this help message')}" + "\n\u200b", inline=False)
 
-            # Container Controls
             embed.add_field(name=f"**{_('Container Controls')}**", value=f"▶️ **{_('Start')}** - {_('Starts the container')}\n⏹️ **{_('Stop')}** - {_('Stops the container')}\n🔄 **{_('Restart')}** - {_('Restarts the container')}" + "\n\u200b", inline=False)
 
-            # Admin Panel Functions
+            # The group section, written in one place for both helps.
+            _group = group_help_field()
+            embed.add_field(name=_group[0], value=_group[1], inline=False)
+
             embed.add_field(name=f"**{_('Admin Panel')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}\n🔄 {_('Restart All containers')}\n⏹️ {_('Stop All containers')}", inline=False)
 
             embed.set_footer(text="https://ddc.bot")

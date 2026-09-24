@@ -30,7 +30,7 @@ cogs/control_ui.py:1-1832
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1833-3444
+cogs/control_ui.py:1833-3441
 
 ## Section 04  (1612 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -46,7 +46,7 @@ cogs/loop_safety.py:1-103
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:864-883
 cogs/overview_embeds.py:1-1058
-cogs/slash_commands.py:1-848
+cogs/slash_commands.py:1-855
 
 ## Section 06  (1790 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
@@ -391,7 +391,7 @@ app/web/compat.py:1-102
 cogs/ddc_ui.py:1-94
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
-cogs/group_control.py:1-189
+cogs/group_control.py:1-288
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).

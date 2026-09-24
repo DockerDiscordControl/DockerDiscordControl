@@ -458,8 +458,15 @@ class SlashCommandsMixin:
         # Control Channel Commands
         embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**{_('Container Control')}:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**{_('Task Management')}:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
 
-        # Add status indicators explanation
-        embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}" + "\n\u200b", inline=False)
+        # Add status indicators explanation. 🟡 was missing here and shown in
+        # the overview all along - the two helps had drifted apart.
+        embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
+
+        # The group section, from the one place that writes it.
+        from cogs.group_control import group_help_field
+
+        _group_help = group_help_field()
+        embed.add_field(name=_group_help[0], value=_group_help[1], inline=False)
 
         # Add info system explanation
         embed.add_field(name=f"**{_('Info System')}**", value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}" + "\n\u200b", inline=False)

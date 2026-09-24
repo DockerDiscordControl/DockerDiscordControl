@@ -25,8 +25,11 @@ instead of carrying the answers.
 
 from typing import Optional, Tuple
 
-from services.config.group_service import group_target
+from services.config.group_service import (group_target,  # noqa: F401
+                                           is_group_target)
 from utils.logging_utils import get_module_logger
+
+from .translation_manager import _
 
 logger = get_module_logger('group_control')
 
@@ -116,6 +119,87 @@ def controllable_entries(servers) -> list:
     return entries + group_entries()
 
 
+def group_help_field():
+    """(name, value) for the help's group section - the same in both helps.
+
+    There are two help texts, `/help` and the ❓ button, and they are not
+    copies: they document different things and had already drifted (only one
+    of them ever explained the pending lamp). This section is the same in both
+    by construction rather than by care.
+
+    IT CALLS _() ITSELF rather than taking a translator as an argument. The
+    check that every bot string is a catalogue key finds literals handed to
+    the translation function as it is IMPORTED; a function passed in as a
+    parameter is invisible to it, and these five sentences would have been the
+    first ones nobody noticed missing.
+    """
+    return (
+        f"**{_('Container groups')}**",
+        f"{GROUP_EMOJI} {_('A group acts like a single container, with permissions of its own')}\n"
+        f"🟢 {_('all of its containers are running')}"
+        f" · 🟡 {_('some are running')}"
+        f" · 🔴 {_('none is running')}\n"
+        f"{_('Choose one in the Admin panel to control it as one')}"
+        "\n\u200b")
+
+
+def group_panel_embed(name: str, status_cache_service):
+    """What the admin panel shows for a group: what its overview line says,
+    with room.
+
+    NOT A CONTAINER'S STATUS. The panel used to ask the status cache for
+    "group:Icaruse", which is not a container, so it drew the error a missing
+    container draws - "Could not retrieve status. Configuration missing or
+    initial fetch failed" - under the group's own name (operator, 2026-09-24).
+    """
+    import discord
+
+    try:
+        from services.config.group_service import get_group_service
+
+        service = get_group_service()
+        group = service.find(name)
+        members = service.members_of(name)
+    except OSError as e:
+        logger.error(f"Groups could not be read for the panel of '{name}': {e}")
+        group, members = None, None
+
+    if group is None or members is None or not members.exists:
+        return discord.Embed(
+            title=f"{GROUP_EMOJI} {name}",
+            description=_("This group does not exist any more."),
+            color=discord.Color.red())
+
+    present = members.containers
+    running = [container for container in present
+               if _is_running(container, status_cache_service)]
+    if running and len(running) == len(present):
+        lamp, colour = "🟢", discord.Color.green()
+    elif running:
+        lamp, colour = "🟡", discord.Color.orange()
+    else:
+        lamp, colour = "🔴", discord.Color.red()
+
+    lines = [f"{lamp} **{len(running)}/{len(present)}**"]
+    for container in present:
+        mark = "🟢" if container in running else "🔴"
+        lines.append(f"{mark} `{container}`")
+    if members.missing:
+        # The same warning the panel and the overview give: a group acting on
+        # fewer containers than it names must not look complete.
+        lines.append("⚠️ " + _("No longer in DDC: {names}").format(
+            names=", ".join(members.missing)))
+
+    return discord.Embed(title=f"{GROUP_EMOJI} {group.name}",
+                         description="\n".join(lines), color=colour)
+
+
+def _is_running(container: str, status_cache_service) -> bool:
+    entry = status_cache_service.get(container) if status_cache_service else None
+    data = entry.get('data') if entry else None
+    return bool(data is not None and getattr(data, 'is_running', False))
+
+
 def group_config_for(docker_name: str) -> Optional[dict]:
     """A group's configuration, shaped like a container's, or None.
 
@@ -161,12 +245,27 @@ def group_is_running(name: str, status_cache_service) -> bool:
         members = get_group_service().members_of(name)
     except OSError:
         return False
-    for container in members.containers:
-        entry = status_cache_service.get(container) if status_cache_service else None
-        data = entry.get('data') if entry else None
-        if data is not None and getattr(data, 'is_running', False):
-            return True
-    return False
+    return any(_is_running(container, status_cache_service)
+               for container in members.containers)
+
+
+async def panel_embed_for(cog, channel_id, selected: str, config: dict, app_config):
+    """The embed the admin panel shows for whatever was picked.
+
+    A group has no container to ask about, so asking drew the error a missing
+    container draws - under the group's own name (operator, 2026-09-24). It
+    gets the embed its overview line describes; a container goes the ordinary
+    way. Both answers are given here rather than branched at the call site,
+    for the same reason running_state_for() is.
+    """
+    if is_group_target(selected):
+        return group_panel_embed(config.get('name'),
+                                 getattr(cog, 'status_cache_service', None))
+    embed, _view, _running = await cog._generate_status_embed_and_view(
+        channel_id, selected, config, app_config,
+        allow_toggle=False,     # no toggle button in the admin panel
+        force_collapse=False)
+    return embed
 
 
 async def running_state_for(cog, selected: str, config: dict) -> Tuple[bool, bool]:
