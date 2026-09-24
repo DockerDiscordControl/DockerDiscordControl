@@ -44,17 +44,30 @@ withdrawn) and twice more at :1019/:1072, where it decided whether a view
 carrying a path to delete_task() was built (2026-09-17, SPEC.md Z5 and B1).
 This is the fourth survivor. It steers which message is redrawn.
 
-WHAT REPLACES IT IS ALREADY IN THE COG. The admin panel is not a message of its
-own - the 🛠️ button edits the admin overview message in place - and the cog
-tracks that message's id per channel in ``channel_server_message_ids``, which
-is persisted and restored on startup (docker_control.py). Asking it is exact,
-carries no language, and survives a restart, which is the only reason the title
-was read in the first place.
+THE FIRST REPLACEMENT WAS ALSO WRONG, and it is written down here because it
+cost the operator another round trip. I had it ask whether the message was the
+tracked admin overview, reasoning that the 🛠️ button edits that message in
+place. IT DOES NOT. The button sends a container dropdown as an EPHEMERAL
+followup (cogs/admin_overview.py), and picking one replaces that ephemeral
+message with the panel - so the panel is a message of its own, its id is not
+the tracked one, and the new check answered "no" exactly as the title one had.
+I read the callback that DEFERS and concluded from it; I had not read the
+callback that SENDS.
+
+WHAT IT ASKS NOW IS THE MESSAGE ITSELF. Ephemeral means sent to one person,
+which is precisely the panels that redraw themselves; a channel's control
+message is permanent and never ephemeral. No text, no language, nothing to keep
+in step - and the flag belongs to the message, so it survives a restart, which
+is the one thing the title ever had going for it.
 
 HOW THIS TEST CAN FAIL: a panel deciding what it is by its own rendered text.
 
 COUNTER-CHECK (2026-09-24): red before - the scan named control_ui.py:586 and
-the helper did not exist. Then three sabotages on the green baseline: the title
+the helper did not exist. THE SECOND VERSION WAS GREEN AND WRONG: its cases
+built the tracking themselves, so they proved that a lookup works and never
+that the panel is in it. A test whose fixture agrees with the code about a
+fact neither of them checked is the defect this suite hunts, and I wrote one.
+The cases now pass the thing the press actually holds. Then three sabotages on the green baseline: the title
 heuristic put back (1 red), the id compared without int() (1 red), and the
 channel lookup made to fall back to any other channel - WHICH STAYED GREEN. The
 cases only ever asked about two channels that were both tracked, so a lookup
@@ -73,83 +86,55 @@ SOURCES = ("cogs", "services", "app", "utils")
 TITLE_KEY = "🛠️ Admin Control: {name}"
 
 
-def _cog(tracked):
-    """A stand-in carrying only what the question needs: the tracked ids."""
-    class _Cog:
-        channel_server_message_ids = tracked
+class _Message:
+    """A message, as the press sees it: it knows whether it is ephemeral."""
 
-    return _Cog()
-
-
-def test_the_tracked_admin_message_is_the_admin_panel():
-    from cogs.control_helpers import is_admin_panel_message
-
-    cog = _cog({4711: {"overview": 111, "admin_overview": 222}})
-
-    assert is_admin_panel_message(cog, 4711, 222) is True
+    def __init__(self, ephemeral):
+        self.flags = type("Flags", (), {"ephemeral": ephemeral})()
 
 
-def test_another_message_in_the_same_channel_is_not():
-    """The server overview lives in the same channel and carries buttons too."""
-    from cogs.control_helpers import is_admin_panel_message
+def test_a_private_panel_is_recognised():
+    from cogs.control_helpers import is_private_panel_message
 
-    cog = _cog({4711: {"overview": 111, "admin_overview": 222}})
-
-    assert is_admin_panel_message(cog, 4711, 111) is False
-    assert is_admin_panel_message(cog, 4711, 999) is False
+    assert is_private_panel_message(_Message(True)) is True
 
 
-def test_the_same_id_in_another_channel_is_not():
-    """Ids are unique to Discord, but the lookup is per channel and must not
-    answer out of the wrong one."""
-    from cogs.control_helpers import is_admin_panel_message
+def test_the_channels_own_message_is_not():
+    """THE CASE BOTH WRONG ANSWERS GOT BACKWARDS: a control message in a
+    channel is permanent, the panel is not."""
+    from cogs.control_helpers import is_private_panel_message
 
-    cog = _cog({4711: {"admin_overview": 222}, 4712: {"admin_overview": 333}})
-
-    assert is_admin_panel_message(cog, 4712, 222) is False
+    assert is_private_panel_message(_Message(False)) is False
 
 
-def test_an_untracked_channel_does_not_borrow_another_channel_s_answer():
-    """FOUND BY SABOTAGE (2026-09-24): the case above only proves the lookup
-    picks the right entry when BOTH channels are tracked. Replacing the lookup
-    with "this channel, or else the first one we know" left every case green -
-    a bot with one tracked channel would then have called every message in
-    every other channel the admin panel."""
-    from cogs.control_helpers import is_admin_panel_message
+def test_a_message_that_is_not_there_is_not_a_panel():
+    """A press can arrive without one, and an exception here loses the redraw
+    entirely."""
+    from cogs.control_helpers import is_private_panel_message
 
-    cog = _cog({4711: {"admin_overview": 222}})
-
-    assert is_admin_panel_message(cog, 9999, 222) is False
+    assert is_private_panel_message(None) is False
 
 
-@pytest.mark.parametrize("tracked", [{}, {4711: {}}, {4711: {"admin_overview": None}}])
-def test_nothing_tracked_is_not_the_admin_panel(tracked):
-    """An untracked channel must answer "no", not raise - this runs inside a
-    button press, and an exception there loses the redraw entirely."""
-    from cogs.control_helpers import is_admin_panel_message
-
-    assert is_admin_panel_message(_cog(tracked), 4711, 222) is False
-
-
-def test_a_cog_without_the_attribute_is_survived():
-    """Registration-only cog instances exist (bot.add_view builds views with a
-    bare cog); the question must hold for them too."""
-    from cogs.control_helpers import is_admin_panel_message
+def test_a_message_without_flags_is_survived():
+    from cogs.control_helpers import is_private_panel_message
 
     class _Bare:
         pass
 
-    assert is_admin_panel_message(_Bare(), 4711, 222) is False
+    assert is_private_panel_message(_Bare()) is False
 
 
-def test_the_id_is_compared_as_a_number():
-    """The tracked ids are restored from JSON, where a key can come back as a
-    string. A comparison that fails on the type would say "not the admin
-    panel" for every restored channel after a restart - the exact case the
-    tracking exists for."""
-    from cogs.control_helpers import is_admin_panel_message
+def test_nothing_is_asked_of_the_cog_any_more():
+    """The tracked-id answer is gone rather than left beside the new one: two
+    questions that can disagree is how this went wrong twice."""
+    import inspect
 
-    assert is_admin_panel_message(_cog({4711: {"admin_overview": "222"}}), 4711, 222) is True
+    from cogs.control_helpers import is_private_panel_message
+
+    source = inspect.getsource(is_private_panel_message)
+
+    assert "channel_server_message_ids" not in source
+    assert "admin_overview" not in source
 
 
 def test_the_title_this_used_to_match_is_translated():
@@ -209,14 +194,20 @@ def test_no_code_decides_anything_by_that_title():
         + "\n  ".join(offenders))
 
 
-def test_the_button_asks_the_cog_instead():
+def test_the_button_asks_the_message():
     """The call site, read from the syntax tree rather than from a word that
-    also appears in the comment above it."""
+    also appears in the comment above it - and it must be handed the MESSAGE,
+    not an id, or we are back at looking the panel up somewhere else."""
     import ast
 
     source = (PROJECT / "cogs" / "control_ui.py").read_text(encoding="utf-8")
-    called = {ast.unparse(node.func) for node in ast.walk(ast.parse(source))
-              if isinstance(node, ast.Call)}
+    calls = [node for node in ast.walk(ast.parse(source))
+             if isinstance(node, ast.Call)
+             and "is_private_panel_message" in ast.unparse(node.func)]
 
-    assert any("is_admin_panel_message" in name for name in called), (
-        "control_ui.py no longer asks the cog which message the admin panel is")
+    assert calls, "control_ui.py no longer asks which panel the press is on"
+    for call in calls:
+        argument = ast.unparse(call.args[0]) if call.args else ""
+
+        assert "message" in argument, (
+            f"asked about {argument!r} instead of the message itself")

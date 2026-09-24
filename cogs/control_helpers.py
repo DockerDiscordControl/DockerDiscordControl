@@ -265,43 +265,33 @@ def validate_custom_port(port: str) -> bool:
     return 1 <= int(port) <= 65535
 
 
-def is_admin_panel_message(cog, channel_id, message_id) -> bool:
-    """Whether this message is the admin panel rather than a control message.
+def is_private_panel_message(message) -> bool:
+    """Whether this message is a private panel and not the channel's own.
 
-    THE HEURISTIC THIS REPLACES read the message's own title and looked for the
-    words "Admin Control" in it. That title is translated: the English literal
-    is in one catalogue out of forty, so the check answered "yes" only for a
-    bot running in English. Everywhere else a press in the admin panel took the
-    branch meant for a control-channel message - harmless-looking for a
-    container, and for a container GROUP the error the operator reported on
-    2026-09-24, because that branch asks the container machinery about a name
-    no container has.
+    A press has to know which of the two it is redrawing. There have been three
+    answers to that:
 
-    The same title heuristic has been removed three times before, each time
-    where its symptom showed: the channel permission check, and twice where it
-    decided whether a view carrying a path to delete_task() was built
-    (SPEC.md Z5 and B1). This is the fourth site and the last one.
+    1. "Admin Control" in the message's title - broken in 39 of the 40
+       languages, because that title is translated. The same heuristic had
+       already been removed three times for granting rights; this was its
+       fourth site (2026-09-24).
 
-    THE ANSWER IS STATE THE COG ALREADY KEEPS. The admin panel is not a message
-    of its own; the 🛠️ button edits the admin overview in place. That message's
-    id is tracked per channel in ``channel_server_message_ids`` and is
-    persisted, so the answer survives a restart - which was the only thing the
-    title had going for it.
+    2. the id of the tracked admin overview - wrong, and wrong because I
+       reasoned about the flow instead of reading it. The 🛠️ button does NOT
+       edit the overview in place: it sends a container dropdown as an
+       EPHEMERAL followup, and picking one replaces that ephemeral message
+       with the panel. So the panel is a message of its own and its id is not
+       the tracked one, which is why the operator got the same error back.
 
-    Ids are compared as numbers: restored from JSON they can come back as
-    strings, and a comparison that tripped over the type would say "not the
-    admin panel" for every channel after a restart.
+    3. this. The message says what it is: ephemeral means it was sent to one
+       person, which is exactly the panels that redraw themselves - the admin
+       panel and anything else opened privately. The channel's control message
+       is a permanent message and never ephemeral. No text, no language, no
+       bookkeeping to keep in step, and it survives a restart because the flag
+       belongs to the message rather than to anything DDC remembers.
 
-    Anything missing - an untracked channel, a cog built for view registration
-    only - is "no". This runs inside a button press, where an exception loses
-    the redraw entirely.
+    Anything missing is "no": this runs inside a button press, where an
+    exception loses the redraw entirely.
     """
-    tracked = getattr(cog, 'channel_server_message_ids', None) or {}
-    channel = tracked.get(channel_id) or {}
-    admin_message_id = channel.get('admin_overview')
-    if admin_message_id is None or message_id is None:
-        return False
-    try:
-        return int(admin_message_id) == int(message_id)
-    except (TypeError, ValueError):
-        return False
+    flags = getattr(message, 'flags', None)
+    return bool(getattr(flags, 'ephemeral', False))
