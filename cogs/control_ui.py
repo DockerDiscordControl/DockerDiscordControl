@@ -31,7 +31,6 @@ from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
 from .ddc_ui import DDCView
-# A group is offered and pressed like a container (cogs/group_control.py).
 from .group_control import group_config_for, group_entries, running_state_for
 
 logger = get_module_logger('control_ui')
@@ -2163,6 +2162,7 @@ class AdminContainerDropdown(discord.ui.Select):
             option = discord.SelectOption(
                 label=display_label,
                 value=container['docker_name'],
+                emoji=container.get('emoji'),   # a group is marked as one
                 description=" "  # Single space - invisible but forces Discord to keep our order
             )
             options.append(option)

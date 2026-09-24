@@ -45,7 +45,7 @@ cogs/loop_safety.py:1-103
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:864-883
-cogs/overview_embeds.py:1-1043
+cogs/overview_embeds.py:1-1055
 cogs/slash_commands.py:1-848
 
 ## Section 06  (1790 lines, 3 pieces)
@@ -388,7 +388,7 @@ app/web/compat.py:1-102
 cogs/ddc_ui.py:1-94
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
-cogs/group_control.py:1-138
+cogs/group_control.py:1-145
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).

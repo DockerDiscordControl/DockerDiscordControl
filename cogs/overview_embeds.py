@@ -49,7 +49,7 @@ def power_consumption_line(decay_per_day) -> str:
     return f"{label}: 🔻 {decay_per_day}{translate('per_day_suffix')}"
 
 
-def group_status_lines(status_cache_service, translate) -> list:
+def group_status_lines(status_cache_service, translate, boxed: bool = True) -> list:
     """The operator's container groups, as lines for the overview.
 
     THE OPERATOR, 2026-09-24, with a screenshot of the overview: he could not
@@ -69,6 +69,14 @@ def group_status_lines(status_cache_service, translate) -> list:
 
     Empty for an operator with no groups: no divider, no heading, nothing. The
     overview he had yesterday is the overview he keeps.
+
+    TWO STYLES, ONE WALK (operator, 2026-09-24). The server overview draws a
+    box: every container line there starts with a pipe, so the group lines do
+    too, and he called that one pretty. The ADMIN overview stacks blocks and
+    draws no box - the same lines arrived there as stray pipes and dashes. With
+    ``boxed=False`` it is a plain heading and lines shaped like the container
+    lines above them. A second implementation instead of a flag is how a group
+    ends up in one view and not the other.
     """
     try:
         from services.config.group_service import get_group_service
@@ -102,13 +110,16 @@ def group_status_lines(status_cache_service, translate) -> list:
             lamp = "🔴"
         name = group.name[:20] + "." if len(group.name) > 20 else group.name
         gone = " ⚠️" if members.missing else ""
-        lines.append(f"│ {lamp} {name} {running}/{total}{gone}")
+        prefix = "│ " if boxed else ""
+        lines.append(f"{prefix}{lamp} {name} {running}/{total}{gone}")
 
     if not lines:
         return []
     # Set apart, the way the panel sets them apart: a group listed among the
     # containers reads as a container with a strange name.
-    return [f"├── {translate('Container groups')} ──────"] + lines
+    heading = (f"├── {translate('Container groups')} ──────" if boxed
+               else f"**{translate('Container groups')}:**")
+    return [heading] + lines
 
 
 def with_website_footer(embed) -> None:
@@ -755,7 +766,8 @@ class OverviewEmbedsMixin:
         # header used to promise more containers than it showed.
         # The groups, as their own block after the containers. Same helper as
         # the other two views, so a group cannot appear in one and not another.
-        group_lines = group_status_lines(getattr(self, 'status_cache_service', None), translate)
+        group_lines = group_status_lines(getattr(self, 'status_cache_service', None), translate,
+                                         boxed=False)
         if group_lines:
             container_lines.append("\n".join(group_lines))
 

@@ -33,6 +33,12 @@ logger = get_module_logger('group_control')
 # and a container's own order rarely passes a few dozen.
 GROUP_ORDER = 9000
 
+# What says "this is a group" in a list that also holds containers. The panel
+# marks one with a collection icon in amber; a Discord dropdown option carries
+# one emoji and no colour, so it is this - the same one the retired group menu
+# used, which an operator who pressed that button already reads as "group".
+GROUP_EMOJI = "🗂️"
+
 
 def group_entries() -> list:
     """The operator's groups, shaped like the container entries beside them.
@@ -61,6 +67,7 @@ def group_entries() -> list:
             'display': group.name,
             'docker_name': f"group:{group.name}",
             'order': GROUP_ORDER,
+            'emoji': GROUP_EMOJI,
         })
     return entries
 
