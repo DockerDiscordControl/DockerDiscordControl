@@ -341,7 +341,7 @@ app/web/diagnostics.py:1-30
 app/web/extensions.py:1-84
 app/web/i18n.py:1-64
 app/web/logging.py:1-60
-app/web/routes.py:1-236
+app/web/routes.py:1-258
 app/web/security.py:1-102
 app/web_ui.py:1-36
 utils/__init__.py:1-7

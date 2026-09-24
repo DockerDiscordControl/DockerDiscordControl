@@ -703,6 +703,21 @@ function renderAdminUsers() {
     });
 }
 
+// What an operator READS for one assignable thing. The value stored is the one
+// the bot compares - `group:Icaruse` - and a checkbox labelled that, among
+// plain container names, is the same complaint the operator made about the
+// Discord dropdown: nothing says which of them is a group, and the prefix is
+// not a name anybody typed. Only the prefix makes a group, so a container
+// called "mygroup:thing" is left alone.
+function adminAssignmentLabel(name) {
+    // The prefix lives in here, not beside it: the node case runs this one
+    // function on its own, and a constant outside it would not travel along.
+    const prefix = 'group:';
+    const text = String(name == null ? '' : name);
+    if (!text.startsWith(prefix)) { return text; }
+    return '🗂️ ' + text.slice(prefix.length);
+}
+
 // The container assignment of one admin. Three states, and they are NOT the
 // same thing: no entry at all (every container, the default), a list, and an
 // empty list (none). The UI has to be able to say all three, because the rule
@@ -719,7 +734,7 @@ function renderAdminContainers(userId, assigned) {
         return `<label class="me-3 text-nowrap">
             <input type="checkbox" ${checked} ${disabled}
                    onchange="toggleAdminContainer('${safeId}', '${escapeHtmlConfigUI(name)}', this.checked)">
-            ${escapeHtmlConfigUI(name)}
+            ${escapeHtmlConfigUI(adminAssignmentLabel(name))}
         </label>`;
     }).join('');
     const summary = scoped

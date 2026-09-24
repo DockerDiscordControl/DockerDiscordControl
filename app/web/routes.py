@@ -31,12 +31,41 @@ def _validate_admin_users(admin_users: List[str]) -> Dict[str, Any]:
     return {"success": True}
 
 
+def _assignable_names() -> set:
+    """Everything an admin can be assigned: the containers AND the groups.
+
+    THE OPERATOR'S RULE (2026-09-24): a group's rights and a container's rights
+    are completely separate and condition each other in neither direction. So a
+    group is its own assignable thing - `group:<name>`, the spelling
+    admin_service.may_control() already compares literally - and it is offered
+    even when DDC has no configuration for its members, because that is what
+    "they do not condition each other" means.
+
+    Raises whatever the two services raise; the callers answer for it.
+    """
+    from services.config.server_config_service import get_server_config_service
+
+    names = {str(server.get("docker_name")) for server in
+             get_server_config_service().get_all_servers()
+             if isinstance(server, dict) and server.get("docker_name")}
+    try:
+        from services.config.group_service import get_group_service
+
+        names |= {f"group:{group.name}" for group in get_group_service().get_groups()}
+    except OSError as e:
+        # The containers are still assignable; a groups file that cannot be read
+        # costs the groups, not the whole dialog.
+        logging.getLogger(__name__).error(
+            "Groups could not be read for the admin assignment: %s", e, exc_info=True)
+    return names
+
+
 def _validate_admin_containers(admin_containers: Any,
                                admin_users: List[str]) -> Dict[str, Any]:
     """Check a per-admin container assignment before it is written (review F5).
 
-    Every name is checked against the configured containers, because a typo
-    does not fail - it silently means "this admin may control nothing on that
+    Every name is checked against what can be assigned - the containers and the
+    groups (_assignable_names) - because a typo does not fail - it silently means "this admin may control nothing on that
     one", and nothing would ever say so. The admin is simply refused later and
     nobody connects it to a letter. So an unknown name is refused here, by name.
 
@@ -50,10 +79,7 @@ def _validate_admin_containers(admin_containers: Any,
         return {"success": False, "error": "admin_containers must be an object"}
 
     try:
-        from services.config.server_config_service import get_server_config_service
-        known = {str(server.get("docker_name")) for server in
-                 get_server_config_service().get_all_servers()
-                 if isinstance(server, dict) and server.get("docker_name")}
+        known = _assignable_names()
     except (AttributeError, IOError, OSError, RuntimeError, TypeError, ValueError) as e:
         # A list of containers that cannot be read is not a reason to wave an
         # assignment through: it would be written with names nobody checked.
@@ -105,11 +131,7 @@ def register_routes(app: Flask) -> None:
                 # container config cannot be read the admin list still goes out
                 # and the choices are simply empty (review F5).
                 try:
-                    from services.config.server_config_service import get_server_config_service
-                    data["available_containers"] = sorted(
-                        {str(server.get("docker_name")) for server in
-                         get_server_config_service().get_all_servers()
-                         if isinstance(server, dict) and server.get("docker_name")})
+                    data["available_containers"] = sorted(_assignable_names())
                 except _STORAGE_ERRORS as e:
                     app.logger.error("Container list for the admin panel could not be "
                                      "read: %s", e, exc_info=True)
