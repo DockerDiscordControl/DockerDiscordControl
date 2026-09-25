@@ -313,7 +313,7 @@ app/utils/__init__.py:1-7
 # past the 2000-line section limit. One file, read in one go.
 app/utils/container_info_web_handler.py:1-325
 
-## Section 34  (1989 lines, 11 pieces)
+## Section 34  (1286 lines, 10 pieces)
 # app/bot/startup_steps/sequence.py moved here from 33 on 2026-09-21: 33 had
 # grown to 2,021 of the 2,000 a section may hold, and this is the file that
 # grew (review E9). 34 had the room.
@@ -322,7 +322,6 @@ app/utils/container_info_web_handler.py:1-325
 app/bot/startup_steps/sequence.py:1-65
 app/bot/startup_steps/cooldowns.py:1-29
 app/bot/startup_steps/diagnostics.py:1-26
-app/utils/port_diagnostics.py:1-656
 app/utils/web_helpers.py:1-942
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
@@ -432,9 +431,17 @@ services/automation/image_updates.py:1-164
 # routes in the first place.
 app/blueprints/system_routes.py:1-104
 
-## Section 44  (105 lines, 1 piece)
+## Section 44  (843 lines, 2 pieces)
 # Moved out of 34 on 2026-09-25: port_diagnostics.py grew when the startup
 # line stopped guessing the host address and started asking which one the
 # panel had actually been reached on, and 34 went to 2,034 of its 2,000.
-# This is the smallest piece in it that carries its own subject.
+# The smallest piece with its own subject was moved instead.
+#
+# Later the same day port_diagnostics.py grew again - it stopped reading the
+# HOST's /proc/uptime as the container's and stopped looking for
+# /etc/unraid-version inside a container that cannot have it - and 34 reached
+# 2,024. So the file that has twice pushed that section over now sits here,
+# next to the other app/utils piece, which reads better than either of them
+# did in a section of web wiring.
 app/utils/shared_data.py:1-105
+app/utils/port_diagnostics.py:1-738

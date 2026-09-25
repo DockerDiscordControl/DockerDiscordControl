@@ -88,25 +88,66 @@ class PortDiagnostics:
             return 'unknown'
 
     def _get_container_uptime(self) -> str:
-        """Get container uptime from /proc/uptime."""
+        """How long THIS CONTAINER has been running.
+
+        IT USED TO READ /proc/uptime, which inside a container is the HOST's
+        uptime - the kernel is shared. On the operator's machine, two minutes
+        after a rebuild, it reported "22d 23h 49m". That was a real number
+        about a real machine, under a name that made it evidence about
+        something else, which is worse than no number at all.
+
+        State.StartedAt is the container's own, and the allowlist proxy
+        already permits the inspect this reads it from.
+        """
+        started = self._own_container_attribute(("State", "StartedAt"))
+        if not started:
+            # The host's uptime is not a substitute for the container's.
+            return 'unknown'
+
         try:
-            with open('/proc/uptime', 'r') as f:
-                uptime_seconds = float(f.read().split()[0])
-                days = int(uptime_seconds // 86400)
-                hours = int((uptime_seconds % 86400) // 3600)
-                minutes = int((uptime_seconds % 3600) // 60)
-                if days > 0:
-                    return f"{days}d {hours}h {minutes}m"
-                elif hours > 0:
-                    return f"{hours}h {minutes}m"
-                else:
-                    return f"{minutes}m"
-        except (IOError, OSError) as e:
-            logger.debug(f"File I/O error reading uptime: {e}", exc_info=True)
+            # Docker reports nanoseconds; datetime stops at microseconds.
+            stamp = started.rstrip('Z')
+            if '.' in stamp:
+                whole, fraction = stamp.split('.', 1)
+                stamp = f"{whole}.{fraction[:6]}"
+            began = datetime.fromisoformat(stamp).replace(tzinfo=timezone.utc)
+        except (ValueError, TypeError) as error:
+            logger.debug("Could not read the container's start time: %s", error)
             return 'unknown'
-        except (ValueError, TypeError, IndexError) as e:
-            logger.debug(f"Data parsing error calculating uptime: {e}", exc_info=True)
+
+        running = (datetime.now(timezone.utc) - began).total_seconds()
+        if running < 0:
             return 'unknown'
+        days = int(running // 86400)
+        hours = int((running % 86400) // 3600)
+        minutes = int((running % 3600) // 60)
+        if days > 0:
+            return f"{days}d {hours}h {minutes}m"
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
+
+    def _own_container_attribute(self, path):
+        """One value out of this container's own inspect, or None.
+
+        None means the question could not be put - never a stand-in answer
+        from somewhere else. That distinction is what this module keeps
+        getting wrong (see the port mapping, one commit earlier).
+        """
+        container_id = _own_container_id()
+        if not container_id:
+            return None
+        try:
+            attributes = _docker_client(5).containers.get(container_id).attrs
+        except Exception as error:                  # noqa: BLE001 - any failure is "unknown"
+            logger.debug("Could not inspect own container: %s: %s",
+                         type(error).__name__, error)
+            return None
+        for key in path:
+            if not isinstance(attributes, dict):
+                return None
+            attributes = attributes.get(key)
+        return attributes
 
     def _get_memory_usage(self) -> str:
         """Get memory usage from /proc/meminfo."""
@@ -185,26 +226,67 @@ class PortDiagnostics:
             return 'unknown'
 
     def _detect_platform(self) -> tuple:
-        """Detect platform and check if Unraid. Returns (platform_name, is_unraid)."""
+        """(the platform this process runs on, whether the HOST is Unraid).
+
+        TWO DIFFERENT MACHINES, and conflating them was the bug. The first
+        value is about wherever this process is - inside a container that is
+        alpine, and /etc/os-release answers it correctly. The second is about
+        the host, and it used to be answered by looking for
+        /etc/unraid-version INSIDE the container: a file that is not there and
+        never will be, so an Unraid installation reported itself as
+        not-Unraid. The flag decides whether the panel offers Unraid steps or
+        generic Docker ones, so being wrong sent the operator down the wrong
+        path.
+        """
+        platform = self._this_platform()
+        return platform, self._host_is_unraid(platform)
+
+    def _this_platform(self) -> str:
+        """The name of the system this process is running on."""
         try:
             if os.path.exists('/etc/unraid-version') or os.path.exists('/boot/config/ident.cfg'):
-                return 'unraid', True
-            elif os.path.exists('/etc/os-release'):
-                with open('/etc/os-release', 'r') as f:
-                    content = f.read().lower()
-                    if 'unraid' in content:
-                        return 'unraid', True
-                    elif 'ubuntu' in content:
-                        return 'ubuntu', False
-                    elif 'debian' in content:
-                        return 'debian', False
-                    elif 'alpine' in content:
-                        return 'alpine', False
-        except (IOError, OSError) as e:
-            logger.debug(f"File I/O error detecting host platform: {e}", exc_info=True)
-        except (ValueError, AttributeError) as e:
-            logger.debug(f"Data processing error detecting host platform: {e}", exc_info=True)
-        return 'unknown', False
+                return 'unraid'
+            if os.path.exists('/etc/os-release'):
+                with open('/etc/os-release', 'r') as handle:
+                    content = handle.read().lower()
+                for name in ('unraid', 'alpine', 'ubuntu', 'debian'):
+                    if name in content:
+                        return name
+        except (IOError, OSError) as error:
+            logger.debug("Could not read this platform's name: %s", error)
+        return 'unknown'
+
+    def _host_is_unraid(self, platform: str) -> bool:
+        """Whether the machine running Docker is Unraid.
+
+        TWO WAYS, because there are two situations.
+
+        Inside a container the local filesystem is the CONTAINER's, so asking
+        it about the host is the original mistake. The Docker daemon runs on
+        the host and says so: GET /version reports its kernel, which on Unraid
+        reads like "6.18.38-Unraid".
+
+        Run straight on the host - from a checkout, no /.dockerenv - those
+        same local files ARE the host's, and /etc/unraid-version is exactly
+        what it looks like. Two cases covering that predate this change and
+        were right; they were only wrong about the other situation.
+
+        False means "no evidence", not "definitely not". Generic Docker advice
+        is the safe reading of that, because it works on Unraid too.
+        """
+        if not os.path.exists('/.dockerenv') and platform == 'unraid':
+            return True
+
+        try:
+            version = _docker_client(5).version() or {}
+        except Exception as error:                  # noqa: BLE001
+            logger.debug("Could not ask Docker about its host: %s: %s",
+                         type(error).__name__, error)
+            return False
+
+        said = " ".join(str(version.get(key, '')) for key in
+                        ('KernelVersion', 'OperatingSystem', 'Os'))
+        return 'unraid' in said.lower()
 
     def _get_host_info(self) -> Dict:
         """Get host system information."""

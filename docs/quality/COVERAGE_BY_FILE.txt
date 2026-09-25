@@ -85,7 +85,7 @@ app/bot/token.py	128	pass1:s33:1-101
 app/constants.py	17	pass1:s33:1-17
 app/utils/__init__.py	7	pass1:s33:1-7
 app/utils/container_info_web_handler.py	325	pass1:s33:1-256  [19 of 275 lines never in a package]
-app/utils/port_diagnostics.py	656	pass1:s34:1-595  [5 of 600 lines never in a package]
+app/utils/port_diagnostics.py	738	pass1:s34:1-595  [5 of 600 lines never in a package]
 app/utils/shared_data.py	105	pass1:s34:1-97  [8 of 105 lines never in a package]
 app/utils/web_helpers.py	942	pass1:s34:1-862  [43 of 905 lines never in a package]
 app/web/__init__.py	12	pass1:s34:1-12

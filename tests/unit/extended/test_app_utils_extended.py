@@ -1035,49 +1035,51 @@ class TestPortDiagnosticsHostMetrics:
         )
         return PortDiagnostics
 
-    def test_get_container_uptime_parses_proc_uptime(self, monkeypatch, fresh_diag):
-        from app.utils.port_diagnostics import PortDiagnostics
-        from unittest.mock import mock_open
+    # THESE FIVE DROVE /proc/uptime, which inside a container is the HOST's
+    # uptime - the kernel is shared. It reported "22d 23h 49m" two minutes
+    # after a rebuild on the operator's machine. The rules they protected -
+    # the d/h/m formatting, and "unknown" rather than a crash when the number
+    # cannot be had - both survive; only the source changed, to the
+    # container's own State.StartedAt. See
+    # tests/spec/test_the_host_report_looks_at_the_right_machine.py.
 
-        # 90061 seconds = 1d 1h 1m
-        with patch("builtins.open", mock_open(read_data="90061.0 0\n")):
-            instance = object.__new__(PortDiagnostics)
-            uptime = instance._get_container_uptime()
-        assert "1d" in uptime
+    def _uptime_after(self, monkeypatch, seconds=None, started=None, reachable=True):
+        from datetime import datetime, timedelta, timezone
+        from types import SimpleNamespace
 
-    def test_get_container_uptime_hour_format(self):
-        from app.utils.port_diagnostics import PortDiagnostics
-        from unittest.mock import mock_open
+        from app.utils import port_diagnostics as pd
 
-        # 7200 seconds = 2 hours
-        with patch("builtins.open", mock_open(read_data="7200.0 0\n")):
-            instance = object.__new__(PortDiagnostics)
-            uptime = instance._get_container_uptime()
+        if started is None and seconds is not None:
+            began = datetime.now(timezone.utc) - timedelta(seconds=seconds)
+            started = began.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+        container = SimpleNamespace(attrs={"State": {"StartedAt": started}})
+
+        def _client(timeout):
+            if not reachable:
+                raise RuntimeError("docker unavailable")
+            return SimpleNamespace(containers=SimpleNamespace(get=lambda _id: container))
+
+        monkeypatch.setattr(pd, "_own_container_id", lambda: "abc123def456")
+        monkeypatch.setattr(pd, "_docker_client", _client)
+        return object.__new__(pd.PortDiagnostics)._get_container_uptime()
+
+    def test_get_container_uptime_days_format(self, monkeypatch):
+        assert self._uptime_after(monkeypatch, seconds=90061).startswith("1d ")
+
+    def test_get_container_uptime_hour_format(self, monkeypatch):
+        uptime = self._uptime_after(monkeypatch, seconds=7200)
         assert "h" in uptime and "d" not in uptime
 
-    def test_get_container_uptime_minute_format(self):
-        from app.utils.port_diagnostics import PortDiagnostics
-        from unittest.mock import mock_open
+    def test_get_container_uptime_minute_format(self, monkeypatch):
+        uptime = self._uptime_after(monkeypatch, seconds=120)
+        assert uptime.endswith("m") and "h" not in uptime
 
-        with patch("builtins.open", mock_open(read_data="120.0 0\n")):
-            instance = object.__new__(PortDiagnostics)
-            uptime = instance._get_container_uptime()
-        assert uptime.endswith("m")
+    def test_get_container_uptime_without_docker_returns_unknown(self, monkeypatch):
+        assert self._uptime_after(monkeypatch, seconds=120, reachable=False) == "unknown"
 
-    def test_get_container_uptime_io_error_returns_unknown(self):
-        from app.utils.port_diagnostics import PortDiagnostics
+    def test_get_container_uptime_with_a_bad_stamp_returns_unknown(self, monkeypatch):
+        assert self._uptime_after(monkeypatch, started="garbage") == "unknown"
 
-        with patch("builtins.open", side_effect=OSError("nope")):
-            instance = object.__new__(PortDiagnostics)
-            assert instance._get_container_uptime() == "unknown"
-
-    def test_get_container_uptime_value_error_returns_unknown(self):
-        from app.utils.port_diagnostics import PortDiagnostics
-        from unittest.mock import mock_open
-
-        with patch("builtins.open", mock_open(read_data="garbage\n")):
-            instance = object.__new__(PortDiagnostics)
-            assert instance._get_container_uptime() == "unknown"
 
     def test_get_memory_usage_parses_meminfo(self):
         from app.utils.port_diagnostics import PortDiagnostics

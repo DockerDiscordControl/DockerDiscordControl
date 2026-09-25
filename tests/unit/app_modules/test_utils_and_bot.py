@@ -861,33 +861,49 @@ class TestPortDiagnostics:
             name = diag._detect_container_name()
         assert name == "my-named-container"
 
-    def test_get_container_uptime_formats_minutes(self):
-        from unittest.mock import mock_open
-        # 90061 seconds = 1d 1h 1m
-        with patch("builtins.open", mock_open(read_data="90061.0 12345.6\n")):
-            diag = object.__new__(port_diagnostics.PortDiagnostics)
-            uptime = diag._get_container_uptime()
+    # THESE FOUR DROVE /proc/uptime, which inside a container is the HOST's
+    # uptime - the kernel is shared, so it reported "22d 23h 49m" two minutes
+    # after a rebuild on the operator's machine. The rules they protected are
+    # the d/h/m formatting and "unknown" rather than a crash; both survive,
+    # and only the source changed, to the container's own State.StartedAt.
+    # See tests/spec/test_the_host_report_looks_at_the_right_machine.py.
+
+    def _uptime_after(self, monkeypatch, seconds=None, started=None, reachable=True):
+        from datetime import datetime, timedelta, timezone
+        from types import SimpleNamespace
+
+        if started is None and seconds is not None:
+            began = datetime.now(timezone.utc) - timedelta(seconds=seconds)
+            started = began.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+        container = SimpleNamespace(attrs={"State": {"StartedAt": started}})
+
+        def _client(timeout):
+            if not reachable:
+                raise RuntimeError("docker unavailable")
+            return SimpleNamespace(containers=SimpleNamespace(get=lambda _id: container))
+
+        monkeypatch.setattr(port_diagnostics, "_own_container_id", lambda: "abc123def456")
+        monkeypatch.setattr(port_diagnostics, "_docker_client", _client)
+        diag = object.__new__(port_diagnostics.PortDiagnostics)
+        return diag._get_container_uptime()
+
+    def test_get_container_uptime_formats_days(self, monkeypatch):
+        uptime = self._uptime_after(monkeypatch, seconds=90061)
         assert "1d" in uptime
         assert "1h" in uptime
 
-    def test_get_container_uptime_formats_minutes_only(self):
-        from unittest.mock import mock_open
-        # 600 seconds = 10m
-        with patch("builtins.open", mock_open(read_data="600.0 123\n")):
-            diag = object.__new__(port_diagnostics.PortDiagnostics)
-            uptime = diag._get_container_uptime()
-        assert uptime == "10m"
+    def test_get_container_uptime_formats_minutes_only(self, monkeypatch):
+        uptime = self._uptime_after(monkeypatch, seconds=120)
+        assert uptime.endswith("m")
+        assert "h" not in uptime
 
-    def test_get_container_uptime_handles_oserror(self):
-        with patch("builtins.open", side_effect=OSError("bad")):
-            diag = object.__new__(port_diagnostics.PortDiagnostics)
-            assert diag._get_container_uptime() == "unknown"
+    def test_get_container_uptime_without_docker(self, monkeypatch):
+        """It used to fall back to the host's number; now it says it does not
+        know, which is the whole point of the change."""
+        assert self._uptime_after(monkeypatch, seconds=120, reachable=False) == "unknown"
 
-    def test_get_container_uptime_handles_parse_error(self):
-        from unittest.mock import mock_open
-        with patch("builtins.open", mock_open(read_data="garbage\n")):
-            diag = object.__new__(port_diagnostics.PortDiagnostics)
-            assert diag._get_container_uptime() == "unknown"
+    def test_get_container_uptime_handles_parse_error(self, monkeypatch):
+        assert self._uptime_after(monkeypatch, started="garbage") == "unknown"
 
     def test_detect_platform_returns_unraid_when_marker_file(self):
         diag = self._make()
