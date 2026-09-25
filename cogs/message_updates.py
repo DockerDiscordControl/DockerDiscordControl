@@ -304,57 +304,6 @@ class MessageUpdatesMixin:
             logger.warning(f"Status cache could not be refreshed this cycle ({e}) - "
                            f"editing from what the cache holds")
 
-    async def _edit_single_message_wrapper(self, channel_id: int, display_name: str, message_id: int, current_config: dict, allow_toggle: bool):
-        """
-        Handles message editing and updates timestamps.
-
-        Args:
-            channel_id: Discord channel ID
-            display_name: Display name of the server
-            message_id: Discord message ID to edit
-            current_config: Current configuration
-            allow_toggle: Whether to allow toggle button
-
-        Returns:
-            bool: Success or failure
-        """
-        # This is a method of DockerControlCog that handles message editing
-        result = await self._edit_single_message(channel_id, display_name, message_id, current_config)
-
-        if result is True:
-            # CRITICAL FIX: Since channel_server_message_ids now uses docker_name as keys,
-            # the display_name parameter might actually be docker_name. Use it directly for consistency.
-            # This works because the wrapper is called with the same identifier used in channel_server_message_ids
-            now_utc = datetime.now(timezone.utc)
-            if channel_id not in self.last_message_update_time:
-                self.last_message_update_time[channel_id] = {}
-            # Use display_name directly (it's actually docker_name from the keys)
-            self.last_message_update_time[channel_id][display_name] = now_utc
-            logger.debug(f"Updated last_message_update_time for '{display_name}' in {channel_id} to {now_utc}")
-
-            # DO NOT update channel activity for periodic updates
-            # This is intentional - we only want to update activity for new messages,
-            # not for periodic refreshes, so the Recreate feature can work properly
-            # by detecting when the last message is from a user, not the bot
-
-            # The following code is commented out to fix the Recreate feature
-            # Channel activity is only updated in on_message and when a new message is sent
-            """
-            channel_permissions = current_config.get('channel_permissions', {})
-            channel_config_specific = channel_permissions.get(str(channel_id))
-            default_recreate_enabled = True
-            default_timeout_minutes = 10
-            recreate_enabled = default_recreate_enabled
-            timeout_minutes = default_timeout_minutes
-            if channel_config_specific:
-                recreate_enabled = channel_config_specific.get('recreate_messages_on_inactivity', default_recreate_enabled)
-                timeout_minutes = channel_config_specific.get('inactivity_timeout_minutes', default_timeout_minutes)
-            if recreate_enabled and timeout_minutes > 0:
-                 self.last_channel_activity[channel_id] = now_utc
-                 logger.debug(f"[_EDIT_WRAPPER in COG] Updated last_channel_activity for channel {channel_id} to {now_utc} due to successful bot edit.")
-            """
-        return result
-
     async def _auto_update_ss_messages(self, reason: str, force_recreate: bool = True):
         """Auto-update all existing /ss messages in channels after donations
 

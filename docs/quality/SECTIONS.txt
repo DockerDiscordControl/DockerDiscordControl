@@ -31,7 +31,7 @@ cogs/control_ui.py:1-1832
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1833-3352
+cogs/control_ui.py:1833-3322
 
 ## Section 04  (1612 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -52,7 +52,7 @@ cogs/slash_commands.py:1-856
 ## Section 06  (1790 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
-cogs/docker_control.py:884-1321
+cogs/docker_control.py:884-1302
 cogs/background_loops.py:1-734
 cogs/donation_ui.py:1-645
 
@@ -60,7 +60,7 @@ cogs/donation_ui.py:1-645
 cogs/enhanced_info_modal_simple.py:1-694
 
 ## Section 08  (1398 lines, 1 piece)
-cogs/status_handlers.py:1-1404
+cogs/status_handlers.py:1-1133
 
 ## Section 09  (1234 lines, 1 piece)
 cogs/status_info_integration.py:1-1261
@@ -412,7 +412,7 @@ services/web/two_factor_service.py:1-224
 ## Section 40  (944 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
-cogs/message_updates.py:1-791
+cogs/message_updates.py:1-740
 
 ## Section 41  (1228 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py

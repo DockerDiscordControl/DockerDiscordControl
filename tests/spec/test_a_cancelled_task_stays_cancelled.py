@@ -12,6 +12,20 @@ tells a coroutine to stop. Swallowed, the task reports itself finished
 although it was told to stop - on shutdown the bot waits for work that has
 already been asked to end, and a caller's ``wait_for`` timeout no longer
 stops what it timed out on.
+
+TWO OF THE THREE SUBJECTS ARE GONE (2026-09-25). ``send_server_status`` and
+``_edit_single_message`` belonged to the one-message-per-container design,
+which nothing could reach any more - the periodic edit loop handles only
+"overview" and "admin_overview" and deletes the rest as phantoms. Their cases
+went with them; the rule did not. ``bulk_update_status_cache`` is still here
+and still covered below.
+
+AND THE RULE REACHES FURTHER THAN THIS FILE. Asking where else it applies
+turned up nine more handlers that catch CancelledError without re-raising -
+in docker_control, donation_ui, status_info_integration, docker_client_pool,
+mech_status_cache_service and scheduler_service. Some of those are a task's
+own teardown, where catching it is correct, so they need reading one at a
+time rather than a sweep. Written down here so the question is not lost.
 """
 
 import asyncio
@@ -85,32 +99,3 @@ async def test_a_real_error_in_the_bulk_update_is_still_caught():
 
     with patch("cogs.status_handlers.get_server_config_service", return_value=_servers()):
         await mixin.bulk_update_status_cache([NAME])  # must not raise
-
-
-@pytest.mark.asyncio
-async def test_a_cancelled_status_send_is_not_reported_as_done():
-    mixin = _mixin()
-    # Both, because the send path asks for the status before it builds anything.
-    mixin.get_status = AsyncMock(side_effect=asyncio.CancelledError())
-    mixin._generate_status_embed_and_view = AsyncMock(side_effect=asyncio.CancelledError())
-    channel = SimpleNamespace(id=42, name="status")
-
-    with patch("services.infrastructure.docker_connectivity_service."
-               "get_docker_connectivity_service", return_value=_connectivity()), \
-         patch("cogs.status_handlers.get_server_config_service", return_value=_servers()):
-        with pytest.raises(asyncio.CancelledError):
-            await mixin.send_server_status(channel, SERVER, {}, allow_toggle=True)
-
-
-@pytest.mark.asyncio
-async def test_a_cancelled_message_edit_is_not_reported_as_done():
-    mixin = _mixin()
-    mixin.get_status = AsyncMock(side_effect=asyncio.CancelledError())
-    mixin._generate_status_embed_and_view = AsyncMock(side_effect=asyncio.CancelledError())
-    mixin.bot.get_channel = MagicMock(return_value=SimpleNamespace(id=42, name="status"))
-
-    with patch("services.infrastructure.docker_connectivity_service."
-               "get_docker_connectivity_service", return_value=_connectivity()), \
-         patch("cogs.status_handlers.get_server_config_service", return_value=_servers()):
-        with pytest.raises(asyncio.CancelledError):
-            await mixin._edit_single_message(42, "V-Rising", 7, {})

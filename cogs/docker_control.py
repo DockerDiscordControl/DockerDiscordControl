@@ -637,25 +637,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                         self.status_cache_service.set(container_name, fresh_status, datetime.now(timezone.utc))
 
                 # Update tracked status messages (Server Overview individual containers)
-                if hasattr(self, 'tracked_status_messages'):
-                    for channel_id, messages in self.tracked_status_messages.items():
-                        for msg_data in messages:
-                            if msg_data.get('display_name') == display_name:
-                                try:
-                                    channel = self.bot.get_channel(channel_id)
-                                    if channel:
-                                        message = await channel.fetch_message(msg_data['message_id'])
-                                        if message:
-                                            embed, view, _ = await self._generate_status_embed_and_view(
-                                                channel_id, display_name, server_config, config,
-                                                allow_toggle=True, force_collapse=False
-                                            )
-                                            if embed:
-                                                await message.edit(embed=embed, view=view)
-                                                logger.info(f"[AAS_REFRESH] Updated status message for {display_name}")
-                                except Exception as e:
-                                    logger.error(f"[AAS_REFRESH] Failed to update status message: {e}")
-
                 # Update overview messages (Server Overview collapsed view)
                 if hasattr(self, 'channel_server_message_ids'):
                     for channel_id, server_messages in self.channel_server_message_ids.items():

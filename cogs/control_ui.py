@@ -618,36 +618,6 @@ class ActionButton(Button):
                                     logger.error(f"[ACTION_BTN] Failed to update control message: {e}", exc_info=True)
 
                             # SECOND: Update all Server Overview status messages for this container
-                            if hasattr(self.cog, 'tracked_status_messages'):
-                                for channel_id, messages in self.cog.tracked_status_messages.items():
-                                    for msg_data in messages:
-                                        if msg_data.get('display_name') == self.display_name:
-                                            try:
-                                                channel = self.cog.bot.get_channel(channel_id)
-                                                if channel:
-                                                    message = await channel.fetch_message(msg_data['message_id'])
-                                                    if message:
-                                                        # The button's own config: the fresh
-                                                        # one used to be looked up here as a
-                                                        # side effect of the cache refresh,
-                                                        # which now lives in action_effect.py.
-                                                        # Only containers are tracked by
-                                                        # display name, so a group never
-                                                        # reaches this loop.
-                                                        embed, view, _running = await self.cog._generate_status_embed_and_view(
-                                                            channel_id,
-                                                            self.display_name,
-                                                            self.server_config,
-                                                            config,
-                                                            allow_toggle=True,
-                                                            force_collapse=False
-                                                        )
-                                                        if embed:
-                                                            await message.edit(embed=embed, view=view)
-                                                            logger.info(f"[ACTION_BTN] Updated status overview message for {self.display_name} in channel {channel_id}")
-                                            except (discord.errors.DiscordException, RuntimeError) as e:
-                                                logger.error(f"[ACTION_BTN] Failed to update status message: {e}", exc_info=True)
-
                             # THIRD: Update Overview and Admin Overview messages
                             if hasattr(self.cog, 'channel_server_message_ids'):
                                 for channel_id, server_messages in self.cog.channel_server_message_ids.items():
