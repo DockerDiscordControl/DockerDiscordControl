@@ -50,35 +50,28 @@ class PortDiagnostics:
         self.host_info = self._get_host_info()
 
     def _detect_container_name(self) -> Optional[str]:
-        """Detect the current container name"""
+        """The container's NAME, not its id.
+
+        It used to run `docker inspect <hostname> --format {{.Name}}` and,
+        when that binary turned out not to exist, fall back to the hostname -
+        which Docker sets to the container's short id. That is why the
+        diagnostics page showed "e993e9fb661b" where the operator expected
+        "dockerdiscordcontrol", and why a suggested `docker run` once carried
+        a hex string as the --name.
+
+        describe_self() already answers this through the allowlist proxy, and
+        falls back to the id only when there is genuinely nothing better.
+        """
+        container_id = _own_container_id()
+        if not container_id:
+            return None
         try:
-            # Try to read from hostname (Docker sets this to container ID/name)
-            with open('/etc/hostname', 'r') as f:
-                hostname = f.read().strip()
-
-            # Try to get container name from Docker API (if docker command is available)
-            try:
-                result = subprocess.run([
-                    'docker', 'inspect', hostname, '--format', '{{.Name}}'
-                ], capture_output=True, text=True, timeout=5)
-
-                if result.returncode == 0:
-                    name = result.stdout.strip().lstrip('/')
-                    return name
-            except (FileNotFoundError, subprocess.TimeoutExpired):
-                # Docker command not available or timeout - this is normal inside containers
-                pass
-
-            # Fall back to hostname or default name
-            return hostname if hostname else "dockerdiscordcontrol"
-        except (IOError, OSError) as e:
-            # File I/O errors (reading /etc/hostname)
-            logger.debug(f"File I/O error detecting container name: {e}", exc_info=True)
-            return "dockerdiscordcontrol"
-        except (subprocess.SubprocessError, FileNotFoundError) as e:
-            # Subprocess errors (docker inspect command failures)
-            logger.debug(f"Subprocess error detecting container name: {e}", exc_info=True)
-            return "dockerdiscordcontrol"
+            name = _docker_client(5).containers.get(container_id).name
+        except Exception as error:                  # noqa: BLE001
+            logger.debug("Could not read own container name: %s: %s",
+                         type(error).__name__, error)
+            return container_id
+        return (name or container_id).lstrip('/')
 
     def _get_python_version(self) -> str:
         """Get Python version string."""
@@ -181,50 +174,78 @@ class PortDiagnostics:
             logger.debug(f"Error calculating disk usage: {e}", exc_info=True)
             return 'unknown'
 
-    def _get_ddc_memory_usage(self) -> str:
-        """Get DDC container memory usage."""
-        try:
-            result = subprocess.run([
-                'docker', 'stats', self.container_name, '--no-stream', '--format',
-                'table {{.MemUsage}}'
-            ], capture_output=True, text=True, timeout=10)
+    def _host_memory_total(self) -> int:
+        """The machine's own RAM, in bytes, or 0 when it cannot be read.
 
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                if len(lines) >= 2:
-                    return lines[1].strip()
+        Inside a container /proc/meminfo is the HOST's, which is exactly what
+        this needs: it is the number Docker reports as a container's "limit"
+        when the container was started without --memory.
+        """
+        try:
+            with open('/proc/meminfo', 'r') as handle:
+                for line in handle:
+                    if line.startswith('MemTotal:'):
+                        return int(line.split()[1]) * 1024
+        except (IOError, OSError, ValueError, IndexError) as error:
+            logger.debug("Could not read the machine's memory total: %s", error)
+        return 0
+
+    def _get_ddc_memory_usage(self) -> str:
+        """How much memory DDC's own container is using.
+
+        It used to run `docker stats` against a binary the image does not
+        carry, catch the FileNotFoundError and answer 'unknown'. The allowlist
+        proxy permits GET /containers/<id>/stats, so the number is simply
+        available.
+
+        A LIMIT IS NOT ALWAYS A LIMIT. A container started without --memory is
+        reported with the HOST's entire RAM as its limit; a percentage of that
+        says nothing, and a rule built on one once fired a memory warning at
+        56 GB on a healthy machine. In that case the usage is given alone.
+        """
+        container_id = _own_container_id()
+        if not container_id:
             return 'unknown'
-        except (subprocess.SubprocessError, FileNotFoundError) as e:
-            logger.debug(f"Subprocess error getting container memory stats: {e}", exc_info=True)
+        try:
+            container = _docker_client(15).containers.get(container_id)
+            memory = (container.stats(stream=False) or {}).get('memory_stats') or {}
+            used = int(memory.get('usage') or 0)
+            limit = int(memory.get('limit') or 0)
+        except Exception as error:                  # noqa: BLE001 - any failure is "unknown"
+            logger.debug("Could not read own memory usage: %s: %s",
+                         type(error).__name__, error)
             return 'unknown'
-        except (ValueError, IndexError) as e:
-            logger.debug(f"Data parsing error parsing memory stats: {e}", exc_info=True)
+
+        if used <= 0:
             return 'unknown'
+        in_mb = used // 1024 // 1024
+        machine = self._host_memory_total()
+        if limit <= 0 or (machine and limit >= machine):
+            # No limit of its own: the "limit" is the whole machine.
+            return f"{in_mb}MB"
+        return f"{in_mb}MB / {limit // 1024 // 1024}MB ({used / limit * 100:.1f}%)"
 
     def _get_ddc_image_size(self) -> str:
-        """Get DDC container image size."""
-        try:
-            result = subprocess.run([
-                'docker', 'images', '--format', 'table {{.Repository}}:{{.Tag}}\t{{.Size}}',
-                '--filter', f'reference=*{self.container_name}*'
-            ], capture_output=True, text=True, timeout=10)
+        """The size of the image DDC is running from.
 
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                if len(lines) >= 2:
-                    for line in lines[1:]:
-                        parts = line.split('\t')
-                        if len(parts) >= 2:
-                            image_name = parts[0].lower()
-                            if 'dockerdiscordcontrol' in image_name or 'ddc' in image_name:
-                                return parts[1].strip()
+        Same story as the memory field: `docker images` against a binary that
+        is not there. The proxy permits GET /images/<name>/json.
+        """
+        container_id = _own_container_id()
+        if not container_id:
             return 'unknown'
-        except (subprocess.SubprocessError, FileNotFoundError) as e:
-            logger.debug(f"Subprocess error getting image size: {e}", exc_info=True)
+        try:
+            client = _docker_client(15)
+            reference = (client.containers.get(container_id)
+                         .attrs.get('Config', {}).get('Image'))
+            if not reference:
+                return 'unknown'
+            size = int(client.images.get(reference).attrs.get('Size') or 0)
+        except Exception as error:                  # noqa: BLE001
+            logger.debug("Could not read own image size: %s: %s",
+                         type(error).__name__, error)
             return 'unknown'
-        except (ValueError, IndexError) as e:
-            logger.debug(f"Data parsing error parsing image size: {e}", exc_info=True)
-            return 'unknown'
+        return f"{size // 1024 // 1024}MB" if size > 0 else 'unknown'
 
     def _detect_platform(self) -> tuple:
         """(the platform this process runs on, whether the HOST is Unraid).

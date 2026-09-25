@@ -831,37 +831,50 @@ class TestPortDiagnostics:
             report = diag.get_diagnostic_report()
         assert any("port mapping" in r.lower() for r in report["recommendations"])
 
-    def test_detect_container_name_uses_etc_hostname(self):
-        """When /etc/hostname is readable and docker is unavailable, return hostname."""
-        from unittest.mock import mock_open
-        with patch.object(port_diagnostics, "subprocess") as mock_sp, \
-             patch("builtins.open", mock_open(read_data="my-host\n")):
-            mock_sp.run.side_effect = FileNotFoundError("no docker")
-            mock_sp.SubprocessError = Exception
-            mock_sp.TimeoutExpired = Exception
-            diag = object.__new__(port_diagnostics.PortDiagnostics)
-            name = diag._detect_container_name()
-        assert name == "my-host"
+    # THESE DROVE subprocess.run(['docker', ...]) against a binary the image
+    # does not carry, so they described a path that could only ever fail. The
+    # rules they protected - the number is parsed, the name loses its leading
+    # slash, a failure does not crash - all survive, aimed at the Docker API
+    # through the allowlist proxy. See
+    # tests/spec/test_the_panel_says_how_big_ddc_is.py.
 
-    def test_detect_container_name_falls_back_on_oserror(self):
-        with patch("builtins.open", side_effect=OSError("nope")):
-            diag = object.__new__(port_diagnostics.PortDiagnostics)
-            name = diag._detect_container_name()
-        assert name == "dockerdiscordcontrol"
+    # THESE DROVE subprocess.run(['docker', ...]) against a binary the image
+    # does not carry, so they described a path that could only ever fail. The
+    # rule they protected - the container is called by its NAME, and a failure
+    # does not crash - survives, aimed at the Docker API through the allowlist
+    # proxy. The size and memory fields are covered in
+    # tests/unit/extended/test_app_utils_extended.py and in
+    # tests/spec/test_the_panel_says_how_big_ddc_is.py; duplicating them here
+    # would mean two places to keep right.
 
-    def test_detect_container_name_uses_docker_inspect_output(self):
-        from unittest.mock import mock_open
-        # Simulate docker inspect succeeding
-        result_obj = MagicMock()
-        result_obj.returncode = 0
-        result_obj.stdout = "/my-named-container\n"
-        with patch("builtins.open", mock_open(read_data="abc123\n")), \
-             patch.object(port_diagnostics.subprocess, "run", return_value=result_obj):
-            diag = object.__new__(port_diagnostics.PortDiagnostics)
-            name = diag._detect_container_name()
-        assert name == "my-named-container"
+    def _named(self, monkeypatch, name="ddc", reachable=True):
+        from types import SimpleNamespace
 
-    # THESE FOUR DROVE /proc/uptime, which inside a container is the HOST's
+        def _client(timeout):
+            if not reachable:
+                raise RuntimeError("docker unavailable")
+            return SimpleNamespace(
+                containers=SimpleNamespace(get=lambda _id: SimpleNamespace(name=name)))
+
+        monkeypatch.setattr(port_diagnostics, "_own_container_id", lambda: "abc123def456")
+        monkeypatch.setattr(port_diagnostics, "_docker_client", _client)
+        return object.__new__(port_diagnostics.PortDiagnostics)
+
+    def test_detect_container_name_uses_the_api(self, monkeypatch):
+        """It used to parse "/my-named-container" out of `docker inspect`;
+        the leading slash still has to go."""
+        assert self._named(monkeypatch, name="/my-named-container") \
+            ._detect_container_name() == "my-named-container"
+
+    def test_detect_container_name_falls_back_to_the_id(self, monkeypatch):
+        """Without Docker the id is not a NAME, but it does identify the
+        container - unlike the old default "dockerdiscordcontrol", which was a
+        guess, and which is how the page came to print a hex string where a
+        name belonged."""
+        assert self._named(monkeypatch, reachable=False) \
+            ._detect_container_name() == "abc123def456"
+
+    # THESE FIVE DROVE /proc/uptime, which inside a container is the HOST's
     # uptime - the kernel is shared, so it reported "22d 23h 49m" two minutes
     # after a rebuild on the operator's machine. The rules they protected are
     # the d/h/m formatting and "unknown" rather than a crash; both survive,

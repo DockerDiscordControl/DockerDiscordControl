@@ -1143,130 +1143,58 @@ class TestPortDiagnosticsHostMetrics:
 
         assert not hasattr(PortDiagnostics, "_get_supervisord_status")
 
-    def test_get_ddc_memory_usage_parses_docker_stats(self, monkeypatch):
-        from app.utils.port_diagnostics import PortDiagnostics
+    # THESE DROVE subprocess.run(['docker', ...]) against a binary the image
+    # does not carry, so they described a path that could only ever fail. The
+    # rules they protected - the number is parsed, the name loses its leading
+    # slash, a failure does not crash - all survive, aimed at the Docker API
+    # through the allowlist proxy. See
+    # tests/spec/test_the_panel_says_how_big_ddc_is.py.
 
-        monkeypatch.setattr(
-            PortDiagnostics, "_detect_container_name", lambda self: "ddc"
-        )
-        monkeypatch.setattr(
-            PortDiagnostics,
-            "_get_host_info",
-            lambda self: {"is_unraid": False},
-        )
+    def _answering(self, monkeypatch, name="ddc", usage=169558016, limit=536870912,
+                   size=166222536, reachable=True):
+        from types import SimpleNamespace
 
-        result = SimpleNamespace(
-            returncode=0,
-            stdout="MemUsage\n100MiB / 1GiB\n",
-        )
-        monkeypatch.setattr(subprocess, "run", lambda *a, **k: result)
-        instance = PortDiagnostics()
-        usage = instance._get_ddc_memory_usage()
-        assert usage == "100MiB / 1GiB"
+        from app.utils import port_diagnostics as pd
 
-    def test_get_ddc_memory_usage_subprocess_fail_returns_unknown(
-        self, monkeypatch
-    ):
-        from app.utils.port_diagnostics import PortDiagnostics
-
-        monkeypatch.setattr(
-            PortDiagnostics, "_detect_container_name", lambda self: "ddc"
-        )
-        monkeypatch.setattr(
-            PortDiagnostics,
-            "_get_host_info",
-            lambda self: {"is_unraid": False},
-        )
-        monkeypatch.setattr(
-            subprocess,
-            "run",
-            lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("docker")),
-        )
-        instance = PortDiagnostics()
-        assert instance._get_ddc_memory_usage() == "unknown"
-
-    def test_get_ddc_image_size_parses_output(self, monkeypatch):
-        from app.utils.port_diagnostics import PortDiagnostics
-
-        monkeypatch.setattr(
-            PortDiagnostics, "_detect_container_name", lambda self: "ddc"
-        )
-        monkeypatch.setattr(
-            PortDiagnostics,
-            "_get_host_info",
-            lambda self: {"is_unraid": False},
+        container = SimpleNamespace(
+            name=name,
+            attrs={"Config": {"Image": "dockerdiscordcontrol"}},
+            stats=lambda stream=False: {"memory_stats": {"usage": usage, "limit": limit}},
         )
 
-        result = SimpleNamespace(
-            returncode=0,
-            stdout=(
-                "Repository:Tag\tSize\n"
-                "dockerdiscordcontrol/ddc:latest\t150MB\n"
-            ),
-        )
-        monkeypatch.setattr(subprocess, "run", lambda *a, **k: result)
-        instance = PortDiagnostics()
-        size = instance._get_ddc_image_size()
-        assert size == "150MB"
+        def _client(timeout):
+            if not reachable:
+                raise RuntimeError("docker unavailable")
+            return SimpleNamespace(
+                containers=SimpleNamespace(get=lambda _id: container),
+                images=SimpleNamespace(get=lambda _ref: SimpleNamespace(attrs={"Size": size})),
+            )
 
-    def test_get_ddc_image_size_missing_docker_returns_unknown(
-        self, monkeypatch
-    ):
-        from app.utils.port_diagnostics import PortDiagnostics
+        monkeypatch.setattr(pd, "_own_container_id", lambda: "abc123def456")
+        monkeypatch.setattr(pd, "_docker_client", _client)
+        instance = object.__new__(pd.PortDiagnostics)
+        monkeypatch.setattr(instance, "_host_memory_total",
+                            lambda: 64 * 1024 * 1024 * 1024, raising=False)
+        return instance
 
-        monkeypatch.setattr(
-            PortDiagnostics, "_detect_container_name", lambda self: "ddc"
-        )
-        monkeypatch.setattr(
-            PortDiagnostics,
-            "_get_host_info",
-            lambda self: {"is_unraid": False},
-        )
-        monkeypatch.setattr(
-            subprocess,
-            "run",
-            lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("docker")),
-        )
-        instance = PortDiagnostics()
-        assert instance._get_ddc_image_size() == "unknown"
+    def test_get_ddc_memory_usage_reads_the_api(self, monkeypatch):
+        answer = self._answering(monkeypatch)._get_ddc_memory_usage()
+        assert "161MB" in answer and "512MB" in answer
 
+    def test_get_ddc_image_size_reads_the_api(self, monkeypatch):
+        assert self._answering(monkeypatch)._get_ddc_image_size() == "158MB"
 
-class TestPortDiagnosticsContainerName:
-    """Cover the _detect_container_name resolution paths."""
+    def test_detect_container_name_uses_the_api(self, monkeypatch):
+        """It used to parse "/my-named-container" out of `docker inspect`;
+        the leading slash still has to go."""
+        assert self._answering(monkeypatch, name="/named-x")._detect_container_name() == "named-x"
 
-    def test_detect_container_name_uses_etc_hostname(self):
-        from app.utils.port_diagnostics import PortDiagnostics
-        from unittest.mock import mock_open
-
-        # docker inspect not available; fallback to hostname
-        with patch("builtins.open", mock_open(read_data="my-host\n")):
-            with patch.object(
-                subprocess,
-                "run",
-                side_effect=FileNotFoundError("no docker"),
-            ):
-                instance = object.__new__(PortDiagnostics)
-                name = instance._detect_container_name()
-        assert name == "my-host"
-
-    def test_detect_container_name_inspect_success(self, monkeypatch):
-        from app.utils.port_diagnostics import PortDiagnostics
-        from unittest.mock import mock_open
-
-        result = SimpleNamespace(returncode=0, stdout="/named-x\n")
-        with patch("builtins.open", mock_open(read_data="abc\n")):
-            monkeypatch.setattr(subprocess, "run", lambda *a, **k: result)
-            instance = object.__new__(PortDiagnostics)
-            name = instance._detect_container_name()
-        assert name == "named-x"
-
-    def test_detect_container_name_oserror_returns_default(self):
-        from app.utils.port_diagnostics import PortDiagnostics
-
-        with patch("builtins.open", side_effect=OSError("denied")):
-            instance = object.__new__(PortDiagnostics)
-            name = instance._detect_container_name()
-        assert name == "dockerdiscordcontrol"
+    def test_detect_container_name_falls_back_to_the_id(self, monkeypatch):
+        """Without Docker the id is not a NAME, but it does identify the
+        container - unlike the old default "dockerdiscordcontrol", which was
+        simply a guess, and which is how the diagnostics page came to print a
+        hex string where a name belonged."""
+        assert self._answering(monkeypatch, reachable=False)._detect_container_name() == "abc123def456"
 
 
 class TestPortDiagnosticsLogStartup:
