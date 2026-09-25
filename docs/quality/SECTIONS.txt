@@ -286,7 +286,7 @@ app/blueprints/group_routes.py:1-169
 app/blueprints/translation_routes.py:1-364
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
-app/bootstrap/runtime.py:1-200
+app/bootstrap/runtime.py:1-206
 app/bot/__init__.py:1-13
 app/bot/commands.py:1-47
 app/bot/dependencies.py:1-62
@@ -388,7 +388,7 @@ services/config/group_service.py:1-415
 # the v3.0 client factory and 34 reached 2,003; 35 had no room either.
 app/blueprints/security_routes.py:1-205
 app/web/compat.py:1-102
-cogs/ddc_ui.py:1-162
+cogs/ddc_ui.py:1-175
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
 cogs/group_control.py:1-332

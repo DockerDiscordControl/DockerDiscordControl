@@ -51,6 +51,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import discord
 import pytest
 
 PROJECT = Path(__file__).resolve().parents[2]
@@ -79,27 +80,50 @@ def _close_button():
 
 
 class _Message:
+    """A message that refuses deletion the way Discord refuses it.
+
+    AN EPHEMERAL MESSAGE IS NOT IN A CHANNEL. Message.delete() sends
+    DELETE /channels/{id}/messages/{id}, which Discord answers 404 for one -
+    so the first version of this button called it, the failure was swallowed
+    by its own except clause, and the button silently did nothing while never
+    acknowledging the press. The operator saw "DDC did not respond in time".
+
+    The first version of THIS double just set a flag and returned, so it could
+    not reproduce that. A double that cannot fail the way the real thing fails
+    is not a test of anything.
+    """
+
     def __init__(self, ephemeral):
         self.flags = SimpleNamespace(ephemeral=ephemeral)
-        self.deleted = False
+        self.delete_attempted = False
 
     async def delete(self):
-        self.deleted = True
+        self.delete_attempted = True
+        if self.flags.ephemeral:
+            raise discord.NotFound(
+                SimpleNamespace(status=404, reason="Unknown Message"), "ephemeral")
 
 
 class _Interaction:
+    """An interaction that records whether it was ANSWERED.
+
+    Discord gives three seconds. Deleting a message is not an answer, and the
+    operator's screenshot is what that looks like.
+    """
+
     def __init__(self, ephemeral):
         self.message = _Message(ephemeral)
-        self.answered = []
-        self.response = SimpleNamespace(
-            send_message=self._answer, defer=self._defer, is_done=lambda: False)
-        self.followup = SimpleNamespace(send=self._answer)
+        self.deferred = False
+        self.original_deleted = False
+        self.response = SimpleNamespace(defer=self._defer, is_done=lambda: self.deferred)
 
-    async def _answer(self, *args, **kwargs):
-        self.answered.append((args, kwargs))
+    async def _defer(self, *_args, **_kwargs):
+        self.deferred = True
 
-    async def _defer(self, *args, **kwargs):
-        pass
+    async def delete_original_response(self, *_args, **_kwargs):
+        if not self.deferred:
+            raise AssertionError("deleted the response before acknowledging the press")
+        self.original_deleted = True
 
 
 def _press(ephemeral):
@@ -117,7 +141,26 @@ def test_pressing_it_takes_a_private_panel_away():
     """THE REQUEST: one obvious button instead of Discord's own wording."""
     interaction = _press(ephemeral=True)
 
-    assert interaction.message.deleted is True
+    assert interaction.original_deleted is True
+
+
+def test_the_press_is_acknowledged():
+    """THE BUG THE FIRST VERSION SHIPPED. Discord gives three seconds; the
+    button deleted a message and answered nothing, so it showed the operator
+    "DDC did not respond in time" and the panel stayed."""
+    interaction = _press(ephemeral=True)
+
+    assert interaction.deferred is True, "the button never answered the press"
+
+
+def test_it_does_not_use_the_channel_route():
+    """The other half of the same bug. Message.delete() is the channel route,
+    and an ephemeral message is not in a channel - the call fails, and an
+    except clause swallowing it is what made this silent."""
+    interaction = _press(ephemeral=True)
+
+    assert interaction.message.delete_attempted is False, (
+        "still deleting through the channel route, which cannot work here")
 
 
 def test_pressing_it_never_removes_a_public_panel():
@@ -125,8 +168,17 @@ def test_pressing_it_never_removes_a_public_panel():
     ever reaches the overview, pressing it must still do nothing."""
     interaction = _press(ephemeral=False)
 
-    assert interaction.message.deleted is False, (
+    assert interaction.original_deleted is False, (
         "a close button deleted a message everybody in the channel reads")
+    assert interaction.message.delete_attempted is False
+
+
+def test_even_a_refusal_answers_the_press():
+    """Counter-check: refusing by returning early would leave Discord waiting
+    and show the same "did not respond" the operator photographed."""
+    interaction = _press(ephemeral=False)
+
+    assert interaction.deferred is True, "a refused press was never acknowledged"
 
 
 def test_the_public_construction_sites_do_not_ask_for_one():

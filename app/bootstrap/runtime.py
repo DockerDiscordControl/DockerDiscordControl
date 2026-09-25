@@ -176,8 +176,14 @@ def ensure_log_files(logger: logging.Logger, logs_dir: Path) -> None:
         )
         return
 
+    # No bare level name in the text. "(ERROR+)" is a fact about which lines
+    # the file receives, but every log viewer colours the word ERROR wherever
+    # it appears - the operator read this INFO line as a failure, in a startup
+    # that had none at all. A line that looks alarming costs the same as one
+    # that is wrong.
     logger.info(
-        "Bot file loggers initialized: discord.log (INFO+), bot_error.log (ERROR+)"
+        "Bot file loggers initialized: discord.log keeps everything, "
+        "bot_error.log keeps only failures"
     )
 
 

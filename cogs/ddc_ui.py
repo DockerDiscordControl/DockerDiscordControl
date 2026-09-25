@@ -104,13 +104,26 @@ class CloseButton(discord.ui.Button):
                          emoji="\u2716\ufe0f", row=row, custom_id="ddc_close_panel")
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        # ANSWER FIRST. Discord gives three seconds, and deleting a message is
+        # not an answer: the first version of this button deleted and said
+        # nothing, so the operator got "DDC did not respond in time" and the
+        # panel stayed. invisible=True acknowledges without a "thinking" state.
+        try:
+            await interaction.response.defer(invisible=True)
+        except (discord.InteractionResponded, discord.HTTPException) as error:
+            logger.debug("Close button could not acknowledge the press: %s", error)
+
         message = getattr(interaction, "message", None)
         if message is None or not is_private_panel_message(message):
             logger.warning("Close button pressed on a message that is not private - ignored")
             return
 
+        # NOT message.delete(). That is DELETE /channels/{id}/messages/{id},
+        # and an ephemeral message is not in a channel - Discord answers 404.
+        # The response of a component interaction IS the message the component
+        # sits on, so this is the route that reaches it.
         try:
-            await message.delete()
+            await interaction.delete_original_response()
         except (discord.NotFound, discord.Forbidden, discord.HTTPException) as error:
             # Already gone, or past Discord's fifteen-minute interaction token.
             logger.debug("Could not close a panel: %s", error)

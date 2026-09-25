@@ -62,7 +62,7 @@ app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never
 app/blueprints/two_factor_routes.py	237	v3rev:1-198
 app/bootstrap/__init__.py	34	pass1:s33:1-34
 app/bootstrap/performance.py	55	pass1:s33:1-55
-app/bootstrap/runtime.py	200	pass1:s33:1-200
+app/bootstrap/runtime.py	206	pass1:s33:1-200
 app/bot/__init__.py	13	pass1:s33:1-13
 app/bot/commands.py	47	pass1:s33:1-47
 app/bot/dependencies.py	62	pass1:s33:1-62
@@ -113,7 +113,7 @@ cogs/channel_lifecycle.py	627	v3rev2:1-646
 cogs/control_helpers.py	297	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/action_effect.py	163	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
 cogs/control_ui.py	3352	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
-cogs/ddc_ui.py	162	passE:written-2026-09-21
+cogs/ddc_ui.py	175	passE:written-2026-09-21
 cogs/group_control.py	332	NONE
 cogs/docker_control.py	1321	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	645	NONE
