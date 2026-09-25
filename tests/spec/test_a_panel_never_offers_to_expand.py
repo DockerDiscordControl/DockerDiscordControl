@@ -186,10 +186,34 @@ def test_the_scan_has_subjects_and_would_see_one():
     assert list(_offers_to_expand(pieces[0])), "the scan did not see the removed line"
 
 
-def test_the_mech_keeps_its_own_expanding():
-    """The opposite mistake. The mech really does expand and collapse, with
-    two buttons that work; a scan that took those away would break a feature
-    to tidy a sentence."""
+def test_the_mech_classes_were_not_touched_by_this_removal():
+    """The opposite mistake: taking something away that was not the subject.
+
+    THIS CASE USED TO CLAIM MORE THAN IT CHECKED. It said "the mech really
+    does expand and collapse, with two buttons that work" and proved it with
+    ``hasattr`` - which shows only that a class is DEFINED. The operator
+    said, again, that there is no toggle button and that it belonged to the
+    old Discord overview, and he was right a second time:
+
+        MechView, the view actually posted on the overview, carries
+        AdminButton, HelpButton, InfoDropdownButton and MechDetailsButton -
+        no expand, no collapse.
+
+        MechExpandButton and MechCollapseButton appear only inside
+        PersistentMechExpandView / PersistentMechCollapseView in
+        cogs/docker_control.py, which exist to be handed to bot.add_view()
+        so that buttons on OLD messages still answer after a restart. No
+        posted view carries them.
+
+        config/mech_state.json on the running system holds one channel, at
+        false, last written 2026-09-16. Ten months of logs name mech_expand
+        and mech_collapse zero times.
+
+    So the mech's expand state cannot be reached either, and that is a
+    finding of its own with its own decision to take - not something to fold
+    into this removal, which was about the container box. What this case can
+    honestly hold is the boundary: THIS change did not touch the mech.
+    """
     from cogs import control_ui
 
     assert hasattr(control_ui, "MechExpandButton")

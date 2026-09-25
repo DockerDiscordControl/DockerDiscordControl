@@ -135,8 +135,16 @@ def test_a_panel_may_still_say_what_it_shows():
     ``ActionButton`` each wrote True before drawing. Both writes are gone
     (2026-09-25, tests/spec/test_a_panel_never_offers_to_expand.py): with no
     second rendering to choose between, the state they set had nothing left
-    to decide. The mech still has two renderings and two buttons, so it is
-    what this case asks about now.
+    to decide. The mech's two writers are what is left to ask about.
+
+    WHAT THIS CASE DOES NOT SAY. It does not say the mech's expand and
+    collapse can be reached. They cannot: MechView, the view actually posted
+    on the overview, carries neither, and the two buttons live only in the
+    persistent views registered so old messages still answer after a restart
+    (cogs/docker_control.py). That is a separate finding, recorded in
+    test_a_panel_never_offers_to_expand.py. The rule here is narrower and
+    still true wherever a control writes such a state: a constant is a panel
+    naming what it draws, a computed value is a toggle.
     """
     _found, subjects = _findings()
     names = {entry.split(":")[0] for entry in subjects}
