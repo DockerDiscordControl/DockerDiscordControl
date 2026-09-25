@@ -1,87 +1,95 @@
-<!--
-============================================================================
-DockerDiscordControl (DDC) - Two-factor authentication
-https://ddc.bot
-Copyright (c) 2025 MAX
-Licensed under the MIT License
-============================================================================
--->
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ _t('web.two_factor.title') }}</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='vendor/bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet">
-</head>
-<body class="bg-light">
-<main class="container py-5" style="max-width: 560px">
-  <h1 class="h4 mb-4"><i class="bi bi-shield-lock me-2"></i>{{ _t('web.two_factor.title') }}</h1>
-  {% set token = csrf_token() if csrf_token is defined else '' %}
+{# The second factor, in the panel's own clothes.
 
-  {% if view == 'needs_tls' %}
-    <div class="alert alert-warning">{{ _t('web.two_factor.needs_tls') }}</div>
-    <a href="/" class="btn btn-secondary">{{ _t('web.two_factor.back') }}</a>
+   IT USED TO BE A DOCUMENT OF ITS OWN - its own <!doctype html>, Bootstrap and
+   nothing else, on <body class="bg-light"> - so it came out white and in the
+   browser's font while every other page was dark (operator, 2026-09-25). The
+   login page is the closest thing to this one and has always used the shared
+   shell; this does the same, which is the whole change.
 
-  {% elif view == 'status' %}
-    {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
-    {% if enabled %}
-      <p class="text-success"><i class="bi bi-check-circle me-1"></i>{{ _t('web.two_factor.status_on', count=remaining) }}</p>
-      <form method="post" action="{{ url_for('two_factor.disable') }}" class="card card-body">
-        <input type="hidden" name="csrf_token" value="{{ token }}">
-        <label for="code" class="form-label">{{ _t('web.two_factor.disable_label') }}</label>
-        <input id="code" name="code" class="form-control mb-2" inputmode="numeric" autocomplete="one-time-code" required>
-        <button class="btn btn-outline-danger">{{ _t('web.two_factor.disable') }}</button>
-      </form>
-    {% else %}
-      <p>{{ _t('web.two_factor.status_off') }}</p>
-      {% if secure %}
-      <form method="post" action="{{ url_for('two_factor.setup') }}">
-        <input type="hidden" name="csrf_token" value="{{ token }}">
-        <button class="btn btn-primary">{{ _t('web.two_factor.set_up_now') }}</button>
-      </form>
-      {% else %}
+   THE OLD HEADER SAID "No script: plain forms work under the CSP", and the
+   shell does load scripts. The policy is set once for the whole application
+   (app/web/security.py) and the login page runs under exactly the same one -
+   the note was about what this page NEEDS, not about what it may have. The
+   forms below are still plain forms.
+
+   tests/spec/test_the_second_factor_pages_look_like_ddc.py renders all six
+   views and fails if any of them is served without the panel's stylesheet. #}
+{% extends '_base.html' %}
+
+{% block title %}{{ _t('web.two_factor.title') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center">
+  <div class="card p-4 my-4" style="width: 100%; max-width: 560px;">
+    <h1 class="h4 mb-4"><i class="bi bi-shield-lock me-2"></i>{{ _t('web.two_factor.title') }}</h1>
+    {% set token = csrf_token() if csrf_token is defined else '' %}
+
+    {% if view == 'needs_tls' %}
       <div class="alert alert-warning">{{ _t('web.two_factor.needs_tls') }}</div>
+      <a href="/" class="btn btn-secondary">{{ _t('web.two_factor.back') }}</a>
+
+    {% elif view == 'status' %}
+      {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
+      {% if enabled %}
+        <p class="text-success"><i class="bi bi-check-circle me-1"></i>{{ _t('web.two_factor.status_on', count=remaining) }}</p>
+        <form method="post" action="{{ url_for('two_factor.disable') }}" class="card card-body">
+          <input type="hidden" name="csrf_token" value="{{ token }}">
+          <label for="code" class="form-label">{{ _t('web.two_factor.disable_label') }}</label>
+          <input id="code" name="code" class="form-control mb-2" inputmode="numeric" autocomplete="one-time-code" required>
+          <button class="btn btn-outline-danger">{{ _t('web.two_factor.disable') }}</button>
+        </form>
+      {% else %}
+        <p>{{ _t('web.two_factor.status_off') }}</p>
+        {% if secure %}
+        <form method="post" action="{{ url_for('two_factor.setup') }}">
+          <input type="hidden" name="csrf_token" value="{{ token }}">
+          <button class="btn btn-primary">{{ _t('web.two_factor.set_up_now') }}</button>
+        </form>
+        {% else %}
+        <div class="alert alert-warning">{{ _t('web.two_factor.needs_tls') }}</div>
+        {% endif %}
       {% endif %}
-    {% endif %}
-    <a href="/" class="btn btn-link px-0 mt-3">{{ _t('web.two_factor.back') }}</a>
+      <a href="/" class="btn btn-link px-0 mt-3">{{ _t('web.two_factor.back') }}</a>
 
-  {% elif view == 'setup' %}
-    <p>{{ _t('web.two_factor.scan') }}</p>
-    <div class="text-center my-3">{{ qr_svg | safe }}</div>
-    <p class="small text-muted">{{ _t('web.two_factor.manual_key') }} <code class="user-select-all">{{ secret }}</code></p>
-    <form method="post" action="{{ url_for('two_factor.confirm') }}" class="card card-body">
-      <input type="hidden" name="csrf_token" value="{{ token }}">
-      <label for="code" class="form-label">{{ _t('web.two_factor.confirm_label') }}</label>
-      <input id="code" name="code" class="form-control mb-2" inputmode="numeric" autocomplete="one-time-code" required>
-      <button class="btn btn-primary">{{ _t('web.two_factor.confirm') }}</button>
-    </form>
+    {% elif view == 'setup' %}
+      <p>{{ _t('web.two_factor.scan') }}</p>
+      {# The QR stays on white on purpose: a scanner needs the dark-on-light
+         contrast the code is drawn with, so the SVG gets a light plate of its
+         own rather than the page being light around it. #}
+      <div class="text-center my-3">
+        <span class="d-inline-block p-3 rounded" style="background:#fff">{{ qr_svg | safe }}</span>
+      </div>
+      <p class="small text-muted">{{ _t('web.two_factor.manual_key') }} <code class="user-select-all">{{ secret }}</code></p>
+      <form method="post" action="{{ url_for('two_factor.confirm') }}" class="card card-body">
+        <input type="hidden" name="csrf_token" value="{{ token }}">
+        <label for="code" class="form-label">{{ _t('web.two_factor.confirm_label') }}</label>
+        <input id="code" name="code" class="form-control mb-2" inputmode="numeric" autocomplete="one-time-code" required>
+        <button class="btn btn-primary">{{ _t('web.two_factor.confirm') }}</button>
+      </form>
 
-  {% elif view == 'setup_failed' %}
-    <div class="alert alert-danger">{{ _t('web.two_factor.setup_failed') }}</div>
-    <a href="{{ url_for('two_factor.status') }}" class="btn btn-secondary">{{ _t('web.two_factor.back') }}</a>
+    {% elif view == 'setup_failed' %}
+      <div class="alert alert-danger">{{ _t('web.two_factor.setup_failed') }}</div>
+      <a href="{{ url_for('two_factor.status') }}" class="btn btn-secondary">{{ _t('web.two_factor.back') }}</a>
 
-  {% elif view == 'recovery_codes' %}
-    <div class="alert alert-success">{{ _t('web.two_factor.enabled') }}</div>
-    <p><strong>{{ _t('web.two_factor.recovery_intro') }}</strong></p>
-    <pre class="bg-white border rounded p-3 user-select-all">{% for code in codes %}{{ code }}
+    {% elif view == 'recovery_codes' %}
+      <div class="alert alert-success">{{ _t('web.two_factor.enabled') }}</div>
+      <p><strong>{{ _t('web.two_factor.recovery_intro') }}</strong></p>
+      <pre class="border rounded p-3 user-select-all">{% for code in codes %}{{ code }}
 {% endfor %}</pre>
-    <p class="small text-muted">{{ _t('web.two_factor.break_glass') }}</p>
-    <a href="/" class="btn btn-primary">{{ _t('web.two_factor.done') }}</a>
+      <p class="small text-muted">{{ _t('web.two_factor.break_glass') }}</p>
+      <a href="/" class="btn btn-primary">{{ _t('web.two_factor.done') }}</a>
 
-  {% elif view == 'verify' %}
-    {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
-    {% if error == 'rate' %}<div class="alert alert-danger">{{ _t('web.two_factor.too_many') }}</div>{% endif %}
-    <form method="post" action="{{ url_for('two_factor.verify') }}" class="card card-body">
-      <input type="hidden" name="csrf_token" value="{{ token }}">
-      <input type="hidden" name="next" value="{{ next }}">
-      <label for="code" class="form-label">{{ _t('web.two_factor.verify_label') }}</label>
-      <input id="code" name="code" class="form-control mb-2" autocomplete="one-time-code" autofocus required>
-      <button class="btn btn-primary">{{ _t('web.two_factor.verify') }}</button>
-    </form>
-  {% endif %}
-</main>
-</body>
-</html>
+    {% elif view == 'verify' %}
+      {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
+      {% if error == 'rate' %}<div class="alert alert-danger">{{ _t('web.two_factor.too_many') }}</div>{% endif %}
+      <form method="post" action="{{ url_for('two_factor.verify') }}" class="card card-body">
+        <input type="hidden" name="csrf_token" value="{{ token }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <label for="code" class="form-label">{{ _t('web.two_factor.verify_label') }}</label>
+        <input id="code" name="code" class="form-control mb-2" autocomplete="one-time-code" autofocus required>
+        <button class="btn btn-primary">{{ _t('web.two_factor.verify') }}</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
