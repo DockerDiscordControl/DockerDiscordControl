@@ -42,8 +42,8 @@ cache" sit inside a branch - they are conditional, and the condition is true
 every single time. What gives them away is not their position but their VERB:
 they describe something that has not happened yet and may not, while the line
 that closes the same cycle reports what came of it. So per-cycle code may log
-a result at INFO and must log a plan at DEBUG, and "per-cycle" reaches one
-level of call graph, because the loudest of them live in helpers.
+a result at INFO and must log a plan at DEBUG, and "per-cycle" follows the
+call graph three deep, because the loudest of them live two helpers away.
 
 WHAT NEITHER RULE CATCHES, said plainly: a line wrapped in `if True:`, and a
 plan phrased without one of the verbs. Both would need a reader, not a parser.
@@ -109,23 +109,64 @@ def _announcements(body):
 # unguarded; a scan that silently misses its loudest subject is worthless.
 THREAD_LOOP_HELPERS = {"update_docker_cache", "bulk_update_status_cache"}
 
+# How many calls deep a cycle still counts as per-cycle. Measured, not
+# picked - the table in _per_cycle_functions says what each depth finds.
+HOW_FAR_A_CYCLE_REACHES = 3
+
 LABEL = re.compile(r"^\s*(\[[^\]]+\]\s*|[A-Za-z][\w ()/-]{0,45}?:\s+)")
 ANNOUNCES_A_PLAN = re.compile(
     r"^(starting|attempting|processing|checking|will |about to|preparing|"
     r"updating|running|scheduling)\b", re.I)
 
 
+def _functions_by_name():
+    """name -> the function nodes carrying it, parsed once."""
+    index = {}
+    for path in sorted(PROJECT.rglob("*.py")):
+        if SKIP & set(path.relative_to(PROJECT).parts) or "scripts" in path.parts:
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for fn in ast.walk(tree):
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                index.setdefault(fn.name, []).append((path.relative_to(PROJECT), fn))
+    return index
+
+
+def _names_called_by(fn):
+    called = {(node.func.attr if isinstance(node.func, ast.Attribute)
+               else getattr(node.func, "id", None))
+              for node in ast.walk(fn) if isinstance(node, ast.Call)}
+    called.discard(None)
+    return called
+
+
 def _per_cycle_functions():
     """Every function that runs on each tick of a loop that never ends.
 
-    The loops themselves, plus - one level of call graph, by name - the
-    helpers they call. `bulk_fetch_container_status` is not decorated and lives
-    in another module, but it runs once a cycle and talked like it: four INFO
-    lines per pass through the operator's log.
+    The loops themselves, plus what they call, to a depth of THREE.
 
-    NOT `while True:`. Widening it that way pulled in bot.py's start-up retry
-    loop, which runs once in practice, and reported five of its lines. A scan
-    that flags a decision has to know the difference.
+    THE DEPTH IS MEASURED, NOT PICKED. The first version followed one level and
+    missed the two loudest lines left in the operator's log after the sweep -
+    "Starting background cache population" and "Background cache population:
+    Processing 7 containers" - because the loop reaches them through a helper
+    that reaches another helper. Counting the plan-lines found at each depth:
+
+        depth 1:   92 names,   0 found
+        depth 2:  184 names,   0 found
+        depth 3:  308 names,   4 found   <- all four genuine
+        no limit: 803 names,   5 found   <- the fifth is a DAILY scheduled
+                                            task announcing itself, which is
+                                            not noise and must not be flagged
+
+    So three is where this program's per-cycle work ends and its once-a-day
+    work begins. Following the graph to its end would start crying wolf, and a
+    scan that cries wolf teaches its reader to skip it.
+
+    NOT `while True:`. Widening the seed that way pulled in bot.py's start-up
+    retry loop, which runs once in practice, and reported five of its lines.
 
     BY NAME, NOT BY IDENTITY. The first version tested `fn is loop` against the
     loops collected by _repeating_loops() - which parses the files a second
@@ -136,14 +177,16 @@ def _per_cycle_functions():
     a case of mine, and the first to do it by catching a real bug in the scan
     rather than a hole in the wording.
     """
+    index = _functions_by_name()
     per_cycle = {fn.name for _path, fn in _repeating_loops()} | THREAD_LOOP_HELPERS
-    for _path, loop in _repeating_loops():
-        for node in ast.walk(loop):
-            if isinstance(node, ast.Call):
-                func = node.func
-                per_cycle.add(func.attr if isinstance(func, ast.Attribute)
-                              else getattr(func, "id", None))
-    per_cycle.discard(None)
+    frontier = set(per_cycle)
+    for _step in range(HOW_FAR_A_CYCLE_REACHES):
+        following = set()
+        for name in frontier:
+            for _path, fn in index.get(name, []):
+                following |= _names_called_by(fn)
+        frontier = following - per_cycle
+        per_cycle |= frontier
 
     for path in sorted(PROJECT.rglob("*.py")):
         if SKIP & set(path.relative_to(PROJECT).parts) or "scripts" in path.parts:

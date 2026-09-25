@@ -219,7 +219,7 @@ class ChannelLifecycleMixin:
 
             # CACHE WARMUP: Populate cache BEFORE creating admin overview
             # This prevents showing 🔄 loading icons during channel regeneration
-            logger.info("Starting cache population for admin overview (blocking to ensure data availability)")
+            logger.debug("Starting cache population for admin overview (blocking to ensure data availability)")
 
             # Ensure semaphore exists
             if not hasattr(self, '_status_update_semaphore'):
@@ -290,7 +290,7 @@ class ChannelLifecycleMixin:
 
             # CACHE WARMUP: Populate cache BEFORE creating overview embed
             # This prevents showing 🔄 loading icons during channel regeneration
-            logger.info("Starting cache population for overview embed (blocking to ensure data availability)")
+            logger.debug("Starting cache population for overview embed (blocking to ensure data availability)")
 
             # Ensure semaphore exists
             if not hasattr(self, '_status_update_semaphore'):

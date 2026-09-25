@@ -735,7 +735,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                 concurrent callers waiting on the semaphore share one bulk fetch.
         """
         try:
-            logger.info("Starting background cache population")
+            logger.debug("Starting background cache population")
 
             # Load configuration
             config = load_config()
@@ -756,7 +756,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                 logger.info("Background cache population: No containers found")
                 return
 
-            logger.info(f"Background cache population: Processing {len(container_names)} containers")
+            logger.debug(f"Background cache population: Processing {len(container_names)} containers")
             start_time = time.time()
 
             # Ensure semaphore exists (tests / early callers may run before any loop created it)
