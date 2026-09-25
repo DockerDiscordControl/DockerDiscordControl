@@ -319,7 +319,10 @@ def main() -> None:
         config = load_main_configuration()
         runtime = build_runtime(config)
 
-    runtime.logger.info("Starting bot with token ending in: ...%s", token[-4:])
+    # Not a fragment of it: four characters still confirm a guess and still
+    # tell two logs apart, and this file gets attached to bug reports. Which
+    # token is in use was already said safely, by naming its SOURCE.
+    runtime.logger.info("Starting bot")
     _run_bot_until_stopped(bot, runtime, token)
     runtime.logger.info("Bot has stopped gracefully.")
 

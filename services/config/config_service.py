@@ -350,7 +350,7 @@ class ConfigService:
 
         # Decrypt bot token if needed
         if 'bot_token' in config and config['bot_token']:
-            logger.debug(f"Attempting to decrypt token: {config['bot_token'][:10]}...")
+            logger.debug("Attempting to decrypt the stored bot token")
             decrypted_token = self._decrypt_token_if_needed(config['bot_token'],
                                                           config.get('web_ui_password_hash'))
             if decrypted_token:
