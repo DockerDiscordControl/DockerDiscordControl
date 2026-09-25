@@ -41,6 +41,7 @@ import discord
 
 from utils.logging_utils import get_module_logger
 
+from .control_helpers import is_private_panel_message
 from .translation_manager import _
 
 logger = get_module_logger('ddc_ui')
@@ -75,7 +76,33 @@ def _name_of(item) -> str:
 
 
 class DDCView(discord.ui.View):
-    """A view whose failing buttons answer the user and reach the DDC log."""
+    """A view whose failing buttons answer the user, and which clears up after itself."""
+
+    async def on_timeout(self) -> None:
+        """Take a finished private panel away instead of leaving a dead one.
+
+        py-cord stops listening to a view once its timeout passes, but the
+        message stays: a dropdown that has quietly stopped working, sitting
+        there looking perfectly usable, and removable only by hand. The
+        operator had to dismiss every one of them.
+
+        ONLY A PRIVATE ONE. A timeout must never remove a message everybody
+        can see. The public overview and the Mech views are persistent
+        (timeout=None) so this cannot fire for them - but that is a property
+        of thirteen separate constructor calls, and one of them only has to
+        change. The message itself is asked instead, by the same flag the
+        admin-panel detection reads.
+        """
+        message = getattr(self, "message", None)
+        if message is None or not is_private_panel_message(message):
+            return
+
+        try:
+            await message.delete()
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException) as error:
+            # Already dismissed by hand, or past Discord's fifteen-minute
+            # interaction token. Neither is worth an operator's attention.
+            logger.debug("Could not remove a timed-out panel: %s", error)
 
     async def on_error(self, error: Exception, item, interaction: discord.Interaction) -> None:
         logger.error("Button '%s' in %s failed (%s: %s)",

@@ -113,7 +113,7 @@ cogs/channel_lifecycle.py	627	v3rev2:1-646
 cogs/control_helpers.py	297	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/action_effect.py	163	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
 cogs/control_ui.py	3361	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
-cogs/ddc_ui.py	94	passE:written-2026-09-21
+cogs/ddc_ui.py	121	passE:written-2026-09-21
 cogs/group_control.py	306	NONE
 cogs/docker_control.py	1321	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	645	NONE
