@@ -63,6 +63,26 @@
               <i class="bi bi-check-circle me-1"></i>{{ _t('web.two_factor.status_on', count=remaining) }}
             </span>
           </p>
+          {# THE OFFER, AND THE WAY TO WITHDRAW IT. A remembered device skips
+             the second factor for ninety days; whoever switches 2FA on for
+             safety may not want that in the house at all. Switching it off
+             forgets the devices already written down at once - a switch that
+             only stopped offering would leave them walking past for the rest
+             of their ninety days. #}
+          <form method="post" action="{{ url_for('two_factor.devices') }}" class="mb-4">
+            <input type="hidden" name="csrf_token" value="{{ token }}">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     id="remember_devices_allowed" name="remember_devices_allowed" value="1"
+                     {% if may_remember %}checked{% endif %}>
+              <label class="form-check-label small" for="remember_devices_allowed">
+                {{ _t('web.two_factor.allow_remember', days=90) }}
+              </label>
+            </div>
+            <div class="small text-secondary mt-1">{{ _t('web.two_factor.remembered_now', count=remembered) }}</div>
+            <button class="btn btn-outline-secondary btn-sm mt-2">{{ _t('web.common.save') }}</button>
+          </form>
+
           <form method="post" action="{{ url_for('two_factor.disable') }}">
             <input type="hidden" name="csrf_token" value="{{ token }}">
             <label for="code" class="form-label">{{ _t('web.two_factor.disable_label') }}</label>
@@ -171,13 +191,17 @@
                  autocomplete="one-time-code" style="letter-spacing: 0.4em" autofocus required>
           {# Offered, never ticked for him: it skips the SECOND factor on this
              browser for ninety days, and the panel password is still asked
-             every time. #}
+             every time. Gone entirely when the offer has been withdrawn on
+             the status page - and the route checks that too, because the box
+             is gone from the PAGE, not from HTTP. #}
+          {% if may_remember %}
           <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" id="remember_device" name="remember_device" value="1">
             <label class="form-check-label small text-secondary" for="remember_device">
               {{ _t('web.two_factor.remember_device', days=90) }}
             </label>
           </div>
+          {% endif %}
           <div class="d-grid">
             <button class="btn btn-primary btn-lg">{{ _t('web.two_factor.verify') }}</button>
           </div>

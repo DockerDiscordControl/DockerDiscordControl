@@ -193,7 +193,10 @@ def install_two_factor(app: Flask) -> None:
 def status():
     store = TwoFactorStore()
     return render_template("two_factor.html", view="status", enabled=store.enabled,
-                           remaining=store.remaining_recovery_codes(), secure=request.is_secure)
+                           remaining=store.remaining_recovery_codes(),
+                           may_remember=store.remembering_devices_allowed(),
+                           remembered=store.remembered_devices(),
+                           secure=request.is_secure)
 
 
 @two_factor_bp.route("/setup", methods=["POST"])
@@ -232,7 +235,9 @@ def confirm():
 def verify():
     target = request.values.get("next", "")
     if request.method == "GET":
-        return render_template("two_factor.html", view="verify", next=target, secure=request.is_secure)
+        return render_template("two_factor.html", view="verify", next=target,
+                               may_remember=TwoFactorStore().remembering_devices_allowed(),
+                               secure=request.is_secure)
     if two_factor_limiter.is_rate_limited(request.remote_addr):
         logger.warning(f"Second-factor attempts rate-limited from {request.remote_addr}")
         return render_template("two_factor.html", view="verify", next=target, error="rate",
@@ -242,7 +247,7 @@ def verify():
         binding = _binding()
         session[SESSION_KEY] = binding
         answer = redirect(_safe_next(target))
-        if request.form.get("remember_device"):
+        if request.form.get("remember_device") and store.remembering_devices_allowed():
             # The browser keeps the token, the panel keeps its hash - the
             # same split the recovery codes use, for the same reason.
             token = secrets.token_urlsafe(32)
@@ -313,3 +318,20 @@ def codes_txt():
         "Content-Disposition": 'attachment; filename="ddc-recovery-codes.txt"',
         "Cache-Control": "no-store",
     })
+
+
+@two_factor_bp.route("/devices", methods=["POST"])
+@auth.login_required
+def devices():
+    """Withdraw or restore the offer to remember a device.
+
+    AN ABSENT CHECKBOX IS AN UNTICKED ONE: a browser sends nothing for a box
+    it did not tick, so the form's silence means "off". Switching it off
+    forgets every device already written down - the store does that, so no
+    caller has to remember to.
+    """
+    allowed = bool(request.form.get("remember_devices_allowed"))
+    TwoFactorStore().set_remembering_devices(allowed)
+    logger.info("Remembering devices for %d days is now %s",
+                TRUSTED_DEVICE_DAYS, "allowed" if allowed else "off - all forgotten")
+    return redirect(url_for("two_factor.status"))

@@ -207,6 +207,30 @@ class TwoFactorStore:
     # a changed password forgets every device - otherwise whoever knew the
     # old one would keep a way past the second factor.
 
+    def remembering_devices_allowed(self) -> bool:
+        """Whether the panel offers to remember a device at all.
+
+        ON UNLESS SWITCHED OFF, because the offer is what the operator asked
+        for first; the switch is the second half of the same request. The
+        absent key therefore means yes.
+        """
+        return self._read().get("remember_devices", True) is not False
+
+    def set_remembering_devices(self, allowed: bool) -> None:
+        """Withdraw or restore the offer - and FORGET AT ONCE when it goes.
+
+        A switch that only stopped offering would leave the browsers already
+        written down walking past the second factor for the rest of their
+        ninety days, which is the opposite of what was asked for. Forgetting
+        is forgetting: turning it back on does not bring them back.
+        """
+        with self._lock:
+            data = self._read()
+            data["remember_devices"] = bool(allowed)
+            if not allowed:
+                data.pop("devices", None)
+            self._write(data)
+
     def remember_device(self, token: str, binding: str, now: Optional[float] = None) -> None:
         """Write down that this browser has answered, until it expires."""
         moment = time.time() if now is None else now
@@ -229,7 +253,7 @@ class TwoFactorStore:
         bound to, and the expiry. A token we never issued matches none of
         them, which is the answer to bringing your own cookie.
         """
-        if not token:
+        if not token or not self.remembering_devices_allowed():
             return False
         moment = time.time() if now is None else now
         wanted = _hash_device_token(token)

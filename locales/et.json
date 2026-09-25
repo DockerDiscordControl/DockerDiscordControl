@@ -1731,6 +1731,8 @@
   "web.two_factor.wrong_code": "That code is not valid.",
   "web.two_factor.too_many": "Too many attempts. Wait a minute and try again.",
   "web.two_factor.back": "Back to the panel",
+  "web.two_factor.allow_remember": "Luba seadmeid {days} päevaks meelde jätta",
+  "web.two_factor.remembered_now": "Praegu meeles seadmeid: {count}",
   "web.aas.trigger_type": "Trigger",
   "web.aas.trigger_type_message": "Discord message",
   "web.aas.trigger_type_container_state": "Container state (watchdog)",

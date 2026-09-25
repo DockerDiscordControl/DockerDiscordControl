@@ -397,17 +397,17 @@ services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).
 utils/config_cache.py:1-307
 
-## Section 39  (1410 lines, 6 pieces)
+## Section 39  (1456 lines, 6 pieces)
 # New on 2026-09-22 for v3.0: the allowlist proxy in front of the Docker
 # socket, the TLS modes and the second factor of the web panel. Their own section because they
 # are the security boundary of v3.0 and must be reviewed as one piece, not as
 # a tail of a busier section.
-app/blueprints/two_factor_routes.py:1-315
+app/blueprints/two_factor_routes.py:1-337
 app/web/tls.py:1-497
 app/web/two_factor.py:1-8
 services/docker_proxy/__init__.py:1-2
 services/docker_proxy/allowlist_proxy.py:1-281
-services/web/two_factor_service.py:1-307
+services/web/two_factor_service.py:1-331
 
 ## Section 40  (720 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message

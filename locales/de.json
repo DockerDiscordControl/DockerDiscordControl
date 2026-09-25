@@ -1731,6 +1731,8 @@
   "web.two_factor.wrong_code": "Dieser Code ist nicht gültig.",
   "web.two_factor.too_many": "Zu viele Versuche. Warte eine Minute und versuche es erneut.",
   "web.two_factor.back": "Zurück zum Panel",
+  "web.two_factor.allow_remember": "Geräte {days} Tage merken erlauben",
+  "web.two_factor.remembered_now": "Aktuell gemerkte Geräte: {count}",
   "web.aas.trigger_type": "Auslöser",
   "web.aas.trigger_type_message": "Discord-Nachricht",
   "web.aas.trigger_type_container_state": "Container-Zustand (Wächter)",
