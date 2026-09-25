@@ -95,5 +95,5 @@ def test_the_catalogs_carry_the_status_loading_texts():
 # THE SECOND DRIVER IS GONE. Three cases here pressed the expand button and
 # read the blue "Loading Status" embed its no-cache branch produced. That
 # button could not be reached by anybody and was removed on 2026-09-25
-# (tests/spec/test_no_control_flips_an_expand_state.py); the same embed is
+# (tests/spec/test_a_panel_never_offers_to_expand.py); the same embed is
 # still checked above, through the status path that does run.

@@ -45,7 +45,8 @@ delivered as an ephemeral followup, which is exactly what
 is_private_panel_message() calls private. Five months of recorded presses
 agree: 47 on a Discord button, every one start, stop or restart. Both are
 gone, with the proof in
-tests/spec/test_no_control_flips_an_expand_state.py.
+tests/spec/test_a_panel_never_offers_to_expand.py and
+tests/spec/test_a_registered_button_is_on_a_posted_view.py.
 
 HOW THIS TEST CAN FAIL: the per-container message code coming back.
 

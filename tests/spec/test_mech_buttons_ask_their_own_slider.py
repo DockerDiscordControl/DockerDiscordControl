@@ -79,10 +79,11 @@ def test_the_button_can_be_built():
 
     TWO OF THE THREE ARE GONE. MechExpandButton and MechCollapseButton were
     removed on 2026-09-25 with the old shape of the overview
-    (tests/spec/test_a_registered_button_is_on_a_posted_view.py). Their
-    sliders mech_expand and mech_collapse are still in the panel and in the
-    defaults, steering nothing - the same open question as the refresh
-    slider, and the operator's to answer.
+    (tests/spec/test_a_registered_button_is_on_a_posted_view.py), and their
+    sliders went the same day once the operator had seen where they sat in
+    the panel - together with the refresh slider, whose button had gone
+    earlier. tests/spec/test_no_cooldown_slider_steers_nothing.py holds the
+    rule now: a slider in the panel belongs to a button that exists.
     """
     cog = MagicMock()
 

@@ -14,7 +14,7 @@ else redrew the message.
 
 WHY THIS FILE REPLACES THE ONE THAT CAUGHT IT. That case drove the real
 ``ToggleButton``, and on 2026-09-25 that button was removed as unreachable
-(tests/spec/test_no_control_flips_an_expand_state.py). Deleting the case with
+(tests/spec/test_a_panel_never_offers_to_expand.py). Deleting the case with
 it would have taken the RULE down with the one site that broke it, while the
 three sites that still decide the same thing went unwatched. So the rule is
 asked of all of them at once, from the syntax tree, and it no longer depends
