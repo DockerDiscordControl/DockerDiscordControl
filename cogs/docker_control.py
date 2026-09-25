@@ -328,7 +328,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
             'last_cache_clear': datetime.now(timezone.utc)
         }
 
-        logger.info("Ensuring other potential loops (if any residues from old structure) are cancelled.")
+        logger.debug("Cancelling any background loop left running from a previous start")
         if hasattr(self, 'heartbeat_send_loop') and self.heartbeat_send_loop.is_running(): self.heartbeat_send_loop.cancel()
         if hasattr(self, 'status_update_loop') and self.status_update_loop.is_running(): self.status_update_loop.cancel()
         if hasattr(self, 'inactivity_check_loop') and self.inactivity_check_loop.is_running(): self.inactivity_check_loop.cancel()

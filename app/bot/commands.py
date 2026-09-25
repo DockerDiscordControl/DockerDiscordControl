@@ -30,8 +30,10 @@ def list_registered_command_names(bot: discord.Bot) -> Iterable[str]:
 def setup_schedule_commands(bot: discord.Bot, logger: logging.Logger) -> bool:
     """Ensure schedule commands are present on the cog."""
 
-    logger.info("MANUAL REGISTRATION IN setup_schedule_commands IS CURRENTLY DISABLED FOR TESTING.")
-    logger.info("Relying on Cog registration and on_ready autocomplete assignment.")
+    # How the commands get registered is wiring, not news: an operator can
+    # do nothing with it either way, and a log he has to triage is a log he
+    # stops reading. Somebody debugging registration turns DEBUG on.
+    logger.debug("Schedule commands come from the cog; autocomplete is assigned on_ready")
 
     try:
         if not bot.get_cog("DockerControlCog"):
