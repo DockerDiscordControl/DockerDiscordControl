@@ -816,7 +816,11 @@ class TestPortDiagnostics:
         }):
             report = diag.get_diagnostic_report()
         assert report["container_name"] == "ddc-test"
-        assert any("Unraid" in r for r in report["recommendations"])
+        # RE-AIMED 2026-09-26, not relaxed. The rule is "an Unraid host is
+        # told something Unraid-shaped"; the assertion was tied to the
+        # capitalisation of a fixed string that has gone, and the advice now
+        # carries the house prefix the rest of this module uses ("UNRAID:").
+        assert any("unraid" in r.lower() for r in report["recommendations"])
 
     def test_get_diagnostic_report_generic_recommendations(self):
         diag = self._make()

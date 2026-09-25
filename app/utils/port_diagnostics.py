@@ -490,21 +490,69 @@ class PortDiagnostics:
             'recommendations': []
         }
 
-        # Add platform-specific recommendations
-        if self.host_info['is_unraid']:
-            report['recommendations'].extend([
-                "For Unraid users: Ensure Community Apps template has correct port mapping",
-                "Check Unraid Docker settings: Host Port 8374 → Container Port 9374",
-                "Access Web UI at: http://[UNRAID-IP]:8374 (default: admin/admin)"
-            ])
-        else:
-            report['recommendations'].extend([
-                "Ensure Docker port mapping: -p 8374:9374",
-                "Check firewall settings for port 8374",
-                "Access Web UI at: http://localhost:8374 (default: admin/admin)"
-            ])
-
+        report['recommendations'] = self._recommendations(report['port_check'])
         return report
+
+    def _the_scheme(self) -> str:
+        """http or https, read from the mode DDC is actually running in.
+
+        A fixed "http://" was wrong for every installation with TLS, and the
+        address is the one line of a report a reader types by hand.
+        """
+        mode = (os.environ.get("DDC_TLS_MODE") or "off").strip().lower()
+        return "https" if mode in ("proxy", "self-signed") else "http"
+
+    def _recommendations(self, port_check: Dict) -> List[str]:
+        """What to tell the operator, built from what was just measured.
+
+        THESE USED TO BE THREE FIXED STRINGS, appended to every report on an
+        Unraid host whether anything was wrong or not::
+
+            "Check Unraid Docker settings: Host Port 8374 -> Container Port 9374"
+            "Access Web UI at: http://[UNRAID-IP]:8374 (default: admin/admin)"
+
+        and the same report had measured the mapping three lines above -
+        9374 on the operator's own container, not 8374 (2026-09-26). The
+        scheme was fixed too, while DDC_TLS_MODE=self-signed answers HTTPS
+        only. And admin/admin has never been a DDC credential: the
+        first-time bootstrap is admin/setup and it closes as soon as a
+        password is set. No line here names a credential at all.
+        """
+        host_ports = [str(entry.get("port")) if isinstance(entry, dict) else str(entry)
+                      for entry in port_check.get("external_ports") or []]
+        # The same address twice - IPv4 and IPv6 bind separately - is one
+        # address to a reader.
+        seen = list(dict.fromkeys(p for p in host_ports if p))
+
+        unraid = bool(self.host_info.get('is_unraid'))
+        if not seen:
+            # Nothing was learned about the mapping, so no number is claimed -
+            # only the one port this container is certain of, its own. The
+            # careful step-by-step advice for a genuinely unmapped port is
+            # already written and already attached to port_check['solutions'].
+            if unraid:
+                return [
+                    f"UNRAID: the web UI listens on container port "
+                    f"{self.EXPECTED_WEB_PORT} - open the Docker tab, edit DDC and give "
+                    f"that container port a free host port",
+                ]
+            return [
+                f"The web UI listens on container port {self.EXPECTED_WEB_PORT} - "
+                f"check the port mapping, -p <host>:{self.EXPECTED_WEB_PORT}",
+            ]
+
+        scheme = self._the_scheme()
+        where = "[UNRAID-IP]" if unraid else "localhost"
+        told = [f"Web UI: {scheme}://{where}:{port}" for port in seen]
+        told.append(
+            f"Host port {' and '.join(seen)} is mapped to container port "
+            f"{self.EXPECTED_WEB_PORT}; check the host firewall if the panel "
+            f"cannot be reached from another machine")
+        if scheme == "https":
+            told.append(
+                "TLS is on, so the panel answers HTTPS only - a plain http:// "
+                "address will be refused")
+        return told
 
     def log_startup_diagnostics(self):
         """Log diagnostic information at startup"""
