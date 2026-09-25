@@ -128,8 +128,15 @@ def _refuse(conn: socket.socket, status: str, message: str) -> None:
     A client that asks for something forbidden and hangs up without waiting -
     a script, a timeout, a killed container - leaves a broken socket here, and
     this write used to raise out of handle(). socketserver then printed its own
-    traceback to stderr, which under supervisord is not the log the operator
-    reads. There is no one left to tell, so the refusal is simply over.
+    traceback - a page of it, for a client that is already gone - into the
+    container output, which is what the panel's Application tab shows when no
+    file backs it. There is no one left to tell, so the refusal is simply over.
+
+    THE REASON USED TO READ "which under supervisord is not the log the
+    operator reads", and by 2026-09-26 that was wrong twice: the image has no
+    supervisord, and that output IS a log he reads. The decision is unchanged -
+    what makes the traceback wrong is that it reports nothing that went wrong
+    here, not where it would have landed.
     """
     body = ('{"message": "%s (DDC docker proxy)"}' % message).encode()
     try:

@@ -157,7 +157,7 @@ services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s1
 services/discord/embed_helper_service.py	209	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
 services/discord/status_overview_service.py	366	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_proxy/__init__.py	2	NONE
-services/docker_proxy/allowlist_proxy.py	281	v3rev:1-272
+services/docker_proxy/allowlist_proxy.py	288	v3rev:1-272
 services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	105	v3rev:1-105
 services/docker_service/docker_action_service.py	308	pass1:s14:plan pass2:s14:1-276
@@ -189,7 +189,7 @@ services/donation/unified_donation_service.py	31	pass2:s18:1-31
 services/exceptions.py	299	pass1:s18:plan pass2:s18:1-299
 services/infrastructure/__init__.py	0	pass2:s18:1-0
 services/infrastructure/action_log_service.py	387	pass1:s18:plan pass2:s18:1-376  [11 of 387 lines never in a package]
-services/infrastructure/action_logger.py	127	pass1:s18:plan pass2:s18:1-86  [17 of 103 lines never in a package]
+services/infrastructure/action_logger.py	137	pass1:s18:plan pass2:s18:1-86  [17 of 103 lines never in a package]
 services/infrastructure/container_info_service.py	332	pass1:s18:plan pass2:s18:1-282  [44 of 326 lines never in a package]
 services/infrastructure/container_status_service.py	887	pass1:s19:1-816  [14 of 830 lines never in a package]
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239

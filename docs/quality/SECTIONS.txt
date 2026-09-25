@@ -154,7 +154,7 @@ services/donation/unified_donation_service.py:1-31
 services/exceptions.py:1-299
 services/infrastructure/__init__.py:1-0
 services/infrastructure/action_log_service.py:1-387
-services/infrastructure/action_logger.py:1-127
+services/infrastructure/action_logger.py:1-137
 services/infrastructure/container_info_service.py:1-332
 
 ## Section 19  (2021 lines, 5 pieces)
@@ -406,7 +406,7 @@ app/blueprints/two_factor_routes.py:1-364
 app/web/tls.py:1-497
 app/web/two_factor.py:1-8
 services/docker_proxy/__init__.py:1-2
-services/docker_proxy/allowlist_proxy.py:1-281
+services/docker_proxy/allowlist_proxy.py:1-288
 services/web/two_factor_service.py:1-331
 
 ## Section 40  (720 lines, 1 piece)

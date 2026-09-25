@@ -76,8 +76,18 @@ def log_user_action(action: str, target: str, user: str = "System",
 
     if not result.success:
         # logger.error, not stderr: this line is the only trace that an action
-        # went unrecorded, and under supervisord stderr does not reach the log
-        # the panel shows. SPEC.md Z8.
+        # went unrecorded, so it has to carry a timestamp, a level and the name
+        # of who said it - which is what DDC's logging gives it and a bare
+        # write to stderr does not. SPEC.md Z8.
+        #
+        # THE REASON USED TO READ "under supervisord stderr does not reach the
+        # log the panel shows", and that was wrong twice by 2026-09-26: the
+        # image has no supervisord, and stderr DOES reach a log the operator
+        # reads - the Application tab falls through to the live container
+        # output when no file backs it (services/web/container_log_service.py).
+        # The decision is unchanged; a wrong reason is worse than none,
+        # because the next reader checks it, finds it gone, and takes the
+        # decision with it.
         logger.error(f"Action was not written to the action log: {result.error}")
 
 def get_action_logs_json(limit: int = 500) -> List[Dict[str, Any]]:
