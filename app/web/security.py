@@ -78,6 +78,31 @@ def install_security_handlers(app: Flask) -> None:
         return None
 
     @app.after_request
+    def one_answer_per_response(response: Response) -> Response:
+        """A redirect is a whole instruction; it must not also be a challenge.
+
+        flask_httpauth puts WWW-Authenticate on whatever its error handler
+        returns unless the header is already there (HTTPAuth.error_handler),
+        and DDC's handler answers a browser with a redirect to the login form.
+        So the response said two different things - "go to the form" and "send
+        me HTTP Basic" - and a browser that holds credentials for this host
+        takes the second every time and never sees the form.
+
+        THAT IS A LOGOUT, a few clicks later. Credentials given to a challenge
+        are replayed only for paths at or below the one that asked, so a
+        challenge sent from /security/2fa leaves the browser logged in there
+        and nowhere else: the operator answered it on the second-factor page
+        and was at the login form again the moment he clicked back to "/"
+        (26/Sep 00:13, his own log).
+
+        A 401 keeps its challenge - there it IS the answer, and a script has
+        nothing else to go on. Only 3xx loses it.
+        """
+        if 300 <= response.status_code < 400:
+            response.headers.pop("WWW-Authenticate", None)
+        return response
+
+    @app.after_request
     def add_security_headers(response: Response) -> Response:
         if request.path.endswith(".js"):
             response.headers["Content-Type"] = "application/javascript"
