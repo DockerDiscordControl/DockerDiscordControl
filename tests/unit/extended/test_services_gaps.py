@@ -1754,11 +1754,22 @@ class TestSchedulerGaps:
             def __init__(self):
                 self.left = failures
 
+            # is_dst=False, NOT pytz's default of None. This stand-in strips
+            # the zone and hands pytz a naive datetime, and pytz then refuses
+            # to guess which of the two 02:xx hours of a changeover day is
+            # meant - it raises AmbiguousTimeError, which is not a ValueError
+            # and so escapes the scheduler's handler and fails this case.
+            #
+            # It only ever showed for a datetime that lands in that fold, so
+            # the case passed every day except when the clock made "a month
+            # from now" the ambiguous hour: it failed for the first time at
+            # 02:15 on 2026-09-25, a year after it was written. Picking a side
+            # is what a real localized tzinfo already carries.
             def utcoffset(self, dt):
-                return real.utcoffset(dt.replace(tzinfo=None) if dt else dt)
+                return real.utcoffset(dt.replace(tzinfo=None) if dt else dt, is_dst=False)
 
             def dst(self, dt):
-                return real.dst(dt.replace(tzinfo=None) if dt else dt)
+                return real.dst(dt.replace(tzinfo=None) if dt else dt, is_dst=False)
 
             def tzname(self, dt):
                 return "CET"
