@@ -185,7 +185,8 @@ def test_the_sweep_sees_dropdowns_too():
     found = list(_shaped_columns())
     with_a_dropdown = [name for name, _classes, inner in found if "<select" in inner]
 
-    assert len(found) >= 100, f"the sweep reaches only {len(found)} columns"
+    # 100 until 2026-09-25, less the three removed cooldown sliders.
+    assert len(found) >= 97, f"the sweep reaches only {len(found)} columns"
     assert len(with_a_dropdown) >= 5, (
         f"only {len(with_a_dropdown)} dropdown columns are seen - the scanner is "
         "counting a <select>'s own options as content after it again")

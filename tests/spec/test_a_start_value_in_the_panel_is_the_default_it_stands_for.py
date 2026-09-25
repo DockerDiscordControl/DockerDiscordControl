@@ -10,7 +10,8 @@ the number exists twice: once in Python and once in the page.
 
 That test then guarded ONE template, and inside it only the fields whose id
 starts with ``button_`` or ``cooldown_``. Measured today (2026-09-24) the panel
-has 44 such numbers in THREE templates, and the guard covers 32 of them:
+has 41 such numbers in THREE templates (44 before three dead cooldown
+sliders left on 2026-09-25), and the guard covers 32 of them:
 
     _spam_protection_modal.html      32   30 guarded by the prefix rule,
                                           maxCommandsPerMinute and
@@ -153,7 +154,10 @@ def test_the_sweep_still_finds_the_fields():
     missed 32 fields, by insisting on a name= these inputs do not have."""
     found = _hard_coded_start_values()
 
-    assert len(found) >= 44, f"only {len(found)} start values found - pattern blind?"
+    # 44 until 2026-09-25, when three cooldown sliders whose buttons no
+    # longer exist were removed from the panel
+    # (tests/spec/test_no_cooldown_slider_steers_nothing.py).
+    assert len(found) >= 41, f"only {len(found)} start values found - pattern blind?"
     by_template = {}
     for template, _value in found.values():
         by_template[template] = by_template.get(template, 0) + 1

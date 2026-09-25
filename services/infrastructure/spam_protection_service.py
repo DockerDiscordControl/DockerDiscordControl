@@ -498,7 +498,6 @@ class SpamProtectionService:
                 "stop": 10,
                 "restart": 20,
                 "info": 3,
-                "refresh": 5,
                 "logs": 10,
                 "live_refresh": 5,
                 # "auto_refresh" was here without a consumer (no code asks for it)
@@ -530,8 +529,6 @@ class SpamProtectionService:
                 "protected_info_edit": 3,
                 "edit_info": 3,
                 "protected_info": 3,
-                "mech_expand": 3,
-                "mech_collapse": 2,
                 "mech_donate": 10,
                 "mech_history": 5,
                 # MechDetailsButton used not to brake at all and had no slider.
