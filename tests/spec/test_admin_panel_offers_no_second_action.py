@@ -35,7 +35,7 @@ def _view(pending, running, expanded):
     cog.pending_actions = pending
     cog.expanded_states = {"vrising": expanded}
     return ControlView(cog, dict(SERVER), is_running=running,
-                       channel_has_control_permission=True, allow_toggle=False)
+                       channel_has_control_permission=True)
 
 
 def _action_buttons(view):

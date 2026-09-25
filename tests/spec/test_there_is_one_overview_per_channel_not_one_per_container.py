@@ -37,11 +37,15 @@ works, kept somewhere people go to find out how the program works. That is the
 same defect as a log line announcing work it does not do, which is most of what
 this repository has been fixing today.
 
-DELIBERATELY LEFT: ToggleButton itself, and the ControlView branch that adds
-it. Whether that branch can still be reached depends on a runtime condition -
-whether any message with action buttons is ever not the admin panel - and
-"I could not prove it dead" is not "it is dead". It is named below so the
-question is not lost.
+SETTLED SINCE (2026-09-25). ToggleButton and the ControlView branch that
+added it were left here because their reachability turned on a runtime
+condition: whether a message carrying action buttons is ever NOT the admin
+panel. It is not - every such view is built by admin_control_view() and
+delivered as an ephemeral followup, which is exactly what
+is_private_panel_message() calls private. Five months of recorded presses
+agree: 47 on a Discord button, every one start, stop or restart. Both are
+gone, with the proof in
+tests/spec/test_no_control_flips_an_expand_state.py.
 
 HOW THIS TEST CAN FAIL: the per-container message code coming back.
 

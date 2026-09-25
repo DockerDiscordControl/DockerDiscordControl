@@ -9,7 +9,7 @@ promise, pinned here:
   it are deleted and its tracking (message ids, also on disk, lock, activity,
   mech state) is dropped - the other channels keep theirs;
 * a newly added control channel gets the Admin Overview, a newly added status
-  channel the server overview (collapsed, without the toggle), both after the
+  channel the server overview (collapsed), both after the
   old DDC messages were cleaned up;
 * a newly added channel with "post initial" off is only tracked - nothing is
   deleted or posted in it;
@@ -127,7 +127,7 @@ def test_an_added_status_channel_gets_the_collapsed_overview(config):
     cog._send_control_panel_and_statuses.assert_not_awaited()
     call = cog._send_all_server_statuses.await_args
     assert call.args[0].id == NEW
-    assert call.kwargs == {"allow_toggle": False, "force_collapse": True}
+    assert call.kwargs == {"force_collapse": True}
 
 
 def test_post_initial_off_only_tracks_the_channel(config):

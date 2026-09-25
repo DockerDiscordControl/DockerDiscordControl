@@ -272,9 +272,7 @@ async def admin_panel_embed(cog, channel_id, selected: str, config: dict, app_co
         return group_panel_embed(config.get('name'), cache)
 
     embed, _view, _running = await cog._generate_status_embed_and_view(
-        channel_id, selected, config, app_config,
-        allow_toggle=False,     # no toggle button in the admin panel
-        force_collapse=False)
+        channel_id, selected, config, app_config, force_collapse=False)
     if not embed:
         return embed
     embed.title = translate("🛠️ Admin Control: {name}").format(name=display_name)
@@ -306,8 +304,7 @@ def admin_control_view(cog, container_config: dict, is_running: bool):
     from .ddc_ui import CloseButton
 
     view = ControlView(cog, container_config, is_running=is_running,
-                       channel_has_control_permission=True,  # an admin always has it
-                       allow_toggle=False)                   # no toggle in this panel
+                       channel_has_control_permission=True)  # an admin always has it
     view.add_item(CloseButton(row=1))
     return view
 

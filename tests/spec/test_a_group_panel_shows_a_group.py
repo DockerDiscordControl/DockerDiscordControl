@@ -18,7 +18,7 @@ and handed the name of a group.
       container, so it drew the error a missing container draws;
     * the info button opens a container's info text, its protected text and
       its LOGS - a group has none of the three, and docker refuses the name;
-    * the toggle for detailed status has nothing to expand.
+    * detailed status has nothing to show.
 
 WHAT A GROUP'S PANEL SAYS instead is what its line in the overview says, with
 room: the lamp, how many of its containers are running, and which they are.
@@ -146,7 +146,6 @@ def test_the_view_offers_no_container_buttons(world):
     assert kinds, "the view is empty - this case would pass on anything"
 
     assert "InfoButton" not in kinds, kinds
-    assert "ToggleButton" not in kinds, kinds
 
 
 def test_the_view_offers_exactly_what_the_group_may_do(world):
@@ -161,13 +160,17 @@ def test_the_view_offers_exactly_what_the_group_may_do(world):
 
 
 def test_a_container_keeps_its_buttons(world):
-    """Counter-check: nothing was taken from the containers."""
+    """Counter-check: nothing was taken from the containers.
+
+    It used to ask for the expand button, which no caller could produce and
+    which was removed on 2026-09-25. The info button is the thing a container
+    still has and a group does not, so the case asks for that instead."""
     config = {"docker_name": "alpha", "name": "alpha",
               "allowed_actions": ["stop", "restart"], "allow_detailed_status": True}
     view = _view(SimpleNamespace(pending_actions={}, expanded_states={"alpha": True}), config)
     kinds = [type(item).__name__ for item in view.children]
 
-    assert "ToggleButton" in kinds, kinds
+    assert "InfoButton" in kinds, kinds
 
 
 def test_the_panel_asks_the_right_source(world):

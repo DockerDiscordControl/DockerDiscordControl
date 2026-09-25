@@ -50,7 +50,7 @@ def _embed(age_seconds):
          patch("services.infrastructure.container_info_service.get_container_info_service",
                return_value=info_service):
         embed, _view, _running = asyncio.run(cog._generate_status_embed_and_view(
-            1, "web", SERVER, {}, allow_toggle=False, force_collapse=True))
+            1, "web", SERVER, {}, force_collapse=True))
     return embed.description
 
 

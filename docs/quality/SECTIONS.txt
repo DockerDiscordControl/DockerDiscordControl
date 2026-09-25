@@ -16,7 +16,7 @@ cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-297
 cogs/action_effect.py:1-163
 
-## Section 02  (1832 lines, 1 piece)
+## Section 02  (1457 lines, 1 piece)
 # Cut moved up from 1991 to 1801 on 2026-09-21, to the class boundary at
 # PasswordProtectedView. Section 02 had reached 1,991 of the 2,000 lines a
 # section may hold and the next repair in this file (review D32) did not fit.
@@ -25,13 +25,13 @@ cogs/action_effect.py:1-163
 # already fully reviewed in both passes, and every finding of either pass in
 # this file is dealt with, so no finding label ends up naming a section that
 # no longer holds its lines.
-cogs/control_ui.py:1-1832
+cogs/control_ui.py:1-1457
 
-## Section 03  (1629 lines, 1 piece)
+## Section 03  (1490 lines, 1 piece)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1833-3322
+cogs/control_ui.py:1458-2947
 
 ## Section 04  (1612 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -60,7 +60,7 @@ cogs/donation_ui.py:1-645
 cogs/enhanced_info_modal_simple.py:1-694
 
 ## Section 08  (1398 lines, 1 piece)
-cogs/status_handlers.py:1-1133
+cogs/status_handlers.py:1-1127
 
 ## Section 09  (1234 lines, 1 piece)
 cogs/status_info_integration.py:1-1261
@@ -391,7 +391,7 @@ app/web/compat.py:1-102
 cogs/ddc_ui.py:1-175
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
-cogs/group_control.py:1-332
+cogs/group_control.py:1-329
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).

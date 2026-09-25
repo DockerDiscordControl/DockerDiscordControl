@@ -697,7 +697,6 @@ class StatusHandlersMixin:
 
     async def _generate_status_embed_and_view(self, channel_id: int, display_name: str,
                                        server_conf: Dict[str, Any], current_config: Dict[str, Any],
-                                       allow_toggle: bool = True,
                                        force_collapse: bool = False) -> Tuple[discord.Embed, Optional[discord.ui.View], bool]:
         """
         Generates the status embed and view based on cache and settings.
@@ -708,7 +707,6 @@ class StatusHandlersMixin:
         - display_name: The display name of the server to show
         - server_conf: The configuration of the specific server
         - current_config: The full bot configuration
-        - allow_toggle: Whether to allow the toggle button in the view
         - force_collapse: Whether to force the status to be collapsed
         """
         lang = current_config.get('language', 'de')
@@ -960,15 +958,12 @@ class StatusHandlersMixin:
                 )
                 embed.set_footer(text="https://ddc.bot")
 
-                # Create view with toggle button only if allowed and container is running and has details
-                if allow_toggle and running and details_allowed:
-                    view = ControlView(
-                        self, server_conf, is_running=running,
-                        channel_has_control_permission=_channel_has_permission(channel_id, server_conf),
-                        channel_id=channel_id
-                    )
-                else:
-                    view = None
+                # NO VIEW FROM HERE. This branch built the container's expand
+                # button, the one control that is gone (2026-09-25). It set no
+                # `view = None` in its place, because that would be a second
+                # untrue statement: whatever this branch assigned was always
+                # overwritten by the block at the end of this method, which
+                # decides the view for every path that reaches a return.
 
         elif isinstance(status_result, Exception):
             logger.error(f"[_GEN_EMBED] Status for '{display_name}' is an exception: {status_result}", exc_info=False)
@@ -1120,13 +1115,12 @@ class StatusHandlersMixin:
 
             else:
                 # CONTROL CHANNEL: Use standard ControlView
-                view = ControlView(self, server_conf, running, channel_has_control_permission=channel_has_control, allow_toggle=allow_toggle, channel_id=channel_id)
+                view = ControlView(self, server_conf, running, channel_has_control_permission=channel_has_control, channel_id=channel_id)
         else:
             view = None # Ensure view is None if server_conf is missing or critical error
 
         return embed, view, running
 
-    # Wrapper to set the update time (must accept allow_toggle)
     # =============================================================================
     # ULTRA-PERFORMANCE MESSAGE EDITING WITH BULK CACHE PRELOADING
     # =============================================================================

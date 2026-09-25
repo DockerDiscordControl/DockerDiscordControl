@@ -77,7 +77,7 @@ def test_the_admin_overview_is_tracked_and_saved(cog):
 
 
 def test_the_status_overview_is_the_only_tracked_message(cog):
-    asyncio.run(cog._send_all_server_statuses(_TextChannel(CHANNEL), allow_toggle=False, force_collapse=True))
+    asyncio.run(cog._send_all_server_statuses(_TextChannel(CHANNEL), force_collapse=True))
     assert cog.channel_server_message_ids[CHANNEL] == {"overview": 7007}
     cog._persist_tracked_message_ids.assert_called_once()
     assert cog.mech_expanded_states[CHANNEL] is False

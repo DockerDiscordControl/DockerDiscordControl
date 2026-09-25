@@ -10,19 +10,17 @@ AND HIS SECOND MESSAGE IS THE WHOLE REASON THIS FILE EXISTS: "careful, the
 main views in the status channel and the control channel must NOT get a close
 button, only the private ephemeral messages."
 
-WHY THAT WAS ALREADY THE DANGER. ControlView is built at five places, and only
-two of them are private:
+WHY THAT WAS ALREADY THE DANGER. ControlView is built for the channel
+overviews as well as for the admin panel:
 
-    status_handlers.py:965, :1123   the status and control channel overviews
-    control_ui.py:1030              inside ToggleButton - the expand/collapse
-                                    control on the PUBLIC overview, which
-                                    rebuilds the button row in place
-    control_ui.py:593, :2205        the admin panel, sent as an ephemeral
-                                    followup and edited in place
+    status_handlers.py:1123   the status and control channel overviews
+    control_ui.py, group_control.py
+                              the admin panel, sent as an ephemeral followup
+                              and edited in place
 
-A close button on any of the first three would have appeared on the message
-everybody in the channel reads, and one press would have deleted it for all of
-them. The same class, the same buttons, a different audience.
+A close button on the first would have appeared on the message everybody in
+the channel reads, and one press would have deleted it for all of them. The
+same class, the same buttons, a different audience.
 
 TWO GUARDS, because one line at one call site is exactly the kind of thing the
 next person copies to the wrong place:
@@ -62,14 +60,11 @@ CONTROL_UI = PROJECT / "cogs" / "control_ui.py"
 # so forbidding the flag across that file flagged the very sites that are
 # supposed to have it.
 #
-# ToggleButton is in the list although the operator pointed out, correctly,
-# that his panels have no expand/collapse any more - `send_server_status` is
-# called by no production code, so that button cannot appear today. It is
-# named anyway because the rule is about what the class is FOR, and dead code
-# has a way of coming back.
+# ToggleButton stood here too, as the expand/collapse control on the public
+# panel. The operator said his panels have no expanding any more; that was
+# proved on 2026-09-25 and the class was removed, so the scope went with it.
 PUBLIC_VIEW_SCOPES = (
     ("cogs/status_handlers.py", None, "the channel overviews"),
-    ("cogs/control_ui.py", "ToggleButton", "expand/collapse on the public panel"),
 )
 
 
@@ -183,7 +178,7 @@ def test_even_a_refusal_answers_the_press():
 
 def test_the_public_construction_sites_do_not_ask_for_one():
     """The first guard: the button is only added where it is asked for, and
-    these three places must never ask."""
+    the channel overviews must never ask."""
     offenders = []
     for path, scope, what in PUBLIC_VIEW_SCOPES:
         tree = ast.parse((PROJECT / path).read_text(encoding="utf-8"))

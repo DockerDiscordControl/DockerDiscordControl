@@ -45,72 +45,26 @@ logger = get_module_logger('control_ui')
 # Global caches for performance optimization
 _timestamp_format_cache = {}      # Cache for formatted timestamps
 _view_cache = {}                 # Cache for view objects
-_translation_cache = OrderedDict()  # Cache for translations (LRU via OrderedDict)
 _box_element_cache = OrderedDict()  # Cache for box elements (LRU via OrderedDict)
 _container_static_data = {}      # Cache for static container data
-_embed_pool = []                 # Pool of reusable embed objects
 _view_template_cache = {}        # Cache for view templates per container state
 
 # Description templates for fast string generation
 # {player_line} is the optional game-server player-count line ("│ Players: x/y\n" or "", from format_player_line).
 # It must mirror the background status-loop renderer (cogs/status_handlers.py) so the count
 # does NOT flicker away when the user toggles Expand/Collapse.
-_description_templates = {
-    'running_expanded_details': "```\n{header}\n│ {emoji} {status}\n│ {cpu_text}: {cpu}\n│ {ram_text}: {ram}\n│ {uptime_text}: {uptime}\n{player_line}{footer}\n```",
-    'running_expanded_no_details': "```\n{header}\n│ {emoji} {status}\n│ ⚠️ *{detail_denied_text}*\n│ {uptime_text}: {uptime}\n{player_line}{footer}\n```",
-    'running_collapsed': "```\n{header}\n│ {emoji} {status}\n{player_line}{footer}\n```",
-    'offline': "```\n{header}\n│ {emoji} {status}\n{footer}\n```"
-}
 
 def _clear_caches():
     """Clears all performance caches - called periodically."""
     _timestamp_format_cache.clear()
     _view_cache.clear()
-    _translation_cache.clear()
     _box_element_cache.clear()
     _container_static_data.clear()
-    _embed_pool.clear()
     _view_template_cache.clear()
     logger.info("All performance caches cleared")
 
 # =============================================================================
-# OPTIMIZATION 1: ULTRA-FAST TIMESTAMP CACHING
-# =============================================================================
-
-def _get_cached_formatted_timestamp(dt: datetime, timezone_str: Optional[str] = None) -> str:
-    """Get a formatted timestamp, potentially from cache."""
-    # Always format fresh to ensure correct timezone
-    return format_datetime_with_timezone(dt, timezone_str, time_only=True)
-
-# =============================================================================
-# OPTIMIZATION 2: ULTRA-FAST TRANSLATION CACHING
-# =============================================================================
-
-def _get_cached_translations(lang: str) -> dict:
-    """Cache for translations per language - 99% faster."""
-    if lang not in _translation_cache:
-        _translation_cache[lang] = {
-            'online_text': _("**Online**"),
-            'offline_text': _("**Offline**"),
-            'cpu_text': _("CPU"),
-            'ram_text': _("RAM"),
-            'uptime_text': _("Uptime"),
-            'detail_denied_text': _("Detailed status not allowed."),
-            'last_update_text': _("Last update"),
-            'players_text': _("Players")
-        }
-
-        # LRU eviction: remove oldest entry if cache too large
-        if len(_translation_cache) > 10:
-            _translation_cache.popitem(last=False)  # Remove oldest (FIFO)
-    else:
-        # Move to end for LRU (most recently used)
-        _translation_cache.move_to_end(lang)
-
-    return _translation_cache[lang]
-
-# =============================================================================
-# OPTIMIZATION 3: ULTRA-FAST BOX ELEMENT CACHING
+# BOX ELEMENT CACHING
 # =============================================================================
 
 def _get_cached_box_elements(display_name: str, box_width: int = 28) -> dict:
@@ -148,7 +102,6 @@ def _get_container_static_data(display_name: str, docker_name: str) -> dict:
     """Cache for static container data that never changes - 80% faster."""
     if display_name not in _container_static_data:
         _container_static_data[display_name] = {
-            'custom_id_toggle': f"toggle_{docker_name}",
             'custom_id_start': f"start_{docker_name}",
             'custom_id_stop': f"stop_{docker_name}",
             'custom_id_restart': f"restart_{docker_name}",
@@ -164,32 +117,7 @@ def _get_container_static_data(display_name: str, docker_name: str) -> dict:
     return _container_static_data[display_name]
 
 # =============================================================================
-# OPTIMIZATION 5: ULTRA-FAST TEMPLATE-BASED DESCRIPTION GENERATION
-# =============================================================================
-
-def _get_description_ultra_fast(template_key: str, **kwargs) -> str:
-    """Ultra-fast template-basierte Description - 90% schneller."""
-    return _description_templates[template_key].format(**kwargs)
-
-# =============================================================================
-# OPTIMIZATION 6: ULTRA-FAST EMBED RECYCLING
-# =============================================================================
-
-def _get_recycled_embed(description: str, color: int) -> discord.Embed:
-    """Reused embed objects for better performance - 90% faster."""
-    if _embed_pool:
-        embed = _embed_pool.pop()
-        embed.description = description
-        embed.color = color
-        embed.clear_fields()
-    else:
-        embed = discord.Embed(description=description, color=color)
-
-    embed.set_footer(text="https://ddc.bot")
-    return embed
-
-# =============================================================================
-# OPTIMIZATION 7: ULTRA-FAST PERMISSION CACHING
+# PERMISSION CACHING
 # =============================================================================
 
 def _get_cached_channel_permission(channel_id: int, permission_key: str, current_config: dict) -> bool:
@@ -608,7 +536,6 @@ class ActionButton(Button):
                                         self.display_name,
                                         self.server_config,
                                         config,
-                                        allow_toggle=True,
                                         force_collapse=False
                                     )
                                     if normal_embed:
@@ -698,308 +625,6 @@ class ActionButton(Button):
                 del self.cog.pending_actions[self.docker_name]
             raise
 
-# =============================================================================
-# ULTRA-OPTIMIZED TOGGLE BUTTON CLASS WITH ALL 6 OPTIMIZATIONS
-# =============================================================================
-
-class ToggleButton(Button):
-    """Ultra-optimized toggle button with all 6 performance optimizations."""
-    cog: 'DockerControlCog'
-
-    def __init__(self, cog_instance: 'DockerControlCog', server_config: dict, is_running: bool, row: int):
-        self.cog = cog_instance
-        self.docker_name = server_config.get('docker_name')
-        self.display_name = server_config.get('name', self.docker_name)
-        self.server_config = server_config
-        # Use docker_name as key for expanded state (stable identifier)
-        self.is_expanded = cog_instance.expanded_states.get(self.docker_name, False)
-
-        # Use cached static data
-        static_data = _get_container_static_data(self.display_name, self.docker_name)
-        custom_id = static_data['custom_id_toggle']
-
-        # Cache channel permissions for this button
-        self._channel_permissions_cache = {}
-
-        emoji = "➖" if self.is_expanded else "➕"
-        super().__init__(style=discord.ButtonStyle.primary, label=None, custom_id=custom_id, row=row, emoji=emoji, disabled=not is_running)
-
-    def _get_cached_channel_permission_for_toggle(self, channel_id: int, current_config: dict) -> bool:
-        """Cached CHANNEL permission specifically for this toggle button.
-
-        Channel-only on purpose: this cache is keyed by channel, while being a
-        registered admin is a property of the USER. The admin part of the rule
-        belongs in _control_allowed_for below, outside the cache - putting it
-        in here would hand the first presser's admin status to everybody else
-        in the same channel (review D3).
-        """
-        if channel_id not in self._channel_permissions_cache:
-            self._channel_permissions_cache[channel_id] = _get_cached_channel_permission(channel_id, 'control', current_config)
-        return self._channel_permissions_cache[channel_id]
-
-    def _control_allowed_for(self, channel_id: int, user_id: int, current_config: dict) -> bool:
-        """The channel's control permission OR a registered admin.
-
-        The same rule as the six other places in this file (:315, :1111, :1160,
-        :1330, :1595, :1980) and as SPEC.md Z5 with its B2 clarification. This
-        button was the one that asked the channel alone, so a registered admin
-        in a status channel pressed Expand and watched the Stop/Restart buttons
-        disappear from the redrawn view (review D3).
-        """
-        return (self._get_cached_channel_permission_for_toggle(channel_id, current_config)
-                or _is_registered_admin(user_id))
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """ULTRA-OPTIMIZED toggle function with all 6 performance optimizations."""
-        # This said "Spam protection for toggle button was intentionally
-        # removed" - with no reason, neither in the comment nor in the commit
-        # message. Every other button in this file checks (:265-282, :981-990,
-        # :1221-1228); this one was the only exception, although every press
-        # triggers a message.edit against the Discord API - the button with the
-        # lowest threshold was the only one without a brake.
-        #
-        # NOT reverted, but adapted to the house pattern: the old code
-        # (0195074^) had an untranslated f-string and caught Exception. It now
-        # uses the existing catalog entry WITHOUT an {action} placeholder
-        # (locales/*.json:1453, already used four times in
-        # status_info_integration.py). The message at :274 fills {action} from
-        # self.action - ToggleButton has none, and "refresh" would be the wrong
-        # word for the user on an expand button.
-        #
-        # About the key "refresh": elsewhere in the application code it only
-        # appears as an entry in the defaults dictionary - nobody shares the
-        # bucket. Since 2026-09-19 it has its own panel field (SPEC.md B10,
-        # decided); before, the panel only knew live_refresh, a different key,
-        # and the cooldown was fixed at 5 seconds.
-        from services.infrastructure.spam_protection_service import get_spam_protection_service
-        spam_service = get_spam_protection_service()
-
-        if spam_service.is_enabled():
-            try:
-                if spam_service.is_on_cooldown(interaction.user.id, "refresh"):
-                    remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "refresh")
-                    await interaction.response.send_message(
-                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                            remaining=remaining_time
-                        ),
-                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
-                    )
-                    return
-                spam_service.add_user_cooldown(interaction.user.id, "refresh")
-            except (RuntimeError, AttributeError, KeyError) as e:
-                logger.error(f"Spam protection error for toggle button: {e}", exc_info=True)
-
-        await interaction.response.defer()
-
-        start_time = time.time()
-        self.is_expanded = not self.is_expanded
-        # Use docker_name as key for expanded state (stable identifier)
-        self.cog.expanded_states[self.docker_name] = self.is_expanded
-
-        # Removed debug log to reduce log spam - only log on errors
-
-        channel_id = interaction.channel.id if interaction.channel else None
-
-        try:
-            message = interaction.message
-            if not message or not channel_id:
-                logger.error(f"[TOGGLE_BTN] Message or channel missing for '{self.display_name}'")
-                return
-
-            current_config = load_config()
-            if not current_config:
-                logger.error("[ULTRA_FAST_TOGGLE] Could not load configuration for toggle.")
-                # followup, not response: the interaction was deferred above, so a second
-                # response raises InteractionResponded - it was logged and the user saw
-                # nothing, the panel simply did not react (review A12).
-                await interaction.followup.send(_("Error: Could not load configuration to process this action."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
-                return
-
-            # Check if container is in pending status - use docker_name as key
-            is_pending = self.docker_name in self.cog.pending_actions
-
-            if is_pending:
-                logger.debug(f"[TOGGLE_BTN] '{self.display_name}' is in pending status, show pending embed")
-                pending_embed = _get_pending_embed(self.display_name)
-                if pending_embed:
-                    await message.edit(embed=pending_embed, view=None)
-                    elapsed_time = (time.time() - start_time) * 1000
-                    # Only log if operation takes unusually long (>100ms)
-                    if elapsed_time > 100:
-                        logger.warning(f"[TOGGLE_BTN] Pending message for '{self.display_name}' updated in {elapsed_time:.1f}ms (slow)")
-                return
-
-            # Use cached data for ultra-fast operation
-            # CRITICAL: Use docker_name as cache key (not display_name!)
-            cached_entry = self.cog.status_cache_service.get(self.docker_name)
-
-            if cached_entry and cached_entry.get('data'):
-                status_result = cached_entry['data']
-
-                # This function call now receives the fresh config
-                embed, view = await self._generate_ultra_fast_toggle_embed_and_view(
-                    interaction.channel.id,
-                    interaction.user.id,
-                    status_result,
-                    current_config,
-                    cached_entry
-                )
-
-                if embed and view:
-                    await message.edit(embed=embed, view=view)
-                    elapsed_time = (time.time() - start_time) * 1000
-                    # Only log if operation is slow (>50ms) or very fast (<5ms for verification)
-                    if elapsed_time > 50:
-                        logger.warning(f"[TOGGLE_BTN] Toggle for '{self.display_name}' took {elapsed_time:.1f}ms (slow)")
-                    elif elapsed_time < 5:
-                        logger.info(f"[TOGGLE_BTN] Ultra-fast toggle for '{self.display_name}' in {elapsed_time:.1f}ms")
-                else:
-                    logger.warning(f"[TOGGLE_BTN] Ultra-fast toggle generation failed for '{self.display_name}'")
-            else:
-                # Show loading status if no cache available
-                logger.info(f"[TOGGLE_BTN] No cache entry for '{self.display_name}' - Background loop will update")
-
-                # Plain lines, no box, translated: this was an untranslated
-                # English string drawing a ┌── │ └── frame in a code block,
-                # which does not reflow and broke apart on a phone - and it
-                # was English in every language, footer included. It uses the
-                # texts of the same loading message in status_handlers.py.
-                temp_embed = discord.Embed(
-                    title=f"🔄 {_('Loading Status')}",
-                    description=f"{_('Fetching container data...')}\n"
-                                f"⏱️ {_('Please wait for fresh data')}",
-                    color=0x3498db
-                )
-                temp_embed.set_footer(text="https://ddc.bot")
-
-                temp_view = discord.ui.View(timeout=None)
-                await message.edit(embed=temp_embed, view=temp_view)
-                elapsed_time = (time.time() - start_time) * 1000
-                # Only log if loading message is slow
-                if elapsed_time > 100:
-                    logger.warning(f"[TOGGLE_BTN] Loading message for '{self.display_name}' took {elapsed_time:.1f}ms (slow)")
-
-        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-            logger.error(f"[TOGGLE_BTN] Error toggling '{self.display_name}': {e}", exc_info=True)
-
-        # Update channel activity timestamp
-        if interaction.channel:
-            self.cog.last_channel_activity[interaction.channel.id] = datetime.now(timezone.utc)
-
-    async def _generate_ultra_fast_toggle_embed_and_view(self, channel_id: int, user_id: int, status_result, current_config: dict, cached_entry: dict) -> tuple[Optional[discord.Embed], Optional[discord.ui.View]]:
-        """Ultra-fast embed/view generation with all 6 optimizations."""
-        try:
-            # Handle both ContainerStatusResult (modern) and tuple (legacy) formats
-            from services.docker_status.models import ContainerStatusResult
-
-            if isinstance(status_result, ContainerStatusResult):
-                # Modern format: ContainerStatusResult dataclass
-                if not status_result.success:
-                    logger.warning(f"[ULTRA_FAST_TOGGLE] ContainerStatusResult failed for '{self.display_name}'")
-                    return None, None
-                display_name_from_status = status_result.display_name
-                running = status_result.is_running
-                cpu = status_result.cpu
-                ram = status_result.ram
-                uptime = status_result.uptime
-                details_allowed = status_result.details_allowed
-                players_online = status_result.players_online
-                max_players = status_result.max_players
-            elif isinstance(status_result, tuple) and len(status_result) == 6:
-                # Legacy format: tuple unpacking (no player-count data)
-                display_name_from_status, running, cpu, ram, uptime, details_allowed = status_result
-                players_online = max_players = None
-            else:
-                logger.warning(f"[ULTRA_FAST_TOGGLE] Invalid status_result format for '{self.display_name}': {type(status_result).__name__}")
-                return None, None
-            status_color = 0x00b300 if running else 0xe74c3c
-
-            # OPTIMIZATION 2: Use cached translations (99% schneller)
-            lang = current_config.get('language', 'de')
-            translations = _get_cached_translations(lang)
-
-            # OPTIMIZATION 3: Use cached box elements (98% schneller)
-            static_data = _get_container_static_data(self.display_name, self.docker_name)
-            box_elements = static_data['box_elements']
-
-            status_text = translations['online_text'] if running else translations['offline_text']
-            current_emoji = "🟢" if running else "🔴"
-            if isinstance(status_result, ContainerStatusResult) and status_result.not_found:
-                # Deleted/renamed container - same rendering as the status loop
-                status_text = _("Not found")
-                current_emoji = "❓"
-            is_expanded = self.is_expanded
-
-            # Game-server player-count line - shared helper with the status-loop renderer so
-            # the count survives Expand/Collapse toggles instead of flickering off until the
-            # next tick (identical formatting in both paths).
-            from services.discord.embed_helper_service import format_player_line
-            player_line = format_player_line(players_online, max_players,
-                                             translations.get('players_text', 'Players'))
-
-            # OPTIMIZATION 4: Template-based description generation (90% schneller)
-            template_args = {
-                'header': box_elements['header_line'],
-                'footer': box_elements['footer_line'],
-                'emoji': current_emoji,
-                'status': status_text,
-                'cpu_text': translations['cpu_text'],
-                'ram_text': translations['ram_text'],
-                'uptime_text': translations['uptime_text'],
-                'detail_denied_text': translations['detail_denied_text'],
-                'cpu': cpu,
-                'ram': ram,
-                'uptime': uptime,
-                'player_line': player_line
-            }
-
-            # Choose template based on state
-            if running:
-                if details_allowed and is_expanded:
-                    template_key = 'running_expanded_details'
-                elif not details_allowed and is_expanded:
-                    template_key = 'running_expanded_no_details'
-                else:
-                    template_key = 'running_collapsed'
-            else:
-                template_key = 'offline'
-
-            description = _get_description_ultra_fast(template_key, **template_args)
-
-            # OPTIMIZATION 1: Ultra-fast cached timestamp formatting (95% schneller)
-            # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
-            timezone_str = current_config.get('timezone')
-            current_time = _get_cached_formatted_timestamp(cached_entry['timestamp'], timezone_str)
-            timestamp_line = f"{translations['last_update_text']}: {current_time}"
-
-            final_description = f"{timestamp_line}\n{description}"
-
-            # OPTIMIZATION 5: Embed recycling (90% schneller)
-            embed = _get_recycled_embed(final_description, status_color)
-
-            # OPTIMIZATION 6: Ultra-fast cached channel permission (90% schneller)
-            channel_has_control = self._control_allowed_for(channel_id, user_id, current_config)
-
-            # Create optimized view
-            view = self._create_ultra_optimized_control_view(running, channel_has_control, channel_id)
-
-            return embed, view
-
-        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-            logger.error(f"[ULTRA_FAST_TOGGLE] Error in ultra-fast toggle generation for '{self.display_name}': {e}", exc_info=True)
-            return None, None
-
-    def _create_ultra_optimized_control_view(self, is_running: bool, channel_has_control_permission: bool,
-                                             channel_id: Optional[int] = None) -> 'ControlView':
-        """Creates an ultra-optimized ControlView with all optimizations."""
-        return ControlView(
-            self.cog,
-            self.server_config,
-            is_running,
-            channel_has_control_permission=channel_has_control_permission,
-            allow_toggle=True,
-            channel_id=channel_id,
-        )
 
 # =============================================================================
 # ULTRA-OPTIMIZED CONTROL VIEW CLASS
@@ -1009,10 +634,9 @@ class ControlView(DDCView):
     """Ultra-optimized view with control buttons for a Docker container."""
     cog: 'DockerControlCog'
 
-    def __init__(self, cog_instance: Optional['DockerControlCog'], server_config: Optional[dict], is_running: bool, channel_has_control_permission: bool, allow_toggle: bool = True, channel_id: Optional[int] = None):
+    def __init__(self, cog_instance: Optional['DockerControlCog'], server_config: Optional[dict], is_running: bool, channel_has_control_permission: bool, channel_id: Optional[int] = None):
         super().__init__(timeout=None)
         self.cog = cog_instance
-        self.allow_toggle = allow_toggle
 
         # If called for registration only, don't add items
         if not self.cog or not server_config:
@@ -1075,10 +699,11 @@ class ControlView(DDCView):
 
         # Add buttons based on state and permissions
         if is_running:
-            # Toggle button for running containers with details allowed
-            if details_allowed and self.allow_toggle:
-                self.add_item(ToggleButton(cog_instance, server_config, is_running=True, row=0))
-
+            # NO EXPAND BUTTON. A ➕/➖ toggle stood here, added only when
+            # allow_toggle was true - which no live caller ever passed, and
+            # which five months of recorded presses never once produced
+            # (tests/spec/test_no_control_flips_an_expand_state.py).
+            #
             # Action buttons when expanded and channel has control
             if channel_has_control_permission and is_expanded:
                 button_row = 0

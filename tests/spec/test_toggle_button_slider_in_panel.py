@@ -1,15 +1,30 @@
 # -*- coding: utf-8 -*-
-"""The toggle button ("refresh") gets a slider in the panel; the dead key
-``auto_refresh`` disappears from the defaults.
+"""The ``refresh`` cooldown has a slider in the panel; ``auto_refresh`` does not.
 
 NO ``@covers`` marker: that would be a new guarantee, and those are the
 operator's decision. Decided is SPEC.md B10: "refresh into the panel".
 
-THE FINDING. ToggleButton brakes under ``refresh`` (default 5). The panel only
-knows ``live_refresh`` - a different key. The cooldown was therefore fixed and
-not configurable. ``auto_refresh`` was in the defaults without any code ever
-asking for it (measured: the only hit is the entry itself; LiveLogView has a
-PARAMETER of the same name that has nothing to do with spam protection).
+THE BUTTON IT BRAKES IS GONE, AND THE SLIDER IS STILL THERE (2026-09-25).
+``refresh`` was ToggleButton's key, and that button was removed as unreachable
+(tests/spec/test_no_control_flips_an_expand_state.py). No application code
+asks for the key any more, so the panel now offers a field labelled "Overview
+Toggle Button" for a button nobody can press.
+
+THAT IS THE OPERATOR'S CALL, NOT MINE, and this file is where the question is
+kept rather than answered. He decided on 2026-09-19 that the field should
+exist; removing it reverses his own decision, and it touches the defaults, the
+markup, the modal's script and a key in all forty catalogues. The cases below
+therefore still hold the field to what he asked for. Nothing breaks either
+way: an unknown key falls back to five seconds
+(``spam_protection_service.get_button_cooldown``), and a saved configuration
+that carries the value is simply never read.
+
+THE ORIGINAL FINDING. ToggleButton braked under ``refresh`` (default 5). The
+panel only knew ``live_refresh`` - a different key. The cooldown was therefore
+fixed and not configurable. ``auto_refresh`` was in the defaults without any
+code ever asking for it (measured: the only hit is the entry itself;
+LiveLogView has a PARAMETER of the same name that has nothing to do with spam
+protection).
 
 The panel field and the save line are checked by the general contract
 (test_requested_cooldown_keys_exist.py), since the exception for ``refresh``
