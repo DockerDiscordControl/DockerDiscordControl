@@ -13,8 +13,8 @@ Checks:
        exist in en.json.
     3. ``meta.json`` covers every locale stem (excluding ``meta`` and
        hidden ``_*`` files) and every entry has ``name`` + ``native``.
-    4. The Bundle 1 i18n keys exist in en.json and de.json with the
-       expected substrings.
+    4. Every key the panel reads exists, and is not empty, in en.json
+       and de.json - the subjects read out of the markup, not listed.
     5. The :class:`I18nService` lazy-loading and helper behaviour.
     6. Locale files are non-empty (>= 50 keys).
     7. No duplicate keys inside any locale JSON file.
@@ -39,12 +39,29 @@ META_FILE = LOCALES_DIR / "meta.json"
 
 MIN_KEYS_PER_LOCALE = 50
 
-# Bundle 1 keys to verify
-BUNDLE1_KEYS = (
-    "web.logs.debug_level_restart_hint",
-    "web.logs.debug_level_help",
-    "web.logs.debug_level_label",
-)
+# THE KEYS THE PANEL ACTUALLY READS, found by reading it.
+#
+# This was a tuple of three names, typed out in 2025 and called "Bundle 1".
+# On 2026-09-24 one of them - web.logs.debug_level_restart_hint - was removed
+# on purpose: the debug switch stopped needing a restart, so the hint stopped
+# being true. These four cases went red that day and nobody saw it, because
+# tests/unit/i18n is not one of the groups the working routine names. A list
+# goes stale exactly like the thing it guards; the markup does not.
+def _keys_the_panel_reads():
+    """Every catalogue key a template or a script asks for."""
+    import re
+
+    asked = set()
+    for folder, suffix in ((PROJECT_ROOT / "app" / "templates", "*.html"),
+                           (PROJECT_ROOT / "app" / "static" / "js", "*.js")):
+        for path in sorted(folder.rglob(suffix)):
+            text = path.read_text(encoding="utf-8")
+            for pattern in (r"_t\(\s*'([^']+)'", r'_t\(\s*"([^"]+)"',
+                            r"\bt\(\s*'([^']+)'", r'\bt\(\s*"([^"]+)"'):
+                asked |= set(re.findall(pattern, text))
+    # Only the panel's own namespace: the bot's texts are English sentences
+    # used as their own keys, and they are not read from a template.
+    return sorted(key for key in asked if key.startswith("web."))
 
 
 def _all_locale_files() -> List[Path]:
@@ -186,34 +203,42 @@ def test_meta_entries_only_reference_real_locale_files():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("key", BUNDLE1_KEYS)
-def test_en_has_bundle1_key(key: str):
+def test_every_key_the_panel_reads_exists_in_english():
+    """A key the markup asks for and the catalogue does not have renders as
+    the key itself - "web.logs.debug_level_label" in the middle of the page."""
     en = _load_locale(LOCALES_DIR / "en.json")
-    assert key in en, f"en.json missing Bundle 1 key: {key}"
-    assert en[key].strip(), f"en.json has empty value for {key}"
+    missing = [key for key in _keys_the_panel_reads() if key not in en]
+
+    assert missing == [], f"en.json is missing keys the panel reads: {missing}"
 
 
-@pytest.mark.parametrize("key", BUNDLE1_KEYS)
-def test_de_has_bundle1_key(key: str):
+def test_every_key_the_panel_reads_exists_in_german():
+    """German is the one language the operator reads, and the only other one
+    this project can check by eye."""
     de = _load_locale(LOCALES_DIR / "de.json")
-    assert key in de, f"de.json missing Bundle 1 key: {key}"
-    assert de[key].strip(), f"de.json has empty value for {key}"
+    missing = [key for key in _keys_the_panel_reads() if key not in de]
+
+    assert missing == [], f"de.json is missing keys the panel reads: {missing}"
 
 
-def test_de_restart_hint_translation_contains_german_phrase():
-    de = _load_locale(LOCALES_DIR / "de.json")
-    value = de["web.logs.debug_level_restart_hint"]
-    assert "Container-Neustart" in value, (
-        f"de.json restart_hint should mention 'Container-Neustart', got: {value!r}"
-    )
+def test_no_key_the_panel_reads_is_empty():
+    """An empty value is a key that exists and says nothing, which on the
+    page is a blank where a label belongs."""
+    for name in ("en.json", "de.json"):
+        catalogue = _load_locale(LOCALES_DIR / name)
+        blank = [key for key in _keys_the_panel_reads()
+                 if key in catalogue and not str(catalogue[key]).strip()]
+
+        assert blank == [], f"{name} has empty values for {blank}"
 
 
-def test_en_restart_hint_translation_contains_english_phrase():
-    en = _load_locale(LOCALES_DIR / "en.json")
-    value = en["web.logs.debug_level_restart_hint"]
-    assert "container restart" in value.lower(), (
-        f"en.json restart_hint should mention 'container restart', got: {value!r}"
-    )
+def test_the_panel_was_really_read():
+    """The counter-check: all three cases above pass on an empty list."""
+    keys = _keys_the_panel_reads()
+
+    assert len(keys) > 300, len(keys)
+    assert "web.logs.debug_level_label" in keys, "the debug section was not read"
+    assert "web.two_factor.title" in keys, "the second factor was not read"
 
 
 # ---------------------------------------------------------------------------
