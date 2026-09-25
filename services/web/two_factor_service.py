@@ -43,6 +43,7 @@ from utils.config_paths import get_config_dir
 
 STEP_SECONDS = 30
 DRIFT_STEPS = 1
+TRUSTED_DEVICE_DAYS = 90  # the operator's number, 2026-09-25
 RECOVERY_CODE_COUNT = 10
 FILE_NAME = "two_factor.json"
 
@@ -72,6 +73,10 @@ def new_secret() -> str:
 
 def _hash_recovery_code(code: str) -> str:
     return hashlib.sha256(code.replace("-", "").strip().lower().encode()).hexdigest()
+
+
+def _hash_device_token(token: str) -> str:
+    return hashlib.sha256(token.strip().encode()).hexdigest()
 
 
 def _new_recovery_code() -> str:
@@ -186,6 +191,70 @@ class TwoFactorStore:
                 return step
         return None
 
+    # -- remembered devices ------------------------------------------------
+    #
+    # A device the operator told the panel to remember skips the SECOND
+    # FACTOR only: the panel password is still asked every time. So this is
+    # not a way in, it is a record that this browser has already proved it
+    # holds the phone.
+    #
+    # THE TOKEN IS KEPT AS A HASH, for the same reason the recovery codes
+    # are: this file is readable by anything running as this user, and a
+    # credential written down in it IS the credential. The browser holds the
+    # token; this holds sha256 of it.
+    #
+    # BOUND TO THE PASSWORD, by the same binding the session marker uses, so
+    # a changed password forgets every device - otherwise whoever knew the
+    # old one would keep a way past the second factor.
+
+    def remember_device(self, token: str, binding: str, now: Optional[float] = None) -> None:
+        """Write down that this browser has answered, until it expires."""
+        moment = time.time() if now is None else now
+        with self._lock:
+            data = self._read()
+            devices = [d for d in data.get("devices", [])
+                       if d.get("expires", 0) > moment and d.get("binding") == binding]
+            devices.append({
+                "hash": _hash_device_token(token),
+                "binding": binding,
+                "expires": moment + TRUSTED_DEVICE_DAYS * 86400,
+            })
+            data["devices"] = devices
+            self._write(data)
+
+    def knows_device(self, token: str, binding: str, now: Optional[float] = None) -> bool:
+        """Whether this browser answered within the last ninety days.
+
+        Every one of the three has to hold: the hash, the password it was
+        bound to, and the expiry. A token we never issued matches none of
+        them, which is the answer to bringing your own cookie.
+        """
+        if not token:
+            return False
+        moment = time.time() if now is None else now
+        wanted = _hash_device_token(token)
+        return any(d.get("hash") == wanted and d.get("binding") == binding
+                   and d.get("expires", 0) > moment
+                   for d in self._read().get("devices", []))
+
+    def forget_expired_devices(self, now: Optional[float] = None) -> None:
+        moment = time.time() if now is None else now
+        with self._lock:
+            data = self._read()
+            kept = [d for d in data.get("devices", []) if d.get("expires", 0) > moment]
+            if len(kept) != len(data.get("devices", [])):
+                data["devices"] = kept
+                self._write(data)
+
+    def forget_every_device(self) -> None:
+        with self._lock:
+            data = self._read()
+            if data.pop("devices", None) is not None:
+                self._write(data)
+
+    def remembered_devices(self) -> int:
+        return len(self._read().get("devices", []))
+
     def holds_recovery_code(self, code: str) -> bool:
         """Whether this is one of the unused recovery codes - WITHOUT spending it.
 
@@ -227,8 +296,12 @@ class TwoFactorStore:
             # prompt_dismissed as well: switching 2FA off is a fresh start, and a
             # "Later" from before it was ever used must not silence the dialog
             # for the rest of the installation's life.
+            # "devices" among them, and HERE rather than in the route that
+            # calls this: switching 2FA off any other way - the break-glass
+            # script, a future route - would otherwise leave browsers written
+            # down that may walk past a second factor switched on again later.
             for key in ("enabled", "secret", "last_step", "recovery_hashes", "enabled_at",
-                        "pending_secret", "prompt_dismissed"):
+                        "pending_secret", "prompt_dismissed", "devices"):
                 data.pop(key, None)
             self._write(data)
         return True

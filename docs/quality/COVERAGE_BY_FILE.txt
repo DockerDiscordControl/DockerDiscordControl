@@ -59,7 +59,7 @@ app/blueprints/security_routes.py	206	pass1:s32:plan pass2:s32:1-193
 app/blueprints/system_routes.py	104	pass2:s32:1-51  [self-restart route, added 2026-09-24]
 app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never in a package]
-app/blueprints/two_factor_routes.py	279	v3rev:1-198
+app/blueprints/two_factor_routes.py	315	v3rev:1-198
 app/bootstrap/__init__.py	34	pass1:s33:1-34
 app/bootstrap/performance.py	55	pass1:s33:1-55
 app/bootstrap/runtime.py	206	pass1:s33:1-200
@@ -252,7 +252,7 @@ services/web/mech_web_service.py	641	pass1:s30:1-676
 services/web/performance_stats_service.py	182	pass1:s30:1-172  [9 of 181 lines never in a package]
 services/web/security_service.py	351	pass1:s30:1-339  [6 of 345 lines never in a package]
 services/web/task_management_service.py	1171	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
-services/web/two_factor_service.py	234	v3rev:1-224
+services/web/two_factor_service.py	307	v3rev:1-224
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150
 utils/atomic_io.py	104	pass1:s35:1-70

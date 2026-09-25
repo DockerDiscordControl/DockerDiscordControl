@@ -20,13 +20,15 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import secrets
 from urllib.parse import quote
 
 from flask import (Blueprint, Flask, Response, current_app, jsonify, redirect, render_template,
                    request, session, url_for)
 
 from app.auth import auth, two_factor_limiter, verify_password
-from services.web.two_factor_service import TwoFactorStore, TwoFactorUnreadable
+from services.web.two_factor_service import (TRUSTED_DEVICE_DAYS, TwoFactorStore,
+                                            TwoFactorUnreadable)
 
 logger = logging.getLogger("ddc.web.two_factor")
 
@@ -46,6 +48,19 @@ EXEMPT_PREFIXES = ("/static/", "/security/2fa/verify", "/health", "/setup", "/lo
                    # browser to the code page instead of the form leaves it
                    # with nothing to type.
                    "/login")
+
+
+DEVICE_COOKIE = "ddc_2fa_device"
+
+
+def _remembered_device_passes(store, binding: str) -> bool:
+    """Whether this browser was told to be remembered, and still is.
+
+    IT SKIPS THE SECOND FACTOR ONLY. The password check above has already
+    run; this says the browser proved once, within ninety days, that it
+    holds the phone.
+    """
+    return store.knows_device(request.cookies.get(DEVICE_COOKIE, ""), binding)
 
 
 def _binding() -> str:
@@ -116,7 +131,14 @@ def _require_second_factor():
         return None  # the route's own login check answers
     if not verify_password(credentials.username, credentials.password):
         return None  # wrong password: the route's own 401
-    if not enabled or session.get(SESSION_KEY) == _binding():
+    binding = _binding()
+    if not enabled or session.get(SESSION_KEY) == binding:
+        return None
+    # A device the operator asked to be remembered. It carries the same
+    # weight as the session marker and no more: the password was checked
+    # three lines up, and this only says the phone was shown here before.
+    if _remembered_device_passes(TwoFactorStore(), binding):
+        session[SESSION_KEY] = binding
         return None
     if _wants_json():
         return jsonify(error="second factor required"), 401
@@ -215,9 +237,21 @@ def verify():
         logger.warning(f"Second-factor attempts rate-limited from {request.remote_addr}")
         return render_template("two_factor.html", view="verify", next=target, error="rate",
                                secure=request.is_secure), 429
-    if TwoFactorStore().verify(request.form.get("code", "")):
-        session[SESSION_KEY] = _binding()
-        return redirect(_safe_next(target))
+    store = TwoFactorStore()
+    if store.verify(request.form.get("code", "")):
+        binding = _binding()
+        session[SESSION_KEY] = binding
+        answer = redirect(_safe_next(target))
+        if request.form.get("remember_device"):
+            # The browser keeps the token, the panel keeps its hash - the
+            # same split the recovery codes use, for the same reason.
+            token = secrets.token_urlsafe(32)
+            store.remember_device(token, binding)
+            answer.set_cookie(DEVICE_COOKIE, token, max_age=TRUSTED_DEVICE_DAYS * 86400,
+                              httponly=True, samesite="Lax", secure=True)
+            logger.info("This browser will not be asked for a second factor for %d days",
+                        TRUSTED_DEVICE_DAYS)
+        return answer
     logger.warning(f"Wrong second-factor code from {request.remote_addr}")
     return render_template("two_factor.html", view="verify", next=target, error="wrong",
                            secure=request.is_secure), 401
@@ -228,6 +262,8 @@ def verify():
 def disable():
     # Allowed over plain HTTP too: whoever switches TLS off later must not be
     # locked into a second factor they can no longer set up.
+    # The store forgets every remembered device as part of switching off, so
+    # no caller has to remember to (services/web/two_factor_service.py).
     if TwoFactorStore().disable(request.form.get("code", "")):
         session.pop(SESSION_KEY, None)
         logger.warning("Two-factor authentication switched OFF for the web panel")

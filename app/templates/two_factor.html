@@ -169,6 +169,15 @@
           <label for="code" class="form-label">{{ _t('web.two_factor.verify_label') }}</label>
           <input id="code" name="code" class="form-control form-control-lg text-center mb-3"
                  autocomplete="one-time-code" style="letter-spacing: 0.4em" autofocus required>
+          {# Offered, never ticked for him: it skips the SECOND factor on this
+             browser for ninety days, and the panel password is still asked
+             every time. #}
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="remember_device" name="remember_device" value="1">
+            <label class="form-check-label small text-secondary" for="remember_device">
+              {{ _t('web.two_factor.remember_device', days=90) }}
+            </label>
+          </div>
           <div class="d-grid">
             <button class="btn btn-primary btn-lg">{{ _t('web.two_factor.verify') }}</button>
           </div>

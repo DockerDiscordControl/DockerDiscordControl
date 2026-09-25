@@ -1715,6 +1715,7 @@
   "web.two_factor.status_off": "Two-factor authentication is off. The panel password alone opens this panel.",
   "web.two_factor.disable_label": "Code or recovery code to switch it off",
   "web.two_factor.disable": "Switch two-factor authentication off",
+  "web.two_factor.remember_device": "Zapamti ovaj uređaj {days} dana",
   "web.two_factor.scan": "Scan this code with your authenticator app (e.g. Aegis, 2FAS, Google Authenticator).",
   "web.two_factor.manual_key": "Or enter the key by hand:",
   "web.two_factor.confirm_label": "Six-digit code from the app",

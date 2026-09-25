@@ -1715,6 +1715,7 @@
   "web.two_factor.status_off": "Zwei-Faktor-Authentifizierung ist aus. Das Panel-Passwort allein öffnet dieses Panel.",
   "web.two_factor.disable_label": "Code oder Wiederherstellungscode zum Ausschalten",
   "web.two_factor.disable": "Zwei-Faktor-Authentifizierung ausschalten",
+  "web.two_factor.remember_device": "Dieses Gerät {days} Tage merken",
   "web.two_factor.scan": "Scanne diesen Code mit deiner Authenticator-App (z. B. Aegis, 2FAS, Google Authenticator).",
   "web.two_factor.manual_key": "Oder gib den Schlüssel von Hand ein:",
   "web.two_factor.confirm_label": "Sechsstelliger Code aus der App",
