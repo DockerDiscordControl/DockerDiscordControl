@@ -54,7 +54,14 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.close') }}</button>
-                <button type="button" class="btn btn-info" onclick="window.open('https://docs.ddc.bot/troubleshooting', '_blank');">
+                {# THE REPOSITORY'S OWN FILE, because it is the only copy that
+                   exists. This read docs.ddc.bot/troubleshooting and that host
+                   has never been registered (NXDOMAIN, 2026-09-26): the button
+                   opened a blank tab. ddc.bot/troubleshooting is no better - the
+                   site answers every path with its front page, so it would be a
+                   soft 404 and look healthy to anything that only reads status
+                   codes. #}
+                <button type="button" class="btn btn-info" onclick="window.open('https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/docs/TROUBLESHOOTING.md', '_blank');">
                     <i class="bi bi-book"></i> {{ _t('web.diagnostics.view_docs') }}
                 </button>
             </div>
