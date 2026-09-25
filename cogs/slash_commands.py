@@ -828,7 +828,7 @@ class SlashCommandsMixin:
 
             # Create view with donation buttons
             try:
-                view = DonationView(mech_service_available, bot=self.bot)
+                view = DonationView(mech_service_available, bot=self.bot, private=True)
                 # Note: Ephemeral messages don't need auto-delete as they're private
                 await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
                 logger.info(f"Mechonate button used by user {interaction.user.name} ({interaction.user.id})")

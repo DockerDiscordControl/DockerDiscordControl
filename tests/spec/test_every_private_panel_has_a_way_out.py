@@ -115,6 +115,33 @@ def _controls_and_exits(trees):
     return carries, exits
 
 
+def _adds_a_close_button_always(trees, view):
+    """Whether this view builds a close button no matter what it was told.
+
+    THE DISTINCTION MATTERS FOR ONE VIEW. DonationView is sent twice
+    privately and once, from /donate, publicly. It takes ``private`` and adds
+    the button only under it, which is right: a close button on the public
+    one would sit there refusing every press, since it asks the message's own
+    ephemeral flag first. A rule that forbade a public view from MENTIONING
+    the button would forbid that pattern too - which the first version did,
+    and it went red on the very change that fixed the finding.
+    """
+    for _path, tree in trees.items():
+        parent = _parents(tree)
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call)
+                    and ast.unparse(node.func).split(".")[-1] == "CloseButton"):
+                continue
+            owner, guarded = node, False
+            while owner is not None and not isinstance(owner, ast.ClassDef):
+                if isinstance(owner, ast.If) and "private" in ast.unparse(owner.test):
+                    guarded = True
+                owner = parent.get(owner)
+            if owner is not None and owner.name == view and not guarded:
+                return True
+    return False
+
+
 def _how_each_view_is_delivered(trees):
     """view class -> {'private', 'public'}; edits are counted as neither."""
     delivery = collections.defaultdict(set)
@@ -172,11 +199,56 @@ def _private_views(trees):
     return private
 
 
+def _ephemeral_sends(trees):
+    """(where, view class, was it built asking for a way out) per private send.
+
+    ASKED OF THE SEND, NOT OF THE CLASS - because the first version asked of
+    the class and let the donation panel through. DonationView goes out THREE
+    times: twice with ephemeral=True and once, from /donate, publicly with an
+    auto-delete timer. A rule about classes that are "only ever private" skips
+    a class that is sometimes private, which is exactly the one that needs
+    telling apart at the send.
+    """
+    for path, tree in trees.items():
+        parent = _parents(tree)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if ast.unparse(node.func).split(".")[-1] not in SENDS:
+                continue
+            if not any(k.arg == "ephemeral" and getattr(k.value, "value", None) is True
+                       for k in node.keywords):
+                continue
+            handed = next((k.value for k in node.keywords if k.arg == "view"), None)
+            if handed is None or (isinstance(handed, ast.Constant) and handed.value is None):
+                continue
+
+            built = handed if isinstance(handed, ast.Call) else None
+            if isinstance(handed, ast.Name):
+                enclosing = node
+                while enclosing is not None and not isinstance(
+                        enclosing, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    enclosing = parent.get(enclosing)
+                if enclosing is not None:
+                    for step in ast.walk(enclosing):
+                        if (isinstance(step, ast.Assign)
+                                and any(isinstance(x, ast.Name) and x.id == handed.id
+                                        for x in step.targets)
+                                and isinstance(step.value, ast.Call)):
+                            built = step.value
+            if built is None or not isinstance(built.func, ast.Name):
+                continue
+            asked = any(k.arg == "private" and getattr(k.value, "value", None) is True
+                        for k in built.keywords)
+            yield f"{path.name}:{node.lineno}", built.func.id, asked
+
+
 def test_every_private_panel_offers_a_way_out():
     """THE FINDING: twelve panels only one person can see, none of which
-    could be taken away."""
+    could be taken away - and a thirteenth the first rule walked past."""
     trees = _trees()
     carries, exits = _controls_and_exits(trees)
+
     stranded = sorted(name for name in _private_views(trees)
                       if carries.get(name) and not exits.get(name))
 
@@ -184,22 +256,48 @@ def test_every_private_panel_offers_a_way_out():
         "these are sent to one person, carry buttons, and offer no way to "
         f"take them away: {stranded}")
 
+    # and the same question asked of every ephemeral send, which catches a
+    # view that is private HERE and public somewhere else
+    mixed = sorted(f"{where} ({view})" for where, view, asked in _ephemeral_sends(trees)
+                   if carries.get(view) and not exits.get(view) and not asked)
+
+    assert mixed == [], (
+        "these send a panel to one person with no way to take it away: "
+        f"{mixed}")
+
 
 def test_the_public_overviews_still_carry_none():
     """HIS WARNING, as a running check. A close button on a message the whole
     channel reads would let any reader delete it for everybody."""
     trees = _trees()
-    _carries, exits = _controls_and_exits(trees)
     delivery = _how_each_view_is_delivered(trees)
     public = {name for name, how in delivery.items() if "public" in how}
 
-    offenders = sorted(name for name in public if "CloseButton" in exits.get(name, set()))
+    offenders = sorted(name for name in public if _adds_a_close_button_always(trees, name))
 
     assert offenders == [], (
         f"a view that is sent publicly carries a close button: {offenders}")
 
     # and the two that matter are really in that set, or the case is empty
     assert {"MechView", "AdminOverviewView"} <= public, sorted(public)
+
+
+def test_an_unguarded_close_button_on_a_public_view_is_still_caught():
+    """The counter-check on the refinement above: loosening the public rule
+    must not loosen it away. A close button added unconditionally in a view
+    the channel can see is the thing he forbade."""
+    sabotage = ast.parse(
+        "class Loud(DDCView):\n"
+        "    def __init__(self):\n"
+        "        self.add_item(CloseButton())\n")
+    careful = ast.parse(
+        "class Quiet(DDCView):\n"
+        "    def __init__(self, private=False):\n"
+        "        if private:\n"
+        "            self.add_item(CloseButton())\n")
+
+    assert _adds_a_close_button_always({Path("made_up.py"): sabotage}, "Loud")
+    assert not _adds_a_close_button_always({Path("made_up.py"): careful}, "Quiet")
 
 
 def test_the_scan_knows_which_views_are_private():

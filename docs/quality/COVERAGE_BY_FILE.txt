@@ -115,7 +115,7 @@ cogs/control_helpers.py	297	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines nev
 cogs/control_ui.py	2707	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
 cogs/ddc_ui.py	233	passE:written-2026-09-21
 cogs/docker_control.py	1255	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
-cogs/donation_ui.py	645	NONE
+cogs/donation_ui.py	655	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
 cogs/group_control.py	329	NONE
 cogs/loop_safety.py	103	v3rev2:1-98

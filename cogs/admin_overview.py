@@ -621,7 +621,7 @@ class AdminOverviewDonateButton(Button):
 
             # Import DonationView from docker_control
             from .docker_control import DonationView
-            view = DonationView(mech_service_available, bot=self.cog.bot)
+            view = DonationView(mech_service_available, bot=self.cog.bot, private=True)
 
             # Send the donation embed with buttons
             await interaction.followup.send(embed=embed, view=view, ephemeral=True)
