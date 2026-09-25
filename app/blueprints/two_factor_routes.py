@@ -295,7 +295,10 @@ def disable():
     if TwoFactorStore().disable(request.form.get("code", "")):
         session.pop(SESSION_KEY, None)
         logger.warning("Two-factor authentication switched OFF for the web panel")
-        return redirect(url_for("two_factor.status"))
+        # Back where the form was, which since 2026-09-26 may be the dialog on
+        # the settings page rather than the second-factor page itself.
+        return redirect(_safe_next(request.form.get("next", ""))
+                        if request.form.get("next") else url_for("two_factor.status"))
     return render_template("two_factor.html", view="status", enabled=True, error="wrong",
                            remaining=TwoFactorStore().remaining_recovery_codes(),
                            secure=request.is_secure), 401
@@ -357,4 +360,5 @@ def devices():
     TwoFactorStore().set_remembering_devices(allowed)
     logger.info("Remembering devices for %d days is now %s",
                 TRUSTED_DEVICE_DAYS, "allowed" if allowed else "off - all forgotten")
-    return redirect(url_for("two_factor.status"))
+    return redirect(_safe_next(request.form.get("next", ""))
+                    if request.form.get("next") else url_for("two_factor.status"))

@@ -29,9 +29,18 @@
            switching it ON used to take the only way back away - the recovery
            codes, the device switch and switching it off again all went with
            it (operator, 2026-09-25). This is where the panel password lives,
-           which is where he looked. A page, not a dialog, because it has its
-           own six screens and its own HTTPS rule. #}
+           which is where he looked.
+
+           A DIALOG SINCE 2026-09-26 (operator: "can we show this as a modal?
+           ... a modal also looks nicer"). The three buttons beside it are all
+           dialogs, so this was the odd one out - and leaving the panel was
+           what cost him his session that evening. It is still a LINK:
+           Bootstrap's modal data-api calls preventDefault() for an <a>, so
+           with the script loaded it opens the dialog and without it the
+           browser follows the href to the page, which is still there for
+           setting up, for typing a code and for the recovery codes. #}
         <a href="{{ url_for('two_factor.status') }}"
+           data-bs-toggle="modal" data-bs-target="#twoFactorModal"
            class="btn btn-outline-{{ 'success' if two_factor is defined and not two_factor.show else 'secondary' }} me-2">
             <i class="bi bi-shield-lock"></i> {{ _t('web.two_factor.title') }}
         </a>

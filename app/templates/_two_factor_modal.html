@@ -1,0 +1,100 @@
+{# The second factor, where the panel keeps the rest of its settings.
+
+   THE OPERATOR, 2026-09-25: "can we show this as a modal? ... a modal also
+   looks nicer." He is right twice over. The three buttons beside it - spam
+   protection, advanced settings, diagnostics - are all dialogs, so the one
+   that left the panel was the odd one out; and leaving the panel was what
+   cost him his session, because the way back carried an HTTP Basic challenge
+   (see app/web/security.py, one_answer_per_response).
+
+   THE PAGE STAYS, AND THE BUTTON STILL LEADS TO IT. Bootstrap's modal
+   data-api calls preventDefault() for an <a>, so with the script loaded the
+   link opens this dialog and without it the browser follows the href to the
+   page. A button that does nothing when JavaScript is off is the same defect
+   this repository has spent the week removing.
+
+   WHAT IS NOT HERE: setting up, typing a code, and the recovery codes. The
+   code screen comes BEFORE the operator is in the panel, so there is no panel
+   to put it on; the setup screen carries a QR and its own HTTPS rule; and the
+   recovery codes are shown exactly once, which a dialog that closes on a
+   stray click outside it is the wrong place for.
+
+   The state comes from the context processor in
+   app/blueprints/two_factor_routes.py, which already reads it for the line
+   beside the button. #}
+<div class="modal fade" id="twoFactorModal" tabindex="-1" aria-labelledby="twoFactorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="twoFactorModalLabel">
+                    <i class="bi bi-shield-lock"></i> {{ _t('web.two_factor.title') }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ _t('web.common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                {% set token = csrf_token() if csrf_token is defined else '' %}
+                {# Back to the card the button sits in, so the state line under it
+                   shows the result of whatever was just changed. #}
+                {% set back = '/#auth-settings' %}
+
+                {% if two_factor is defined and two_factor.enabled %}
+                <p class="text-center mb-4">
+                    <span class="badge bg-success px-3 py-2">
+                        <i class="bi bi-check-circle me-1"></i>{{ _t('web.two_factor.status_on', count=two_factor.codes) }}
+                    </span>
+                </p>
+
+                <form method="post" action="{{ url_for('two_factor.devices') }}" class="mb-4">
+                    <input type="hidden" name="csrf_token" value="{{ token }}">
+                    <input type="hidden" name="next" value="{{ back }}">
+                    <div class="form-check form-switch">
+                        {# Written down the moment it is used; the Save stays inside
+                           <noscript> so a browser that cannot flip it still has the
+                           plain form. Same as the page (app/templates/two_factor.html). #}
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="remember_devices_allowed_modal" name="remember_devices_allowed" value="1"
+                               onchange="this.form.submit()"
+                               {% if two_factor.remembering %}checked{% endif %}>
+                        <label class="form-check-label small" for="remember_devices_allowed_modal">
+                            {{ _t('web.two_factor.allow_remember', days=90) }}
+                        </label>
+                    </div>
+                    <div class="small text-secondary mt-1">{{ _t('web.two_factor.remembered_now', count=two_factor.devices) }}</div>
+                    <noscript>
+                        <button class="btn btn-outline-secondary btn-sm mt-2">{{ _t('web.common.save') }}</button>
+                    </noscript>
+                </form>
+
+                <form method="post" action="{{ url_for('two_factor.disable') }}">
+                    <input type="hidden" name="csrf_token" value="{{ token }}">
+                    <input type="hidden" name="next" value="{{ back }}">
+                    <label for="two_factor_disable_code" class="form-label">{{ _t('web.two_factor.disable_label') }}</label>
+                    <input id="two_factor_disable_code" name="code" class="form-control mb-3" inputmode="numeric" autocomplete="one-time-code" required>
+                    <div class="d-grid">
+                        <button class="btn btn-outline-danger">{{ _t('web.two_factor.disable') }}</button>
+                    </div>
+                </form>
+                {% else %}
+                <p class="text-secondary text-center mb-4">{{ _t('web.two_factor.status_off') }}</p>
+                {% if two_factor is defined and two_factor.secure %}
+                {# Setting up leaves for the page on purpose: it shows a QR code
+                   and then the recovery codes, which are shown once. #}
+                <form method="post" action="{{ url_for('two_factor.setup') }}">
+                    <input type="hidden" name="csrf_token" value="{{ token }}">
+                    <div class="d-grid">
+                        <button class="btn btn-primary btn-lg">
+                            <i class="bi bi-shield-plus me-2"></i>{{ _t('web.two_factor.set_up_now') }}
+                        </button>
+                    </div>
+                </form>
+                {% else %}
+                <div class="alert alert-warning">{{ _t('web.two_factor.needs_tls') }}</div>
+                {% endif %}
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _t('web.common.close') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
