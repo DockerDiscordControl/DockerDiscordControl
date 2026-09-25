@@ -33,6 +33,12 @@ from .loop_safety import survives_one_bad_cycle
 # Same logger name as the cog: log lines and log-based tests read as before the move.
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
+# How often the inactivity check asks Discord anyway, although the gateway's
+# cached last_message_id says our overview is still the newest message. That
+# id is NOT corrected when a message is deleted, so an overview somebody
+# removed by hand would otherwise never be noticed.
+VERIFY_OVER_THE_NETWORK_EVERY = 10
+
 
 def _measured_for(result, metric: str, unit: str):
     """The number THIS watcher measures for this container, or None for
@@ -544,9 +550,34 @@ class BackgroundLoopsMixin:
 
                 # Check if we've passed the inactivity threshold
                 if time_since_last_activity >= inactivity_threshold:
-                    logger.info(f"Channel {channel_id} has been inactive for {time_since_last_activity}, attempting regeneration")
+                    # NOT logger.info. This says what is about to be CONSIDERED,
+                    # and in the overwhelming majority of cycles the answer is
+                    # "nothing to do" - the operator read 36 of these lines in 18
+                    # minutes and concluded his panels were being recreated twice a
+                    # minute. They were not. Only an actual regeneration is news.
+                    logger.debug(f"Channel {channel_id} has been inactive for {time_since_last_activity}, checking whether the overview is still at the bottom")
 
                     try:
+                        # The cheap answer first. Asking Discord costs a
+                        # fetch_channel plus a history read per channel per cycle -
+                        # on a one-minute timeout some 5,760 calls a day - to learn
+                        # almost every time that nothing moved. The gateway already
+                        # knows the newest message id, and while that is still one
+                        # of our own tracked overviews there is nothing to do.
+                        cached_channel = self.bot.get_channel(channel_id)
+                        cached_last_message_id = getattr(cached_channel, 'last_message_id', None)
+                        tracked_ids = set(self.channel_server_message_ids.get(channel_id, {}).values())
+                        tracked_ids.discard(None)
+                        skipped = self.__dict__.setdefault('_inactivity_cheap_skips', {})
+
+                        if (cached_last_message_id is not None and cached_last_message_id in tracked_ids
+                                and skipped.get(channel_id, 0) < VERIFY_OVER_THE_NETWORK_EVERY):
+                            skipped[channel_id] = skipped.get(channel_id, 0) + 1
+                            self.last_channel_activity[channel_id] = now_utc
+                            logger.debug(f"Channel {channel_id}: our overview {cached_last_message_id} is still the newest message (cached) - nothing to do")
+                            continue
+                        skipped[channel_id] = 0
+
                         # Fetch the Discord channel
                         channel = await self.bot.fetch_channel(channel_id)
 
