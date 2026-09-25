@@ -53,7 +53,7 @@ cogs/slash_commands.py:1-855
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:884-1326
-cogs/background_loops.py:1-733
+cogs/background_loops.py:1-734
 cogs/donation_ui.py:1-645
 
 ## Section 07  (694 lines, 1 piece)
@@ -413,7 +413,7 @@ services/web/two_factor_service.py:1-224
 ## Section 40  (944 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
-cogs/message_updates.py:1-786
+cogs/message_updates.py:1-788
 
 ## Section 41  (1228 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py

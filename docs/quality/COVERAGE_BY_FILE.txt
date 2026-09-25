@@ -108,7 +108,7 @@ app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/admin_overview.py	988	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
-cogs/background_loops.py	733	v3rev:1-652
+cogs/background_loops.py	734	v3rev:1-652
 cogs/channel_lifecycle.py	627	v3rev2:1-646
 cogs/control_helpers.py	297	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/action_effect.py	163	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
@@ -119,7 +119,7 @@ cogs/docker_control.py	1326	passE:read-in-full-2026-09-21:loops,embeds,modals,in
 cogs/donation_ui.py	645	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
 cogs/loop_safety.py	103	v3rev2:1-98
-cogs/message_updates.py	786	v3rev2:1-786
+cogs/message_updates.py	788	v3rev2:1-788
 cogs/overview_embeds.py	1058	v3rev2:1-964
 cogs/slash_commands.py	855	NONE
 cogs/stack_restart.py	320	v3rev:1-196

@@ -70,12 +70,14 @@ class MessageUpdatesMixin:
             logger.error("Periodic Edit Loop: Could not load configuration. Skipping cycle.")
             return
 
-        logger.info("--- DIRECT COG periodic_message_edit_loop cycle --- Starting Check --- ")
+        # The cycle announces nothing on the way in. What it did is logged
+        # when it is done: "... finished. Total tasks: N. Success: ...".
+        logger.debug("--- DIRECT COG periodic_message_edit_loop cycle --- Starting Check --- ")
         if not self.initial_messages_sent:
              logger.debug("Direct Cog Periodic edit loop: Initial messages not sent yet, skipping.")
              return
 
-        logger.info(f"Direct Cog Periodic Edit Loop: Checking {len(self.channel_server_message_ids)} channels with tracked messages.")
+        logger.debug(f"Direct Cog Periodic Edit Loop: Checking {len(self.channel_server_message_ids)} channels with tracked messages.")
 
         tasks_to_run = []
         now_utc = datetime.now(timezone.utc)

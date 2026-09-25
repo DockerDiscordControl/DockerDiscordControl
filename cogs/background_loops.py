@@ -183,7 +183,7 @@ class BackgroundLoopsMixin:
 
         container_names = [s.get('docker_name') for s in servers if s.get('docker_name')]
 
-        logger.info(f"[STATUS_LOOP] Bulk updating cache for {len(container_names)} containers")
+        logger.debug(f"[STATUS_LOOP] Bulk updating cache for {len(container_names)} containers")
         start_time = time.time()
 
         try:
@@ -517,10 +517,11 @@ class BackgroundLoopsMixin:
                 logger.info("Inactivity check loop: Initial messages not sent yet, skipping.")
                 return
 
-            logger.info("Inactivity check loop running")
+            logger.debug("Inactivity check loop running")
 
-            # Log tracked channels for debugging
-            logger.info(f"Currently tracking {len(self.last_channel_activity)} channels for activity: {list(self.last_channel_activity.keys())}")
+            # Bookkeeping, not news: this said the same thing every thirty
+            # seconds whatever happened. The cycle reports itself when it acts.
+            logger.debug(f"Currently tracking {len(self.last_channel_activity)} channels for activity: {list(self.last_channel_activity.keys())}")
 
             # Check each channel we've previously registered activity for
             for channel_id, last_activity_time in list(self.last_channel_activity.items()):
