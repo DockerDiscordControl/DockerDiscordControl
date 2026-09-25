@@ -686,28 +686,31 @@ class TestPortDiagnostics:
 
     def test_get_unraid_solutions_lists_steps(self):
         diag = self._make()
-        diag.container_name = "ddc-x"
         sols = diag._get_unraid_solutions()
         assert isinstance(sols, list)
         assert len(sols) >= 3
         assert any("UNRAID" in s for s in sols)
-        assert any("ddc-x" in s for s in sols)
 
     def test_get_docker_solutions_lists_steps(self):
         diag = self._make()
-        diag.container_name = "ddc-y"
         sols = diag._get_docker_solutions()
         assert isinstance(sols, list)
         assert len(sols) >= 3
-        assert any("DOCKER FIX" in s for s in sols)
+        assert any("DOCKER" in s for s in sols)
         assert any("9374" in s for s in sols)
 
-    def test_get_docker_solutions_falls_back_when_no_container_name(self):
+    def test_no_solution_would_replace_the_container(self):
+        """These cases used to require the container's NAME in the advice,
+        because the advice embedded it in a command that CREATED a container -
+        with no -v, so no config, no logs, no Mech state. Measured on the
+        operator's panel on 2026-09-25, that advice was being offered for a
+        port that was mapped perfectly well. The name requirement went with the
+        command; what replaces it is the rule that matters."""
         diag = self._make()
-        diag.container_name = None
-        sols = diag._get_docker_solutions()
-        # Default name "dockerdiscordcontrol" should appear
-        assert any("dockerdiscordcontrol" in s for s in sols)
+        for advice in diag._get_unraid_solutions() + diag._get_docker_solutions():
+            assert "docker run" not in advice, advice
+            assert "Recreate" not in advice, advice
+            assert "Remove container" not in advice, advice
 
     def test_is_external_port_accessible_currently_returns_true(self):
         diag = self._make()
@@ -770,20 +773,34 @@ class TestPortDiagnostics:
     def test_check_port_binding_when_listening_no_mapping_unraid_solutions(self):
         diag = self._make()
         diag.host_info["is_unraid"] = True
+        # (mappings, known). True means Docker was actually asked and said
+        # there is no mapping - which is a real fault worth reporting. The
+        # pair exists because returning a bare {} could not tell that apart
+        # from "I could not look", and the reader chose the alarming reading.
         with patch.object(diag, "_is_port_listening", return_value=True), \
-             patch.object(diag, "_get_docker_port_mappings", return_value={}):
+             patch.object(diag, "_get_docker_port_mappings", return_value=({}, True)):
             result = diag.check_port_binding()
         assert result["internal_port_listening"] is True
-        # No mapping found -> issues raised + Unraid-style solutions
         assert any("not mapped" in s.lower() for s in result["issues"])
         assert any("UNRAID" in s for s in result["solutions"])
+
+    def test_check_port_binding_says_nothing_when_it_could_not_look(self):
+        """The other half of that pair, and the finding itself: without Docker
+        access the question is unanswerable, and an unanswerable question is
+        not a fault."""
+        diag = self._make()
+        with patch.object(diag, "_is_port_listening", return_value=True), \
+             patch.object(diag, "_get_docker_port_mappings", return_value=({}, False)):
+            result = diag.check_port_binding()
+        assert result["issues"] == []
+        assert result["solutions"] == []
 
     def test_check_port_binding_when_listening_with_mapping(self):
         diag = self._make()
         diag.host_info["is_unraid"] = False
         mappings = {"9374": [{"host": "0.0.0.0", "port": "8374"}]}
         with patch.object(diag, "_is_port_listening", return_value=True), \
-             patch.object(diag, "_get_docker_port_mappings", return_value=mappings):
+             patch.object(diag, "_get_docker_port_mappings", return_value=(mappings, True)):
             result = diag.check_port_binding()
         assert result["internal_port_listening"] is True
         assert result["external_ports"] == [{"host": "0.0.0.0", "port": "8374"}]
@@ -895,35 +912,62 @@ class TestPortDiagnostics:
             result = diag._detect_platform()
         assert result == ("unknown", False)
 
-    def test_get_docker_port_mappings_parses_output(self):
+    # These four used to drive a `docker port` subprocess. The image has no
+    # docker binary on purpose, so that call could only ever fail - and its
+    # empty answer was read as "nothing is mapped". The mapping now comes from
+    # the Docker API through the allowlist proxy, and every case below keeps
+    # the rule it always protected, against the seam that now exists.
+
+    def _with_api(self, diag, ports=None, reachable=True, container_id="abc123def456"):
+        client = MagicMock()
+        container = MagicMock()
+        container.attrs = {"NetworkSettings": {"Ports": ports or {}}}
+        client.containers.get.return_value = container
+
+        def _build(timeout):
+            if not reachable:
+                raise RuntimeError("docker unavailable")
+            return client
+
+        return (patch.object(port_diagnostics, "_own_container_id", return_value=container_id),
+                patch.object(port_diagnostics, "_docker_client", side_effect=_build))
+
+    def test_get_docker_port_mappings_reads_the_api(self):
         diag = self._make()
-        result_obj = MagicMock()
-        result_obj.returncode = 0
-        result_obj.stdout = "9374/tcp -> 0.0.0.0:8374\n9374/tcp -> [::]:8374\n"
-        with patch.object(port_diagnostics.subprocess, "run", return_value=result_obj):
-            mappings = diag._get_docker_port_mappings()
+        ports = {"9374/tcp": [{"HostIp": "0.0.0.0", "HostPort": "8374"},
+                              {"HostIp": "::", "HostPort": "8374"}]}
+        a, b = self._with_api(diag, ports=ports)
+        with a, b:
+            mappings, known = diag._get_docker_port_mappings()
+        assert known is True
         assert "9374" in mappings
         assert {"host": "0.0.0.0", "port": "8374"} in mappings["9374"]
 
-    def test_get_docker_port_mappings_returns_empty_on_failure(self):
+    def test_get_docker_port_mappings_says_unknown_on_failure(self):
+        """It used to answer {} here, which the reader could not tell from a
+        container that genuinely has no mapping."""
         diag = self._make()
-        result_obj = MagicMock()
-        result_obj.returncode = 1
-        result_obj.stdout = ""
-        with patch.object(port_diagnostics.subprocess, "run", return_value=result_obj):
-            assert diag._get_docker_port_mappings() == {}
+        a, b = self._with_api(diag, reachable=False)
+        with a, b:
+            mappings, known = diag._get_docker_port_mappings()
+        assert (mappings, known) == ({}, False)
 
-    def test_get_docker_port_mappings_returns_empty_when_no_container_name(self):
+    def test_get_docker_port_mappings_says_unknown_outside_a_container(self):
         diag = self._make()
-        diag.container_name = None
-        assert diag._get_docker_port_mappings() == {}
+        a, b = self._with_api(diag, container_id=None)
+        with a, b:
+            assert diag._get_docker_port_mappings() == ({}, False)
 
-    def test_get_docker_port_mappings_handles_filenotfound(self):
+    def test_a_port_with_no_binding_is_known_and_unmapped(self):
+        """Docker reports an exposed but unpublished port as null. That IS an
+        answer - the opposite of not being able to ask - and the difference
+        between the two is the whole finding."""
         diag = self._make()
-        with patch.object(
-            port_diagnostics.subprocess, "run", side_effect=FileNotFoundError("docker missing")
-        ):
-            assert diag._get_docker_port_mappings() == {}
+        a, b = self._with_api(diag, ports={"9374/tcp": None})
+        with a, b:
+            mappings, known = diag._get_docker_port_mappings()
+        assert known is True
+        assert mappings == {}
 
     def test_get_host_info_assembles_dict(self):
         """_get_host_info wires together the helper outputs into a single dict."""

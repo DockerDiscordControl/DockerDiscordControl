@@ -17,6 +17,27 @@ from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+
+def _own_container_id():
+    """The container this process runs in, imported when asked.
+
+    NOT a module-level import: tests/unit/app_modules replaces the services
+    package with stubs, and pulling the real chain in at import time broke
+    that group's collection. app/bot/token.py carries the same warning.
+    """
+    from services.docker_service.self_restart import own_container_id
+
+    return own_container_id()
+
+
+def _docker_client(timeout: int):
+    """The sanctioned Docker client - the one that goes through the allowlist
+    proxy rather than straight at the socket."""
+    from services.docker_service.client_factory import build_docker_client
+
+    return build_docker_client(timeout=timeout)
+
+
 class PortDiagnostics:
     """Diagnose port-related issues and provide solutions"""
 
@@ -246,13 +267,21 @@ class PortDiagnostics:
 
         if not result['internal_port_listening']:
             result['issues'].append(f"Web UI service not listening on internal port {self.EXPECTED_WEB_PORT}")
-            result['solutions'].append("Check if gunicorn/web service is running: supervisorctl status webui")
+            # NOT supervisorctl: DDC has been one process since v3, and the
+            # image has no supervisord to ask (see the Application-tab
+            # finding of the same day).
+            result['solutions'].append(
+                "The web UI did not answer on its own port - check the container log "
+                "for a startup failure")
             return result
 
-        # Get Docker port mappings if possible
-        if self.container_name:
-            mappings = self._get_docker_port_mappings()
-            result['port_mappings'] = mappings
+        mappings, known = self._get_docker_port_mappings()
+        result['port_mappings'] = mappings
+        result['port_mapping_known'] = known
+
+        # Nothing was learned, so nothing is claimed. Silence here is the whole
+        # fix: an unanswerable question is not a fault.
+        if known:
 
             # Check for proper mapping
             web_port_mapped = False
@@ -297,68 +326,73 @@ class PortDiagnostics:
         # For now, just return True if port mapping exists
         return True
 
-    def _get_docker_port_mappings(self) -> Dict:
-        """Get Docker port mappings for this container"""
+    def _get_docker_port_mappings(self):
+        """(the mappings, whether the question could be answered at all).
+
+        THE SECOND VALUE IS THE POINT. This used to shell out to a `docker`
+        binary that is deliberately not in the image, catch the
+        FileNotFoundError, and return {} - which the caller read as "nothing is
+        mapped" and reported as a fault, with advice. On the operator's machine
+        it declared his working panel unreachable and offered a command that
+        would have replaced his container without its volumes.
+
+        DDC can simply ask. Its allowlist proxy permits
+        GET /containers/<name>/json, and self_restart already knows which
+        container this process is in.
+        """
+        container_id = _own_container_id()
+        if not container_id:
+            # Run from a checkout there is no container, so there is no
+            # mapping to have an opinion about.
+            return {}, False
+
         try:
-            if not self.container_name:
-                return {}
+            client = _docker_client(5)
+            container = client.containers.get(container_id)
+            ports = (container.attrs.get('NetworkSettings') or {}).get('Ports') or {}
+        except Exception as error:                  # noqa: BLE001 - any failure is "unknown"
+            logger.debug("Could not read own port mappings: %s: %s",
+                         type(error).__name__, error)
+            return {}, False
 
-            # Docker command may not be available inside container
-            try:
-                result = subprocess.run([
-                    'docker', 'port', self.container_name
-                ], capture_output=True, text=True, timeout=5)
-
-                if result.returncode != 0:
-                    return {}
-
-                mappings = {}
-                for line in result.stdout.strip().split('\n'):
-                    if line.strip():
-                        # Format: "9374/tcp -> 0.0.0.0:8374"
-                        match = re.match(r'(\d+)/tcp -> (.+):(\d+)', line)
-                        if match:
-                            internal_port = match.group(1)
-                            external_host = match.group(2)
-                            external_port = match.group(3)
-
-                            if internal_port not in mappings:
-                                mappings[internal_port] = []
-                            mappings[internal_port].append({
-                                'host': external_host,
-                                'port': external_port
-                            })
-
-                return mappings
-            except (FileNotFoundError, subprocess.TimeoutExpired):
-                # Docker command not available - this is normal inside containers
-                logger.debug("Docker command not available for port mapping detection")
-                return {}
-        except (subprocess.SubprocessError, FileNotFoundError) as e:
-            # Subprocess errors (docker port command failed)
-            logger.debug(f"Subprocess error getting Docker port mappings: {e}", exc_info=True)
-            return {}
-        except (ValueError, IndexError, AttributeError) as e:
-            # Data parsing errors (port mapping parsing)
-            logger.debug(f"Data parsing error parsing port mappings: {e}", exc_info=True)
-            return {}
+        mappings: Dict = {}
+        for spec, bindings in ports.items():
+            internal = str(spec).split('/')[0]
+            for binding in bindings or []:
+                mappings.setdefault(internal, []).append({
+                    'host': binding.get('HostIp', ''),
+                    'port': binding.get('HostPort', ''),
+                })
+        return mappings, True
 
     def _get_unraid_solutions(self) -> List[str]:
-        """Get Unraid-specific solutions"""
+        """What to do about a genuinely unmapped port, on Unraid.
+
+        NOTHING HERE CREATES A CONTAINER. The previous list offered "Remove
+        container and re-install from Community Apps" and a bare start command
+        with no -v, either of which would have taken the operator's config,
+        logs and Mech state with it. Every step edits what is already there.
+        """
         return [
-            "UNRAID FIX: Go to Docker tab → Edit DDC container → Set 'Host Port: 8374' and 'Container Port: 9374'",
-            "UNRAID FIX: Remove container and re-install from Community Apps with correct port mapping",
-            "UNRAID FIX: Verify template shows: WebUI Port - Host: 8374, Container: 9374",
-            f"UNRAID MANUAL: docker run -d --name {self.container_name or 'dockerdiscordcontrol'} -p 8374:9374 -v /var/run/docker.sock:/var/run/docker.sock dockerdiscordcontrol/dockerdiscordcontrol:latest"
+            "UNRAID: Docker tab -> Edit the DDC container -> WebUI port: "
+            f"set Container Port to {self.EXPECTED_WEB_PORT} and choose a free Host Port",
+            "UNRAID: Apply saves the edit and restarts the container; existing "
+            "config and data are kept",
+            "UNRAID: if the Host Port is refused, another container already has "
+            "it - pick a different one",
         ]
 
     def _get_docker_solutions(self) -> List[str]:
-        """Get generic Docker solutions"""
+        """What to do about a genuinely unmapped port, anywhere else.
+
+        See the note above: no line here builds a new container.
+        """
         return [
-            f"DOCKER FIX: Add port mapping: -p 8374:{self.EXPECTED_WEB_PORT}",
-            f"DOCKER FIX: Recreate container with: docker run -d --name {self.container_name or 'dockerdiscordcontrol'} -p 8374:{self.EXPECTED_WEB_PORT} dockerdiscordcontrol/dockerdiscordcontrol:latest",
-            "DOCKER FIX: Check if port 8374 is already in use: netstat -tlnp | grep 8374",
-            "DOCKER FIX: Try alternative port: -p 8375:9374 or -p 8000:9374"
+            f"DOCKER: stop the container and start it again with -p <host>:{self.EXPECTED_WEB_PORT}, "
+            "keeping the -v options it already has",
+            "DOCKER: with compose, add the port under `ports:` and run "
+            "`docker compose up -d` - the volumes stay",
+            "DOCKER: check the host port is free first: netstat -tlnp | grep <host>",
         ]
 
     def get_diagnostic_report(self) -> Dict:

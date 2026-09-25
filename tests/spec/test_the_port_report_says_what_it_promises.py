@@ -49,7 +49,12 @@ def diagnostics(monkeypatch):
 
 
 def _with_mappings(instance, monkeypatch, mappings):
-    monkeypatch.setattr(instance, "_get_docker_port_mappings", lambda: mappings)
+    # A PAIR now: (the mappings, whether the question could be answered).
+    # The second value is the whole point - the reader used to turn "I
+    # could not look" into "nothing is mapped" and offer the operator a
+    # command that would have replaced his container. These cases are
+    # about a KNOWN mapping, so they answer True.
+    monkeypatch.setattr(instance, "_get_docker_port_mappings", lambda: (mappings, True))
     monkeypatch.setattr(instance, "_is_external_port_accessible", lambda port: True)
     monkeypatch.setattr(instance, "_check_internal_port", lambda: True, raising=False)
 
