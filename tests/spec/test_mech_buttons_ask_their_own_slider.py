@@ -51,16 +51,29 @@ NO MORE LINE NUMBERS in this header: the earlier references (:2301, :2399,
 :2531) had silently become wrong after two changes. Class names do not go
 stale.
 
-NOT PART OF THIS FINDING, recorded here so nobody investigates it twice:
+WHAT THIS BLOCK USED TO SAY, and why it does not any more. Three notes stood
+here as open questions; all three were answered, and on 2026-09-25 they were
+measured again rather than believed:
 
-* TEN more mech classes apply NO cooldown AT ALL (``MechDonateButton``,
-  ``MechDisplayButton``, ``MechDetailsButton``, ``MechPrivateDonateButton``,
-  ``MechPrivateHistoryButton`` and the views). A separate finding with its own
-  behaviour change - already approved by the operator, not yet implemented.
-* There is no class at all for ``mech_music``.
-* The private buttons are called ``mech_private_donate_…``; the prefix logic
-  derives ``mech_private`` from that - a key that does not exist. Whoever uses
-  ``self.custom_id`` there lands on the 5-second fallback rule.
+* "TEN more mech classes apply NO cooldown AT ALL - approved by the operator,
+  not yet implemented." It was implemented
+  (tests/spec/test_unbraked_mech_buttons_brake.py). Every mech BUTTON brakes
+  today, directly or through ``_mech_button_braked``. The two that do not -
+  ``MechPrivateDonateButton`` and ``MechPrivateHistoryButton`` - hand the
+  press to ``MechDonateButton`` and ``MechHistoryButton``, which do, so the
+  brake reaches them anyway. The rest of the list were VIEWS, which do not
+  brake; their buttons do.
+* "There is no class at all for ``mech_music``." ``PlaySongButton`` brakes
+  under exactly that key, as ``f"mech_music_{level}"``.
+* "``mech_private`` is a key that does not exist." The case cannot arise:
+  the private buttons do not ask the service at all, and the button they
+  forward to asks with its own id - ``mech_donate_<channel>``, which is a
+  key that does exist.
+
+A NOTE THAT STILL ASKS AFTER IT HAS BEEN ANSWERED is the same defect as a log
+line announcing work it does not do, and this repository spent a day removing
+those. It is kept here as a correction rather than deleted, because the next
+reader is owed the reason the question closed.
 """
 
 from unittest.mock import MagicMock
