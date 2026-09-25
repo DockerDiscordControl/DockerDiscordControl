@@ -262,6 +262,68 @@ def _run_bot_until_stopped(bot, runtime, token: str) -> None:
         _wait_for_new_token_and_restart(runtime, token, retry_after=retry_delay)
 
 
+# When a standing failure is worth repeating: attempt 1, 2, 3, 5, 10, 30, then
+# every 60th. The first report is what an operator acts on; after that the only
+# new information a repeat carries is how long it has lasted.
+#
+# WHAT THIS REPLACED, measured in the operator's bot_error.log: 11,042 retries
+# over 7.7 days, each writing three ERROR lines, so 33,126 of its 33,216 lines
+# were one situation. The three real incidents in ten months were nearly the
+# only other thing in the file - and it rotates at 5 MB, so a week of this
+# evicts every one of them. The lines were CORRECT; there were simply far too
+# many of them, and being right does not buy an unlimited budget.
+WORTH_REPEATING_AT = (1, 2, 3, 5, 10, 30)
+THEN_EVERY = 60
+
+
+def _worth_reporting(attempt: int) -> bool:
+    """True when this attempt at a standing problem should be logged."""
+    if attempt in WORTH_REPEATING_AT:
+        return True
+    return attempt % THEN_EVERY == 0
+
+
+def _wait_for_a_usable_token(runtime, retry_interval: int, max_retries: int):
+    """Block until a bot token can be read, reporting less and less as it waits.
+
+    The checking itself never slows down: whoever saves a token in the Web UI
+    waits at most one interval, exactly as before. Only the reporting decays.
+    """
+    attempt = 0
+    while True:
+        token = get_decrypted_bot_token(runtime)
+        if token:
+            return token
+
+        attempt += 1
+        if _worth_reporting(attempt):
+            if attempt == 1:
+                runtime.logger.error("FATAL: Bot token not found or could not be decrypted.")
+                runtime.logger.error(
+                    "Please configure the bot token in the Web UI or check the "
+                    "configuration files."
+                )
+            else:
+                waited = attempt * retry_interval
+                runtime.logger.error(
+                    "Still no usable bot token after %d attempts (%d minutes). "
+                    "Configure it in the Web UI - DDC keeps checking every %d s.",
+                    attempt, waited // 60, retry_interval,
+                )
+
+        if max_retries > 0 and attempt >= max_retries:
+            runtime.logger.error(f"Maximum retries ({max_retries}) reached. Exiting.")
+            sys.exit(1)
+
+        # No countdown. It was eleven INFO lines a minute, for as long as the
+        # problem lasted, saying only that time was passing.
+        time.sleep(retry_interval)
+
+        # Reload config in case it was updated
+        config = load_main_configuration()
+        runtime = build_runtime(config)
+
+
 def main() -> None:
     """Main entry point for the Discord bot."""
 
@@ -286,38 +348,9 @@ def main() -> None:
     from services.scheduling.donation_message_service import set_bot_instance
     set_bot_instance(bot)
 
-    # Retry loop for missing token with countdown
     retry_interval = int(os.getenv("DDC_TOKEN_RETRY_INTERVAL", "60"))
     max_retries = int(os.getenv("DDC_TOKEN_MAX_RETRIES", "0"))  # 0 = infinite
-    retry_count = 0
-
-    while True:
-        token = get_decrypted_bot_token(runtime)
-        if token:
-            break
-
-        retry_count += 1
-        runtime.logger.error("FATAL: Bot token not found or could not be decrypted.")
-        runtime.logger.error(
-            "Please configure the bot token in the Web UI or check the configuration files."
-        )
-
-        if max_retries > 0 and retry_count >= max_retries:
-            runtime.logger.error(f"Maximum retries ({max_retries}) reached. Exiting.")
-            sys.exit(1)
-
-        runtime.logger.warning(f"Retry {retry_count}: Waiting {retry_interval} seconds before next attempt...")
-
-        # Countdown timer
-        for remaining in range(retry_interval, 0, -1):
-            if remaining % 10 == 0 or remaining <= 5:
-                runtime.logger.info(f"⏳ Retrying in {remaining} seconds...")
-            time.sleep(1)
-
-        runtime.logger.info("Attempting to reload configuration and retry...")
-        # Reload config in case it was updated
-        config = load_main_configuration()
-        runtime = build_runtime(config)
+    token = _wait_for_a_usable_token(runtime, retry_interval, max_retries)
 
     # Not a fragment of it: four characters still confirm a guess and still
     # tell two logs apart, and this file gets attached to bug reports. Which
