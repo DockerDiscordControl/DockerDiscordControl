@@ -96,7 +96,12 @@ class ContainerLogService:
             'bot': [],
             'discord': ['/app/logs/discord.log', str(local_logs / 'discord.log')],
             'webui': [],
-            'application': []
+            # bot_error.log is the only log that OUTLIVES a rebuild: every
+            # other source here reads `docker logs`, which a rebuild empties -
+            # and rebuilding is how DDC is deployed, so the evidence vanishes
+            # exactly when somebody looks for it after an upgrade. This file
+            # is on the mounted volume, ERROR and above, rotated at 5 MB.
+            'application': ['/app/logs/bot_error.log', str(local_logs / 'bot_error.log')]
         }
 
     def get_container_logs(self, request: ContainerLogRequest) -> LogResult:
@@ -321,7 +326,7 @@ class ContainerLogService:
 
     def _get_application_logs(self, max_lines: int) -> LogResult:
         """Get application-level logs with file fallback."""
-        # Try reading from supervisord.log file first (multiple possible paths)
+        # The error log first; the container log only if it is not there.
         for app_log_path in self.log_paths['application']:
             if os.path.exists(app_log_path):
                 file_content = self._read_log_file(app_log_path, max_lines)
@@ -329,12 +334,17 @@ class ContainerLogService:
                     self.logger.info(f"Successfully read application logs from: {app_log_path}")
                     return LogResult(success=True, content=file_content)
 
-        # Fallback: Get from container logs and filter
-        self.logger.info("Application log files not found, falling back to container log filtering")
+        # Fallback for a fresh install or a cleared volume. Narrowed to things
+        # that went wrong: the old list held INFO and DEBUG, so it matched every
+        # line DDC has ever written and the tab showed the whole log. Traceback,
+        # Exception and CRITICAL are here because the real incidents in a DDC
+        # error log are crashes, which never carry the word ERROR on their
+        # continuation lines.
+        self.logger.debug("No error log file found, falling back to container log filtering")
         return self._get_filtered_container_logs(
             max_lines,
-            ['ERROR', 'WARNING', 'INFO', 'DEBUG', 'Starting', 'Stopping', 'Initializing', 'Config', 'Database', 'Scheduler'],
-            "No application logs found"
+            ['ERROR', 'CRITICAL', 'FATAL', 'Traceback', 'Exception'],
+            "No errors recorded"
         )
 
     def _get_filtered_container_logs(self, max_lines: int, filter_patterns: List[str], no_logs_message: str) -> LogResult:

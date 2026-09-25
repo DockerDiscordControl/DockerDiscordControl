@@ -30,9 +30,12 @@ either becomes the same trap. Only `discord.log` is real.
 WHAT DDC ACTUALLY WRITES, and the whole of it: discord.log (INFO and above) and
 bot_error.log (ERROR and above), both from app/bootstrap/runtime.py, plus one
 file per logger name from utils/logging_utils.setup_logger - which is where
-user_actions.log comes from. Nothing else. bot_error.log, incidentally, is
-written, 3.3 MB, and offered nowhere; that is a gap rather than a lie, and is
-left for the operator to decide on.
+user_actions.log comes from. Nothing else.
+
+bot_error.log was written and offered nowhere when this was found. The
+operator's answer to that, the same afternoon, was to put it in the Application
+tab - the source this commit had just emptied. See
+test_the_application_tab_shows_what_went_wrong.py.
 
 HOW THIS TEST CAN FAIL: a log source naming a file this application does not
 write.
