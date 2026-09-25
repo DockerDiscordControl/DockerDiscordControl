@@ -384,9 +384,18 @@ class BackgroundLoopsMixin:
     async def start_mech_cache_loop(self):
         """Start the MechStatusCacheService background loop."""
         try:
-            logger.info("Starting MechStatusCacheService background loop...")
+            # DEBUG, and nothing after the await. start_background_loop() does
+            # not start a loop and return - it IS the loop, and this task is
+            # its host, so anything written after it can never run. A
+            # "started successfully" line sat here and had been unreachable
+            # since the day it was written; its absence read exactly like a
+            # failure nobody reported.
+            #
+            # The service announces itself, with its interval and TTL, on a
+            # logger that reaches the files since 6375c2af. A failure still
+            # lands in the except clause below.
+            logger.debug("Handing this task to the MechStatusCacheService loop")
             await self.mech_status_cache_service.start_background_loop()
-            logger.info("MechStatusCacheService background loop started successfully")
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Failed to start MechStatusCacheService background loop: {e}", exc_info=True)
 

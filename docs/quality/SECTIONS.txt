@@ -53,7 +53,7 @@ cogs/slash_commands.py:1-856
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:884-1302
-cogs/background_loops.py:1-734
+cogs/background_loops.py:1-743
 cogs/donation_ui.py:1-645
 
 ## Section 07  (694 lines, 1 piece)
