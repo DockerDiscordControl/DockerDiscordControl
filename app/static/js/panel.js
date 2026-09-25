@@ -1351,6 +1351,17 @@
         console.log(`Found ${formElements.length} form elements`);
         
         formElements.forEach(element => {
+            // WHAT THE SAVE WRITES IS WHAT THE FORM NAMES, asked once here
+            // rather than in each branch below. It used to be asked only in
+            // the branch for ordinary fields - `else if (element.name)` - so
+            // an unnamed CHECKBOX wrote a key of "" into the payload. Two do
+            // it: the log view's auto-refresh and the translation switch,
+            // neither of them a setting of this form. It is the same
+            // boundary the unsaved-changes banner is drawn on
+            // (app/static/js/form_scope.js).
+            if (!element.name) {
+                return;
+            }
             // Skip checkboxes with name="selected_servers", which we handle separately
             if (element.name === 'selected_servers') {
                 return;
