@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "API ฟรี",
   "web.lang.deepl_pro": "API Pro",
   "web.lang.deepl_tier_label": "ระดับ DeepL API",
-  "web.lang.description": "กำหนดค่าภาษา เขตเวลา และการตั้งค่าการแปลช่อง",
   "web.lang.immediate_effect": "การเปลี่ยนแปลงมีผลทันที!",
   "web.lang.max_text_length_label": "ความยาวข้อความสูงสุด",
   "web.lang.no_pairs_configured": "ยังไม่ได้กำหนดค่าคู่การแปล",

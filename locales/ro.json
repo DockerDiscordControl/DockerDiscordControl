@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "API Gratuit",
   "web.lang.deepl_pro": "API Pro",
   "web.lang.deepl_tier_label": "Nivel API DeepL",
-  "web.lang.description": "Configurați limba, fusul orar și setările de traducere a canalelor.",
   "web.lang.immediate_effect": "Modificările au efect imediat!",
   "web.lang.max_text_length_label": "Lungime Maximă Text",
   "web.lang.no_pairs_configured": "Nicio pereche de traducere configurată încă.",

@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "API رایگان",
   "web.lang.deepl_pro": "API Pro",
   "web.lang.deepl_tier_label": "سطح DeepL API",
-  "web.lang.description": "پیکربندی زبان، منطقه زمانی و تنظیمات ترجمه کانال.",
   "web.lang.immediate_effect": "تغییرات فوراً اعمال می‌شوند!",
   "web.lang.max_text_length_label": "حداکثر طول متن",
   "web.lang.no_pairs_configured": "هنوز جفت ترجمه‌ای پیکربندی نشده است.",

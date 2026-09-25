@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "無料API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "DeepL APIティア",
-  "web.lang.description": "言語、タイムゾーン、チャンネル翻訳の設定を行います。",
   "web.lang.immediate_effect": "変更は即座に反映されます！",
   "web.lang.max_text_length_label": "最大テキスト長",
   "web.lang.no_pairs_configured": "翻訳ペアはまだ設定されていません。",

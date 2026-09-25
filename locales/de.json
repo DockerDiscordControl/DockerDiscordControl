@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "Kostenlose API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "DeepL API-Stufe",
-  "web.lang.description": "Sprache, Zeitzone und Kanal-Übersetzungseinstellungen konfigurieren.",
   "web.lang.immediate_effect": "Änderungen treten sofort in Kraft!",
   "web.lang.max_text_length_label": "Maximale Textlänge",
   "web.lang.no_pairs_configured": "Noch keine Übersetzungspaare konfiguriert.",

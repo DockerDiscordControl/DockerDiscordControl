@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "Nemokama API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "DeepL API pakopa",
-  "web.lang.description": "Konfigūruokite kalbą, laiko zoną ir kanalų vertimo nustatymus.",
   "web.lang.immediate_effect": "Pakeitimai įsigalioja iš karto!",
   "web.lang.max_text_length_label": "Maks. teksto ilgis",
   "web.lang.no_pairs_configured": "Vertimo porų dar nesukonfigūruota.",

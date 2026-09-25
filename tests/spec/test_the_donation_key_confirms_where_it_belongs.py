@@ -12,8 +12,7 @@ header. The code that does it reaches for the elements like this:
 Neither is scoped to anything. `document.querySelector` answers with the FIRST
 match in the whole document, and this modal is included at config.html:1906 -
 after every settings section. The first `.card-body` in document order belongs
-to `_language_timezone_settings.html:156`, the hidden `#ctTestResult` box of
-the channel-translation test; the first `.card-header h6` belongs to
+to the hidden `#ctTestResult` box of the channel-translation test; the first `.card-header h6` belongs to
 `_spam_protection_modal.html:18`, because the spam modal is included at 1903,
 three lines earlier.
 
@@ -103,10 +102,14 @@ def test_the_first_card_body_on_the_page_is_still_somebody_elses():
     """
     page = (TEMPLATES / "config.html").read_text(encoding="utf-8")
 
-    language = page.index("_language_timezone_settings.html")
+    # The card-body that comes first is the channel translation's. It used to
+    # sit inside _language_timezone_settings.html and moved to its own file
+    # under the Discord tab on 2026-09-26 - which put it EARLIER in the page,
+    # so the arrangement that made the bug is unchanged.
+    translation = page.index("_channel_translation_settings.html")
     advanced = page.index("_advanced_settings_modal.html")
 
-    assert language < advanced, (
+    assert translation < advanced, (
         "the include order changed - re-read this test before trusting it")
-    assert 'class="card-body' in (TEMPLATES / "_language_timezone_settings.html").read_text(
+    assert 'class="card-body' in (TEMPLATES / "_channel_translation_settings.html").read_text(
         encoding="utf-8")

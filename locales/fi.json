@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "Ilmainen API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "DeepL API -taso",
-  "web.lang.description": "Määritä kieli, aikavyöhyke ja kanavakäännösasetukset.",
   "web.lang.immediate_effect": "Muutokset tulevat voimaan välittömästi!",
   "web.lang.max_text_length_label": "Max tekstin pituus",
   "web.lang.no_pairs_configured": "Käännöspareja ei ole vielä määritetty.",

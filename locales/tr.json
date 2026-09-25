@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "Ücretsiz API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "DeepL API Katmanı",
-  "web.lang.description": "Dil, saat dilimi ve kanal çevirisi ayarlarını yapılandırın.",
   "web.lang.immediate_effect": "Değişiklikler anında geçerli olur!",
   "web.lang.max_text_length_label": "Maks Metin Uzunluğu",
   "web.lang.no_pairs_configured": "Henüz çeviri çifti yapılandırılmamış.",

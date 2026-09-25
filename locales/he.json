@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "API חינמי",
   "web.lang.deepl_pro": "API Pro",
   "web.lang.deepl_tier_label": "רמת DeepL API",
-  "web.lang.description": "הגדר שפה, אזור זמן, והגדרות תרגום ערוצים.",
   "web.lang.immediate_effect": "שינויים נכנסים לתוקף מיד!",
   "web.lang.max_text_length_label": "אורך טקסט מקסימלי",
   "web.lang.no_pairs_configured": "עדיין לא הוגדרו זוגות תרגום.",

@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "무료 API",
   "web.lang.deepl_pro": "프로 API",
   "web.lang.deepl_tier_label": "DeepL API 등급",
-  "web.lang.description": "언어, 시간대, 채널 번역 설정을 구성합니다.",
   "web.lang.immediate_effect": "변경 사항이 즉시 적용됩니다!",
   "web.lang.max_text_length_label": "최대 텍스트 길이",
   "web.lang.no_pairs_configured": "아직 번역 쌍이 설정되지 않았습니다.",

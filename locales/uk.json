@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "Безкоштовний API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "Рівень DeepL API",
-  "web.lang.description": "Налаштуйте мову, часовий пояс і параметри перекладу каналів.",
   "web.lang.immediate_effect": "Зміни набувають чинності негайно!",
   "web.lang.max_text_length_label": "Макс. довжина тексту",
   "web.lang.no_pairs_configured": "Пари перекладу ще не налаштовані.",

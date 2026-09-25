@@ -17,7 +17,7 @@ sliders left on 2026-09-25), and the guard covers 32 of them:
                                           maxCommandsPerMinute and
                                           maxButtonsPerMinute fall through it
     _auto_actions_modal.html         10   none
-    _language_timezone_settings.html  2   none
+    _channel_translation_settings.html  2   none
 
 ALL 44 AGREE TODAY - this file found no defect, and says so. What it changes is
 that the agreement is now held. A default moved in Python and forgotten in the
@@ -207,7 +207,11 @@ def test_each_start_value_is_its_default(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("template", ["_spam_protection_modal.html",
                                       "_auto_actions_modal.html",
-                                      "_language_timezone_settings.html"])
+                                      # moved out of _language_timezone_settings.html on
+                                      # 2026-09-26: the channel translation is a Discord
+                                      # feature and now sits under that tab, and its two
+                                      # start values went with it
+                                      "_channel_translation_settings.html"])
 def test_each_known_template_is_still_covered(template):
     """Named rather than swept, so a template losing all of its start values -
     or being renamed - is noticed instead of quietly dropping out of the

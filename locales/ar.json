@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "API مجاني",
   "web.lang.deepl_pro": "API مدفوع",
   "web.lang.deepl_tier_label": "مستوى DeepL API",
-  "web.lang.description": "تهيئة إعدادات اللغة والمنطقة الزمنية وترجمة القنوات.",
   "web.lang.immediate_effect": "التغييرات تسري فوراً!",
   "web.lang.max_text_length_label": "الحد الأقصى لطول النص",
   "web.lang.no_pairs_configured": "لم يتم تهيئة أزواج ترجمة بعد.",

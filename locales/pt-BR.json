@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "API Gratuita",
   "web.lang.deepl_pro": "API Pro",
   "web.lang.deepl_tier_label": "Tier da API DeepL",
-  "web.lang.description": "Configure idioma, fuso horário e configurações de tradução de canais.",
   "web.lang.immediate_effect": "Alterações entram em vigor imediatamente!",
   "web.lang.max_text_length_label": "Comprimento Máximo do Texto",
   "web.lang.no_pairs_configured": "Nenhum par de tradução configurado ainda.",

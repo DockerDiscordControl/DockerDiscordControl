@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "मुफ़्त API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "DeepL API स्तर",
-  "web.lang.description": "भाषा, समय क्षेत्र, और चैनल अनुवाद सेटिंग्स कॉन्फ़िगर करें।",
   "web.lang.immediate_effect": "परिवर्तन तुरंत प्रभावी होते हैं!",
   "web.lang.max_text_length_label": "अधिकतम टेक्स्ट लंबाई",
   "web.lang.no_pairs_configured": "अभी तक कोई अनुवाद जोड़ी कॉन्फ़िगर नहीं की गई।",

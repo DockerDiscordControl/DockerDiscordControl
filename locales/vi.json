@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "API miễn phí",
   "web.lang.deepl_pro": "API Pro",
   "web.lang.deepl_tier_label": "Tầng API DeepL",
-  "web.lang.description": "Cấu hình ngôn ngữ, múi giờ và cài đặt dịch thuật kênh.",
   "web.lang.immediate_effect": "Thay đổi có hiệu lực ngay!",
   "web.lang.max_text_length_label": "Độ dài văn bản tối đa",
   "web.lang.no_pairs_configured": "Chưa có cặp dịch thuật nào được cấu hình.",

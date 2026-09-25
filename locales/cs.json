@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "Bezplatné API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "Úroveň DeepL API",
-  "web.lang.description": "Nakonfigurujte jazyk, časové pásmo a nastavení překladu kanálů.",
   "web.lang.immediate_effect": "Změny se projeví okamžitě!",
   "web.lang.max_text_length_label": "Max délka textu",
   "web.lang.no_pairs_configured": "Zatím nejsou nakonfigurovány žádné překladové páry.",

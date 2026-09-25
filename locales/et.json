@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "Tasuta API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "DeepL API tase",
-  "web.lang.description": "Seadista keele, ajavööndi ja kanali tõlke seaded.",
   "web.lang.immediate_effect": "Muudatused jõustuvad kohe!",
   "web.lang.max_text_length_label": "Max teksti pikkus",
   "web.lang.no_pairs_configured": "Tõlkepaare pole veel seadistatud.",

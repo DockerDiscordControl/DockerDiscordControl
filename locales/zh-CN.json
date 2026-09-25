@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "免费 API",
   "web.lang.deepl_pro": "专业 API",
   "web.lang.deepl_tier_label": "DeepL API 层级",
-  "web.lang.description": "配置语言、时区和频道翻译设置。",
   "web.lang.immediate_effect": "更改立即生效！",
   "web.lang.max_text_length_label": "最大文本长度",
   "web.lang.no_pairs_configured": "尚未配置翻译配对。",

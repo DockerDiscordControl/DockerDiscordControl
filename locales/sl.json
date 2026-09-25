@@ -1146,7 +1146,6 @@
   "web.lang.deepl_free": "Brezplačni API",
   "web.lang.deepl_pro": "Pro API",
   "web.lang.deepl_tier_label": "Raven DeepL API",
-  "web.lang.description": "Nastavite jezik, časovni pas in nastavitve prevoda kanalov.",
   "web.lang.immediate_effect": "Spremembe začnejo veljati takoj!",
   "web.lang.max_text_length_label": "Največja dolžina besedila",
   "web.lang.no_pairs_configured": "Pari prevodov še niso nastavljeni.",
