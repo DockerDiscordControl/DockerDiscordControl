@@ -193,6 +193,32 @@ def test_turning_it_back_on_does_not_bring_them_back(panel):
     assert store.remembering_devices_allowed() is True
 
 
+def test_the_switch_needs_no_save_button(panel):
+    """THE OPERATOR: "I find the Save button unnecessary - can we write the
+    state down as soon as it is used?"
+
+    He is right: a switch with one state and a Save beside it asks twice for
+    one decision, and the half-done middle - flipped but not saved - is a
+    state the panel then has to explain. It posts on change.
+
+    WITHOUT JAVASCRIPT IT STILL WORKS, which is the promise this file's
+    template has carried since it was written: the submit button is kept
+    inside <noscript>, so a browser that cannot flip it for you still has
+    the plain form the rest of the page is built on.
+    """
+    app, store = panel
+    _switch_on(store)
+    client = _answer_the_code(app, store, remember=False)
+    page = client.get("/security/2fa", headers=_basic(), base_url=SECURE).get_data(as_text=True)
+
+    card = page[page.index("remember_devices_allowed"):][:900]
+
+    assert "this.form.submit()" in card, (
+        f"the switch still waits for a Save button: {card[:300]}")
+    assert "<noscript>" in card, (
+        "with no script left, a browser without JavaScript cannot change it at all")
+
+
 def test_the_switch_answers_through_the_panel(panel):
     """It is reached by a form on the page, not only from Python."""
     app, store = panel

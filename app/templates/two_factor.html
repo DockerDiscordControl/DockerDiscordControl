@@ -72,15 +72,29 @@
           <form method="post" action="{{ url_for('two_factor.devices') }}" class="mb-4">
             <input type="hidden" name="csrf_token" value="{{ token }}">
             <div class="form-check form-switch">
+              {# WRITTEN DOWN THE MOMENT IT IS USED (operator, 2026-09-25): a
+                 switch with a Save beside it asks twice for one decision,
+                 and the half-done middle - flipped but not saved - is a
+                 state the panel then has to explain.
+
+                 onchange, not a script file: the policy allows inline
+                 handlers (script-src 'unsafe-inline', app/web/security.py),
+                 and this page has always worked as plain forms. Which is
+                 why the button below is kept inside <noscript> rather than
+                 deleted - a browser that cannot flip it for you still has
+                 the form. #}
               <input class="form-check-input" type="checkbox" role="switch"
                      id="remember_devices_allowed" name="remember_devices_allowed" value="1"
+                     onchange="this.form.submit()"
                      {% if may_remember %}checked{% endif %}>
               <label class="form-check-label small" for="remember_devices_allowed">
                 {{ _t('web.two_factor.allow_remember', days=90) }}
               </label>
             </div>
             <div class="small text-secondary mt-1">{{ _t('web.two_factor.remembered_now', count=remembered) }}</div>
-            <button class="btn btn-outline-secondary btn-sm mt-2">{{ _t('web.common.save') }}</button>
+            <noscript>
+              <button class="btn btn-outline-secondary btn-sm mt-2">{{ _t('web.common.save') }}</button>
+            </noscript>
           </form>
 
           <form method="post" action="{{ url_for('two_factor.disable') }}">
