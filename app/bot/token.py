@@ -29,7 +29,12 @@ def get_decrypted_bot_token(runtime: BotRuntime) -> Optional[str]:
         logger.info("✅ Using bot token from environment variable DISCORD_BOT_TOKEN (secure)")
         return token_from_env.strip()
 
-    logger.warning("⚠️  Environment variable DISCORD_BOT_TOKEN not found, falling back to config file")
+    # NOT a warning. Typing the token into the Web UI is the normal,
+    # documented way of running DDC - config.json is where the panel saves
+    # it, not a degraded fallback. This was the ONLY warning in 579 lines of
+    # a healthy log, which teaches its reader that warnings are normal and
+    # makes the next real one - a token that will not decrypt - invisible.
+    logger.info("No DISCORD_BOT_TOKEN in the environment - reading the token from the configuration")
 
     # Via utils/config_paths.py (DDC_CONFIG_DIR), where config_service keeps
     # bot_config.json - derived from __file__ before, blind to the variable.

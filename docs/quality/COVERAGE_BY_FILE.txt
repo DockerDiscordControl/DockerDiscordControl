@@ -81,7 +81,7 @@ app/bot/startup_steps/notifications.py	35	pass1:s33:1-35
 app/bot/startup_steps/power.py	81	pass1:s33:1-36
 app/bot/startup_steps/scheduler.py	27	pass1:s33:1-27
 app/bot/startup_steps/sequence.py	65	pass1:s33:1-25
-app/bot/token.py	123	pass1:s33:1-101
+app/bot/token.py	128	pass1:s33:1-101
 app/constants.py	17	pass1:s33:1-17
 app/utils/__init__.py	7	pass1:s33:1-7
 app/utils/container_info_web_handler.py	325	pass1:s33:1-256  [19 of 275 lines never in a package]
