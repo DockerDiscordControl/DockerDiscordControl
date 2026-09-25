@@ -255,10 +255,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ======= Mech Evolution Difficulty Functions =======
 
-function onSliderChange() {
-    // This is called by user interaction with the slider
+function onSliderChange(commit) {
+    // THE CARD SAYS "Changes saved immediately" (web.advanced.difficulty_saved_immediately,
+    // in blue with a lightning bolt, in all forty catalogues) and this wrote
+    // nothing: enableManualOverride() returns at once when the switch is
+    // already on, which is the only state in which the slider can be moved.
+    // The one caller of saveMechDifficulty() was the modal's footer Save, so
+    // the operator could drag to 2.00x, read 2.00x, close with Cancel and
+    // keep the old value (2026-09-26).
+    //
+    // COMMIT IS THE RELEASE, not the drag: a range fires input for every step,
+    // and a save per step would be forty requests for one decision. The markup
+    // passes true from onchange and nothing from oninput.
     updateDifficultyDisplay();
-    enableManualOverride();
+    // It saves by itself when it has to flip the switch, so the first touch
+    // must not post twice - once with manual_override false and once true.
+    const savedByTheSwitch = enableManualOverride();
+    if (commit && !savedByTheSwitch) {
+        const slider = document.getElementById('mech_difficulty_multiplier');
+        if (slider) {
+            saveMechDifficulty(parseFloat(slider.value));
+        }
+    }
 }
 
 function updateDifficultyDisplay() {
@@ -306,8 +324,12 @@ function setDifficulty(value) {
     if (slider) {
         slider.value = value;
         updateDifficultyDisplay();
-        // Auto-enable manual override when buttons are used (user interaction)
-        enableManualOverride();
+        // A button press is one whole decision, so it is committed at once -
+        // and the switch is flipped on first if it was off, which saves for
+        // us (see onSliderChange above for what this used to leave unsaved).
+        if (!enableManualOverride()) {
+            saveMechDifficulty(value);
+        }
     }
 }
 
@@ -483,6 +505,8 @@ async function saveMechOverrideToggle() {
     }
 }
 
+// Returns whether it saved, so a caller that is about to save the same value
+// does not post it twice - once with manual_override false and once true.
 function enableManualOverride() {
     const manualOverrideToggle = document.getElementById('mech_manual_difficulty_override_standalone');
     if (manualOverrideToggle && !manualOverrideToggle.checked) {
@@ -500,5 +524,7 @@ function enableManualOverride() {
                 label.style.color = '';
             }, 1000);
         }
+        return true;
     }
+    return false;
 }

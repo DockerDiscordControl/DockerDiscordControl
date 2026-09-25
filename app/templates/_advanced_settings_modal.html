@@ -273,7 +273,9 @@
                                 </div>
                                     <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier"
                                            min="0.5" max="2.4" step="0.1" value="1.0"
-                                           oninput="onSliderChange()" onchange="onSliderChange()">
+                                           {# oninput redraws while dragging; onchange - the release -
+                                              is what commits, so one decision is one request. #}
+                                           oninput="onSliderChange()" onchange="onSliderChange(true)">
                                     <span class="text-muted">{{ _t('web.advanced.difficulty_hard') }}</span>
                                 </div>
                             </div>
