@@ -153,7 +153,7 @@ class StatusHandlersMixin:
             return error_results
 
         start_time = time.time()
-        logger.info(f"[INTELLIGENT_BULK_FETCH] Starting adaptive bulk fetch for {len(container_names)} containers")
+        logger.debug(f"[INTELLIGENT_BULK_FETCH] Starting adaptive bulk fetch for {len(container_names)} containers")
 
         # Classify containers by performance history for intelligent batching
         perf_service = get_performance_service()
@@ -164,15 +164,15 @@ class StatusHandlersMixin:
 
         # Treat unknown containers as fast (parallel processing) since we don't have perf data yet
         if unknown_containers:
-            logger.info(f"[INTELLIGENT_BULK_FETCH] {len(unknown_containers)} containers have no performance history - treating as fast")
+            logger.debug(f"[INTELLIGENT_BULK_FETCH] {len(unknown_containers)} containers have no performance history - treating as fast")
             fast_containers.extend(unknown_containers)
 
         if fast_containers and slow_containers:
-            logger.info(f"[INTELLIGENT_BULK_FETCH] Smart batching: {len(fast_containers)} fast, {len(slow_containers)} slow containers")
+            logger.debug(f"[INTELLIGENT_BULK_FETCH] Smart batching: {len(fast_containers)} fast, {len(slow_containers)} slow containers")
         elif slow_containers:
-            logger.info(f"[INTELLIGENT_BULK_FETCH] All {len(slow_containers)} containers classified as slow - using patient processing")
+            logger.debug(f"[INTELLIGENT_BULK_FETCH] All {len(slow_containers)} containers classified as slow - using patient processing")
         else:
-            logger.info(f"[INTELLIGENT_BULK_FETCH] All {len(fast_containers)} containers classified as fast - using parallel processing")
+            logger.debug(f"[INTELLIGENT_BULK_FETCH] All {len(fast_containers)} containers classified as fast - using parallel processing")
 
         # Process containers with intelligent strategies
         all_results = []
@@ -195,7 +195,7 @@ class StatusHandlersMixin:
             all_results.extend(fast_results)
 
             fast_time = (time.time() - start_time) * 1000
-            logger.info(f"[INTELLIGENT_BULK_FETCH] Phase 1 completed: {len(fast_containers)} fast containers in {fast_time:.1f}ms")
+            logger.debug(f"[INTELLIGENT_BULK_FETCH] Phase 1 completed: {len(fast_containers)} fast containers in {fast_time:.1f}ms")
 
         # Phase 2: Process slow containers individually with patience (if any)
         if slow_containers:
@@ -209,7 +209,7 @@ class StatusHandlersMixin:
                 # No per-container logging - only log phase completion to avoid spam
 
             slow_time = (time.time() - phase2_start) * 1000
-            logger.info(f"[INTELLIGENT_BULK_FETCH] Phase 2 completed: {len(slow_containers)} slow containers in {slow_time:.1f}ms")
+            logger.debug(f"[INTELLIGENT_BULK_FETCH] Phase 2 completed: {len(slow_containers)} slow containers in {slow_time:.1f}ms")
 
         # PERFORMANCE: Cache server configs before processing - avoid repeated lookups
         server_config_service = get_server_config_service()
@@ -550,7 +550,7 @@ class StatusHandlersMixin:
             # All containers cached - silent return (this is the expected happy path)
             return
 
-        logger.info(f"[BULK_UPDATE] Updating cache for {len(containers_needing_update)}/{len(container_names)} containers with missing cache")
+        logger.debug(f"[BULK_UPDATE] Updating cache for {len(containers_needing_update)}/{len(container_names)} containers with missing cache")
 
         try:
             # Bulk fetch only the containers with no cache

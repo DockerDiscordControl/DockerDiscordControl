@@ -272,7 +272,7 @@ def update_docker_cache(logger):
     global last_docker_query_time
     import gc
 
-    logger.info("Updating Docker cache with memory optimization")
+    logger.debug("Updating Docker cache with memory optimization")
     last_docker_query_time = time.time()  # Update query time immediately
 
     client = None

@@ -661,7 +661,7 @@ class BackgroundLoopsMixin:
 
                         # Attempt channel regeneration with improved error handling
                         try:
-                            logger.info(f"Starting inactivity regeneration for {channel.name} ({channel_id}) in mode '{regeneration_mode}'")
+                            logger.debug(f"Starting inactivity regeneration for {channel.name} ({channel_id}) in mode '{regeneration_mode}'")
                             await self._regenerate_channel(channel, regeneration_mode, config)
 
                             # Reset activity timer only on successful regeneration

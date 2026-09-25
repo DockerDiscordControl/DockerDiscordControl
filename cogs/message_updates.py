@@ -105,7 +105,7 @@ class MessageUpdatesMixin:
                 continue
 
             server_messages_in_channel = self.channel_server_message_ids[channel_id]
-            logger.info(f"Direct Cog Periodic Edit Loop: Processing channel {channel_id} (Refresh: {enable_refresh}, Interval: {update_interval_minutes}m). It has {len(server_messages_in_channel)} tracked messages.")
+            logger.debug(f"Direct Cog Periodic Edit Loop: Processing channel {channel_id} (Refresh: {enable_refresh}, Interval: {update_interval_minutes}m). It has {len(server_messages_in_channel)} tracked messages.")
 
             if channel_id not in self.last_message_update_time:
                 self.last_message_update_time[channel_id] = {}
@@ -208,7 +208,7 @@ class MessageUpdatesMixin:
             # messages were dropped in favour of the overview - so it announced work in
             # the log that it never did (review B15). _ensure_status_cache_fresh() below
             # is what actually keeps the edits from rendering stale data.
-            logger.info(f"Direct Cog Periodic Edit Loop: Attempting to run {len(tasks_to_run)} message edit tasks.")
+            logger.debug(f"Direct Cog Periodic Edit Loop: Attempting to run {len(tasks_to_run)} message edit tasks.")
 
             # Refresh the status cache at most once per cycle (only if stale) BEFORE the batches,
             # so the per-message updates render from cache and actually run in parallel.
@@ -232,14 +232,14 @@ class MessageUpdatesMixin:
                 BATCH_SIZE = 3  # Process 3 messages at a time instead of all at once
                 balanced_batches = in_batches(tasks_to_run, BATCH_SIZE)
 
-                logger.info(f"Direct Cog Periodic Edit Loop: Running {total_tasks} message edits "
+                logger.debug(f"Direct Cog Periodic Edit Loop: Running {total_tasks} message edits "
                             f"in {len(balanced_batches)} batches of up to {BATCH_SIZE}")
 
                 # Process balanced batches
                 for batch_num, batch_tasks in enumerate(balanced_batches, 1):
                     total_batches = len(balanced_batches)
 
-                    logger.info(f"Direct Cog Periodic Edit Loop: Processing batch {batch_num}/{total_batches} with {len(batch_tasks)} tasks")
+                    logger.debug(f"Direct Cog Periodic Edit Loop: Processing batch {batch_num}/{total_batches} with {len(batch_tasks)} tasks")
 
                     batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
 
@@ -259,13 +259,16 @@ class MessageUpdatesMixin:
                         await asyncio.sleep(0.5)
                         logger.debug(f"Direct Cog Periodic Edit Loop: Completed batch {batch_num}/{total_batches}, brief pause before next batch")
 
-                # Performance analysis
+                # Performance analysis. The ladder is deliberate: a cycle
+                # that was fast says nothing, one that took over three
+                # seconds says so, and one over eight warns. The log gets
+                # louder as things get worse instead of talking constantly.
                 batch_time = (datetime.now(timezone.utc) - start_batch_time).total_seconds() * 1000
 
                 if batch_time < 1000:  # Under 1 second - excellent
-                    logger.info(f"Direct Cog Periodic Edit Loop: ULTRA-FAST batched processing completed in {batch_time:.1f}ms")
+                    logger.debug(f"Direct Cog Periodic Edit Loop: ULTRA-FAST batched processing completed in {batch_time:.1f}ms")
                 elif batch_time < 3000:  # Under 3 seconds - good
-                    logger.info(f"Direct Cog Periodic Edit Loop: FAST batched processing completed in {batch_time:.1f}ms")
+                    logger.debug(f"Direct Cog Periodic Edit Loop: FAST batched processing completed in {batch_time:.1f}ms")
                 elif batch_time < 8000:  # Under 8 seconds - acceptable for batched processing
                     logger.info(f"Direct Cog Periodic Edit Loop: ACCEPTABLE batched processing completed in {batch_time:.1f}ms")
                 else:  # Over 8 seconds - needs investigation
@@ -282,7 +285,7 @@ class MessageUpdatesMixin:
 
             # Performance summary
             avg_time_per_edit = (datetime.now(timezone.utc) - start_batch_time).total_seconds() * 1000 / total_tasks if total_tasks > 0 else 0
-            logger.info(f"Direct Cog Periodic Edit Loop: Average time per message edit: {avg_time_per_edit:.1f}ms")
+            logger.debug(f"Direct Cog Periodic Edit Loop: Average time per message edit: {avg_time_per_edit:.1f}ms")
         else:
             logger.info("Direct Cog Periodic message update check: No messages were due for update in any channel.")
 

@@ -119,7 +119,7 @@ cogs/docker_control.py	1321	passE:read-in-full-2026-09-21:loops,embeds,modals,in
 cogs/donation_ui.py	645	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
 cogs/loop_safety.py	103	v3rev2:1-98
-cogs/message_updates.py	788	v3rev2:1-788
+cogs/message_updates.py	791	v3rev2:1-791
 cogs/overview_embeds.py	1058	v3rev2:1-964
 cogs/slash_commands.py	855	NONE
 cogs/stack_restart.py	320	v3rev:1-196
