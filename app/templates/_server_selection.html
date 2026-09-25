@@ -17,7 +17,7 @@
     <div class="input-group input-group-sm mb-2" style="max-width: 420px;">
         <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
         <label for="container-search" class="visually-hidden">{{ _t('web.server.search_placeholder') }}</label>
-        <input type="search" class="form-control" id="container-search"
+        <input type="search" class="form-control" id="container-search" data-changes-the-view="true"
                placeholder="{{ _t('web.server.search_placeholder') }}">
     </div>
     <div class="text-muted small mb-2" id="container-search-no-match" hidden>
@@ -325,7 +325,7 @@
                                     <label for="modal-query-protocol" class="form-label">{{ _t('web.server.query_protocol') }}</label>
                                     {# no name= : edited via JS by id and round-tripped into the hidden query_protocol_<name>; a bare name would leak into top-level config.json #}
                                     <div class="form-text">{{ _t('web.server.query_protocol_help') }}</div>
-                                    <select class="form-select mt-auto" id="modal-query-protocol">
+                                    <select class="form-select mt-auto" id="modal-query-protocol" data-saves-itself="true">
                                         <option value="source">Source / A2S</option>
                                         <option value="minecraft">Minecraft</option>
                                         <option value="satisfactory">Satisfactory</option>
@@ -337,13 +337,13 @@
                             <div class="col-md-4 d-flex flex-column">
                                 <div class="mb-2">
                                     <label for="modal-query-host" class="form-label">{{ _t('web.server.query_host') }}</label>
-                                    <input type="text" class="form-control mt-auto" id="modal-query-host" placeholder="{{ _t('web.server.query_host_placeholder') }}">
+                                    <input type="text" class="form-control mt-auto" id="modal-query-host" data-saves-itself="true" placeholder="{{ _t('web.server.query_host_placeholder') }}">
                                 </div>
                             </div>
                             <div class="col-md-4 d-flex flex-column">
                                 <div class="mb-2">
                                     <label for="modal-query-port" class="form-label">{{ _t('web.server.query_port') }}</label>
-                                    <input type="number" class="form-control mt-auto" id="modal-query-port" min="0" max="65535" placeholder="{{ _t('web.server.query_port_placeholder') }}">
+                                    <input type="number" class="form-control mt-auto" id="modal-query-port" data-saves-itself="true" min="0" max="65535" placeholder="{{ _t('web.server.query_port_placeholder') }}">
                                 </div>
                             </div>
                         </div>
@@ -354,7 +354,7 @@
                              data-label-palworld="{{ _t('web.server.query_token_label_palworld') }}"
                              data-help-palworld="{{ _t('web.server.query_token_help_palworld') }}">
                             <label for="modal-query-token" class="form-label"><i class="bi bi-key"></i> <span id="modal-query-token-label">{{ _t('web.server.query_token_label') }}</span></label>
-                            <input type="text" class="form-control" id="modal-query-token" maxlength="1024" placeholder="{{ _t('web.server.query_token_placeholder') }}" autocomplete="off">
+                            <input type="text" class="form-control" id="modal-query-token" data-saves-itself="true" maxlength="1024" placeholder="{{ _t('web.server.query_token_placeholder') }}" autocomplete="off">
                             <div class="form-text" id="modal-query-token-help">{{ _t('web.server.query_token_help') }}</div>
                         </div>
                         {# Manual re-test: probe 3x (60s apart) to unlock the checkbox if the server answers #}

@@ -38,6 +38,23 @@ const cases = {
     assert.strictEqual(
       belongsToTheFormSave(element('debugLevelToggle', ['[data-saves-itself="true"]'])), false);
   },
+  'a control that stores nothing is not'() {
+    // THE SECOND ROUND (operator, 2026-09-25): picking a different log to
+    // read raised the banner. The log type, the container search, the
+    // translation test box and sixteen others were inside the form and
+    // undeclared, because the marker above was the only one that existed.
+    assert.strictEqual(
+      belongsToTheFormSave(element('logTypeSelect', ['[data-changes-the-view="true"]'])), false);
+  },
+  'the two declarations are separate answers'() {
+    // Neither implies the other: a field saved by its own button IS stored,
+    // a filter is not. A rule that accepted only one of them would have left
+    // half of the twenty raising the warning.
+    assert.strictEqual(
+      belongsToTheFormSave(element('ctProvider', ['[data-saves-itself="true"]'])), false);
+    assert.strictEqual(
+      belongsToTheFormSave(element('container-search', ['[data-changes-the-view="true"]'])), false);
+  },
   'the task status filter is not'() {
     assert.strictEqual(belongsToTheFormSave(element('taskFilterStatus')), false);
   },

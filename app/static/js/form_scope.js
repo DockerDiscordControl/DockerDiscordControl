@@ -17,8 +17,29 @@
 // that one act. A control that stores itself the moment it is touched, and a
 // filter that changes only what is shown, are not part of it.
 //
-// So a control says so in the markup - data-saves-itself="true" - and this
-// answers the question in one place.
+// So a control says so in the markup, and this answers the question in one
+// place.
+//
+// IT WAS STILL A LIST OF ONE. The comment above already named the second
+// category - "a filter that changes only what is shown" - but no marker was
+// made for it, so only the debug switch was ever declared. On 2026-09-25 the
+// operator picked a different log to read and got the banner again: the log
+// type, the auto-refresh, the container search, the eleven channel
+// translation controls, the four query-dialog fields and the two admin-add
+// fields were all inside the form and all undeclared. Twenty controls, one
+// marker between them.
+//
+// There are two honest answers, and they are different:
+//
+//   data-saves-itself="true"      written by something other than this
+//                                 form's Save - its own button, its own
+//                                 route, or the moment it is touched
+//   data-changes-the-view="true"  never stored at all: a filter, a
+//                                 selector, a test box
+//
+// tests/spec/test_every_control_in_the_form_says_what_it_is.py holds every
+// unnamed control in the form to giving one of them, so the third round of
+// this cannot happen by somebody forgetting.
 
 // The task list is built at runtime and carries no marker of its own, so its
 // controls are named here. They edit TASKS, which have their own routes and
@@ -33,8 +54,9 @@ const TASK_CONTROL_IDS = ['taskFilterStatus', 'refreshTasksBtn'];
 // Whether changing this element means the form has unsaved changes.
 function belongsToTheFormSave(element) {
     if (!element || typeof element.closest !== 'function') { return false; }
-    // Declared in the markup by anything that persists on its own.
+    // Declared in the markup: persisted elsewhere, or not persisted at all.
     if (element.closest('[data-saves-itself="true"]')) { return false; }
+    if (element.closest('[data-changes-the-view="true"]')) { return false; }
     if (TASK_CONTROL_IDS.includes(element.id)) { return false; }
     if (TASK_CONTROLS.some(selector => element.closest(selector))) { return false; }
     return true;

@@ -8,7 +8,7 @@
         <div class="d-flex align-items-center">
             <!-- Log Type Dropdown -->
             <div>
-                <select id="logTypeSelect" class="form-select form-select-sm">
+                <select id="logTypeSelect" data-changes-the-view="true" class="form-select form-select-sm">
                     <option value="container" selected>{{ _t('web.logs.type_container') }}</option>
                     <option value="bot">{{ _t('web.logs.type_bot') }}</option>
                     <option value="discord">{{ _t('web.logs.type_discord') }}</option>
@@ -23,7 +23,7 @@
         <div class="d-flex align-items-center flex-wrap gap-2">
             <!-- Auto Refresh Toggle -->
             <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="autoRefreshToggle">
+                <input class="form-check-input" type="checkbox" id="autoRefreshToggle" data-changes-the-view="true">
                 <label class="form-check-label" for="autoRefreshToggle" style="font-size: 0.875rem;">
                     {{ _t('web.logs.auto_refresh') }}
                 </label>

@@ -100,11 +100,7 @@ def test_the_node_cases_exist():
     assert "belongsToTheFormSave" in cases.read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("marker", ['data-saves-itself="true"'])
-def test_only_controls_that_really_save_themselves_are_marked(marker):
-    """The marker switches the warning off for whatever carries it, so it is
-    not something to sprinkle. Every element that has it must be one this
-    suite can point at a save for."""
+def _marked_with(marker):
     marked = set()
     for path in sorted((PROJECT / "app" / "templates").rglob("*.html")):
         markup = path.read_text(encoding="utf-8")
@@ -113,7 +109,45 @@ def test_only_controls_that_really_save_themselves_are_marked(marker):
                 found = re.search(r'id="([^"]+)"', tag)
                 if found:
                     marked.add(found.group(1))
+    return marked
 
-    assert marked == {"debugLevelToggle"}, (
-        f"these claim to save themselves: {sorted(marked)} - each needs a route "
-        "that stores it, and a case that says so")
+
+def test_every_control_that_claims_its_own_save_can_be_shown_one():
+    """The marker switches the warning off for whatever carries it, so it is
+    not something to sprinkle. Each one must be pointed at a save.
+
+    IT USED TO BE A LITERAL, ``marked == {"debugLevelToggle"}``, and that was
+    right while one control carried the marker. On 2026-09-25 twenty more
+    were declared - the channel translation settings, the query dialog's
+    fields, the two admin-add fields - and a literal would have meant
+    retyping the list instead of checking it. So the claim is checked
+    instead: a script reads the control, and that script writes somewhere.
+    """
+    marked = _marked_with('data-saves-itself="true"')
+
+    assert len(marked) >= 9, sorted(marked)
+
+    scripts = {path: path.read_text(encoding="utf-8")
+               for path in sorted((PROJECT / "app" / "static" / "js").glob("*.js"))}
+    unsupported = []
+    for identifier in sorted(marked):
+        handlers = [text for text in scripts.values() if identifier in text]
+        if not handlers:
+            unsupported.append(f"{identifier}: no script touches it")
+        elif not any(re.search(r"method:\s*['\"]POST['\"]", text) for text in handlers):
+            unsupported.append(f"{identifier}: its script never writes anything")
+
+    assert unsupported == [], (
+        "these claim to be saved elsewhere, and nothing can be shown that "
+        f"saves them: {unsupported}")
+
+
+def test_a_control_that_stores_nothing_says_that_instead():
+    """The other declaration, and the counter-check on the one above: the two
+    answers must not collapse into one another. A filter that claimed its own
+    save would send somebody looking for a route that does not exist."""
+    views = _marked_with('data-changes-the-view="true"')
+
+    assert len(views) >= 5, sorted(views)
+    assert views.isdisjoint(_marked_with('data-saves-itself="true"')), sorted(views)
+    assert "logTypeSelect" in views, sorted(views)

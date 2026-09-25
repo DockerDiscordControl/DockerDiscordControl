@@ -234,8 +234,8 @@
                 <div class="mb-3">
                     <label class="form-label">{{ _t('web.permissions.add_admin_label') }}</label>
                     <div class="input-group">
-                        <input type="text" class="form-control" id="newAdminId" placeholder="{{ _t('web.permissions.admin_id_placeholder') }}">
-                        <input type="text" class="form-control" id="newAdminNote" placeholder="{{ _t('web.permissions.admin_note_placeholder') }}">
+                        <input type="text" class="form-control" id="newAdminId" data-saves-itself="true" placeholder="{{ _t('web.permissions.admin_id_placeholder') }}">
+                        <input type="text" class="form-control" id="newAdminNote" data-saves-itself="true" placeholder="{{ _t('web.permissions.admin_note_placeholder') }}">
                         <button class="btn btn-success" type="button" onclick="addAdminUser()">{{ _t('web.common.add') }}</button>
                     </div>
                     <small class="form-text text-muted">{{ _t('web.permissions.admin_id_help') }}</small>

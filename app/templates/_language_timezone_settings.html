@@ -49,7 +49,7 @@
             <small class="text-light opacity-75">{{ _t('web.lang.channel_translation_desc') }}</small>
         </div>
         <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="ctGlobalToggle" onchange="toggleGlobalCT()">
+            <input class="form-check-input" type="checkbox" id="ctGlobalToggle" data-saves-itself="true" onchange="toggleGlobalCT()">
             <label class="form-check-label" for="ctGlobalToggle">{{ _t('web.common.enabled') }}</label>
         </div>
     </div>
@@ -63,7 +63,7 @@
                 <div class="row g-3">
                     <div class="col-md-4 d-flex flex-column">
                         <label class="form-label text-light">{{ _t('web.lang.provider_label') }}</label>
-                        <select class="form-select mt-auto" id="ctProvider">
+                        <select class="form-select mt-auto" id="ctProvider" data-saves-itself="true">
                             <option value="deepl">DeepL</option>
                             <option value="google">Google Translate</option>
                             <option value="microsoft">Microsoft Translator</option>
@@ -72,7 +72,7 @@
                     <div class="col-md-4">
                         <label class="form-label text-light">{{ _t('web.lang.api_key_label') }}</label>
                         <div class="input-group">
-                            <input type="password" class="form-control" id="ctApiKey" placeholder="{{ _t('web.lang.api_key_placeholder') }}">
+                            <input type="password" class="form-control" id="ctApiKey" data-saves-itself="true" placeholder="{{ _t('web.lang.api_key_placeholder') }}">
                             <button type="button" class="btn btn-outline-secondary" onclick="toggleCtApiKeyVisibility()">
                                 <i class="bi bi-eye" id="ctApiKeyEyeIcon"></i>
                             </button>
@@ -80,7 +80,7 @@
                     </div>
                     <div class="col-md-4 d-flex flex-column" id="ctDeeplUrlGroup">
                         <label class="form-label text-light">{{ _t('web.lang.deepl_tier_label') }}</label>
-                        <select class="form-select mt-auto" id="ctDeeplUrl">
+                        <select class="form-select mt-auto" id="ctDeeplUrl" data-saves-itself="true">
                             <option value="https://api-free.deepl.com/v2/translate">{{ _t('web.lang.deepl_free') }}</option>
                             <option value="https://api.deepl.com/v2/translate">{{ _t('web.lang.deepl_pro') }}</option>
                         </select>
@@ -103,11 +103,11 @@
                             <div class="row g-3">
                                 <div class="col-md-4 d-flex flex-column">
                                     <label class="form-label text-light">{{ _t('web.lang.rate_limit_label') }}</label>
-                                    <input type="number" class="form-control mt-auto" id="ctRateLimit" min="1" max="600" value="60">
+                                    <input type="number" class="form-control mt-auto" id="ctRateLimit" data-saves-itself="true" min="1" max="600" value="60">
                                 </div>
                                 <div class="col-md-4 d-flex flex-column">
                                     <label class="form-label text-light">{{ _t('web.lang.max_text_length_label') }}</label>
-                                    <input type="number" class="form-control mt-auto" id="ctMaxTextLength" min="100" max="50000" value="5000">
+                                    <input type="number" class="form-control mt-auto" id="ctMaxTextLength" data-saves-itself="true" min="100" max="50000" value="5000">
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
                                     <button type="button" class="btn btn-outline-secondary w-100" onclick="testCTConnection()">
@@ -116,7 +116,7 @@
                                 </div>
                                 <div class="col-md-6 mt-3">
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="ctShowOriginalLink" checked>
+                                        <input class="form-check-input" type="checkbox" id="ctShowOriginalLink" data-saves-itself="true" checked>
                                         <label class="form-check-label text-light" for="ctShowOriginalLink">
                                             <i class="bi bi-link-45deg"></i> {{ _t('web.lang.show_original_link') }}
                                         </label>
@@ -124,7 +124,7 @@
                                 </div>
                                 <div class="col-md-6 mt-3">
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="ctShowProviderFooter" checked>
+                                        <input class="form-check-input" type="checkbox" id="ctShowProviderFooter" data-saves-itself="true" checked>
                                         <label class="form-check-label text-light" for="ctShowProviderFooter">
                                             <i class="bi bi-card-text"></i> {{ _t('web.lang.show_provider_footer') }}
                                         </label>
@@ -141,10 +141,10 @@
                 <h6 class="mb-2 text-light"><i class="bi bi-chat-text"></i> {{ _t('web.lang.test_translation_title') }}</h6>
                 <div class="row g-2">
                     <div class="col-md-7">
-                        <textarea class="form-control form-control-sm" id="ctTestInput" rows="2" placeholder="{{ _t('web.lang.test_input_placeholder') }}"></textarea>
+                        <textarea class="form-control form-control-sm" id="ctTestInput" data-changes-the-view="true" rows="2" placeholder="{{ _t('web.lang.test_input_placeholder') }}"></textarea>
                     </div>
                     <div class="col-md-3">
-                        <select class="form-select form-select-sm" id="ctTestTargetLang">
+                        <select class="form-select form-select-sm" id="ctTestTargetLang" data-changes-the-view="true">
                             <!-- Populated by JS -->
                         </select>
                     </div>
@@ -178,7 +178,7 @@
             </div>
 
             <div class="mb-2">
-                <input type="text" class="form-control form-control-sm" id="ctPairSearch" placeholder="{{ _t('web.lang.search_pairs_placeholder') }}" onkeyup="filterCTPairs()">
+                <input type="text" class="form-control form-control-sm" id="ctPairSearch" data-changes-the-view="true" placeholder="{{ _t('web.lang.search_pairs_placeholder') }}" onkeyup="filterCTPairs()">
             </div>
 
             <div id="ctPairsList" class="list-group list-group-flush border rounded">
