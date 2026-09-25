@@ -20,12 +20,29 @@ which nothing could reach any more - the periodic edit loop handles only
 went with them; the rule did not. ``bulk_update_status_cache`` is still here
 and still covered below.
 
-AND THE RULE REACHES FURTHER THAN THIS FILE. Asking where else it applies
-turned up nine more handlers that catch CancelledError without re-raising -
-in docker_control, donation_ui, status_info_integration, docker_client_pool,
-mech_status_cache_service and scheduler_service. Some of those are a task's
-own teardown, where catching it is correct, so they need reading one at a
-time rather than a sweep. Written down here so the question is not lost.
+AND THE RULE REACHES FURTHER THAN THIS FILE - ASKED AND ANSWERED (2026-09-25).
+Nine more handlers catch CancelledError without re-raising, in docker_control,
+donation_ui, status_info_integration, docker_client_pool,
+mech_status_cache_service and scheduler_service. Read one at a time, none of
+them is this defect:
+
+  * every one names asyncio.CancelledError ALONE, which
+    tests/spec/test_a_cancellation_is_not_an_error.py already calls "a visible
+    decision about a cancellation, usually a task loop leaving its while" and
+    deliberately allows. The class that file DOES hold shut is the other one -
+    a cancellation mixed into a tuple with ordinary errors, fifteen sites;
+  * eight are a task's own body, ending quietly when told to stop;
+  * the ninth, _track_task, awaits somebody else's task - but it is only ever
+    started with create_task and nothing awaits IT, so its own completion
+    state is read by no one. Its job is the bookkeeping in its finally.
+
+Nothing inspects these tasks' cancelled() state either: the one caller that
+reads it, _log_background_task_exception in control_ui.py, is looking at an
+action button's task, not at any of these.
+
+Written down as an answer rather than a question, because a note that still
+asks after it has been settled is the same defect as a log line announcing
+work it does not do.
 """
 
 import asyncio
