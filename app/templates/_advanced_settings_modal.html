@@ -264,19 +264,30 @@
                             </div>
                             <div class="col-md-8">
                                 <label class="form-label">{{ _t('web.advanced.evolution_cost_multiplier') }} <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ _t('web.advanced.evolution_cost_multiplier_tooltip') }}" tabindex="0" role="button"></i></label>
+                                {# THE READING SAT INSIDE THE SLIDER'S OWN ROW, between the
+                                   "easy" end label and the track, so the operator's screenshot
+                                   showed "Easy | Current: 1.00x - MAX LEVEL REACHED | ==O== |
+                                   Hard" with the sentence wedged into the scale (2026-09-26).
+                                   It belongs under the control it reports on. #}
                                 <div class="d-flex align-items-center gap-3">
                                     <span class="text-muted">{{ _t('web.advanced.difficulty_easy') }}</span>
-                                <div class="form-text">
-                                    <strong>Current:</strong> <span id="difficultyValue">1.0x</span> - 
-                                    <span id="levelCostPreview">Next evolution costs: $20</span>
-                                    <span class="text-muted ms-2" id="levelCostDetails">(Base: $20, Community: Medium)</span>
-                                </div>
                                     <input type="range" class="form-range flex-grow-1" id="mech_difficulty_multiplier" name="mech_difficulty_multiplier"
                                            min="0.5" max="2.4" step="0.1" value="1.0"
                                            {# oninput redraws while dragging; onchange - the release -
                                               is what commits, so one decision is one request. #}
                                            oninput="onSliderChange()" onchange="onSliderChange(true)">
                                     <span class="text-muted">{{ _t('web.advanced.difficulty_hard') }}</span>
+                                </div>
+                                {# EMPTY, because a script fills all three the moment the dialog
+                                   opens. They used to carry English sentences - "Next evolution
+                                   costs: $20", "(Base: $20, Community: Medium)" - which is text
+                                   shown to an operator that no catalogue had ever seen, and the
+                                   second named a community size the script has not written since
+                                   the cost preview was rewritten. #}
+                                <div class="form-text">
+                                    <strong>Current:</strong> <span id="difficultyValue"></span>
+                                    <span id="levelCostPreview"></span>
+                                    <span class="text-muted ms-2" id="levelCostDetails"></span>
                                 </div>
                             </div>
                             <div class="col-md-4">

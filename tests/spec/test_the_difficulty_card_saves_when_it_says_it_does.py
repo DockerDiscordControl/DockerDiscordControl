@@ -102,3 +102,40 @@ def test_the_switch_reports_whether_it_saved():
         "enableManualOverride says nothing about whether it saved")
     assert source.count("enableManualOverride()") >= 2, \
         "nobody asks it, so the answer is decoration"
+
+
+def test_the_reading_is_not_wedged_into_the_slider_row():
+    """THE OPERATOR'S SCREENSHOT, 2026-09-26: "Easy | Current: 1.00x - MAX
+    LEVEL REACHED | ==O== | Hard". The line that reports the value had been
+    written INSIDE the flex row that carries the scale, between the "easy"
+    label and the track, so it read as part of the scale.
+
+    HOW THIS IS CHECKED: the row is cut out of the markup by its own
+    boundaries and the reading must not be in it. Reading the row rather
+    than naming the element means putting it back cannot quietly pass.
+    """
+    markup = MARKUP.read_text(encoding="utf-8")
+    start = markup.index('id="mech_difficulty_multiplier"')
+    row = markup.rindex('<div class="d-flex align-items-center gap-3">', 0, start)
+    end = markup.index("</div>", markup.index('difficulty_hard', start))
+
+    assert end > row, (end, row)
+    scale = markup[row:end]
+
+    assert 'id="difficultyValue"' not in scale, (
+        "the reading sits inside the slider's own row: " + scale[:200])
+    assert 'id="mech_difficulty_multiplier"' in scale, "the row was cut wrong"
+
+
+def test_no_english_sentence_waits_in_the_card():
+    """The three spans are filled by a script the moment the dialog opens,
+    and they used to carry English sentences in the meantime - text shown to
+    an operator that no catalogue had ever seen. One of them, "(Base: $20,
+    Community: Medium)", also named a community size the script has not
+    written since the cost preview was rewritten.
+    """
+    markup = MARKUP.read_text(encoding="utf-8")
+    for element in ("difficultyValue", "levelCostPreview", "levelCostDetails"):
+        waiting = re.search(rf'id="{element}"[^>]*>(.*?)</span>', markup, re.S).group(1).strip()
+
+        assert waiting == "", f"{element} carries untranslated text: {waiting!r}"
