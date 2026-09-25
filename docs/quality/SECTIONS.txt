@@ -346,7 +346,7 @@ app/web/security.py:1-102
 app/web_ui.py:1-36
 utils/__init__.py:1-7
 utils/app_commands_helper.py:1-150
-utils/atomic_io.py:1-99
+utils/atomic_io.py:1-104
 utils/common_helpers.py:1-501
 utils/config_paths.py:1-47
 
@@ -374,7 +374,7 @@ utils/token_security.py:1-279
 # group_references.py joined on 2026-09-24 (new: everything outside
 # groups.json that points at a group by name, moved by a rename).
 services/config/group_references.py:1-153
-services/config/group_service.py:1-415
+services/config/group_service.py:1-416
 
 ## Section 38  (871 lines, 7 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000

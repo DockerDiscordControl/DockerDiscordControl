@@ -33,11 +33,11 @@ logger = logging.getLogger("ddc.progress.runtime")
 class ProcessSafeLock:
     """An RLock in this process, and a file lock across processes.
 
-    DDC runs as two processes (supervisord starts the bot and the web UI) and
-    both change the mech's progress state. A thread lock serialises nothing
-    between them: both load the snapshot, both take "the next" sequence number,
-    and the second write lands from a state that never saw the first one's
-    event - with a last_event_seq that claims it did, so the lagging-snapshot
+    Several writers change the mech's progress state, and a lock held only
+    inside one of them serialises nothing: both load the snapshot, both take
+    "the next" sequence number, and the second write lands from a state that
+    never saw the first one's event - with a last_event_seq that claims it
+    did, so the lagging-snapshot
     check never looks at that event again. A donation booked in Discord could
     disappear from the state while its event still sat in the log.
 

@@ -194,10 +194,10 @@ _FILE_LOCK_DEPTH = 0  # flock is per fd: only the outermost call may open it
 def with_tasks_lock(func):
     """Hold the tasks.json lock - in this process AND across processes.
 
-    The bot and the web UI are two processes (supervisord), where a thread lock
-    serialises nothing, and an atomic write makes the swap atomic, not the
-    read-modify-write: both read, both write, and the second replaces a file
-    that never saw the first one's change (a deleted task comes back).
+    A lock held inside one writer serialises nothing against another, and an
+    atomic write makes the swap atomic, not the read-modify-write: both read,
+    both write, and the second replaces a file that never saw the first one's
+    change (a deleted task comes back).
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):

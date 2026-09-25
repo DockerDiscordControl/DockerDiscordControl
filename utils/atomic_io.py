@@ -37,11 +37,16 @@ PathLike = Union[str, "os.PathLike[str]"]
 def cross_process_lock(path: PathLike):
     """Serialise a read-modify-write on ``path`` ACROSS PROCESSES.
 
-    DDC runs as two processes (supervisord starts the bot and the web UI), and
-    an atomic write makes the SWAP atomic, not the cycle: if both read before
-    either writes, the second write replaces the file with a state that never
-    saw the first one's change - a task the panel deleted comes back, a verdict
-    is lost. The lock lives beside the file as <name>.lock.
+    An atomic write makes the SWAP atomic, not the cycle: if two writers read
+    before either writes, the second replaces the file with a state that never
+    saw the first one's change - a task the panel deleted comes back, a
+    verdict is lost. The lock lives beside the file as <name>.lock.
+
+    WHO THE OTHER WRITER IS. Before v3 it was a separate process; the bot and
+    the web UI share one now (PID 1, with threads). flock is held per OPEN
+    FILE DESCRIPTION, so two threads that open the file separately still block
+    each other here - and an operator editing the file, or reaching in with
+    `docker exec`, is a writer no in-process lock could ever see.
 
     flock blocks the OS thread, which under gevent means the hub; every user of
     this holds it for one small JSON read and write.

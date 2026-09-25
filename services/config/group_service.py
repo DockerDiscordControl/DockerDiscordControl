@@ -20,7 +20,8 @@ Two rules everything built on top depends on:
   say "done";
 * the file is written like every shared file in DDC: the read-modify-write
   under ``cross_process_lock`` and the write through ``atomic_write_json``,
-  because the bot and the web panel are two processes.
+  because a second writer can always appear - another thread, or an operator
+  editing the file by hand.
 """
 
 from __future__ import annotations

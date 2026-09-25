@@ -139,7 +139,8 @@ def _localize(tz, naive_dt: datetime) -> datetime:
 
 # One lock for the read-modify-write cycles on tasks.json: reentrant in this
 # process (add/update/delete call load_tasks, which may save on its own) AND
-# taken across processes, because the bot and the Web UI are two of them.
+# taken across writers, because another thread - or an operator's editor -
+# can be in the middle of the same cycle.
 from services.scheduling.runtime import (  # noqa: E402
     TASKS_LOCK as _TASKS_LOCK, with_tasks_lock as _with_tasks_lock)
 
@@ -1084,8 +1085,7 @@ def _save_raw_tasks_to_file(tasks_data: List[Dict[str, Any]]) -> bool:
             # onto it, and it differed in three ways that matter (review E1):
             #
             #   - mkstemp creates its file 0600, and the rename then made THAT
-            #     the mode of tasks.json. The file is written by two processes,
-            #     the bot and the web panel, and every save re-stamped it.
+            #     the mode of tasks.json, and every save re-stamped it.
             #   - the cleanup sat under (json.JSONDecodeError, ValueError,
             #     TypeError, UnicodeEncodeError), so a full disk during the dump
             #     or the fsync left the temp file behind - and the retry loop

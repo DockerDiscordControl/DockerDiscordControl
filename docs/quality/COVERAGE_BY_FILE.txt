@@ -149,7 +149,7 @@ services/config/config_service.py	1259	passE:E26+bothscans:252-352,354-512,793-9
 services/config/config_validation_service.py	212	passE:read-in-full:no-findings
 services/config/container_config_save_service.py	150	passE:read-in-full:no-findings
 services/config/group_references.py	153	NONE
-services/config/group_service.py	415	NONE
+services/config/group_service.py	416	NONE
 services/config/server_config_service.py	233	passE:E33:read-in-full
 services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	509	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
@@ -255,7 +255,7 @@ services/web/task_management_service.py	1171	pass1:s31:plan pass2:s31:1-1060  [2
 services/web/two_factor_service.py	224	v3rev:1-224
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150
-utils/atomic_io.py	99	pass1:s35:1-70
+utils/atomic_io.py	104	pass1:s35:1-70
 utils/common_helpers.py	501	pass1:s35:1-475  [26 of 501 lines never in a package]
 utils/config_cache.py	307	pass1:s35:1-307
 utils/config_paths.py	47	pass1:s35:1-47
