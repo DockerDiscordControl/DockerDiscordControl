@@ -286,6 +286,32 @@ async def admin_panel_embed(cog, channel_id, selected: str, config: dict, app_co
     return embed
 
 
+def admin_control_view(cog, container_config: dict, is_running: bool):
+    """The button row for the PRIVATE admin panel, with its way out.
+
+    One place, because both callers - the panel as it opens, and the panel
+    rebuilt after an action - need the same four arguments and the same close
+    button, and a second copy is where that button goes missing.
+
+    THE CLOSE BUTTON BELONGS ONLY HERE. ControlView also builds the status and
+    control channel overviews, which everybody in the channel reads; a close
+    button on one of those would let any reader delete it for all of them. The
+    operator asked for this explicitly, and
+    tests/spec/test_only_a_private_panel_offers_a_close_button.py turns red if
+    it ever reaches a public one.
+    """
+    # Imported here: control_ui imports this module, so naming it at the top
+    # would close the circle.
+    from .control_ui import ControlView
+    from .ddc_ui import CloseButton
+
+    view = ControlView(cog, container_config, is_running=is_running,
+                       channel_has_control_permission=True,  # an admin always has it
+                       allow_toggle=False)                   # no toggle in this panel
+    view.add_item(CloseButton(row=1))
+    return view
+
+
 async def running_state_for(cog, selected: str, config: dict) -> Tuple[bool, bool]:
     """(is_running, status_known) for whatever was picked in the admin list.
 

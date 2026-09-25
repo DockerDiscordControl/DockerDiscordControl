@@ -33,8 +33,8 @@ from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
 from .ddc_ui import NOTICE_STAYS_FOR, DDCView
 from .group_control import (controllable_entries, group_config_for, group_entries,
-                            group_help_field, is_group_target, admin_panel_embed,
-                            running_state_for)
+                            group_help_field, is_group_target, admin_control_view,
+                            admin_panel_embed, running_state_for)
 
 logger = get_module_logger('control_ui')
 
@@ -590,13 +590,8 @@ class ActionButton(Button):
                                     is_running, _known = await running_state_for(
                                         self.cog, self.docker_name, self.server_config)
 
-                                    admin_view = ControlView(
-                                        self.cog,
-                                        self.server_config,
-                                        is_running=is_running,
-                                        channel_has_control_permission=True,
-                                        allow_toggle=False
-                                    )
+                                    admin_view = admin_control_view(
+                                        self.cog, self.server_config, is_running)
 
                                     if admin_embed:
                                         await interaction.edit_original_response(embed=admin_embed, view=admin_view)
@@ -1072,7 +1067,6 @@ class ControlView(DDCView):
         details_allowed = server_config.get('allow_detailed_status', True)
         # CRITICAL FIX: Use docker_name (stable identifier) for expanded state lookup
         # This ensures consistency with status_handlers.py and prevents state loss on name changes
-        docker_name = server_config.get('docker_name')
         is_expanded = cog_instance.expanded_states.get(docker_name, False)
 
         # A GROUP IS NOT ON OR OFF (operator, 2026-09-24). A container is, so
@@ -2202,10 +2196,7 @@ class AdminContainerDropdown(discord.ui.Select):
                 is_running, status_known = await running_state_for(
                     self.cog, selected_container, container_config)
 
-                control_view = ControlView(
-                    self.cog, container_config, is_running=is_running,
-                    channel_has_control_permission=True,   # an admin always has it
-                    allow_toggle=False)                    # no toggle in this panel
+                control_view = admin_control_view(self.cog, container_config, is_running)
 
                 # Clean up temporary marker after everything is done
                 container_config.pop('_is_admin_control', None)

@@ -85,6 +85,37 @@ def _name_of(item) -> str:
             or type(item).__name__)
 
 
+class CloseButton(discord.ui.Button):
+    """Takes a private panel away, in the operator's own words.
+
+    THE OPERATOR (2026-09-25): "I don't know whether everyone understands
+    'Dismiss message'." That phrase is Discord's, it is small, grey, and until
+    a view expires it is the only way out of an ephemeral message.
+
+    IT REFUSES ON A PUBLIC MESSAGE. He asked for this explicitly: the status
+    and control channel overviews must never carry it. Two things stop that -
+    the button is only added where a panel is private, and pressing it asks
+    the message's own ephemeral flag before deleting anything. The first is
+    the rule; the second is what survives somebody forgetting it.
+    """
+
+    def __init__(self, row: int = 1):
+        super().__init__(style=discord.ButtonStyle.secondary, label=_("Close"),
+                         emoji="\u2716\ufe0f", row=row, custom_id="ddc_close_panel")
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        message = getattr(interaction, "message", None)
+        if message is None or not is_private_panel_message(message):
+            logger.warning("Close button pressed on a message that is not private - ignored")
+            return
+
+        try:
+            await message.delete()
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException) as error:
+            # Already gone, or past Discord's fifteen-minute interaction token.
+            logger.debug("Could not close a panel: %s", error)
+
+
 class DDCView(discord.ui.View):
     """A view whose failing buttons answer the user, and which clears up after itself."""
 

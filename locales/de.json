@@ -1010,6 +1010,7 @@
   "web.timezone.question_body": "{count} geplante Aufgabe(n) laufen weiterhin in {old}. Die Umstellung des Panels auf {new} verschiebt sie nicht, sofern Sie nichts anderes sagen.",
   "web.timezone.keep_clock": "Uhrzeit behalten - eine Aufgabe um 10:00 läuft dann um 10:00 in der neuen Zeitzone.",
   "web.timezone.keep_moment": "Zeitpunkt behalten - eine Aufgabe um 10:00 läuft weiter um 10:00 in der alten Zeitzone.",
+  "Close": "Schließen",
   "web.common.close": "Schließen",
   "web.common.delete": "Löschen",
   "web.common.download": "Herunterladen",
