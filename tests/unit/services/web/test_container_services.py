@@ -54,9 +54,21 @@ class TestContainerLogServiceBasics:
     def test_log_paths_dictionary_has_all_expected_keys(self):
         service = ContainerLogService()
         assert set(service.log_paths.keys()) == {"bot", "discord", "webui", "application"}
-        # Every path entry should contain at least one Docker path and one dev path
+        # A source that names a file names it twice: the Docker path and the
+        # local checkout. That pair is what this case has always been about -
+        # the second entry was once the maintainer's absolute path, true on one
+        # machine and searched on every lookup.
+        #
+        # An EMPTY list is now allowed, and three of the four are empty. They
+        # used to name bot.log, webui_error.log and supervisord.log, none of
+        # which DDC writes: it creates discord.log and bot_error.log and
+        # nothing else. supervisord.log was the one that mattered - left on
+        # disk from the two-process era, found by the reader, and served under
+        # the Application tab as current (see
+        # tests/spec/test_the_log_page_only_offers_logs_that_are_written.py).
+        # Those sources fall through to the live container output instead.
         for entries in service.log_paths.values():
-            assert len(entries) >= 2
+            assert len(entries) in (0, 2), entries
             assert all(isinstance(p, str) and p for p in entries)
 
     def test_default_container_name(self):

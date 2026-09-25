@@ -76,11 +76,27 @@ class ContainerLogService:
         # used to be the maintainer's absolute path, which existed on exactly one machine
         # and was searched on every lookup. It is now derived from this file's location.
         local_logs = Path(__file__).resolve().parents[2] / "logs"
+        # ONLY files DDC writes. app/bootstrap/runtime.py creates discord.log
+        # (INFO+) and bot_error.log (ERROR+), and setup_logger creates one file
+        # per logger name; nothing else is ever written.
+        #
+        # bot.log, webui_error.log and supervisord.log used to be listed here
+        # and are written by nobody. supervisord.log is the reason this matters:
+        # DDC has run as ONE process since that era ended - the image has no
+        # supervisorctl - but the 3.2 MB file from 2025-11-21 was left behind in
+        # the logs directory, so the reader below found it and served it under
+        # the Application tab as if it were today's. Full of "WARN exited:
+        # discord-bot (exit status 1; not expected)". The other two were
+        # harmless only because they happened not to exist; one restored backup
+        # and they would have been the same trap.
+        #
+        # A source with no file falls through to the live container output,
+        # which in a one-process DDC IS the application log.
         self.log_paths = {
-            'bot': ['/app/logs/bot.log', str(local_logs / 'bot.log')],
+            'bot': [],
             'discord': ['/app/logs/discord.log', str(local_logs / 'discord.log')],
-            'webui': ['/app/logs/webui_error.log', str(local_logs / 'webui_error.log')],
-            'application': ['/app/logs/supervisord.log', str(local_logs / 'supervisord.log')]
+            'webui': [],
+            'application': []
         }
 
     def get_container_logs(self, request: ContainerLogRequest) -> LogResult:
