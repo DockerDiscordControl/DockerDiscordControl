@@ -50,11 +50,9 @@ def cog(monkeypatch):
     cog.channel_server_message_ids = {1: {"overview": 11}, 2: {"overview": 22}}
     cog.last_message_update_time = {}
     cog.last_channel_activity = {}
-    cog.mech_expanded_states = {}
     cog._channel_locks = {}
     cog.pending_actions = {}
     cog._persist_tracked_message_ids = MagicMock()
-    cog._is_channel_interacting = AsyncMock(return_value=False)
     cog._background_cache_population = AsyncMock()
     monkeypatch.setattr("cogs.message_updates.load_config", lambda: {"language": "en"})
     monkeypatch.setattr("services.config.server_config_service.get_server_config_service",

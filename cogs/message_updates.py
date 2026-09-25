@@ -343,11 +343,6 @@ class MessageUpdatesMixin:
                         if not channel:
                             continue
 
-                        # Skip update if channel has active button interaction
-                        if await self._is_channel_interacting(channel_id):
-                            logger.debug(f"Skipping auto-update for channel {channel_id} - active interaction")
-                            continue
-
                         message_id = messages['overview']
                         message = await channel.fetch_message(message_id)
                         if not message:
@@ -476,15 +471,9 @@ class MessageUpdatesMixin:
                                 logger.debug(f"Rate limited force_recreate for channel {channel_id} (Glvl change or power depletion)")
                                 recreate_this_channel = False
 
-                        # Create updated embed based on expansion state
-                        is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
-                        logger.info(f"AUTO-UPDATE: Channel {channel_id} is_expanded={is_mech_expanded}, force_recreate={recreate_this_channel}")
-                        if is_mech_expanded:
-                            logger.info(f"AUTO-UPDATE: Creating expanded embed for channel {channel_id}")
-                            embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
-                        else:
-                            logger.info(f"AUTO-UPDATE: Creating collapsed embed for channel {channel_id}")
-                            embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+                        # The overview has one shape; the big mech lives in the
+                        # private panel the Mech button opens.
+                        embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
 
                         if recreate_this_channel:
                             # FIX B: serialize delete+recreate per channel and re-validate the
@@ -562,12 +551,8 @@ class MessageUpdatesMixin:
                     view = AdminOverviewView(self, channel_id, has_running)
                     animation_file = None  # Admin Overview has no animation
                 else:
-                    is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
-                    if is_mech_expanded:
-                        embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
-                    else:
-                        embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
-                    # Create MechView with expand/collapse buttons
+                    embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+                    # The overview's buttons: Mech, info, admin, help
                     from .control_ui import MechView
                     view = MechView(self, channel_id)
 
@@ -697,12 +682,7 @@ class MessageUpdatesMixin:
                 # CACHE WARMUP: Refresh the cache only if it is stale (see admin_overview branch)
                 await self._ensure_status_cache_fresh()
 
-                # Create standard overview embed based on expansion state
-                is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
-                if is_mech_expanded:
-                    embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config)
-                else:
-                    embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
+                embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
                 # Create MechView for standard overview
                 from .control_ui import MechView
                 view = MechView(self, channel_id)

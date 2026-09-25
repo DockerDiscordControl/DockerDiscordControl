@@ -52,7 +52,7 @@ def test_a_setter_after_a_failed_read_does_not_wipe_the_file(state_file):
     manager = _manager_that_could_not_read(state_file)
 
     with patch("builtins.open", side_effect=OSError("input/output error")):
-        manager.set_expanded_state("1", True)     # the read still fails
+        manager.set_last_glvl("1", 4)             # the read still fails
 
     assert json.loads(state_file.read_text(encoding="utf-8")) == GOOD, (
         "a transient read error cost the tracked message ids and every channel's state")
@@ -61,11 +61,11 @@ def test_a_setter_after_a_failed_read_does_not_wipe_the_file(state_file):
 def test_a_read_that_works_again_keeps_the_old_state_and_adds_the_change(state_file):
     manager = _manager_that_could_not_read(state_file)
 
-    manager.set_expanded_state("1", True)         # the file is readable again
+    manager.set_last_glvl("1", 4)                 # the file is readable again
 
     stored = json.loads(state_file.read_text(encoding="utf-8"))
     assert stored["channel_overview_message_ids"] == {"1": 11}, stored
-    assert stored["mech_expanded_states"] == {"1": True}
+    assert stored["last_glvl_per_channel"] == {"1": 4}
 
 
 def test_an_ordinary_save_still_works(state_file):

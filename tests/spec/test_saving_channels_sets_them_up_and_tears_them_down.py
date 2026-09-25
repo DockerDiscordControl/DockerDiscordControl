@@ -53,7 +53,6 @@ def _cog(permissions):
     cog._channel_locks = {}
     cog.last_message_update_time = {KEPT: 1, GONE: 1}
     cog.last_channel_activity = {KEPT: 1, GONE: 1}
-    cog.mech_expanded_states = {KEPT: True, GONE: True}
     cog.last_glvl_per_channel = {KEPT: 3, GONE: 3}
     cog._persist_tracked_message_ids = MagicMock()
     cog.delete_bot_messages = AsyncMock()
@@ -107,7 +106,7 @@ def test_a_removed_channel_is_torn_down_and_the_others_keep_theirs(config):
     assert list(cog.channel_server_message_ids) == [KEPT]
     cog._persist_tracked_message_ids.assert_called()
     for tracked in (cog.last_message_update_time, cog.last_channel_activity,
-                    cog.mech_expanded_states, cog.last_glvl_per_channel):
+                    cog.last_glvl_per_channel):
         assert list(tracked) == [KEPT]
 
 
@@ -127,7 +126,7 @@ def test_an_added_status_channel_gets_the_collapsed_overview(config):
     cog._send_control_panel_and_statuses.assert_not_awaited()
     call = cog._send_all_server_statuses.await_args
     assert call.args[0].id == NEW
-    assert call.kwargs == {"force_collapse": True}
+    assert call.kwargs == {}
 
 
 def test_post_initial_off_only_tracks_the_channel(config):

@@ -47,7 +47,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 EMBEDS = ROOT / "cogs" / "overview_embeds.py"
-BUILDERS = ("_create_overview_embed_expanded", "_create_overview_embed_collapsed",
+BUILDERS = ("_create_overview_embed_collapsed",
             "_create_admin_overview_embed")
 
 

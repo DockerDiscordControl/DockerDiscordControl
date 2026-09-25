@@ -60,7 +60,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cogs.control_ui import MechCollapseButton, MechExpandButton, MechHistoryButton
+from cogs.control_ui import MechHistoryButton
 from services.infrastructure.spam_protection_service import SpamProtectionService
 from tests.spec import is_not_awaitable_error
 
@@ -69,9 +69,12 @@ USER = 6644
 CHANNEL = 77
 
 # class -> (id prefix, slider name, default value, refusal route)
+# TWO OF THE THREE ARE GONE. MechExpandButton and MechCollapseButton were
+# removed on 2026-09-25 with the old shape of the overview; the rule they
+# shared is still worth holding for the one that is left, and the file keeps
+# its measured notes below because they describe why the surviving route is
+# checked the way it is.
 BUTTONS = [
-    (MechExpandButton, "mech_expand", 3, "send_message"),
-    (MechCollapseButton, "mech_collapse", 2, "send_message"),
     (MechHistoryButton, "mech_history", 5, "followup"),
 ]
 
@@ -117,16 +120,12 @@ def _interaction():
 async def _press(button, service):
     """Keep donations ACTIVE - otherwise the callback returns before the brake.
 
-    ``_start_interaction`` must be an ``AsyncMock``: expand and collapse
-    call it with ``await`` after the ``defer``, and a bare ``MagicMock``
-    is not awaitable ("'MagicMock' object can't be awaited"). This danger
-    was noted before the first run - afterwards I wrongly declared it as
-    not having occurred, because pytest reports an unhandled exception in an
-    asynchronous test as FAILED and not as ERROR. The label does not carry
-    this distinction.
+    The fixture used to hand the cog an ``AsyncMock`` for
+    ``_start_interaction``, because expand and collapse awaited it after the
+    ``defer``. Both buttons and that guard were removed on 2026-09-25 with
+    the old shape of the overview.
     """
     interaction = _interaction()
-    button.cog._start_interaction = AsyncMock(return_value=True)
     with patch(SPAM_PATH, return_value=service), \
             patch("cogs.control_ui.is_donations_disabled", return_value=False):
         try:
@@ -134,7 +133,6 @@ async def _press(button, service):
         except TypeError as e:
             # ONLY TypeError, and only from the depths: after the brake the
             # callback calls a chain of cog methods with await
-            # (_create_overview_embed_expanded, _end_interaction in the
             # cleanup path, ...). Each is not awaitable on a MagicMock,
             # and every repair of the fixture exposes the next one - an
             # arms race that says nothing about the brake.
@@ -166,22 +164,25 @@ def test_the_three_buttons_carry_the_expected_id():
         )
 
 
-def test_the_three_sliders_have_different_values(tmp_path):
-    """Second safeguard: the value checks below are only worth something if the
-    sliders differ - and if they deviate from the fallback rule.
+def test_the_slider_is_derived_from_the_id(tmp_path):
+    """Second safeguard: the prefix logic must still find the slider.
+
+    IT USED TO COMPARE THREE. Expand and collapse went with the old shape of
+    the overview on 2026-09-25, and for the one that is left the VALUE proves
+    nothing on its own: mech_history is 5 and so is the fallback for an
+    unknown name. What has teeth is the exact ARGUMENT, asserted in
+    test_the_service_is_asked_and_noted below. This case only holds the
+    derivation itself, and says plainly that it is the weaker half.
     """
     service = SpamProtectionService(config_dir=str(tmp_path))
 
     assert service.get_button_cooldown("does_not_exist") == 5, "Fallback rule changed"
-    measured_values = {}
     for _button_class, prefix, value, _route in BUTTONS:
         measured = service.get_button_cooldown(f"{prefix}_{CHANNEL}")
         assert measured == value, (
             f"{prefix} returns {measured} instead of {value} - the prefix logic "
             "no longer works as assumed."
         )
-        measured_values[prefix] = measured
-    assert len(set(measured_values.values())) == 3, f"Sliders no longer different: {measured_values}"
 
 
 @pytest.mark.parametrize("button_class,prefix,value,route", BUTTONS, ids=lambda x: str(x))

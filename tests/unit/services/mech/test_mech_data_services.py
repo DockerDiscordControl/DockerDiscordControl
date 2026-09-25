@@ -835,14 +835,12 @@ class TestMechResetService:
     def test_reset_mech_state_resets_glvl_per_channel(self, reset_service):
         reset_service.mech_state_file.write_text(json.dumps({
             "last_glvl_per_channel": {"123": 7, "456": 11},
-            "mech_expanded_states": {"123": True, "456": True},
         }), encoding="utf-8")
 
         out = reset_service.reset_mech_state()
         assert out.success is True
         data = json.loads(reset_service.mech_state_file.read_text())
         assert all(v == 1 for v in data["last_glvl_per_channel"].values())
-        assert all(v is False for v in data["mech_expanded_states"].values())
         assert "last_update" in data
 
     def test_reset_mech_state_handles_corrupt_json(self, reset_service):
@@ -1012,14 +1010,6 @@ class TestMechStateManager:
         manager.set_state("foo", 42)
         on_disk = json.loads(state_file.read_text())
         assert on_disk == {"foo": 42}
-
-    def test_set_and_get_expanded_state(self, manager, state_file):
-        manager.set_expanded_state("123", True)
-        assert manager.get_expanded_state("123") is True
-        # Defaults to False for unknown channels.
-        assert manager.get_expanded_state("999") is False
-        on_disk = json.loads(state_file.read_text())
-        assert on_disk["mech_expanded_states"]["123"] is True
 
     def test_set_and_get_last_glvl(self, manager, state_file):
         manager.set_last_glvl("ch-1", 7)

@@ -172,9 +172,7 @@ class SlashCommandsMixin:
             servers = server_config_service.get_all_servers()
             ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
 
-            # Determine which embed to create based on mech expansion state
             channel_id = ctx.channel.id
-            is_mech_expanded = self.mech_expanded_states.get(channel_id, False)
 
             # SERVICE FIRST: Log decision for manual /ss command (always proceeds but logs settings)
             try:
@@ -188,12 +186,9 @@ class SlashCommandsMixin:
             except (ImportError, AttributeError, RuntimeError) as service_error:
                 logger.warning(f"SERVICE_FIRST: Error logging decision for manual /ss command: {service_error}")
 
-            if is_mech_expanded:
-                embed, animation_file = await self._create_overview_embed_expanded(ordered_servers, config, force_refresh=True)
-            else:
-                embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config, force_refresh=True)
+            embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config, force_refresh=True)
 
-            # Create MechView with expand/collapse buttons for mech status
+            # The overview's buttons: Mech, info, admin, help
             from .control_ui import MechView
             view = MechView(self, channel_id)
 

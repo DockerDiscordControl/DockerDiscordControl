@@ -71,8 +71,7 @@ def cog_with_a_broken_mech(monkeypatch):
     return cog
 
 
-@pytest.mark.parametrize("builder", ["_create_overview_embed_expanded",
-                                     "_create_overview_embed_collapsed"])
+@pytest.mark.parametrize("builder", ["_create_overview_embed_collapsed"])
 @pytest.mark.asyncio
 async def test_the_container_list_survives_a_broken_mech(builder, cog_with_a_broken_mech):
     from cogs.docker_control import DockerControlCog
@@ -91,8 +90,7 @@ async def test_the_container_list_survives_a_broken_mech(builder, cog_with_a_bro
     assert "Valheim" in (embed.description or "")
 
 
-@pytest.mark.parametrize("builder", ["_create_overview_embed_expanded",
-                                     "_create_overview_embed_collapsed"])
+@pytest.mark.parametrize("builder", ["_create_overview_embed_collapsed"])
 @pytest.mark.asyncio
 async def test_a_broken_mech_is_still_reported(builder, cog_with_a_broken_mech, caplog):
     """Counter-check: surviving the failure must not mean hiding it."""

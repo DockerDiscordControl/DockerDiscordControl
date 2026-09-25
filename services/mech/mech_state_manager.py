@@ -170,18 +170,6 @@ class MechStateManager:
         state[key] = value
         self.save_state(state)
 
-    def set_expanded_state(self, channel_id: str, expanded: bool):
-        """Set expanded state for a channel"""
-        state = self._writable_state()
-        if state is None:
-            return
-        state.setdefault('mech_expanded_states', {})[str(channel_id)] = expanded
-        self.save_state(state)
-
-    def get_expanded_state(self, channel_id: str) -> bool:
-        """Get expanded state for a channel"""
-        return self.state_cache.get('mech_expanded_states', {}).get(str(channel_id), False)
-
     def set_last_glvl(self, channel_id: str, glvl: int):
         """Set last glvl for a channel"""
         state = self._writable_state()

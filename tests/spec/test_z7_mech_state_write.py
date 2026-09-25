@@ -8,7 +8,7 @@ plain ``open(..., 'w')`` (:194). An abort in between leaves the file empty.
 
 What gets lost is more than a counter: the method KEEPS the existing
 structure and only sets values (:181-192). The file holds
-``last_glvl_per_channel`` and ``mech_expanded_states`` - i.e. which Discord channel
+``last_glvl_per_channel`` - i.e. which Discord channel
 had which mech level and which view was expanded there. A crash destroys this
 mapping; afterwards nobody knows which channel belongs where.
 So what is checked is not merely "file not empty", but that the mapping
@@ -59,7 +59,6 @@ from services.mech.mech_reset_service import MechResetService
 
 ORIGINAL = {
     "last_glvl_per_channel": {"111": 7, "222": 3},
-    "mech_expanded_states": {"111": True},
     "last_update": "2026-01-01T00:00:00",
 }
 
@@ -146,7 +145,6 @@ def test_successful_reset_resets_and_keeps_the_channels(service_and_file):
     assert result.success is True
     state_after = json.loads(file.read_text(encoding="utf-8"))
     assert state_after["last_glvl_per_channel"] == {"111": 1, "222": 1}, "Levels not reset"
-    assert state_after["mech_expanded_states"] == {"111": False}, "View not collapsed"
 
 
 def test_no_temp_leftovers_after_success(service_and_file):

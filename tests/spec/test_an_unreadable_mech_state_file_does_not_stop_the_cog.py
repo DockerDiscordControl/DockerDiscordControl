@@ -97,6 +97,6 @@ def test_a_missing_file_is_still_quiet(manager, caplog):
 def test_a_readable_file_is_still_read(manager):
     """Counter-check: the defence must not swallow the normal case."""
     with open(manager.state_file, "w") as handle:
-        json.dump({"mech_expanded_states": {"111": True}}, handle)
+        json.dump({"last_glvl_per_channel": {"111": 7}}, handle)
 
-    assert manager.load_state() == {"mech_expanded_states": {"111": True}}
+    assert manager.load_state() == {"last_glvl_per_channel": {"111": 7}}

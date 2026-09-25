@@ -661,12 +661,13 @@ class BackgroundLoopsMixin:
 
                         logger.debug(f"Will regenerate with mode: {regeneration_mode}")
 
-                        # FIX A: Don't regenerate while a user is mid-interaction (e.g. expanding the
-                        # mech) - deleting the message they are interacting with would no-op their
-                        # click. Skip this cycle; the loop retries in 30s.
-                        if await self._is_channel_interacting(channel_id):
-                            logger.debug(f"Channel {channel_id} has an active interaction - deferring regeneration to next cycle")
-                            continue
+                        # FIX A USED TO STAND HERE: don't regenerate while a user is
+                        # mid-interaction, because deleting the message they are
+                        # pressing would no-op their click. The only thing that ever
+                        # marked an interaction was the mech expand/collapse pair, so
+                        # with those gone the check answered False for every channel,
+                        # every cycle. The per-channel lock below is what actually
+                        # serialises a delete-and-post today (FIX B).
 
                         # Attempt channel regeneration with improved error handling
                         try:

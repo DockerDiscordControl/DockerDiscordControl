@@ -40,8 +40,11 @@ EXPECTED_KEYS = {
     *((BUTTON, ADMIN_OVERVIEW, f"admin_overview_{name}_{CHANNEL}")
       for name in ("admin", "donate", "restart_all", "restart_stack", "stop_all")),
     # per-channel mech buttons, any message
+    # mech_expand and mech_collapse stood here until 2026-09-25: the old
+    # shape of the overview, registered for messages nothing posts any more
+    # (tests/spec/test_a_registered_button_is_on_a_posted_view.py).
     *((BUTTON, None, f"{name}_{CHANNEL}") for name in (
-        "mech_expand", "mech_collapse", "mech_donate", "mech_history",
+        "mech_donate", "mech_history",
         "mech_private_donate", "mech_private_history")),
     # channel-independent mech buttons
     (BUTTON, None, "epilogue_button"),

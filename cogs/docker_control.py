@@ -171,20 +171,15 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
             raise
 
         # Safe int conversion with error handling
-        self.mech_expanded_states = {}
-        for k, v in state_data.get("mech_expanded_states", {}).items():
-            try:
-                self.mech_expanded_states[int(k)] = v
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid channel ID in mech_expanded_states: {k}")
-
         self.last_glvl_per_channel = {}
         for k, v in state_data.get("last_glvl_per_channel", {}).items():
             try:
                 self.last_glvl_per_channel[int(k)] = v
             except (ValueError, TypeError):
                 logger.warning(f"Invalid channel ID in last_glvl_per_channel: {k}")
-        logger.info(f"Loaded persisted Mech states: {len(self.mech_expanded_states)} expanded, {len(self.last_glvl_per_channel)} Glvl tracked")
+        # It said "N expanded" and counted the ENTRIES of the expand-state map,
+        # so a channel stored as false was reported as expanded on every start.
+        logger.info(f"Loaded persisted Mech states: {len(self.last_glvl_per_channel)} channel(s) with a Glvl")
 
 
         # FIX C: Restore persisted overview/admin_overview message ids. This lets the bot
@@ -302,10 +297,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
         try:
             self._active_tasks = set()
             self._task_lock = asyncio.Lock()
-
-            # Initialize interaction lock to prevent race conditions between button clicks and auto-updates
-            self._interaction_lock = asyncio.Lock()
-            self._active_interactions = set()  # Track active button interactions per channel
 
             # FIX B: Per-channel locks serialize every path that deletes+posts an overview
             # (regenerate, recreate, recovery, /ss, /control, initial send) so two concurrent
@@ -469,31 +460,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
         finally:
             async with self._task_lock:
                 self._active_tasks.discard(task)
-
-    async def _start_interaction(self, channel_id: int) -> bool:
-        """Mark the start of a button interaction for a channel.
-
-        Returns:
-            bool: True if interaction started successfully, False if already active
-        """
-        async with self._interaction_lock:
-            if channel_id in self._active_interactions:
-                logger.debug(f"Interaction already active for channel {channel_id}")
-                return False
-            self._active_interactions.add(channel_id)
-            logger.debug(f"Started interaction for channel {channel_id}")
-            return True
-
-    async def _end_interaction(self, channel_id: int):
-        """Mark the end of a button interaction for a channel."""
-        async with self._interaction_lock:
-            self._active_interactions.discard(channel_id)
-            logger.debug(f"Ended interaction for channel {channel_id}")
-
-    async def _is_channel_interacting(self, channel_id: int) -> bool:
-        """Check if a channel currently has an active button interaction."""
-        async with self._interaction_lock:
-            return channel_id in self._active_interactions
 
     def _setup_background_loops(self):
         """Initialize and start all background loops with proper tracking."""
@@ -873,8 +839,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
 
 
 
-    # NOTE: Old _create_overview_embed method was removed
-    # Use _create_overview_embed_expanded or _create_overview_embed_collapsed instead
+    # NOTE: the overview embed is built by _create_overview_embed_collapsed
+    # (the status channel) and _create_admin_overview_embed (the control channel).
 
 
 
@@ -1000,24 +966,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
         a tracked overview (restored from disk before this runs), so the ids actually match.
         """
         try:
-            from .control_ui import (MechExpandButton, MechCollapseButton, MechDonateButton,
-                                   MechDisplayButton, ReadStoryButton, PlaySongButton, EpilogueButton,
-                                   MechHistoryButton, MechView, MechDetailsView)
+            from .control_ui import (MechDonateButton, MechDisplayButton, ReadStoryButton,
+                                   PlaySongButton, EpilogueButton, MechHistoryButton,
+                                   MechView, MechDetailsView)
             from .admin_overview import AdminOverviewView
             import discord
 
             # Create persistent views for mech buttons
             # These views will persist across bot restarts
-            class PersistentMechExpandView(DDCView):
-                def __init__(self, cog_instance, channel_id):
-                    super().__init__(timeout=None)
-                    self.add_item(MechExpandButton(cog_instance, channel_id))
-
-            class PersistentMechCollapseView(DDCView):
-                def __init__(self, cog_instance, channel_id):
-                    super().__init__(timeout=None)
-                    self.add_item(MechCollapseButton(cog_instance, channel_id))
-
             class PersistentMechDonateView(DDCView):
                 def __init__(self, cog_instance, channel_id):
                     super().__init__(timeout=None)
@@ -1058,8 +1014,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
             for channel_id, tracked in tracked_channels.items():
                 try:
                     channel_id = int(channel_id)
-                    self.bot.add_view(PersistentMechExpandView(self, channel_id))
-                    self.bot.add_view(PersistentMechCollapseView(self, channel_id))
                     self.bot.add_view(PersistentMechDonateView(self, channel_id))
                     self.bot.add_view(PersistentMechHistoryView(self, channel_id))
                     # Private (ephemeral) mech details: mech_private_donate/history_<channel_id>

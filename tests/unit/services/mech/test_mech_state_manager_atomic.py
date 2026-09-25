@@ -38,11 +38,11 @@ def test_save_is_atomic_no_temp_leftovers(state_file):
 
 def test_existing_keys_are_preserved_alongside_new_key(state_file):
     m = MechStateManager(state_file=state_file)
-    m.set_expanded_state("111", True)
+    m.set_last_glvl("111", 7)
     m.set_last_glvl("111", 7)
     m.set_state("channel_overview_message_ids", {"222": {"admin_overview": 700}})
     state = MechStateManager(state_file=state_file).load_state()
-    assert state["mech_expanded_states"] == {"111": True}
+    assert state["last_glvl_per_channel"] == {"111": 7}
     assert state["last_glvl_per_channel"] == {"111": 7}
     assert state["channel_overview_message_ids"] == {"222": {"admin_overview": 700}}
 

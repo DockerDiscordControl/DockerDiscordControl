@@ -214,7 +214,6 @@ async def test_the_private_history_button_already_brakes_today(tmp_path):
     that should be noticed."""
     service = _service(tmp_path)
     cog = MagicMock()
-    cog._start_interaction = AsyncMock(return_value=True)
 
     await _press(MechPrivateHistoryButton(cog, CHANNEL), service)
 

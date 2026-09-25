@@ -48,7 +48,6 @@ def _cog():
     cog._channel_locks = {}
     cog.last_message_update_time = {CHANNEL: 1}
     cog.last_channel_activity = {CHANNEL: 1}
-    cog.mech_expanded_states = {CHANNEL: True}
     cog.last_glvl_per_channel = {CHANNEL: 3}
     cog._persist_tracked_message_ids = MagicMock()
     cog.delete_bot_messages = AsyncMock()

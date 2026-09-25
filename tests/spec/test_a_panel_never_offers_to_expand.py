@@ -2,8 +2,8 @@
 """A container panel shows what it knows instead of offering to expand.
 
 THE FINDING. With the expand button gone (2026-09-25,
-tests/spec/test_no_control_flips_an_expand_state.py) the status embed still
-had two renderings, and picked between them on ``expanded_states``. The
+tests/spec/test_a_registered_button_is_on_a_posted_view.py) the status embed
+still had two renderings, and picked between them on ``expanded_states``. The
 collapsed one ends with
 
     │ • ▼ Expand for details
@@ -71,7 +71,6 @@ def _description(*, running=True, details_allowed=True):
     cog.pending_actions = {}
     cog.status_refresh_interval_seconds = 120
     cog.cache_ttl_seconds = 300
-    cog.mech_expanded_states = {}
     cog.expanded_states = {}
 
     info_service = MagicMock()
@@ -186,35 +185,37 @@ def test_the_scan_has_subjects_and_would_see_one():
     assert list(_offers_to_expand(pieces[0])), "the scan did not see the removed line"
 
 
-def test_the_mech_classes_were_not_touched_by_this_removal():
+def test_the_controls_the_operator_actually_sees_are_intact():
     """The opposite mistake: taking something away that was not the subject.
 
     THIS CASE USED TO CLAIM MORE THAN IT CHECKED. It said "the mech really
     does expand and collapse, with two buttons that work" and proved it with
-    ``hasattr`` - which shows only that a class is DEFINED. The operator
-    said, again, that there is no toggle button and that it belonged to the
-    old Discord overview, and he was right a second time:
+    ``hasattr`` - which shows only that a class is DEFINED. The operator said
+    twice that there is no toggle button and that it belonged to the old
+    Discord overview, and he was right: MechExpandButton and
+    MechCollapseButton were on no posted view and were removed on 2026-09-25
+    (tests/spec/test_a_registered_button_is_on_a_posted_view.py).
 
-        MechView, the view actually posted on the overview, carries
-        AdminButton, HelpButton, InfoDropdownButton and MechDetailsButton -
-        no expand, no collapse.
+    So the case now asks about the controls he showed in his screenshots -
+    the ones a wrong cut would actually cost him:
 
-        MechExpandButton and MechCollapseButton appear only inside
-        PersistentMechExpandView / PersistentMechCollapseView in
-        cogs/docker_control.py, which exist to be handed to bot.add_view()
-        so that buttons on OLD messages still answer after a restart. No
-        posted view carries them.
+        the overview carries the Mech button, with info, admin and help
+        pressing it opens a private panel with Power/Donate and Mech History
 
-        config/mech_state.json on the running system holds one channel, at
-        false, last written 2026-09-16. Ten months of logs name mech_expand
-        and mech_collapse zero times.
-
-    So the mech's expand state cannot be reached either, and that is a
-    finding of its own with its own decision to take - not something to fold
-    into this removal, which was about the container box. What this case can
-    honestly hold is the boundary: THIS change did not touch the mech.
+    Built through the real classes, not looked up by name.
     """
-    from cogs import control_ui
+    from cogs.control_ui import MechDetailsView, MechView
 
-    assert hasattr(control_ui, "MechExpandButton")
-    assert hasattr(control_ui, "MechCollapseButton")
+    async def build():
+        # A view asks asyncio for the running loop in __init__, so both are
+        # built inside one - the same reason test_a_group_panel_shows_a_group
+        # wraps its builder.
+        cog = SimpleNamespace(pending_actions={})
+        return ([type(item).__name__ for item in MechView(cog, 4242).children],
+                [type(item).__name__ for item in MechDetailsView(cog, 4242).children])
+
+    overview, private = asyncio.run(build())
+
+    assert "MechDetailsButton" in overview, overview
+    assert {"InfoDropdownButton", "AdminButton", "HelpButton"} <= set(overview), overview
+    assert {"MechPrivateDonateButton", "MechPrivateHistoryButton"} == set(private), private

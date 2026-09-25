@@ -105,7 +105,6 @@ def cog(monkeypatch):
     instance.last_message_update_time = {}
     instance.last_channel_activity = {}
     instance.last_glvl_per_channel = {}
-    instance.mech_expanded_states = {}
     instance.bot = SimpleNamespace(get_channel=lambda cid: channels.get(cid))
     instance.mech_state_manager = SimpleNamespace(
         set_last_glvl=lambda *_a, **_k: None,
@@ -123,9 +122,7 @@ def cog(monkeypatch):
     async def _send(channel, *_a, **_k):
         return SimpleNamespace(id=channel.id * 10)
 
-    instance._is_channel_interacting = _not_interacting
     instance._create_overview_embed_collapsed = _embed
-    instance._create_overview_embed_expanded = _embed
     instance._send_message_with_files = _send
     instance._persist_tracked_message_ids = lambda: None
     instance._get_channel_lock = lambda cid: locks.setdefault(cid, asyncio.Lock())

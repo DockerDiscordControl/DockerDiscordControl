@@ -128,7 +128,7 @@ async def test_update_overview_message_renders_from_fresh_cache():
 # B6
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("builder", ["_create_overview_embed_collapsed", "_create_overview_embed_expanded"])
+@pytest.mark.parametrize("builder", ["_create_overview_embed_collapsed"])
 @pytest.mark.asyncio
 async def test_overview_builders_return_tuple_when_mech_cache_fails(builder):
     cog = _cog(FakeStatusCache())
@@ -192,7 +192,7 @@ async def test_persistent_views_use_real_channel_and_message_ids():
             registered.append((item.custom_id, call.kwargs.get("message_id"), item))
     ids = {cid for cid, _mid, _item in registered}
 
-    for cid in ("mech_expand_111", "mech_collapse_111", "mech_donate_111", "mech_history_111",
+    for cid in ("mech_donate_111", "mech_history_111",
                 "mech_private_donate_111", "mech_private_history_111"):
         assert cid in ids
     assert not any(cid.endswith("_0") for cid in ids if cid.startswith("mech_"))

@@ -4,9 +4,12 @@
 No ``@covers`` marker: a finding, not a guarantee.
 
 THE FINDING (stage 4 review, stage B, section 05 F4, re-checked 2026-09-20):
-``_create_overview_embed_expanded`` wrote six ``logger.critical`` lines on
-every expanded render - "BARS DEBUG - mech_progress_current=2 (type: <class
-'int'>)" and the like. They are leftovers from hunting a bar that showed
+the overview builder wrote six ``logger.critical`` lines on every render -
+"BARS DEBUG - mech_progress_current=2 (type: <class 'int'>)" and the like.
+
+IT WAS ``_create_overview_embed_expanded``, which was removed on 2026-09-25
+with the old shape of the overview. The rule is about ANY ordinary render,
+so it is asked of the builder that is left. They are leftovers from hunting a bar that showed
 100 %, and they are labelled DEBUG in their own text. CRITICAL is the level
 an operator greps for and wires alerts to; ordinary numbers of an ordinary
 render do not belong there, and drown out the line that really matters.
@@ -42,7 +45,7 @@ async def _render(caplog):
                    return_value=False), \
              patch("services.mech.mech_status_cache_service.get_mech_status_cache_service",
                    return_value=service):
-            await cog._create_overview_embed_expanded([], {})
+            await cog._create_overview_embed_collapsed([], {})
     return caplog.records
 
 
@@ -51,8 +54,8 @@ async def test_the_render_reaches_the_progress_bars(caplog):
     """Premise: without this the test would pass on a render that never ran."""
     records = await _render(caplog)
 
-    assert any("CACHE BARS" in record.getMessage() for record in records), (
-        "the render did not get as far as the bars - the test would prove nothing"
+    assert any("CACHE (collapsed)" in record.getMessage() for record in records), (
+        "the render did not get as far as the mech - the test would prove nothing"
     )
 
 

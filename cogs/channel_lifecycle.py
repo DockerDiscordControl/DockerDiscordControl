@@ -124,8 +124,6 @@ class ChannelLifecycleMixin:
                 self._channel_locks.pop(channel_id, None)
             self.last_message_update_time.pop(channel_id, None)
             self.last_channel_activity.pop(channel_id, None)
-            if hasattr(self, 'mech_expanded_states'):
-                self.mech_expanded_states.pop(channel_id, None)
             if hasattr(self, 'last_glvl_per_channel'):
                 self.last_glvl_per_channel.pop(channel_id, None)
 
@@ -181,7 +179,7 @@ class ChannelLifecycleMixin:
                 if mode == 'control':
                     await self._send_control_panel_and_statuses(channel)
                 else:
-                    await self._send_all_server_statuses(channel, force_collapse=True)
+                    await self._send_all_server_statuses(channel)
 
             # Did anything actually get posted? Both senders swallow their own
             # failures, and an EMPTY entry makes the periodic loop skip this
@@ -271,7 +269,7 @@ class ChannelLifecycleMixin:
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in _send_control_panel_and_statuses: {e}", exc_info=True)
 
-    async def _send_all_server_statuses(self, channel: discord.TextChannel, force_collapse: bool = False):
+    async def _send_all_server_statuses(self, channel: discord.TextChannel):
         """Sends only the overview embed to a status channel (no individual server messages)."""
         try:
             config = load_config()
@@ -305,15 +303,10 @@ class ChannelLifecycleMixin:
                 # Sort servers by the 'order' field from container configurations
                 ordered_servers = sorted(servers, key=lambda s: s.get('order', 999))
 
-                # Set collapsed state (force_collapse overrides)
                 channel_id = channel.id
-                if force_collapse:
-                    self.mech_expanded_states[channel_id] = False
-                    self.mech_state_manager.set_expanded_state(channel_id, False)
-
                 embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
 
-                # Create MechView with expand/collapse buttons for mech status
+                # The overview's buttons: Mech, info, admin, help
                 from .control_ui import MechView
                 view = MechView(self, channel_id)
 
@@ -398,7 +391,7 @@ class ChannelLifecycleMixin:
                 await self._send_control_panel_and_statuses(channel)
             elif mode == 'status':
                 logger.debug(f"Sending status-only messages to {channel.name}")
-                await self._send_all_server_statuses(channel, force_collapse=True)
+                await self._send_all_server_statuses(channel)
 
             logger.info(f"✅ Regeneration for channel {channel.name} completed successfully.")
 
@@ -505,7 +498,7 @@ class ChannelLifecycleMixin:
                                 await self._send_control_panel_and_statuses(channel)
                             elif mode == 'status':
                                 # Use the same method as _regenerate_channel to ensure consistency
-                                await self._send_all_server_statuses(channel, force_collapse=True)
+                                await self._send_all_server_statuses(channel)
 
                         # Set initial channel activity time so inactivity tracking works
                         self.last_channel_activity[channel.id] = datetime.now(timezone.utc)

@@ -65,22 +65,27 @@ NOT PART OF THIS FINDING, recorded here so nobody investigates it twice:
 
 from unittest.mock import MagicMock
 
-from cogs.control_ui import MechCollapseButton, MechExpandButton, MechHistoryButton
+from cogs.control_ui import MechHistoryButton
 from services.infrastructure.spam_protection_service import SpamProtectionService
 
 CHANNEL = 77
 
 
-def test_the_three_buttons_can_be_built():
-    """The IDs are the basis of the prefix derivation.
+def test_the_button_can_be_built():
+    """The ID is the basis of the prefix derivation.
 
     The EXACT value is checked: a corrupted ID would lead the derivation to a
     different slider, and a mere existence check could not notice that.
+
+    TWO OF THE THREE ARE GONE. MechExpandButton and MechCollapseButton were
+    removed on 2026-09-25 with the old shape of the overview
+    (tests/spec/test_a_registered_button_is_on_a_posted_view.py). Their
+    sliders mech_expand and mech_collapse are still in the panel and in the
+    defaults, steering nothing - the same open question as the refresh
+    slider, and the operator's to answer.
     """
     cog = MagicMock()
 
-    assert MechExpandButton(cog, CHANNEL).custom_id == f"mech_expand_{CHANNEL}"
-    assert MechCollapseButton(cog, CHANNEL).custom_id == f"mech_collapse_{CHANNEL}"
     assert MechHistoryButton(cog, CHANNEL).custom_id == f"mech_history_{CHANNEL}"
 
 
@@ -101,9 +106,7 @@ def test_the_sliders_differ_at_all(tmp_path):
     service = SpamProtectionService(config_dir=str(tmp_path))
 
     assert service.get_button_cooldown("info") == 3
-    assert service.get_button_cooldown(f"mech_expand_{CHANNEL}") == 3, (
-        "mech_expand and info are NO longer both set to 3 - then the "
-        "Expand test in the neighbouring file can additionally check the value."
+    assert service.get_button_cooldown(f"mech_history_{CHANNEL}") == 5, (
+        "mech_history and info must stay different, or the value check in "
+        "the neighbouring file could not tell the two sliders apart."
     )
-    assert service.get_button_cooldown(f"mech_collapse_{CHANNEL}") == 2
-    assert service.get_button_cooldown(f"mech_history_{CHANNEL}") == 5

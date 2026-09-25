@@ -36,7 +36,6 @@ def _cog(tracked, permissions, monkeypatch):
     cog._channel_locks = {}
     cog.last_message_update_time = {}
     cog.last_channel_activity = {}
-    cog.mech_expanded_states = {}
     cog.last_glvl_per_channel = {}
     cog._persist_tracked_message_ids = MagicMock()
     cog._teardown_channel = AsyncMock()

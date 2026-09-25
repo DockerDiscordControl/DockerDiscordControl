@@ -56,7 +56,6 @@ def cog(monkeypatch):
     cog = object.__new__(DockerControlCog)
     cog.channel_server_message_ids = {CHANNEL: {"overview": 1, "old": 2}}
     cog.last_message_update_time = {}
-    cog.mech_expanded_states = {CHANNEL: True}
     cog.mech_state_manager = MagicMock()
     cog._persist_tracked_message_ids = MagicMock()
     cog._background_cache_population = AsyncMock()
@@ -77,11 +76,9 @@ def test_the_admin_overview_is_tracked_and_saved(cog):
 
 
 def test_the_status_overview_is_the_only_tracked_message(cog):
-    asyncio.run(cog._send_all_server_statuses(_TextChannel(CHANNEL), force_collapse=True))
+    asyncio.run(cog._send_all_server_statuses(_TextChannel(CHANNEL)))
     assert cog.channel_server_message_ids[CHANNEL] == {"overview": 7007}
     cog._persist_tracked_message_ids.assert_called_once()
-    assert cog.mech_expanded_states[CHANNEL] is False
-    cog.mech_state_manager.set_expanded_state.assert_called_once_with(CHANNEL, False)
     assert list(cog.last_message_update_time[CHANNEL]) == ["overview"]
 
 

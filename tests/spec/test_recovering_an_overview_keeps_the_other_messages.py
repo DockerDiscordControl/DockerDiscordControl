@@ -54,7 +54,6 @@ def cog(monkeypatch):
     cog._channel_locks = {}
     cog.channel_server_message_ids = {CHANNEL: {"overview": OVERVIEW, "admin_overview": ADMIN}}
     cog.last_message_update_time = {}
-    cog.mech_expanded_states = {}
     cog.pending_actions = {}
     cog._persist_tracked_message_ids = MagicMock()
     cog.cleanup_service = _Cleanup()

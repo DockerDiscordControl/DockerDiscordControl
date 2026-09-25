@@ -41,7 +41,6 @@ def _embed(age_seconds):
     cog.pending_actions = {}
     cog.status_refresh_interval_seconds = 120
     cog.cache_ttl_seconds = 300
-    cog.mech_expanded_states = {}
     cog.expanded_states = {}
     info_service = MagicMock()
     info_service.get_container_info.return_value = SimpleNamespace(success=False, data=None)

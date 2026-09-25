@@ -187,17 +187,12 @@ class MechResetService:
             # Update timestamp
             current_state["last_update"] = datetime.now().isoformat()
 
-            # Ensure expanded states are false
-            if "mech_expanded_states" in current_state:
-                for channel_id in current_state["mech_expanded_states"]:
-                    current_state["mech_expanded_states"][channel_id] = False
-
             # Previously a plain open(..., 'w'), which truncates the file the moment
             # it is opened: a crash before the write left it EMPTY. What is lost is
             # not a counter but the mapping kept above (:181-192) -
-            # last_glvl_per_channel and mech_expanded_states, i.e. which Discord
-            # channel held which mech state. After such a crash nobody knows which
-            # channel belongs where. See SPEC.md Z7.
+            # last_glvl_per_channel, i.e. which Discord channel stands at which
+            # mech level. After such a crash nobody knows which channel belongs
+            # where. See SPEC.md Z7.
             atomic_write_json(self.mech_state_file, current_state)
 
             logger.info("Reset Mech state to Level 1")

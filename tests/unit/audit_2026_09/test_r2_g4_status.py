@@ -215,7 +215,7 @@ class TestNotFoundRendering:
         assert "🔄" not in embed.description
         assert "Online: 0" in embed.description and has_running is False
 
-    @pytest.mark.parametrize("builder", ["_create_overview_embed_expanded", "_create_overview_embed_collapsed"])
+    @pytest.mark.parametrize("builder", ["_create_overview_embed_collapsed"])
     async def test_server_overview_shows_not_found(self, builder):
         embed, _file = await self._build(builder)
 

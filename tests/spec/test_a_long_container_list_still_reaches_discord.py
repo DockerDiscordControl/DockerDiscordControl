@@ -80,12 +80,11 @@ def cog():
     cog._last_status_cache_refresh = 0.0
     cog._status_fetch_failed = set()
     cog.pending_actions = {}
-    cog.mech_expanded_states = {}
     return SimpleNamespace(cog=cog, servers=servers)
 
 
-@pytest.mark.parametrize("builder", ["_create_admin_overview_embed", "_create_overview_embed_collapsed",
-                                     "_create_overview_embed_expanded"])
+@pytest.mark.parametrize("builder", ["_create_admin_overview_embed",
+                                     "_create_overview_embed_collapsed"])
 def test_every_overview_fits_with_many_containers(cog, builder):
     info_service = MagicMock()
     info_service.get_container_info.return_value = SimpleNamespace(success=False, data=None)

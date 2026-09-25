@@ -22,8 +22,25 @@ M3  It then resolved the name by comparing a *static* threshold against
     levels 1-9 displayed "MAX EVOLUTION REACHED!".
 
 The existing suite missed both because it only exercised the failure path, which
-returns earlier. These tests pin the source shape *and* the behaviour of the
+returns earlier. These tests pinned the source shape *and* the behaviour of the
 helper the fixed code relies on.
+
+THE SOURCE SHAPE HAS NO SUBJECT ANY MORE (2026-09-25). Both findings lived in
+``_create_overview_embed_expanded``, the old shape of the status channel
+overview, which was removed because no posted view could reach it
+(tests/spec/test_a_registered_button_is_on_a_posted_view.py). The three cases
+that quoted its lines went with it; the two NEGATIVE cases stay, because
+"this import must not come back" is a rule the whole cog still has to keep.
+
+WHAT WENT WITH IT, noted so nobody looks for it: the level-10 easter egg
+``ERR#R: [DATA_C0RR*PTED]``. It was only ever rendered by that builder, so
+the operator could not have seen it since the overview changed shape. The
+live path (services/mech/mech_evolutions.get_evolution_progress, shown in the
+private Mech panel) simply names the next evolution. Putting the egg back is
+a decision, not a repair.
+
+WHAT REMAINS BELOW is the behaviour of ``get_level_name`` itself, which the
+private panel and the web donation status both rely on.
 """
 
 from pathlib import Path
@@ -60,10 +77,6 @@ class TestBrokenImportIsGone:
         assert not hasattr(mech_service, "MECH_LEVELS"), \
             "MECH_LEVELS exists now - revisit whether the lookup should use it"
 
-    def test_the_helper_that_replaced_it_is_used(self):
-        assert "from services.mech.mech_service_adapter import get_level_name" in SOURCE
-        assert "get_level_name(mech_cache_result.level + 1)" in SOURCE
-
 
 # ---------------------------------------------------------------------------
 # M3 - the name must come from the level, not from a threshold comparison
@@ -73,15 +86,6 @@ class TestNoThresholdComparison:
     def test_static_threshold_equality_is_gone(self):
         """The dynamic goal is a dollar amount; comparing it to a static threshold never matched."""
         assert "level_info.threshold == mech_cache_result.threshold" not in SOURCE
-
-    def test_level_10_keeps_its_corrupted_label(self):
-        """Deliberate easter egg for the step into the final evolution - must survive the fix."""
-        assert 'next_name = "ERR#R: [DATA_C0RR*PTED]"' in SOURCE
-
-    def test_level_11_still_yields_no_next_name(self):
-        """Level 11 is the maximum; the UI shows "MAX EVOLUTION REACHED!" when next_name is None."""
-        assert "mech_cache_result.level < 10" in SOURCE
-        assert "mech_cache_result.level == 10" in SOURCE
 
 
 # ---------------------------------------------------------------------------
@@ -102,9 +106,11 @@ class TestLevelNameLookup:
 
     @pytest.mark.parametrize("level", range(1, 10))
     def test_next_level_name_differs_from_the_current_one(self, level):
-        """This is exactly what the expanded view shows: current level vs. the one after it."""
+        """This is what the private Mech panel shows: the current level and the
+        one after it (the operator's screenshot: "The Abyss Engine (Level 6)"
+        above, "The Rift Strider" as the next)."""
         assert get_level_name(level) != get_level_name(level + 1)
 
     def test_out_of_range_degrades_instead_of_raising(self):
-        """Safety net: a future level beyond the config must not crash the expand button."""
+        """Safety net: a future level beyond the config must not crash the panel."""
         assert get_level_name(MAX_LEVEL + 1) == f"Level {MAX_LEVEL + 1}"
