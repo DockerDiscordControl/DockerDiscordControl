@@ -490,6 +490,13 @@ function saveContainerInfo() {
         updateInfoGlow(containerName);
     }
 
+    // SAY THAT THE FORM CHANGED. Everything above was written with
+    // element.value = …, which fires no event, so the form's delegated
+    // listener never heard it: the operator configured a container, got no
+    // "unsaved changes" banner, and leaving the page dropped the lot. The
+    // toast below says the dialog is done, not that the settings are stored.
+    markConfigurationChanged();
+
     // Hide modal
     const modal = document.getElementById('containerInfoModal');
     if (modal && window.bootstrap) {
@@ -498,7 +505,7 @@ function saveContainerInfo() {
             bootstrapModal.hide();
         }
     }
-    
+
     // Show success message
     showToast(t('config.container_info_updated'), 'success');
 }
