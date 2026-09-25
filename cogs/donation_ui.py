@@ -21,7 +21,7 @@ import discord
 from services.config.config_service import load_config
 from utils.logging_utils import setup_logger
 
-from .ddc_ui import DDCModal, DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, DDCModal, DDCView
 from .translation_manager import _
 
 # Same logger name as the cog: log lines and log-based tests read as before the move.
@@ -211,7 +211,7 @@ class DonationBroadcastModal(DDCModal):
         from .translation_manager import _
         await interaction.response.send_message(
             _("⏳ Processing..."),  # Shortened processing message
-            ephemeral=True
+            ephemeral=True, delete_after=NOTICE_STAYS_FOR
         )
 
         try:
@@ -249,7 +249,7 @@ class DonationBroadcastModal(DDCModal):
             if amount_validation_error:
                 await interaction.followup.send(
                     amount_validation_error + _("\n\nTip: Use format like: 10.50 or 5 ($ will be added automatically)"),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -334,7 +334,7 @@ class DonationBroadcastModal(DDCModal):
                                     logger.warning(f"Could not remove the processing message: {e}")
                             await interaction.followup.send(
                                 _("❌ Donation processing failed: {error}").format(error=donation_result.error_message),
-                                ephemeral=True
+                                ephemeral=True, delete_after=NOTICE_STAYS_FOR
                             )
                             return
 
@@ -583,7 +583,7 @@ class AddAdminModal(DDCModal):
             if not raw_user_id.isdigit():
                 await interaction.response.send_message(
                     _("❌ Invalid User ID. Please enter only numbers (e.g., 123456789012345678)."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -593,7 +593,7 @@ class AddAdminModal(DDCModal):
             if int(user_id) < 21154535154122752:  # Minimum valid Discord snowflake
                 await interaction.response.send_message(
                     _("❌ Invalid Discord User ID. The ID appears to be too small."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -610,7 +610,7 @@ class AddAdminModal(DDCModal):
             if not admin_service.add_admin_user(user_id, note):
                 await interaction.response.send_message(
                     _("⚠️ This user is already an admin."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
             current_admins = admin_service.get_admin_data(
@@ -624,13 +624,13 @@ class AddAdminModal(DDCModal):
                         user_id=user_id,
                         count=len(current_admins)
                     ),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             else:
                 logger.error(f"Failed to save admin data when adding {user_id}")
                 await interaction.response.send_message(
                     _("❌ Failed to save admin data. Please try again."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
         except Exception as e:
@@ -639,7 +639,7 @@ class AddAdminModal(DDCModal):
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
                         _("❌ An error occurred while adding the admin. Please try again."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except (discord.errors.DiscordException, RuntimeError):
                 pass

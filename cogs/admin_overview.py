@@ -18,7 +18,7 @@ from services.status.status_cache_service import get_status_cache_service
 from services.config.server_config_service import get_server_config_service
 from services.config.config_service import load_config  # Keep for backward compatibility
 from cogs.translation_manager import _
-from .ddc_ui import DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, DDCView
 
 logger = logging.getLogger('ddc.admin_overview')
 
@@ -232,7 +232,7 @@ async def _admin_button_braked(interaction: discord.Interaction, name: str) -> b
             await interaction.response.send_message(
                 _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                     remaining=remaining),
-                ephemeral=True)
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return True
         spam_service.add_user_cooldown(interaction.user.id, name)
     except (RuntimeError, AttributeError, KeyError) as e:
@@ -282,7 +282,7 @@ class AdminOverviewAdminButton(Button):
             if not all_servers:
                 await interaction.followup.send(
                     _("❌ No containers found in configuration."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -298,7 +298,7 @@ class AdminOverviewAdminButton(Button):
             if not containers:
                 await interaction.followup.send(
                     _("❌ No valid containers found in configuration."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -309,7 +309,7 @@ class AdminOverviewAdminButton(Button):
                 logger.error(f"Failed to import AdminContainerSelectView: {e}")
                 await interaction.followup.send(
                     _("❌ Internal error. Please try again later."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -331,7 +331,7 @@ class AdminOverviewAdminButton(Button):
                 # was left on a spinner with only a log line.
                 await interaction.followup.send(
                         _("❌ Error accessing admin controls."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
@@ -384,7 +384,7 @@ class AdminOverviewRestartAllButton(Button):
             if not is_admin:
                 await interaction.followup.send(
                     _("❌ You don't have permission to restart all containers."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -392,7 +392,7 @@ class AdminOverviewRestartAllButton(Button):
             if self.disabled:
                 await interaction.followup.send(
                     _("❌ No running containers to restart."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -418,7 +418,7 @@ class AdminOverviewRestartAllButton(Button):
                 # was left on a spinner with only a log line.
                 await interaction.followup.send(
                         _("❌ Error processing restart all request."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
@@ -471,7 +471,7 @@ class AdminOverviewStopAllButton(Button):
             if not is_admin:
                 await interaction.followup.send(
                     _("❌ You don't have permission to stop all containers."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -479,7 +479,7 @@ class AdminOverviewStopAllButton(Button):
             if self.disabled:
                 await interaction.followup.send(
                     _("❌ No running containers to stop."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -505,7 +505,7 @@ class AdminOverviewStopAllButton(Button):
                 # was left on a spinner with only a log line.
                 await interaction.followup.send(
                         _("❌ Error processing stop all request."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
@@ -635,7 +635,7 @@ class AdminOverviewDonateButton(Button):
                 # was left on a spinner with only a log line.
                 await interaction.followup.send(
                         _("❌ Error processing donate request."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
@@ -712,7 +712,7 @@ class ConfirmRestartAllButton(Button):
             if not await admin_service.is_user_admin_async(str(interaction.user.id)):
                 await interaction.followup.send(
                     _("❌ You don't have permission for this action."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
         except (AttributeError, ImportError, RuntimeError) as e:
@@ -720,7 +720,7 @@ class ConfirmRestartAllButton(Button):
             logger.error(f"Could not check admin status for bulk action: {e}", exc_info=True)
             await interaction.followup.send(
                 _("❌ Your permission could not be checked. Nothing was done."),
-                ephemeral=True
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR
             )
             return
 
@@ -729,7 +729,7 @@ class ConfirmRestartAllButton(Button):
             if self.cog._bulk_operation_in_progress:
                 await interaction.followup.send(
                     _("⏳ Another bulk operation is in progress. Please wait."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -748,7 +748,7 @@ class ConfirmRestartAllButton(Button):
             if not servers:
                 await interaction.followup.send(
                     _("❌ No active servers configured."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -761,7 +761,7 @@ class ConfirmRestartAllButton(Button):
                 logger.error(f"Failed to import docker action service: {e}")
                 await interaction.followup.send(
                     _("❌ Docker service unavailable. Operation cancelled."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -784,7 +784,7 @@ class ConfirmRestartAllButton(Button):
             try:
                 await interaction.followup.send(
                     _("❌ An error occurred during the restart operation."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass
@@ -851,7 +851,7 @@ class ConfirmStopAllButton(Button):
             if not await admin_service.is_user_admin_async(str(interaction.user.id)):
                 await interaction.followup.send(
                     _("❌ You don't have permission for this action."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
         except (AttributeError, ImportError, RuntimeError) as e:
@@ -859,7 +859,7 @@ class ConfirmStopAllButton(Button):
             logger.error(f"Could not check admin status for bulk action: {e}", exc_info=True)
             await interaction.followup.send(
                 _("❌ Your permission could not be checked. Nothing was done."),
-                ephemeral=True
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR
             )
             return
 
@@ -868,7 +868,7 @@ class ConfirmStopAllButton(Button):
             if self.cog._bulk_operation_in_progress:
                 await interaction.followup.send(
                     _("⏳ Another bulk operation is in progress. Please wait."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -887,7 +887,7 @@ class ConfirmStopAllButton(Button):
             if not servers:
                 await interaction.followup.send(
                     _("❌ No active servers configured."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -900,7 +900,7 @@ class ConfirmStopAllButton(Button):
                 logger.error(f"Failed to import docker action service: {e}")
                 await interaction.followup.send(
                     _("❌ Docker service unavailable. Operation cancelled."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -941,7 +941,7 @@ class ConfirmStopAllButton(Button):
             try:
                 await interaction.followup.send(
                     _("❌ An error occurred during the stop operation."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             except (discord.errors.NotFound, discord.errors.HTTPException):
                 pass

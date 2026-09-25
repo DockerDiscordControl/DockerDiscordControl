@@ -47,7 +47,7 @@ cogs/loop_safety.py:1-103
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:864-883
 cogs/overview_embeds.py:1-1058
-cogs/slash_commands.py:1-855
+cogs/slash_commands.py:1-856
 
 ## Section 06  (1790 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
@@ -389,7 +389,7 @@ services/config/group_service.py:1-415
 # the v3.0 client factory and 34 reached 2,003; 35 had no room either.
 app/blueprints/security_routes.py:1-205
 app/web/compat.py:1-102
-cogs/ddc_ui.py:1-121
+cogs/ddc_ui.py:1-131
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
 cogs/group_control.py:1-306

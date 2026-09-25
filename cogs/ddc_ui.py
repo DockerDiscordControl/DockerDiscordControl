@@ -46,6 +46,16 @@ from .translation_manager import _
 
 logger = get_module_logger('ddc_ui')
 
+# How long a private message stays before Discord removes it for us.
+#
+# WHY THESE ARE NAMES. An ephemeral message sits in the channel until its
+# reader dismisses it, one click each, and DDC sends 173 one-off notices
+# nobody ever needs twice - a cooldown, a refusal, a failure. The operator had
+# to clear every one by hand. A number typed at 173 call sites cannot be
+# changed later; a name can.
+NOTICE_STAYS_FOR = 15     # a refusal or an error: long enough to read
+PROGRESS_STAYS_FOR = 1    # "Refreshing..." - the real answer replaces it at once
+
 
 async def _answer(interaction: discord.Interaction) -> None:
     """Tell the user their click failed, whatever state the interaction is in.
@@ -58,9 +68,9 @@ async def _answer(interaction: discord.Interaction) -> None:
     message = _("❌ An error occurred. Please try again.")
     try:
         if interaction.response.is_done():
-            await interaction.followup.send(message, ephemeral=True)
+            await interaction.followup.send(message, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
         else:
-            await interaction.response.send_message(message, ephemeral=True)
+            await interaction.response.send_message(message, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
     except (discord.HTTPException, discord.ClientException) as e:
         # Already answered, expired, or Discord refused. Nothing left to do and
         # nothing wrong - the failure itself is logged by the caller.

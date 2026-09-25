@@ -21,7 +21,7 @@ from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import get_container_info_service, ContainerInfo
 from services.infrastructure.action_logger import log_user_action
 from cogs.translation_manager import _
-from .ddc_ui import DDCModal
+from .ddc_ui import NOTICE_STAYS_FOR, DDCModal
 # Channel-based security is handled by the calling UI button
 
 logger = get_module_logger('enhanced_info_modal_simple')
@@ -162,7 +162,7 @@ class SimplifiedContainerInfoModal(DDCModal):
                     _("❌ Custom text too long ({length}/250 characters). Please shorten it.").format(
                         length=len(custom_text)
                     ),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -171,14 +171,14 @@ class SimplifiedContainerInfoModal(DDCModal):
                 if not custom_port.isdigit():
                     await interaction.response.send_message(
                         _("❌ Port must contain only numbers."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 port_num = int(custom_port)
                 if port_num < 1 or port_num > 65535:
                     await interaction.response.send_message(
                         _("❌ Port must be between 1 and 65535."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
 
@@ -297,7 +297,7 @@ class SimplifiedContainerInfoModal(DDCModal):
 
                 await interaction.response.send_message(
                     _("❌ Failed to save container info for **{name}**. Check permissions on config directory.").format(name=self.display_name),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 safe_error_name = re.sub(r'[^\w\-_.@]', '', str(self.container_name))[:50]
                 logger.error(f"Failed to save container info for {safe_error_name}")
@@ -310,12 +310,12 @@ class SimplifiedContainerInfoModal(DDCModal):
             if not interaction.response.is_done():
                 await interaction.response.send_message(
                     _("❌ An error occurred while saving container info: {error}").format(error=str(e)[:100]),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             else:
                 await interaction.followup.send(
                     _("❌ An error occurred while saving container info: {error}").format(error=str(e)[:100]),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
 
@@ -411,14 +411,14 @@ class ProtectedInfoModal(DDCModal):
             if protected_enabled and not protected_content:
                 await interaction.response.send_message(
                     _("❌ Protected information is enabled but no content provided."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
             if protected_enabled and not protected_password:
                 await interaction.response.send_message(
                     _("❌ Protected information is enabled but no password provided."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -491,7 +491,7 @@ class ProtectedInfoModal(DDCModal):
                 logger.error(f"Protected info save failed for {self.container_name}: {result.error}")
                 await interaction.response.send_message(
                     _("❌ Error saving protected information for **{name}**").format(name=self.display_name),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
         # IOError/OSError/PermissionError and the docker errors belong here just as
@@ -508,12 +508,12 @@ class ProtectedInfoModal(DDCModal):
             if not interaction.response.is_done():
                 await interaction.response.send_message(
                     _("❌ An error occurred: {error}").format(error=str(e)[:100]),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             else:
                 await interaction.followup.send(
                     _("❌ An error occurred: {error}").format(error=str(e)[:100]),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
 
@@ -581,7 +581,7 @@ class PasswordValidationModal(DDCModal):
                 await interaction.response.send_message(
                     _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                         remaining=wait_seconds),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -617,7 +617,7 @@ class PasswordValidationModal(DDCModal):
             if not stored_password:
                 await interaction.response.send_message(
                     _("❌ No password is set for this container's protected information."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -633,7 +633,7 @@ class PasswordValidationModal(DDCModal):
 
                 await interaction.response.send_message(
                     _("❌ Incorrect password. Access denied."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -644,7 +644,7 @@ class PasswordValidationModal(DDCModal):
             if not protected_content:
                 await interaction.response.send_message(
                     _("❌ No protected information available for this container."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -684,11 +684,11 @@ class PasswordValidationModal(DDCModal):
             if not interaction.response.is_done():
                 await interaction.response.send_message(
                     _("❌ An error occurred during password validation: {error}").format(error=str(e)[:100]),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             else:
                 await interaction.followup.send(
                     _("❌ An error occurred during password validation: {error}").format(error=str(e)[:100]),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 

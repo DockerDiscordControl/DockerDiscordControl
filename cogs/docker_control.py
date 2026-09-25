@@ -57,7 +57,7 @@ from .donation_ui import AddAdminModal, DonationBroadcastModal, DonationView  # 
 from .message_updates import MessageUpdatesMixin
 from .background_loops import BackgroundLoopsMixin
 from .slash_commands import SlashCommandsMixin
-from .ddc_ui import DDCModal, DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, DDCModal, DDCView
 
 # Import the command handlers mixin that contains Docker action command functionality
 # Command handlers removed - using UI buttons for all container control
@@ -927,7 +927,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
         logger.info(f"Control panel regeneration requested by {ctx.author} in {ctx.channel.name}")
 
         try:
-            await ctx.followup.send(_("Regenerating control panel... Please wait."), ephemeral=True)
+            await ctx.followup.send(_("Regenerating control panel... Please wait."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
         except (discord.errors.HTTPException, discord.errors.Forbidden) as e_followup:
             logger.error(f"Error sending initial followup for /control command: {e_followup}", exc_info=True)
 
@@ -937,13 +937,13 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
             logger.info(f"Control panel regeneration completed for channel {ctx.channel.name}")
             # Send success confirmation
             try:
-                await ctx.followup.send(_("✅ Control panel regenerated successfully!"), ephemeral=True)
+                await ctx.followup.send(_("✅ Control panel regenerated successfully!"), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except Exception:
                 pass  # Followup might have already been used or expired
         except (discord.errors.DiscordException, RuntimeError, OSError) as e_regen:
             logger.error(f"Error during control panel regeneration: {e_regen}", exc_info=True)
             try:
-                await ctx.followup.send(_("❌ Error regenerating control panel. Check logs for details."), ephemeral=True)
+                await ctx.followup.send(_("❌ Error regenerating control panel. Check logs for details."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except Exception:
                 pass
 

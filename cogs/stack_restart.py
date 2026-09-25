@@ -34,7 +34,7 @@ from discord.ui import Button, Select
 from cogs import admin_overview as ao
 from cogs.translation_manager import _
 from services.discord.embed_helper_service import fit_lines
-from .ddc_ui import DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, DDCView
 
 logger = logging.getLogger('ddc.stack_restart')
 
@@ -184,12 +184,12 @@ async def _is_admin(interaction) -> bool:
     try:
         if await ao.get_admin_service().is_user_admin_async(str(interaction.user.id)):
             return True
-        await interaction.followup.send(_("❌ You don't have permission for this action."), ephemeral=True)
+        await interaction.followup.send(_("❌ You don't have permission for this action."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
         return False
     except (AttributeError, ImportError, RuntimeError) as e:
         logger.error(f"Could not check admin status for the stack restart: {e}", exc_info=True)
         await interaction.followup.send(
-            _("❌ Your permission could not be checked. Nothing was done."), ephemeral=True)
+            _("❌ Your permission could not be checked. Nothing was done."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
         return False
 
 
@@ -201,7 +201,7 @@ async def offer_stacks(cog, channel_id: int, interaction) -> None:
     if not names:
         await interaction.followup.send(
             _("ℹ️ There is no container group yet, and none of the active containers "
-              "belongs to a Compose stack."), ephemeral=True)
+              "belongs to a Compose stack."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
         return
     description = _("Choose the group or Compose stack to restart.")
     if len(names) > MAX_OPTIONS:
@@ -279,7 +279,7 @@ class ConfirmRestartStackButton(Button):
             return
         if getattr(self.cog, '_bulk_operation_in_progress', False):
             await interaction.followup.send(_("⏳ Another bulk operation is in progress. Please wait."),
-                                            ephemeral=True)
+                                            ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
         self.cog._bulk_operation_in_progress = True
         try:
@@ -290,7 +290,7 @@ class ConfirmRestartStackButton(Button):
             if not members:
                 await interaction.followup.send(
                     _("❌ **{stack}** has no active containers any more.").format(stack=self.stack),
-                    ephemeral=True)
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
             from services.docker_service.docker_action_service import docker_action_service_first
             logger.info(f"Restart stack {self.stack}: {[m['docker_name'] for m in members]}")

@@ -32,6 +32,7 @@ from utils.logging_utils import setup_logger
 
 from .control_helpers import _channel_has_permission, container_select, get_guild_id
 from .donation_ui import AddAdminModal, DonationView
+from .ddc_ui import NOTICE_STAYS_FOR
 from .translation_manager import _
 
 # Same logger name as the cog: log lines and log-based tests read as before the move.
@@ -127,7 +128,7 @@ class SlashCommandsMixin:
 
             config = load_config()
             if not config:
-                await ctx.followup.send(_("Error: Could not load configuration."), ephemeral=True)
+                await ctx.followup.send(_("Error: Could not load configuration."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # DOCKER CONNECTIVITY CHECK: Check before attempting to get container status
@@ -151,7 +152,7 @@ class SlashCommandsMixin:
 
                 if not embed_result.success:
                     logger.error(f"Failed to create Docker connectivity error embed: {embed_result.error}", exc_info=True)
-                    await ctx.followup.send(_("Error creating connectivity status message."), ephemeral=True)
+                    await ctx.followup.send(_("Error creating connectivity status message."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                     return
 
                 # Create Discord embed from service result
@@ -231,7 +232,7 @@ class SlashCommandsMixin:
                         message = await ctx.followup.send(embed=embed, view=view)
                     except (RuntimeError, OSError, ValueError) as fallback_error:
                         logger.error(f"Critical: Could not send embed at all: {fallback_error}")
-                        await ctx.followup.send(_("Error generating server status overview."), ephemeral=True)
+                        await ctx.followup.send(_("Error generating server status overview."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                         return
 
                 # Update tracking information
@@ -254,7 +255,7 @@ class SlashCommandsMixin:
         except (discord.errors.DiscordException, RuntimeError, ValueError) as e:
             logger.error(f"Error in serverstatus command: {e}", exc_info=True)
             try:
-                await ctx.followup.send(_("An error occurred while generating the overview."), ephemeral=True)
+                await ctx.followup.send(_("An error occurred while generating the overview."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                 logger.error(f"Error generating overview: {e}", exc_info=True)
 
@@ -419,7 +420,7 @@ class SlashCommandsMixin:
                 if not ctx.response.is_done():
                     await ctx.respond(translate("❌ An error occurred. Please try again."), ephemeral=True)
                 else:
-                    await ctx.followup.send(translate("❌ An error occurred. Please try again."), ephemeral=True)
+                    await ctx.followup.send(translate("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -484,7 +485,7 @@ class SlashCommandsMixin:
             logger.error(f"Failed to send help message: {e}", exc_info=True)
             # Fallback - try to send minimal message
             try:
-                await ctx.followup.send(_("Help information is temporarily unavailable."), ephemeral=True)
+                await ctx.followup.send(_("Help information is temporarily unavailable."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except Exception:
                 pass
 
@@ -595,7 +596,7 @@ class SlashCommandsMixin:
                 await ctx.followup.send(
                     _("❌ The donation panel could not be shown. The reason is in "
                       "the DDC log."),
-                    ephemeral=True)
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.DiscordException, RuntimeError) as answer_error:
                 # Nothing left to answer with - the channel may forbid even this.
                 logger.error(f"Could not tell the user either: {answer_error}")
@@ -641,7 +642,7 @@ class SlashCommandsMixin:
 
             if not has_info_permission:
                 if deferred:
-                    await ctx.followup.send(_("You do not have permission to use the info command in this channel."), ephemeral=True)
+                    await ctx.followup.send(_("You do not have permission to use the info command in this channel."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 else:
                     await ctx.respond(_("You do not have permission to use the info command in this channel."), ephemeral=True)
                 return
@@ -653,7 +654,7 @@ class SlashCommandsMixin:
             server_config = next((s for s in servers if s.get('docker_name') == container_name), None)
             if not server_config:
                 if deferred:
-                    await ctx.followup.send(_("Container '{container}' not found in configuration.").format(container=container_name), ephemeral=True)
+                    await ctx.followup.send(_("Container '{container}' not found in configuration.").format(container=container_name), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 else:
                     await ctx.respond(_("Container '{container}' not found in configuration.").format(container=container_name), ephemeral=True)
                 return
@@ -667,7 +668,7 @@ class SlashCommandsMixin:
             if not info_result.success:
                 logger.warning(f"Failed to load container info for {container_name}: {info_result.error if hasattr(info_result, 'error') else 'Unknown error'}")
                 if deferred:
-                    await ctx.followup.send(_("Could not load container information for '{container}'.").format(container=container_name), ephemeral=True)
+                    await ctx.followup.send(_("Could not load container information for '{container}'.").format(container=container_name), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 else:
                     await ctx.respond(_("Could not load container information for '{container}'.").format(container=container_name), ephemeral=True)
                 return
@@ -675,7 +676,7 @@ class SlashCommandsMixin:
             if not info_result.data:
                 logger.warning(f"No container info data found for {container_name}")
                 if deferred:
-                    await ctx.followup.send(_("Container information is not configured for '{container}'.").format(container=container_name), ephemeral=True)
+                    await ctx.followup.send(_("Container information is not configured for '{container}'.").format(container=container_name), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 else:
                     await ctx.respond(_("Container information is not configured for '{container}'.").format(container=container_name), ephemeral=True)
                 return
@@ -687,7 +688,7 @@ class SlashCommandsMixin:
             if not enabled_value:
                 logger.info(f"Container info is disabled for {container_name} - call_id: {call_id}")
                 if deferred:
-                    await ctx.followup.send(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
+                    await ctx.followup.send(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 else:
                     await ctx.respond(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
                 return
@@ -751,7 +752,7 @@ class SlashCommandsMixin:
             # Try to send error message if possible
             try:
                 if 'deferred' in locals() and deferred:
-                    await ctx.followup.send(_("An error occurred while retrieving container information."), ephemeral=True)
+                    await ctx.followup.send(_("An error occurred while retrieving container information."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 else:
                     await ctx.respond(_("An error occurred while retrieving container information."), ephemeral=True)
             except Exception:

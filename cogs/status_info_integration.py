@@ -27,7 +27,7 @@ from .translation_manager import _
 import asyncio
 import aiohttp
 from services.automation import get_auto_action_config_service
-from .ddc_ui import DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, PROGRESS_STAYS_FOR, DDCView
 # The task UI (buttons, dropdowns, creation and deletion views) lives in
 # task_ui.py since the Phase 3 split; the names stay importable from here.
 from .task_ui import (  # noqa: F401
@@ -206,7 +206,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
                         _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                             remaining=remaining
                         ),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 spam_manager.add_user_cooldown(interaction.user.id, "protected_info_edit")
@@ -224,7 +224,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
         if not (_channel_has_permission(interaction.channel_id, 'control', _load_config())
                 or _admin_may_control(interaction.user.id, self.container_name)):
             await interaction.response.send_message(
-                f"❌ {_('This action is not allowed in this channel.')}", ephemeral=True)
+                f"❌ {_('This action is not allowed in this channel.')}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
 
         try:
@@ -248,7 +248,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
             try:
                 await interaction.response.send_message(
                     _("❌ Could not open protected info edit modal. Please try again later."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             except Exception:
                 pass
@@ -285,7 +285,7 @@ class EditInfoButton(discord.ui.Button):
                         _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                             remaining=remaining
                         ),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 spam_manager.add_user_cooldown(interaction.user.id, "edit_info")
@@ -313,7 +313,7 @@ class EditInfoButton(discord.ui.Button):
             try:
                 await interaction.response.send_message(
                     _("❌ Could not open edit modal. Please try again later."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             except Exception:
                 pass
@@ -556,7 +556,7 @@ class LiveLogView(DDCView):
                         _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                             remaining=remaining
                         ),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 spam_manager.add_user_cooldown(interaction.user.id, "live_refresh")
@@ -565,7 +565,7 @@ class LiveLogView(DDCView):
 
         try:
             # Immediately send response to avoid timeout
-            await interaction.response.send_message(_("🔄 Refreshing logs..."), ephemeral=True, delete_after=1)
+            await interaction.response.send_message(_("🔄 Refreshing logs..."), ephemeral=True, delete_after=PROGRESS_STAYS_FOR)
 
             # Get updated logs
             logs = await container_logs_text(self.container_name)
@@ -595,7 +595,7 @@ class LiveLogView(DDCView):
         """Toggle auto-refresh updates - stop or start based on current state."""
         try:
             # Immediately send response to avoid timeout
-            await interaction.response.send_message(_("⏳ Updating..."), ephemeral=True, delete_after=1)
+            await interaction.response.send_message(_("⏳ Updating..."), ephemeral=True, delete_after=PROGRESS_STAYS_FOR)
 
             # Check current state and toggle
             if self.auto_refresh_enabled and self.auto_refresh_task:
@@ -745,7 +745,7 @@ class DebugLogsButton(discord.ui.Button):
                             _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                                 remaining=remaining
                             ),
-                            ephemeral=True
+                            ephemeral=True, delete_after=NOTICE_STAYS_FOR
                         )
                         return
                     spam_manager.add_user_cooldown(interaction.user.id, "logs")
@@ -760,7 +760,7 @@ class DebugLogsButton(discord.ui.Button):
                 # Live Logs feature is disabled - show error message
                 await interaction.followup.send(
                     _("❌ Live Logs feature is currently disabled by administrator."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -811,7 +811,7 @@ class DebugLogsButton(discord.ui.Button):
             else:
                 await interaction.followup.send(
                     _("❌ Could not retrieve debug logs for this container."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
         except (RuntimeError, ValueError, KeyError) as e:
@@ -820,12 +820,12 @@ class DebugLogsButton(discord.ui.Button):
                 if interaction.response.is_done():
                     await interaction.followup.send(
                         _("❌ Error retrieving debug logs. Please try again later."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                 else:
                     await interaction.response.send_message(
                         _("❌ Error retrieving debug logs. Please try again later."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except Exception:
                 pass
@@ -1104,7 +1104,7 @@ class ProtectedInfoButton(discord.ui.Button):
                         _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                             remaining=remaining
                         ),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 spam_manager.add_user_cooldown(interaction.user.id, "protected_info")
@@ -1133,7 +1133,7 @@ class ProtectedInfoButton(discord.ui.Button):
             try:
                 await interaction.response.send_message(
                     _("❌ Could not open protected info modal. Please try again later."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             except Exception:
                 pass

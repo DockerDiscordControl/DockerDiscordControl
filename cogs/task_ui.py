@@ -23,7 +23,7 @@ from services.automation import get_auto_action_config_service
 from services.config.config_service import load_config
 from utils.logging_utils import get_module_logger
 
-from .ddc_ui import DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, DDCView
 from .translation_manager import _
 
 # Same logger name as before the move: log lines read as they did.
@@ -74,7 +74,7 @@ class TaskManagementButton(discord.ui.Button):
                             _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                                 remaining=remaining
                             ),
-                            ephemeral=True
+                            ephemeral=True, delete_after=NOTICE_STAYS_FOR
                         )
                         return
                     spam_service.add_user_cooldown(interaction.user.id, "tasks")
@@ -87,7 +87,7 @@ class TaskManagementButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in task management button: {e}", exc_info=True)
             try:
-                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except Exception:
                 pass
 
@@ -154,7 +154,7 @@ class TaskManagementButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing task list: {e}", exc_info=True)
             try:
-                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except Exception:
                 pass  # Interaction might have expired
 
@@ -202,7 +202,7 @@ class AddTaskButton(discord.ui.Button):
             if not view.allowed_actions:
                 await interaction.followup.send(
                     f"❌ {_('No schedulable actions (start/stop/restart) are allowed for {container}.').format(container=self.container_name)}",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -227,9 +227,9 @@ class AddTaskButton(discord.ui.Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in add task button: {e}", exc_info=True)
             if interaction.response.is_done():
-                await interaction.followup.send(f"❌ {_('Error showing task help.')}", ephemeral=True)
+                await interaction.followup.send(f"❌ {_('Error showing task help.')}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             else:
-                await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True)
+                await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 class DeleteTasksButton(discord.ui.Button):
     """Button to open task delete panel."""
@@ -257,7 +257,7 @@ class DeleteTasksButton(discord.ui.Button):
             if not tasks:
                 await interaction.followup.send(
                     _("⏰ No tasks found for {name} to delete.").format(name=self.container_name),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -287,7 +287,7 @@ class DeleteTasksButton(discord.ui.Button):
 
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error in delete tasks button: {e}", exc_info=True)
-            await interaction.followup.send(f"❌ {_('Error opening task delete panel.')}", ephemeral=True)
+            await interaction.followup.send(f"❌ {_('Error opening task delete panel.')}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 
 class AutoActionButton(discord.ui.Button):
@@ -383,7 +383,7 @@ class AutoActionButton(discord.ui.Button):
 
         except Exception as e:
             logger.error(f"Error in auto action button: {e}", exc_info=True)
-            await interaction.followup.send(f"❌ {_('Error loading Auto-Actions.')}", ephemeral=True)
+            await interaction.followup.send(f"❌ {_('Error loading Auto-Actions.')}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 
 # Actions that can be scheduled as tasks (services.scheduling.scheduler.VALID_ACTIONS)
@@ -897,7 +897,7 @@ class CreateTaskButton(discord.ui.Button):
             missing.append(_("Day/Date"))
 
         if missing:
-            await interaction.response.send_message(f"❌ {_('Please select: {missing}').format(missing=', '.join(missing))}", ephemeral=True)
+            await interaction.response.send_message(f"❌ {_('Please select: {missing}').format(missing=', '.join(missing))}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
 
         # Imported before try so the except clause below can reference it
@@ -919,7 +919,7 @@ class CreateTaskButton(discord.ui.Button):
                     or _admin_may_control(interaction.user.id, self.container_name)):
                 await interaction.followup.send(
                     f"❌ {_('This action is not allowed in this channel.')}",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -928,7 +928,7 @@ class CreateTaskButton(discord.ui.Button):
                 error_msg = _("You don't have permission to perform '{action}' on '{container}'.").format(
                     action=self.view.selected_action, container=self.container_name
                 )
-                await interaction.followup.send(f"❌ {error_msg}", ephemeral=True)
+                await interaction.followup.send(f"❌ {error_msg}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Import required modules
@@ -1032,30 +1032,30 @@ class CreateTaskButton(discord.ui.Button):
             else:
                 await interaction.followup.send(
                     f"❌ {_('Failed to create task. Please check for time conflicts or try again.')}",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
         except ScheduleValidationError as e:
             # Validation messages are user-facing (e.g. time conflict, time in the past)
             logger.info(f"Task creation for {self.container_name} rejected: {e}")
-            await interaction.followup.send(f"❌ **{_('Error')}**: {str(e)[:200]}", ephemeral=True)
+            await interaction.followup.send(f"❌ **{_('Error')}**: {str(e)[:200]}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error creating task: {e}", exc_info=True)
             error_msg = str(e)
             if "collision" in error_msg.lower():
                 await interaction.followup.send(
                     f"❌ **{_('Time Conflict')}**: {_('Another task is already scheduled within 10 minutes of this time for {container}').format(container=self.container_name)}.",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             elif "past" in error_msg.lower():
                 await interaction.followup.send(
                     f"❌ **{_('Invalid Time')}**: {_('The scheduled time is in the past. Please select a future time.')}.",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
             else:
                 await interaction.followup.send(
                     f"❌ **{_('Error')}**: {error_msg[:200]}",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
 
@@ -1168,7 +1168,7 @@ class ContainerTaskDeleteButton(discord.ui.Button):
                     or _admin_may_control_task(interaction.user.id, self.task_id)):
                 await interaction.followup.send(
                     f"❌ {_('You do not have permission to delete tasks in this channel.')}",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -1177,7 +1177,7 @@ class ContainerTaskDeleteButton(discord.ui.Button):
             if not task:
                 await interaction.followup.send(
                     f"❌ {_('Task not found (may have already been deleted)')}",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -1222,12 +1222,12 @@ class ContainerTaskDeleteButton(discord.ui.Button):
             else:
                 await interaction.followup.send(
                     f"❌ {_('Failed to delete task: **{description}**').format(description=self.description)}",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error deleting task {self.task_id}: {e}", exc_info=True)
             await interaction.followup.send(
                 f"❌ {_('Error occurred while deleting task.')}",
-                ephemeral=True
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR
             )

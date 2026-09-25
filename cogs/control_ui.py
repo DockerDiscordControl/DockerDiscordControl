@@ -31,7 +31,7 @@ from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
 from services.infrastructure.action_logger import log_user_action
 from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
-from .ddc_ui import DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, DDCView
 from .group_control import (controllable_entries, group_config_for, group_entries,
                             group_help_field, is_group_target, admin_panel_embed,
                             running_state_for)
@@ -393,7 +393,7 @@ class ActionButton(Button):
                         _("⏰ Please wait {remaining:.1f} seconds before using '{action}' button again.").format(
                             remaining=remaining_time, action=self.action
                         ),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 spam_service.add_user_cooldown(interaction.user.id, self.action)
@@ -402,7 +402,7 @@ class ActionButton(Button):
 
         config = load_config()
         if not config:
-            await interaction.response.send_message(_("Error: Could not load configuration."), ephemeral=True)
+            await interaction.response.send_message(_("Error: Could not load configuration."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
 
         user = interaction.user
@@ -410,7 +410,7 @@ class ActionButton(Button):
 
         # Check if channel exists
         if not interaction.channel:
-            await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True)
+            await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
 
         # Only the CURRENT channel permission decides. Previously an "Admin Control"
@@ -443,7 +443,7 @@ class ActionButton(Button):
                                or _admin_may_control(user.id, self.docker_name))
 
         if not channel_has_control:
-            await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True)
+            await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
 
         allowed_actions = self.server_config.get('allowed_actions', [])
@@ -452,7 +452,7 @@ class ActionButton(Button):
                 _("❌ Action '{action}' is not allowed for container '{container}'.").format(
                     action=self.action, container=self.display_name
                 ),
-                ephemeral=True
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR
             )
             return
 
@@ -817,7 +817,7 @@ class ToggleButton(Button):
                         _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                             remaining=remaining_time
                         ),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 spam_service.add_user_cooldown(interaction.user.id, "refresh")
@@ -847,7 +847,7 @@ class ToggleButton(Button):
                 # followup, not response: the interaction was deferred above, so a second
                 # response raises InteractionResponded - it was logged and the user saw
                 # nothing, the panel simply did not react (review A12).
-                await interaction.followup.send(_("Error: Could not load configuration to process this action."), ephemeral=True)
+                await interaction.followup.send(_("Error: Could not load configuration to process this action."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Check if container is in pending status - use docker_name as key
@@ -1203,7 +1203,7 @@ class InfoButton(Button):
                         _("⏰ Please wait {remaining:.1f} seconds before using info button again.").format(
                             remaining=remaining_time
                         ),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 spam_service.add_user_cooldown(interaction.user.id, "info")
@@ -1226,7 +1226,7 @@ class InfoButton(Button):
             if not is_admin and not self._channel_has_info_permission(channel_id, config):
                 await interaction.followup.send(
                     _("❌ You don't have permission to view container info in this channel."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -1288,7 +1288,7 @@ class InfoButton(Button):
                 else:
                     await interaction.followup.send(
                         _("ℹ️ Container info is not configured for this container."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
 
@@ -1324,7 +1324,7 @@ class InfoButton(Button):
             logger.error(f"[INFO_BTN] Error showing info for '{self.display_name}': {e}", exc_info=True)
             await interaction.followup.send(
                 _("❌ An error occurred. Please try again."),
-                ephemeral=True
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR
             )
 
     async def _get_ip_info(self, info_config: dict) -> str:
@@ -1409,7 +1409,7 @@ class TaskDeleteButton(Button):
                         _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                             remaining=remaining_time
                         ),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                     return
                 spam_service.add_user_cooldown(interaction.user.id, "task_delete")
@@ -1424,7 +1424,7 @@ class TaskDeleteButton(Button):
 
             # Check if channel exists
             if not interaction.channel:
-                await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True)
+                await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             from services.scheduling.scheduler import delete_task
@@ -1436,7 +1436,7 @@ class TaskDeleteButton(Button):
             # may only delete the tasks of their own (review F2).
             if not (_get_cached_channel_permission(interaction.channel.id, 'schedule', config)
                     or _admin_may_control_task(interaction.user.id, self.task_id)):
-                await interaction.followup.send(_("You do not have permission to delete tasks in this channel."), ephemeral=True)
+                await interaction.followup.send(_("You do not have permission to delete tasks in this channel."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             if delete_task(self.task_id):
@@ -1450,19 +1450,19 @@ class TaskDeleteButton(Button):
 
                 await interaction.followup.send(
                     _("✅ Task **{task_description}** has been deleted successfully.").format(task_description=self.task_description),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 logger.info(f"[TASK_DELETE_BTN] Task '{self.task_id}' deleted successfully by {user.name}")
             else:
                 await interaction.followup.send(
                     _("❌ Failed to delete task **{task_description}**. It may no longer exist.").format(task_description=self.task_description),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 logger.warning(f"[TASK_DELETE_BTN] Failed to delete task '{self.task_id}' for {user.name}")
 
         except (discord.errors.DiscordException, RuntimeError, KeyError) as e:
             logger.error(f"[TASK_DELETE_BTN] Error deleting task '{self.task_id}': {e}", exc_info=True)
-            await interaction.followup.send(_("An error occurred while deleting the task."), ephemeral=True)
+            await interaction.followup.send(_("An error occurred while deleting the task."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 # TaskDeletePanelView and MechControlsLabelButton stood here: a view and a
 # disabled label button that nothing ever built, and whose callback said of
@@ -1540,7 +1540,7 @@ class InfoDropdownButton(Button):
                             _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                                 remaining=remaining
                             ),
-                            ephemeral=True
+                            ephemeral=True, delete_after=NOTICE_STAYS_FOR
                         )
                         return
                     spam_service.add_user_cooldown(interaction.user.id, "info")
@@ -1579,7 +1579,7 @@ class InfoDropdownButton(Button):
                     continue
 
             if not containers_with_info:
-                await interaction.followup.send(_("ℹ️ No active containers have information configured."), ephemeral=True)
+                await interaction.followup.send(_("ℹ️ No active containers have information configured."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Sort containers by the 'order' field (same as Admin Overview)
@@ -1603,7 +1603,7 @@ class InfoDropdownButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing info selection: {e}", exc_info=True)
             try:
-                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have expired
                 pass
@@ -1812,7 +1812,7 @@ class ContainerInfoDropdown(discord.ui.Select):
                         view=None
                     )
                 else:
-                    await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                    await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -1867,9 +1867,9 @@ class PasswordButton(Button):
             logger.error(f"Error showing password modal: {e}", exc_info=True)
             try:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(_("❌ An error occurred. Please try again."), ephemeral=True)
+                    await interaction.response.send_message(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 else:
-                    await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                    await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -1909,7 +1909,7 @@ class AdminButton(Button):
             # Check if user is admin
             user_id = str(interaction.user.id)
             if not admin_service.is_user_admin(user_id):
-                await interaction.followup.send(_("🛠️ You are not authorized to use admin controls."), ephemeral=True)
+                await interaction.followup.send(_("🛠️ You are not authorized to use admin controls."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Apply spam protection
@@ -1926,7 +1926,7 @@ class AdminButton(Button):
                             _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                                 remaining=remaining
                             ),
-                            ephemeral=True
+                            ephemeral=True, delete_after=NOTICE_STAYS_FOR
                         )
                         return
                     spam_service.add_user_cooldown(interaction.user.id, "admin")
@@ -1942,7 +1942,7 @@ class AdminButton(Button):
             active_containers = controllable_entries(all_servers)
 
             if not active_containers:
-                await interaction.followup.send(_("📦 No active containers found."), ephemeral=True)
+                await interaction.followup.send(_("📦 No active containers found."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             logger.info(f"AdminButton: {len(active_containers)} containers BEFORE sorting:")
@@ -1986,7 +1986,7 @@ class AdminButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing admin panel: {e}", exc_info=True)
             try:
-                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.DiscordException, RuntimeError):
                 pass
 
@@ -2132,7 +2132,7 @@ class AdminContainerDropdown(discord.ui.Select):
                 # "embed, view, _ = ...", which makes the translation function local
                 # to the whole callback - calling _() here would raise.
                 await interaction.followup.send(
-                    translate("This action is not allowed in this channel."), ephemeral=True)
+                    translate("This action is not allowed in this channel."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             selected_container = self.values[0]
@@ -2277,7 +2277,7 @@ class HelpButton(Button):
                             _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                                 remaining=remaining
                             ),
-                            ephemeral=True
+                            ephemeral=True, delete_after=NOTICE_STAYS_FOR
                         )
                         return
                     spam_service.add_user_cooldown(interaction.user.id, "help")
@@ -2312,7 +2312,7 @@ class HelpButton(Button):
         except (discord.errors.DiscordException, RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing help: {e}", exc_info=True)
             try:
-                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have expired
                 pass
@@ -2352,7 +2352,7 @@ class MechDetailsButton(Button):
             if not result.success:
                 await interaction.followup.send(
                     _("❌ Error retrieving mech status details. Please try again later."),
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
 
@@ -2437,12 +2437,12 @@ class MechDetailsButton(Button):
                 if interaction.response.is_done():
                     await interaction.followup.send(
                         _("❌ Error retrieving mech details. Please try again later."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                 else:
                     await interaction.response.send_message(
                         _("❌ Error retrieving mech details. Please try again later."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except (discord.errors.DiscordException, RuntimeError):
                 # Interaction may have already been responded to or expired
@@ -2468,7 +2468,7 @@ class MechExpandButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Apply spam protection
@@ -2498,7 +2498,7 @@ class MechExpandButton(Button):
                             _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                                 remaining=remaining
                             ),
-                            ephemeral=True
+                            ephemeral=True, delete_after=NOTICE_STAYS_FOR
                         )
                         return
                     spam_service.add_user_cooldown(interaction.user.id, self.custom_id)
@@ -2509,7 +2509,7 @@ class MechExpandButton(Button):
 
             # Start interaction tracking to prevent auto-update conflicts
             if not await self.cog._start_interaction(self.channel_id):
-                await interaction.followup.send(_("⏰ Another interaction is in progress. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("⏰ Another interaction is in progress. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             try:
@@ -2545,7 +2545,7 @@ class MechExpandButton(Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error expanding mech status: {e}", exc_info=True)
             try:
-                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
@@ -2590,7 +2590,7 @@ class MechCollapseButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Apply spam protection
@@ -2609,7 +2609,7 @@ class MechCollapseButton(Button):
                             _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                                 remaining=remaining
                             ),
-                            ephemeral=True
+                            ephemeral=True, delete_after=NOTICE_STAYS_FOR
                         )
                         return
                     spam_service.add_user_cooldown(interaction.user.id, self.custom_id)
@@ -2620,7 +2620,7 @@ class MechCollapseButton(Button):
 
             # Start interaction tracking to prevent auto-update conflicts
             if not await self.cog._start_interaction(self.channel_id):
-                await interaction.followup.send(_("⏰ Another interaction is in progress. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("⏰ Another interaction is in progress. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             try:
@@ -2652,7 +2652,7 @@ class MechCollapseButton(Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error collapsing mech status: {e}", exc_info=True)
             try:
-                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True)
+                await interaction.followup.send(_("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except (discord.errors.HTTPException, discord.errors.NotFound):
                 # Interaction may have already expired
                 pass
@@ -2698,7 +2698,7 @@ async def _mech_button_braked(interaction: discord.Interaction, name: str) -> bo
                 _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                     remaining=remaining
                 ),
-                ephemeral=True
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR
             )
             return True
         spam_service.add_user_cooldown(interaction.user.id, name)
@@ -2737,9 +2737,9 @@ class MechDonateButton(Button):
             try:
                 # Smart error response - check if interaction was already handled by _handle_donate_interaction
                 if interaction.response.is_done():
-                    await interaction.followup.send(_("❌ Error processing donation. Please try `/donate` directly."), ephemeral=True)
+                    await interaction.followup.send(_("❌ Error processing donation. Please try `/donate` directly."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 else:
-                    await interaction.response.send_message(_("❌ Error processing donation. Please try `/donate` directly."), ephemeral=True)
+                    await interaction.response.send_message(_("❌ Error processing donation. Please try `/donate` directly."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except discord.errors.NotFound:
                 logger.warning("Cannot send error message - interaction expired")
             except (discord.errors.DiscordException, RuntimeError):
@@ -2804,7 +2804,7 @@ class MechHistoryButton(Button):
                             _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
                                 remaining=remaining
                             ),
-                            ephemeral=True
+                            ephemeral=True, delete_after=NOTICE_STAYS_FOR
                         )
                         return
                     spam_service.add_user_cooldown(interaction.user.id, self.custom_id)
@@ -2813,7 +2813,7 @@ class MechHistoryButton(Button):
 
             # Check if donations are disabled (after defer, use followup)
             if is_donations_disabled():
-                await interaction.followup.send(_("❌ Mech system is currently disabled."), ephemeral=True)
+                await interaction.followup.send(_("❌ Mech system is currently disabled."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Get current mech state using SERVICE FIRST
@@ -2825,7 +2825,7 @@ class MechHistoryButton(Button):
                 logger.error("[MECH] The mech state could not be read - "
                              "the selection cannot be shown")
                 await interaction.followup.send(
-                    _("❌ An error occurred. Please try again."), ephemeral=True)
+                    _("❌ An error occurred. Please try again."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
             current_level = mech_state_result.level
 
@@ -2836,7 +2836,7 @@ class MechHistoryButton(Button):
             logger.error(f"Error in mech history button: {e}", exc_info=True)
             # After defer(), we have 15 minutes - use followup for error messages
             try:
-                await interaction.followup.send(_("❌ Error loading mech history."), ephemeral=True)
+                await interaction.followup.send(_("❌ Error loading mech history."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             except discord.errors.NotFound:
                 # Interaction expired - log but don't crash (should not happen within 15 min)
                 logger.warning(f"Interaction expired unexpectedly: {e}")
@@ -2947,7 +2947,7 @@ class MechDisplayButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # self.custom_id = mech_display_<level> -> slider mech_display.
@@ -2966,7 +2966,7 @@ class MechDisplayButton(Button):
             evolution_info = get_evolution_level_info(self.level)
 
             if not evolution_info:
-                await interaction.followup.send(_("❌ Mech data not found."), ephemeral=True)
+                await interaction.followup.send(_("❌ Mech data not found."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             if self._is_unlocked_now():
@@ -2979,7 +2979,7 @@ class MechDisplayButton(Button):
 
                 if not image_result.success:
                     logger.error(f"Failed to load unlocked mech {self.level}: {image_result.error_message}")
-                    await interaction.followup.send(_("❌ Error loading mech animation."), ephemeral=True)
+                    await interaction.followup.send(_("❌ Error loading mech animation."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                     return
 
                 embed = discord.Embed(
@@ -3003,7 +3003,7 @@ class MechDisplayButton(Button):
 
                 if not image_result.success:
                     logger.error(f"Failed to load shadow mech {self.level}: {image_result.error_message}")
-                    await interaction.followup.send(_("❌ Error loading mech preview."), ephemeral=True)
+                    await interaction.followup.send(_("❌ Error loading mech preview."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                     return
 
                 # Calculate remaining amount using evolution state (same as Spenden Modal)
@@ -3037,7 +3037,7 @@ class MechDisplayButton(Button):
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error displaying mech {self.level}: {e}", exc_info=True)
             # After defer(), always use followup for error messages
-            await interaction.followup.send(_("❌ Error loading mech."), ephemeral=True)
+            await interaction.followup.send(_("❌ Error loading mech."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 
 class EpilogueButton(Button):
@@ -3057,7 +3057,7 @@ class EpilogueButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Not self.custom_id ("epilogue_button"): without "mech_story_" in
@@ -3105,7 +3105,7 @@ And those who dare… sp34k its ████ do s0 only once.
 
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing epilogue: {e}", exc_info=True)
-            await interaction.response.send_message(_("❌ Error loading epilogue."), ephemeral=True)
+            await interaction.response.send_message(_("❌ Error loading epilogue."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 
 class MechStoryView(DDCView):
@@ -3141,7 +3141,7 @@ class ReadStoryButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Not self.custom_id (read_story_<level>) - see EpilogueButton.
@@ -3199,12 +3199,12 @@ class ReadStoryButton(Button):
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
-                await interaction.followup.send(_("📖 No story chapter available for this mech yet."), ephemeral=True)
+                await interaction.followup.send(_("📖 No story chapter available for this mech yet."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error showing story for level {self.level}: {e}", exc_info=True)
             # After defer(), always use followup for error messages
-            await interaction.followup.send(_("❌ Error loading story."), ephemeral=True)
+            await interaction.followup.send(_("❌ Error loading story."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 
 class PlaySongButton(Button):
@@ -3226,7 +3226,7 @@ class PlaySongButton(Button):
         try:
             # Check if donations are disabled
             if is_donations_disabled():
-                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True)
+                await interaction.response.send_message(_("❌ Mech system is currently disabled."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Not self.custom_id (play_song_<level>) - see EpilogueButton.
@@ -3250,18 +3250,18 @@ class PlaySongButton(Button):
                 # This triggers Discord's automatic YouTube preview with play button!
                 message_text = f"🎵 **{result.title}** (Mech Level {self.level})\n\n{result.url}"
 
-                await interaction.followup.send(message_text, ephemeral=True)
+                await interaction.followup.send(message_text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             else:
                 await interaction.followup.send(
                     _("❌ No music available for Mech Level {level}").format(level=self.level) + "\n"
                     f"Error: {result.error}",
-                    ephemeral=True
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
 
         except (RuntimeError, ValueError, KeyError) as e:
             logger.error(f"Error generating music URL for level {self.level}: {e}", exc_info=True)
             # After defer(), always use followup for error messages
-            await interaction.followup.send(_("❌ Error loading music."), ephemeral=True)
+            await interaction.followup.send(_("❌ Error loading music."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 
 # =============================================================================
@@ -3307,12 +3307,12 @@ class MechPrivateDonateButton(Button):
                 if interaction.response.is_done():
                     await interaction.followup.send(
                         _("❌ Error processing donation request. Please try again later."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                 else:
                     await interaction.response.send_message(
                         _("❌ Error processing donation request. Please try again later."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except discord.errors.NotFound:
                 logger.warning("Cannot send error message - interaction expired")
@@ -3346,12 +3346,12 @@ class MechPrivateHistoryButton(Button):
                 if interaction.response.is_done():
                     await interaction.followup.send(
                         _("❌ Error loading mech history. Please try again later."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
                 else:
                     await interaction.response.send_message(
                         _("❌ Error loading mech history. Please try again later."),
-                        ephemeral=True
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
             except discord.errors.NotFound:
                 logger.warning("Cannot send error message - interaction expired")
