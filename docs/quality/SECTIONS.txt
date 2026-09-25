@@ -251,9 +251,9 @@ services/web/donation_status_service.py:1-252
 services/web/donation_tracking_service.py:1-165
 services/web/i18n_service.py:1-214
 
-## Section 30  (1810 lines, 5 pieces)
+## Section 30  (1846 lines, 5 pieces)
 services/web/mech_music_service.py:1-225
-services/web/mech_status_details_service.py:1-411
+services/web/mech_status_details_service.py:1-447
 services/web/mech_web_service.py:1-641
 services/web/performance_stats_service.py:1-182
 services/web/security_service.py:1-351

@@ -174,10 +174,8 @@ class MechStatusDetailsService:
             # Get level for next evolution calculation using MechDataStore
             current_level = data_result.current_level
 
-            # Try to get next level info
-            next_level_info = self._get_next_level_info(current_level + 1)
-            if next_level_info:
-                next_evolution = f"⬆️ {next_level_info['name']}"
+            next_evolution = self._next_evolution_line(current_level)
+            if next_evolution:
 
                 # Create evolution progress bar using MechDataStore bars data (FIXED: Use bars like Power does!)
                 # SINGLE POINT OF TRUTH: Use mech_progress_current/max from bars (includes carried over amounts!)
@@ -299,6 +297,44 @@ class MechStatusDetailsService:
             logger.debug(f"Error getting infinity message: {e}")
             # Fallback to German (current default)
             return "∞ Unendlichkeit erreicht, Danke! 🖤"
+
+    # The last stage is never spelled out - it glitches.
+    THE_STEP_THAT_GLITCHES = 10
+    A_CORRUPTED_NAME = "ERR#R: [DATA_C0RR*PTED]"
+
+    def _next_evolution_line(self, current_level: int) -> Optional[str]:
+        """The "⬆️ …" line, or None when there is nothing after this stage.
+
+        DELIBERATELY CORRUPTED AT LEVEL 10, and that is worth writing down
+        because it reads exactly like a defect - to a person and to a sweep
+        for untranslated text alike.
+
+        THE GALLERY ALREADY REFUSES THE PREVIEW. Below level 10 it offers a
+        locked "Next" button showing the stage after this one; from level 10
+        it stops and puts the Epilogue there instead (cogs/control_ui.py,
+        MechSelectionView). Level 11 is not meant to be seen in advance.
+
+        This panel did not keep to that: it named whatever came next, so at
+        level 10 it gave away the final evolution. The line below is the
+        answer that was already written for the OLD status-channel overview,
+        which showed it at level 10 only. That overview was removed on
+        2026-09-25 as unreachable and took the line with it; the operator
+        asked for it back.
+
+        ONLY THE NAME CAME BACK. The old rendering also drew a corrupted bar
+        of twenty-three characters, counted for the monospace box of that
+        overview. This panel draws a real progress bar, and the glyphs there
+        would read as breakage rather than drama.
+
+        NOT TRANSLATED, for the same reason the close button's ✕ is not: it
+        is not a word in any language.
+        """
+        after_this_one = self._get_next_level_info(current_level + 1)
+        if not after_this_one:
+            return None
+        if current_level == self.THE_STEP_THAT_GLITCHES:
+            return f"⬆️ {self.A_CORRUPTED_NAME}"
+        return f"⬆️ {after_this_one['name']}"
 
     def _get_next_level_info(self, level: int) -> Optional[Dict[str, Any]]:
         """Get next level information using MechDataStore."""
