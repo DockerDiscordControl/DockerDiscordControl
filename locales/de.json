@@ -1723,6 +1723,7 @@
   "web.two_factor.enabled": "Zwei-Faktor-Authentifizierung ist an.",
   "web.two_factor.recovery_intro": "Deine Wiederherstellungscodes - nur dieses eine Mal angezeigt. Jeder funktioniert einmal, falls du dein Handy verlierst. Bewahre sie jetzt sicher auf.",
   "web.two_factor.break_glass": "Handy und Codes verloren? Wer Zugriff auf den Host hat, kann config/two_factor.json entfernen (siehe scripts/disable_2fa.py).",
+  "web.two_factor.download": "Als Datei speichern",
   "web.two_factor.done": "Fertig",
   "web.two_factor.verify_label": "Code aus deiner Authenticator-App oder ein Wiederherstellungscode",
   "web.two_factor.verify": "Weiter",

@@ -1723,6 +1723,7 @@
   "web.two_factor.enabled": "Two-factor authentication is on.",
   "web.two_factor.recovery_intro": "Your recovery codes - shown only this once. Each works once if you lose your phone. Store them somewhere safe now.",
   "web.two_factor.break_glass": "Lost the phone and the codes? Whoever has access to the host can remove config/two_factor.json (see scripts/disable_2fa.py).",
+  "web.two_factor.download": "ذخیره به صورت فایل",
   "web.two_factor.done": "Done",
   "web.two_factor.verify_label": "Code from your authenticator app, or a recovery code",
   "web.two_factor.verify": "Continue",

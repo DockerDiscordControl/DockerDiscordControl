@@ -242,3 +242,38 @@ def disable():
 def dismiss():
     TwoFactorStore().dismiss_prompt()
     return redirect(_safe_next(request.form.get("next", "")))
+
+
+@two_factor_bp.route("/codes.txt", methods=["POST"])
+@auth.login_required
+def codes_txt():
+    """The recovery codes as a file, from the one screen that has them.
+
+    THEY EXIST FOR EXACTLY ONE SCREEN. confirm_setup returns them once and the
+    store keeps only sha256 of each, so this is the only chance to keep them -
+    which makes the download part of how the feature works, not a convenience.
+
+    THE ROUTE CANNOT KNOW THEM, for the same reason. So the page posts back
+    what it is showing and this answers only with the codes whose hash the
+    store recognises: without that check it would be a machine that turns any
+    text into a file with the panel's name on it. Nothing is kept between the
+    two requests - the other way was the session, which Flask signs into a
+    COOKIE, and ten recovery codes have no business in a browser's jar.
+
+    ASKED, NOT SPENT: holds_recovery_code does not consume one.
+    """
+    store = TwoFactorStore()
+    offered = [line.strip() for line in request.form.get("codes", "").splitlines() if line.strip()]
+    if not offered or not all(store.holds_recovery_code(code) for code in offered):
+        logger.warning("Refused a recovery-code download that did not match the stored codes")
+        return render_template("two_factor.html", view="setup_failed", secure=True), 400
+
+    body = ("DockerDiscordControl - recovery codes\r\n"
+            "https://ddc.bot\r\n\r\n"
+            "Each code works once, instead of the six digits from the app.\r\n"
+            "Keep this file somewhere the phone is not.\r\n\r\n"
+            + "\r\n".join(offered) + "\r\n")
+    return Response(body, mimetype="text/plain; charset=utf-8", headers={
+        "Content-Disposition": 'attachment; filename="ddc-recovery-codes.txt"',
+        "Cache-Control": "no-store",
+    })

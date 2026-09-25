@@ -186,6 +186,16 @@ class TwoFactorStore:
                 return step
         return None
 
+    def holds_recovery_code(self, code: str) -> bool:
+        """Whether this is one of the unused recovery codes - WITHOUT spending it.
+
+        ``verify`` below spends a code on success, which is right when one is
+        being USED. Keeping a copy of them is not using one, so the download
+        asks this instead; a download that consumed them would hand over ten
+        codes that no longer work.
+        """
+        return _hash_recovery_code(code) in self._read().get("recovery_hashes", [])
+
     def verify(self, code: str, now: Optional[float] = None) -> bool:
         """A current TOTP code or an unused recovery code; either is spent on success."""
         now = time.time() if now is None else now

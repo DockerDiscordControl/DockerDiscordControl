@@ -143,6 +143,18 @@
         <p class="mb-2"><strong>{{ _t('web.two_factor.recovery_intro') }}</strong></p>
         <pre class="border rounded p-3 mb-2 user-select-all">{% for code in codes %}{{ code }}
 {% endfor %}</pre>
+        {# KEEPING THEM IS THE POINT. This screen is the only one that ever
+           holds the codes - the store keeps sha256 of each - so the download
+           is part of how the feature works, not a convenience. The codes go
+           back to the route that writes the file, which answers only with
+           the ones whose hash the store knows. #}
+        <form method="post" action="{{ url_for('two_factor.codes_txt') }}" class="d-grid mb-3">
+          <input type="hidden" name="csrf_token" value="{{ token }}">
+          <input type="hidden" name="codes" value="{{ codes | join('\n') }}">
+          <button class="btn btn-outline-primary">
+            <i class="bi bi-download me-2"></i>{{ _t('web.two_factor.download') }}
+          </button>
+        </form>
         <p class="small text-secondary">{{ _t('web.two_factor.break_glass') }}</p>
         <div class="d-grid">
           <a href="/" class="btn btn-primary">{{ _t('web.two_factor.done') }}</a>
