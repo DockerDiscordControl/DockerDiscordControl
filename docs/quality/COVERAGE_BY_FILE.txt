@@ -102,7 +102,7 @@ app/web/i18n.py	64	pass1:s35:1-54  [10 of 64 lines never in a package]
 app/web/logging.py	60	pass1:s35:1-60
 app/web/routes.py	258	pass1:s35:1-100  [81 of 181 lines never in a package]
 app/web/security.py	102	pass1:s35:1-86
-app/web/tls.py	490	v3rev:1-216 http-redirect:217-490
+app/web/tls.py	497	v3rev:1-216 http-redirect:217-497
 app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7

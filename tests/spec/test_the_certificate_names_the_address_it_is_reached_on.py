@@ -363,3 +363,47 @@ def test_the_process_wires_that_up():
 
     assert any("learn_from_requests" in name for name in called), (
         "nothing teaches the certificate the address a bookmark uses")
+
+
+def test_a_new_container_does_not_cost_a_new_certificate(tmp_path, monkeypatch):
+    """THE COST OF GETTING THIS WRONG: trusting it again after every rebuild.
+
+    Docker gives each container a hostname, and that hostname is its id - a new
+    one on every rebuild. It is put IN the certificate, which is harmless, but
+    requiring it was not: the name was missing from yesterday's certificate by
+    definition, so every rebuild issued a new one with a new fingerprint, and
+    every browser warned again.
+
+    Measured on the operator's own server: two rebuilds, two fingerprints, and
+    the second one arrived within the hour (2026-09-25).
+
+    Nobody browses to a container id. It is offered, never required.
+    """
+    import socket
+
+    from app.web.tls import ensure_self_signed_certificate
+
+    monkeypatch.setattr(socket, "gethostname", lambda: "1364b5341e94")
+    first = ensure_self_signed_certificate(tmp_path, hostnames=["192.168.1.249"])
+
+    assert "1364b5341e94" in _san(first.cert_path), "the container is not named at all"
+
+    monkeypatch.setattr(socket, "gethostname", lambda: "0fbaede411b9")
+    second = ensure_self_signed_certificate(tmp_path, hostnames=["192.168.1.249"])
+
+    assert second.created is False, "a rebuild cost a new certificate and a new trust step"
+    assert second.fingerprint == first.fingerprint
+
+
+def test_an_address_that_was_learned_is_still_required(tmp_path, monkeypatch):
+    """Counter-check: excusing the container's own name must not excuse the
+    ones that matter, or the certificate would stop following the operator."""
+    import socket
+
+    from app.web.tls import ensure_self_signed_certificate, remember_name
+
+    monkeypatch.setattr(socket, "gethostname", lambda: "1364b5341e94")
+    ensure_self_signed_certificate(tmp_path)
+    remember_name(tmp_path, "ddc.local")
+
+    assert ensure_self_signed_certificate(tmp_path).created is True

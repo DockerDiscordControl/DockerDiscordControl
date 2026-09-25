@@ -110,3 +110,17 @@ def test_the_self_signed_certificate_is_kept_with_the_configuration():
         "config/ is not bound in, so a new certificate would be made on every "
         "rebuild and every browser would warn again")
     assert 'Path(get_config_dir()) / "tls"' in (PROJECT / "run.py").read_text(encoding="utf-8")
+
+
+def test_the_startup_line_names_the_server_that_runs():
+    """waitress cannot terminate TLS, so the self-signed mode runs werkzeug -
+    and the line said "via Waitress" either way. A log that names the wrong
+    server is where a search for a bug starts in the wrong place."""
+    import ast
+
+    source = (PROJECT / "run.py").read_text(encoding="utf-8")
+    start = next(node for node in ast.walk(ast.parse(source))
+                 if isinstance(node, ast.FunctionDef) and node.name == "start_web_server")
+    body = ast.unparse(start)
+
+    assert "tls_mode" in body, "the line does not ask which server it is about to start"

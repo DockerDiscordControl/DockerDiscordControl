@@ -258,10 +258,17 @@ def ensure_self_signed_certificate(directory, now: Optional[datetime.datetime] =
     cert_path, key_path = directory / CERT_NAME, directory / KEY_NAME
 
     wanted = _names(list(hostnames or []) + known_names(directory))
+    # WHAT MUST BE IN IT, which is not the same as what goes in it. Docker
+    # names a container after its id, and that id is new on every rebuild - so
+    # requiring it meant a new certificate, a new fingerprint and another
+    # trust step every single time the image was rebuilt. Measured twice
+    # within the hour on the operator's own server (2026-09-25). Nobody
+    # browses to a container id: it is offered, never required.
+    must_have = [n for n in wanted if n != socket.gethostname()]
 
     try:
         cert = _load(cert_path, key_path)
-        missing = _missing_from(cert, wanted)
+        missing = _missing_from(cert, must_have)
         if cert.not_valid_after_utc - now > RENEW_BEFORE and not missing:
             return Certificate(cert_path, key_path, _fingerprint(cert.public_bytes(serialization.Encoding.DER)),
                                cert.not_valid_after_utc, created=False)

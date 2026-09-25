@@ -80,10 +80,18 @@ def _serve_web(app, port, threads):
 
 
 def start_web_server():
-    """Starts the Flask Web UI using Waitress in a separate thread."""
+    """Starts the Flask Web UI in a separate thread.
+
+    Which server depends on the TLS mode - see _serve_web. This used to say
+    "via Waitress" whatever it then started, so on a panel serving HTTPS the
+    log named a server that was not running (operator's log, 2026-09-25).
+    """
     try:
         port = get_web_port()
-        logger.info(f"🚀 Starting Web UI via Waitress on port {port}...")
+        from app.web.tls import tls_mode
+
+        which = "werkzeug (TLS)" if tls_mode(os.environ) == "self-signed" else "Waitress"
+        logger.info(f"🚀 Starting Web UI via {which} on port {port}...")
 
         # Create Flask app
         app = create_app()
