@@ -838,13 +838,20 @@ class TestPortDiagnosticsHelpers:
     def test_get_unraid_solutions_contains_unraid_token(self, diag):
         out = diag._get_unraid_solutions()
         assert any("UNRAID" in s for s in out)
-        # Container name flows into the manual command
-        assert any("ddc-test" in s for s in out)
 
     def test_get_docker_solutions_contains_port_mapping(self, diag):
         out = diag._get_docker_solutions()
-        assert any("-p 8374" in s for s in out)
-        assert any("ddc-test" in s for s in out)
+        assert any("-p " in s for s in out)
+
+    def test_no_solution_creates_a_container(self, diag):
+        """These two used to require the container's NAME in the advice. It was
+        there because the advice embedded it in a command that CREATED a
+        container - with no -v, so no config, no logs, no Mech state - and on
+        2026-09-25 that advice was being offered for a port that was mapped
+        perfectly well. The name requirement went with the command."""
+        for advice in diag._get_unraid_solutions() + diag._get_docker_solutions():
+            assert "Recreate" not in advice, advice
+            assert "Remove container" not in advice, advice
 
     def test_is_port_listening_socket_error_returns_false(self, diag, monkeypatch):
         # Force socket.connect_ex to raise OSError so we hit the except branch
@@ -881,24 +888,39 @@ class TestPortDiagnosticsHelpers:
             PortDiagnostics, "_detect_container_name", lambda self: None
         )
         diag = PortDiagnostics()
-        assert diag._get_docker_port_mappings() == {}
+        # Not {}: outside a container the question cannot be answered, and an
+        # unanswerable question must not read as "nothing is mapped".
+        assert diag._get_docker_port_mappings() == ({}, False)
 
-    def test_get_docker_port_mappings_parses_output(self, diag, monkeypatch):
-        result = SimpleNamespace(
-            returncode=0,
-            stdout="9374/tcp -> 0.0.0.0:8374\n",
-        )
-        monkeypatch.setattr(subprocess, "run", lambda *a, **k: result)
-        mappings = diag._get_docker_port_mappings()
-        assert "9374" in mappings
+    def test_get_docker_port_mappings_reads_the_api(self, diag, monkeypatch):
+        """It used to parse `docker port` output. The image has no docker
+        binary on purpose, so that call could only ever fail - and its empty
+        answer was read as a fault. The mapping comes from the Docker API
+        through the allowlist proxy now."""
+        from app.utils import port_diagnostics as pd
+
+        container = SimpleNamespace(attrs={"NetworkSettings": {"Ports": {
+            "9374/tcp": [{"HostIp": "0.0.0.0", "HostPort": "8374"}]}}})
+        client = SimpleNamespace(containers=SimpleNamespace(get=lambda _id: container))
+        monkeypatch.setattr(pd, "_own_container_id", lambda: "abc123def456")
+        monkeypatch.setattr(pd, "_docker_client", lambda timeout: client)
+
+        mappings, known = diag._get_docker_port_mappings()
+        assert known is True
         assert mappings["9374"][0]["port"] == "8374"
 
-    def test_get_docker_port_mappings_handles_cmd_missing(self, diag, monkeypatch):
-        def _missing(*a, **k):
-            raise FileNotFoundError("docker not found")
+    def test_get_docker_port_mappings_handles_docker_missing(self, diag, monkeypatch):
+        """The rule this always protected - no crash when Docker cannot be
+        reached - aimed at the seam that now exists, and strengthened: the
+        answer says it did not know."""
+        from app.utils import port_diagnostics as pd
 
-        monkeypatch.setattr(subprocess, "run", _missing)
-        assert diag._get_docker_port_mappings() == {}
+        def _unreachable(timeout):
+            raise RuntimeError("docker unavailable")
+
+        monkeypatch.setattr(pd, "_own_container_id", lambda: "abc123def456")
+        monkeypatch.setattr(pd, "_docker_client", _unreachable)
+        assert diag._get_docker_port_mappings() == ({}, False)
 
     def test_check_port_binding_no_internal_listener(self, diag, monkeypatch):
         monkeypatch.setattr(
@@ -915,7 +937,11 @@ class TestPortDiagnosticsHelpers:
         monkeypatch.setattr(
             type(diag),
             "_get_docker_port_mappings",
-            lambda self: {"9374": [{"host": "0.0.0.0", "port": "8374"}]},
+            # (mappings, known): the second value says whether Docker could be
+            # asked at all. A bare {} could not tell "nothing is mapped" from
+            # "I could not look", and the reader chose the alarming one - see
+            # tests/spec/test_diagnostics_never_invents_a_problem.py.
+            lambda self: ({"9374": [{"host": "0.0.0.0", "port": "8374"}]}, True),
         )
         out = diag.check_port_binding()
         assert out["internal_port_listening"] is True
@@ -1102,32 +1128,18 @@ class TestPortDiagnosticsHostMetrics:
         instance = object.__new__(PortDiagnostics)
         assert instance._get_disk_usage() == "unknown"
 
-    def test_get_supervisord_status_parses_output(self, monkeypatch):
+    def test_nothing_asks_a_process_manager_that_is_not_there(self):
+        """Two cases used to drive _get_supervisord_status: one parsed its
+        output, one checked that a missing supervisorctl produced an "error"
+        key. DDC has been ONE process since v3 and the image has no
+        supervisord, so the probe could only ever return that error - and
+        panel.js drew it as a yellow warning on every visit, for the correct
+        state. The probe is gone; the rule that replaces it is held in
+        tests/spec/test_nothing_reports_on_a_process_manager_that_is_gone.py.
+        """
         from app.utils.port_diagnostics import PortDiagnostics
 
-        result = SimpleNamespace(
-            returncode=0,
-            stdout="webui RUNNING pid 100\nbot RUNNING pid 200\n",
-        )
-        monkeypatch.setattr(subprocess, "run", lambda *a, **k: result)
-        instance = object.__new__(PortDiagnostics)
-        out = instance._get_supervisord_status()
-        assert out.get("webui") == "RUNNING"
-        assert out.get("bot") == "RUNNING"
-
-    def test_get_supervisord_status_missing_returns_error(self, monkeypatch):
-        from app.utils.port_diagnostics import PortDiagnostics
-
-        monkeypatch.setattr(
-            subprocess,
-            "run",
-            lambda *a, **k: (_ for _ in ()).throw(
-                FileNotFoundError("supervisorctl")
-            ),
-        )
-        instance = object.__new__(PortDiagnostics)
-        out = instance._get_supervisord_status()
-        assert "error" in out
+        assert not hasattr(PortDiagnostics, "_get_supervisord_status")
 
     def test_get_ddc_memory_usage_parses_docker_stats(self, monkeypatch):
         from app.utils.port_diagnostics import PortDiagnostics
@@ -1510,11 +1522,6 @@ class TestPortDiagnosticsHostInfo:
         )
         monkeypatch.setattr(
             PortDiagnostics, "_get_disk_usage", lambda self: "200MB"
-        )
-        monkeypatch.setattr(
-            PortDiagnostics,
-            "_get_supervisord_status",
-            lambda self: {"webui": "RUNNING"},
         )
         # Make docker socket appear available so the DDC-specific branches run
         monkeypatch.setattr(

@@ -2535,20 +2535,11 @@
                     <strong>Disk (/app):</strong> ${diagnostics.host_info.disk_usage || 'Unknown'}
                 </div>`;
                 
-                // Process Status
-                if (diagnostics.host_info.supervisord_status && Object.keys(diagnostics.host_info.supervisord_status).length > 0) {
-                    html += '<div class="mb-3"><h6>Process Status</h6>';
-                    
-                    if (diagnostics.host_info.supervisord_status.error) {
-                        html += `<span class="text-warning">${diagnostics.host_info.supervisord_status.error}</span>`;
-                    } else {
-                        for (const [process, status] of Object.entries(diagnostics.host_info.supervisord_status)) {
-                            const statusClass = status === 'RUNNING' ? 'bg-success' : 'bg-danger';
-                            html += `<strong>${process}:</strong> <span class="badge ${statusClass}">${status}</span><br>`;
-                        }
-                    }
-                    html += '</div>';
-                }
+                // No Process Status section: DDC is ONE process (bot plus a
+                // web UI thread) and the image has no supervisord, so this
+                // could only ever draw a yellow warning that supervisorctl is
+                // missing - on every visit, for the correct state. Whether the
+                // web UI is alive is answered by Port Status just below.
                 
                 // Port Status
                 const portCheck = diagnostics.port_check;

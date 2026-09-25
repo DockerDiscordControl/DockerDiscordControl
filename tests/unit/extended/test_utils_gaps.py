@@ -728,7 +728,7 @@ class TestPortDiagnosticsCheckBindingExternalUnaccessible:
             type(diag), "_is_port_listening", lambda self, p: True
         )
         monkeypatch.setattr(
-            type(diag), "_get_docker_port_mappings", lambda self: {}
+            type(diag), "_get_docker_port_mappings", lambda self: ({}, True)
         )
         result = diag.check_port_binding()
         assert any("UNRAID" in s for s in result["solutions"])
@@ -741,7 +741,7 @@ class TestPortDiagnosticsCheckBindingExternalUnaccessible:
         monkeypatch.setattr(
             type(diag),
             "_get_docker_port_mappings",
-            lambda self: {"9374": [{"host": "0.0.0.0", "port": "8374"}]},
+            lambda self: ({"9374": [{"host": "0.0.0.0", "port": "8374"}]}, True),
         )
         # Force external_port_accessible to return False
         monkeypatch.setattr(
@@ -834,7 +834,7 @@ class TestPortDiagnosticsLogStartupExternalPorts:
         monkeypatch.setattr(
             type(diag),
             "_get_docker_port_mappings",
-            lambda self: {"9374": [{"host": "0.0.0.0", "port": "8374"}]},
+            lambda self: ({"9374": [{"host": "0.0.0.0", "port": "8374"}]}, True),
         )
         monkeypatch.setattr(
             type(diag), "_get_actual_host_ip", lambda self: "192.168.1.50"
@@ -1378,7 +1378,7 @@ class TestSmoke:
             pd.PortDiagnostics, "_is_port_listening", lambda self, p: True
         )
         monkeypatch.setattr(
-            pd.PortDiagnostics, "_get_docker_port_mappings", lambda self: {}
+            pd.PortDiagnostics, "_get_docker_port_mappings", lambda self: ({}, True)
         )
         monkeypatch.setattr(
             pd.PortDiagnostics, "_get_actual_host_ip", lambda self: None

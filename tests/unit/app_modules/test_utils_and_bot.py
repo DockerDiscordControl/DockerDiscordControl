@@ -664,7 +664,6 @@ class TestPortDiagnostics:
                 "container_uptime": "1d",
                 "memory_usage": "100MB",
                 "disk_usage": "50MB",
-                "supervisord_status": {},
                 "docker_socket_available": False,
                 "ddc_memory_usage": "",
                 "ddc_image_size": "",
@@ -984,8 +983,8 @@ class TestPortDiagnostics:
                           return_value="100MB"), \
              patch.object(port_diagnostics.PortDiagnostics, "_get_disk_usage",
                           return_value="50MB"), \
-             patch.object(port_diagnostics.PortDiagnostics, "_get_supervisord_status",
-                          return_value={"webui": "RUNNING"}):
+             patch.object(port_diagnostics.PortDiagnostics, "_get_ddc_image_size",
+                          return_value="200MB"):
             diag = port_diagnostics.PortDiagnostics()
         info = diag.host_info
         assert info["platform"] == "alpine"
@@ -1014,8 +1013,6 @@ class TestPortDiagnostics:
                           return_value="100MB"), \
              patch.object(port_diagnostics.PortDiagnostics, "_get_disk_usage",
                           return_value="50MB"), \
-             patch.object(port_diagnostics.PortDiagnostics, "_get_supervisord_status",
-                          return_value={}), \
              patch.object(port_diagnostics.PortDiagnostics, "_get_ddc_memory_usage",
                           return_value="42MB"), \
              patch.object(port_diagnostics.PortDiagnostics, "_get_ddc_image_size",

@@ -139,26 +139,6 @@ class PortDiagnostics:
             logger.debug(f"Error calculating disk usage: {e}", exc_info=True)
             return 'unknown'
 
-    def _get_supervisord_status(self) -> Dict:
-        """Get supervisord process status."""
-        try:
-            result = subprocess.run(['supervisorctl', 'status'],
-                                  capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                processes = {}
-                for line in result.stdout.strip().split('\n'):
-                    if line.strip():
-                        parts = line.split()
-                        if len(parts) >= 2:
-                            processes[parts[0]] = parts[1]
-                return processes
-        except (subprocess.SubprocessError, FileNotFoundError) as e:
-            logger.debug(f"Subprocess error getting supervisord status: {e}", exc_info=True)
-            return {'error': 'supervisorctl not available'}
-        except (ValueError, IndexError) as e:
-            logger.debug(f"Data parsing error parsing supervisord status: {e}", exc_info=True)
-            return {'error': 'parse error'}
-
     def _get_ddc_memory_usage(self) -> str:
         """Get DDC container memory usage."""
         try:
@@ -239,7 +219,6 @@ class PortDiagnostics:
             'container_uptime': self._get_container_uptime(),
             'memory_usage': self._get_memory_usage(),
             'disk_usage': self._get_disk_usage(),
-            'supervisord_status': self._get_supervisord_status(),
             'docker_socket_available': docker_socket_available,
             'ddc_memory_usage': '',
             'ddc_image_size': ''

@@ -322,7 +322,7 @@ app/utils/container_info_web_handler.py:1-325
 app/bot/startup_steps/sequence.py:1-65
 app/bot/startup_steps/cooldowns.py:1-29
 app/bot/startup_steps/diagnostics.py:1-26
-app/utils/port_diagnostics.py:1-677
+app/utils/port_diagnostics.py:1-656
 app/utils/web_helpers.py:1-942
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
