@@ -24,6 +24,17 @@
     </div>
 
     <div class="text-center mt-3">
+        {# THE DOOR TO THE SECOND FACTOR, and it has to be here rather than
+           only in the notice: that notice shows while 2FA is OFF, so
+           switching it ON used to take the only way back away - the recovery
+           codes, the device switch and switching it off again all went with
+           it (operator, 2026-09-25). This is where the panel password lives,
+           which is where he looked. A page, not a dialog, because it has its
+           own six screens and its own HTTPS rule. #}
+        <a href="{{ url_for('two_factor.status') }}"
+           class="btn btn-outline-{{ 'success' if two_factor is defined and not two_factor.show else 'secondary' }} me-2">
+            <i class="bi bi-shield-lock"></i> {{ _t('web.two_factor.title') }}
+        </a>
         <button type="button" class="btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#spamProtectionModal">
             <i class="bi bi-shield-check"></i> {{ _t('web.auth.spam_protection_button') }}
         </button>
