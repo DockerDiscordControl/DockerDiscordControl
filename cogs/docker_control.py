@@ -97,11 +97,6 @@ def _restored_tracked_message_ids(state_data) -> Dict[int, Dict[str, int]]:
 
 # DonationView will be defined in this file
 
-# CRITICAL DEBUG: Log at module load time to verify new code is being executed
-logger.info("=" * 80)
-logger.info("[MODULE LOAD DEBUG] docker_control.py module is being loaded - NEW CODE VERSION e214386")
-logger.info("=" * 80)
-
 # Overview edits treat status cache entries older than this as stale, independent of
 # DDC_DOCKER_CACHE_DURATION (up to 300 s), so a container stopped outside DDC doesn't stay 🟢
 # for minutes. A stale cache still triggers only ONE shared bulk refresh (_ensure_status_cache_fresh).
@@ -1146,7 +1141,7 @@ def setup(bot):
     IMPORTANT: In PyCord 2.x, setup() must be synchronous (def, not async def).
     Only discord.py 2.0+ supports async setup functions.
     """
-    logger.debug("setup() function called - NEW CODE VERSION 0f3d5cb")
+    logger.debug("setup() function called")
     logger.debug("About to load config...")
     from services.config.config_service import get_config_service
     config_manager = get_config_service()
