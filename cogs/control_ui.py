@@ -502,8 +502,6 @@ class ActionButton(Button):
                             # FIRST: Update Admin Control message (if it was an admin control action)
                             if is_admin_message:
                                 try:
-                                    # For Admin Control, force expanded state
-                                    self.cog.expanded_states[self.docker_name] = True
                                     self.server_config['_is_admin_control'] = True
 
                                     # Generate admin control embed.
@@ -535,8 +533,7 @@ class ActionButton(Button):
                                         interaction.channel.id,
                                         self.display_name,
                                         self.server_config,
-                                        config,
-                                        force_collapse=False
+                                        config
                                     )
                                     if normal_embed:
                                         await interaction.edit_original_response(embed=normal_embed, view=normal_view)
@@ -659,10 +656,6 @@ class ControlView(DDCView):
 
         allowed_actions = server_config.get('allowed_actions', [])
         details_allowed = server_config.get('allow_detailed_status', True)
-        # CRITICAL FIX: Use docker_name (stable identifier) for expanded state lookup
-        # This ensures consistency with status_handlers.py and prevents state loss on name changes
-        is_expanded = cog_instance.expanded_states.get(docker_name, False)
-
         # A GROUP IS NOT ON OR OFF (operator, 2026-09-24). A container is, so
         # its panel offers stop-and-restart OR start. A group has a COUNT, and
         # at 1/2 all three do something: start the one that is down, stop the
@@ -705,7 +698,7 @@ class ControlView(DDCView):
             # (tests/spec/test_no_control_flips_an_expand_state.py).
             #
             # Action buttons when expanded and channel has control
-            if channel_has_control_permission and is_expanded:
+            if channel_has_control_permission:
                 button_row = 0
                 if "stop" in allowed_actions:
                     self.add_item(ActionButton(cog_instance, server_config, "stop", discord.ButtonStyle.secondary, None, "⏹️", row=button_row))
@@ -1768,11 +1761,7 @@ class AdminContainerDropdown(discord.ui.Select):
                 )
                 return
 
-            # Force expanded state for admin control
-            # CRITICAL FIX: Use selected_container (docker_name) as key for expanded state
-            # This ensures consistency with status_handlers.py which uses docker_name for lookup
             display_name = container_config.get('name', selected_container)
-            self.cog.expanded_states[selected_container] = True  # Use docker_name as stable key
 
             # Temporarily mark the container config for admin control
             container_config['_is_admin_control'] = True

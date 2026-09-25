@@ -127,14 +127,29 @@ def test_the_scan_really_looks_at_the_controls_that_do_write_one():
 
 
 def test_a_panel_may_still_say_what_it_shows():
-    """The opposite mistake. Setting a constant is how a panel declares its
-    own state, and removing that would empty the admin panel instead of
-    fixing anything."""
+    """The opposite mistake. Setting a constant is how a panel declares the
+    state it is drawing, and a rule that forbade that too would empty the
+    panel instead of fixing anything.
+
+    IT USED TO NAME THE CONTAINER PANEL HERE - ``AdminContainerDropdown`` and
+    ``ActionButton`` each wrote True before drawing. Both writes are gone
+    (2026-09-25, tests/spec/test_a_panel_never_offers_to_expand.py): with no
+    second rendering to choose between, the state they set had nothing left
+    to decide. The mech still has two renderings and two buttons, so it is
+    what this case asks about now.
+    """
     _found, subjects = _findings()
     names = {entry.split(":")[0] for entry in subjects}
 
-    assert "AdminContainerDropdown" in names, sorted(names)
-    assert "ActionButton" in names, sorted(names)
+    assert "MechExpandButton" in names, sorted(names)
+
+    _line, _target, value = next(
+        write for name, cls in _controls((PROJECT / "cogs" / "control_ui.py")
+                                         .read_text(encoding="utf-8"))
+        if name == "MechExpandButton"
+        for write in _expand_state_writes(cls))
+
+    assert isinstance(value, ast.Constant), ast.unparse(value)
 
 
 def test_a_flip_written_any_other_way_is_still_a_flip():

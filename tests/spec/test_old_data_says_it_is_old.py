@@ -50,7 +50,7 @@ def _embed(age_seconds):
          patch("services.infrastructure.container_info_service.get_container_info_service",
                return_value=info_service):
         embed, _view, _running = asyncio.run(cog._generate_status_embed_and_view(
-            1, "web", SERVER, {}, force_collapse=True))
+            1, "web", SERVER, {}))
     return embed.description
 
 
@@ -73,3 +73,8 @@ def test_the_flag_is_gone():
 
     signature = inspect.signature(StatusHandlersMixin._generate_status_embed_and_view)
     assert "show_cache_age" not in signature.parameters
+
+    # force_collapse went the same way on 2026-09-25: it chose between two
+    # renderings of the box, and the collapsed one offered a button that no
+    # view carries any more.
+    assert "force_collapse" not in signature.parameters

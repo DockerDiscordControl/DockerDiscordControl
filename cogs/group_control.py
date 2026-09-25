@@ -272,7 +272,7 @@ async def admin_panel_embed(cog, channel_id, selected: str, config: dict, app_co
         return group_panel_embed(config.get('name'), cache)
 
     embed, _view, _running = await cog._generate_status_embed_and_view(
-        channel_id, selected, config, app_config, force_collapse=False)
+        channel_id, selected, config, app_config)
     if not embed:
         return embed
     embed.title = translate("🛠️ Admin Control: {name}").format(name=display_name)

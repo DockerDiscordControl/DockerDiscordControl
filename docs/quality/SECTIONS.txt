@@ -27,11 +27,11 @@ cogs/action_effect.py:1-163
 # no longer holds its lines.
 cogs/control_ui.py:1-1457
 
-## Section 03  (1490 lines, 1 piece)
+## Section 03  (1479 lines, 1 piece)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1458-2947
+cogs/control_ui.py:1458-2936
 
 ## Section 04  (1612 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -52,7 +52,7 @@ cogs/slash_commands.py:1-856
 ## Section 06  (1790 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
-cogs/docker_control.py:884-1302
+cogs/docker_control.py:884-1301
 cogs/background_loops.py:1-743
 cogs/donation_ui.py:1-645
 
@@ -60,7 +60,7 @@ cogs/donation_ui.py:1-645
 cogs/enhanced_info_modal_simple.py:1-694
 
 ## Section 08  (1398 lines, 1 piece)
-cogs/status_handlers.py:1-1127
+cogs/status_handlers.py:1-1115
 
 ## Section 09  (1234 lines, 1 piece)
 cogs/status_info_integration.py:1-1261

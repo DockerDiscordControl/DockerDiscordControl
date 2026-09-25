@@ -186,7 +186,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                 logger.warning(f"Invalid channel ID in last_glvl_per_channel: {k}")
         logger.info(f"Loaded persisted Mech states: {len(self.mech_expanded_states)} expanded, {len(self.last_glvl_per_channel)} Glvl tracked")
 
-        self.expanded_states = {}  # For container expand/collapse
 
         # FIX C: Restore persisted overview/admin_overview message ids. This lets the bot
         # delete a long-lived (possibly >30-day-old) overview by ID after a restart before

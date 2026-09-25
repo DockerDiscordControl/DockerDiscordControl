@@ -696,8 +696,8 @@ class StatusHandlersMixin:
             )
 
     async def _generate_status_embed_and_view(self, channel_id: int, display_name: str,
-                                       server_conf: Dict[str, Any], current_config: Dict[str, Any],
-                                       force_collapse: bool = False) -> Tuple[discord.Embed, Optional[discord.ui.View], bool]:
+                                       server_conf: Dict[str, Any],
+                                       current_config: Dict[str, Any]) -> Tuple[discord.Embed, Optional[discord.ui.View], bool]:
         """
         Generates the status embed and view based on cache and settings.
         Returns: (embed, view, running_status)
@@ -707,7 +707,6 @@ class StatusHandlersMixin:
         - display_name: The display name of the server to show
         - server_conf: The configuration of the specific server
         - current_config: The full bot configuration
-        - force_collapse: Whether to force the status to be collapsed
         """
         lang = current_config.get('language', 'de')
         # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
@@ -888,11 +887,6 @@ class StatusHandlersMixin:
                     status_text = _("Not found")
                     current_emoji = "❓"
 
-                # Check if we should always collapse
-                # CRITICAL FIX: Use docker_name (stable identifier) instead of display_name for expanded state lookup
-                # This ensures consistency with how expanded states are set throughout the codebase
-                is_expanded = self.expanded_states.get(docker_name, False) and not force_collapse
-
                 # PERFORMANCE OPTIMIZATION: Use cached translations
                 cpu_text = cached_translations['cpu_text']
                 ram_text = cached_translations['ram_text']
@@ -928,18 +922,17 @@ class StatusHandlersMixin:
 
                 # Build status box content
                 if running and details_allowed:
-                    if is_expanded:
-                        description_parts.extend([
-                            f"│ {cpu_text}: {cpu}\n",
-                            f"│ {ram_text}: {ram}\n",
-                            f"│ {uptime_text}: {uptime}\n"
-                        ])
-                        if player_line:
-                            description_parts.append(player_line)
-                    else:
-                        if player_line:
-                            description_parts.append(player_line)
-                        description_parts.append(f"│ \u2022 ▼ Expand for details\n")
+                    # NO SECOND RENDERING. A collapsed box stood here, ending
+                    # in an untranslated "Expand for details" - an offer to
+                    # press a control that no view has carried since the
+                    # toggle was removed.
+                    description_parts.extend([
+                        f"│ {cpu_text}: {cpu}\n",
+                        f"│ {ram_text}: {ram}\n",
+                        f"│ {uptime_text}: {uptime}\n"
+                    ])
+                    if player_line:
+                        description_parts.append(player_line)
                 elif running and not details_allowed:
                     if player_line:
                         description_parts.append(player_line)
@@ -987,11 +980,6 @@ class StatusHandlersMixin:
             status_text = online_text if running else offline_text
             current_emoji = "🟢" if running else "🔴"
 
-            # Check if we should always collapse
-            # CRITICAL FIX: Use docker_name (stable identifier) instead of display_name for expanded state lookup
-            # This ensures consistency with how expanded states are set throughout the codebase
-            is_expanded = self.expanded_states.get(docker_name, False) and not force_collapse
-
             # PERFORMANCE OPTIMIZATION: Use cached translations
             cpu_text = cached_translations['cpu_text']
             ram_text = cached_translations['ram_text']
@@ -1018,21 +1006,21 @@ class StatusHandlersMixin:
 
             # Add different lines depending on status and state
             if running:
-                if details_allowed and is_expanded:
+                # Both arms used to need the container to be "expanded", and a
+                # container nobody had opened showed an empty box.
+                if details_allowed:
                     description_parts.extend([
                         f"\n│ {cpu_text}: {cpu}",
                         f"\n│ {ram_text}: {ram}",
                         f"\n│ {uptime_text}: {uptime}",
                         f"\n{footer_line}"
                     ])
-                elif not details_allowed and is_expanded:
+                else:
                     description_parts.extend([
                         f"\n│ ⚠️ *{detail_denied_text}*",
                         f"\n│ {uptime_text}: {uptime}",
                         f"\n{footer_line}"
                     ])
-                else:
-                    description_parts.append(f"\n{footer_line}")
             else:  # Offline
                 description_parts.append(f"\n{footer_line}")
 
