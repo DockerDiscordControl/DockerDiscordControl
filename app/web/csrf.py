@@ -22,13 +22,14 @@ No route is exempt: nothing outside the browser UI posts to the web server
 """
 
 from __future__ import annotations
+from utils.logging_utils import get_module_logger
 
 import logging
 from html import escape
 
 from flask import Flask, jsonify, request
 
-logger = logging.getLogger("app.web.csrf")
+logger = get_module_logger('csrf')
 
 CSRF_ERROR_MESSAGE = "Session expired - please reload the page and try again."
 

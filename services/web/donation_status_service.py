@@ -11,11 +11,12 @@
 Donation Status Service - Handles comprehensive donation status queries with mech integration
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('donation_status_service')
 
 
 @dataclass

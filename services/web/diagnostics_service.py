@@ -12,12 +12,13 @@ Diagnostics Service - Handles comprehensive diagnostic operations including
 temporary debug mode management, port diagnostics, and system health checks.
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('diagnostics_service')
 
 
 @dataclass

@@ -112,7 +112,7 @@ services/discord/__init__.py:1-20
 services/discord/channel_cleanup_service.py:1-509
 services/discord/conditional_update_cache_service.py:1-184
 services/discord/embed_helper_service.py:1-209
-services/discord/status_overview_service.py:1-365
+services/discord/status_overview_service.py:1-366
 services/docker_service/self_restart.py:1-122
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-308
@@ -139,7 +139,7 @@ services/donation/__init__.py:1-24
 services/donation/donation_config.py:1-50
 services/donation/donation_management_service.py:1-491
 services/donation/donation_utils.py:1-89
-services/donation/notification_service.py:1-98
+services/donation/notification_service.py:1-99
 services/donation/unified/__init__.py:1-30
 services/donation/unified/events.py:1-93
 services/donation/unified/member_count.py:1-38
@@ -161,7 +161,7 @@ services/infrastructure/container_info_service.py:1-332
 services/infrastructure/container_status_service.py:1-887
 services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-193
-services/infrastructure/event_manager.py:1-118
+services/infrastructure/event_manager.py:1-119
 
 ## Section 19b  (553 lines, 1 piece)
 # Split off Section 19 on 2026-09-23: container_status_service.py grew past the
@@ -173,28 +173,28 @@ services/infrastructure/game_query_support_service.py:1-341
 services/infrastructure/spam_protection_service.py:1-574
 services/infrastructure/update_notifier.py:1-247
 services/mech/__init__.py:1-30
-services/mech/mech_display_cache_service.py:1-387
+services/mech/mech_display_cache_service.py:1-388
 
 ## Section 21  (1846 lines, 1 piece)
 services/mech/animation_cache_service.py:1-1823
 services/mech/animation_disk_cache.py:1-76
 
 ## Section 22  (1784 lines, 5 pieces)
-services/mech/mech_data_store.py:1-939
+services/mech/mech_data_store.py:1-940
 services/mech/mech_defaults.py:1-34
-services/mech/mech_evolutions.py:1-449
+services/mech/mech_evolutions.py:1-450
 # gifts.py split out of progress_service.py on 2026-09-23 (that file may only
 # shrink); it sits with the other small mech pieces.
-services/mech/gifts.py:1-154
-services/mech/mech_high_res_service.py:1-248
+services/mech/gifts.py:1-155
+services/mech/mech_high_res_service.py:1-249
 
 ## Section 23  (1932 lines, 9 pieces)
-services/mech/mech_reset_service.py:1-378
+services/mech/mech_reset_service.py:1-379
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-336
-services/mech/mech_state_manager.py:1-221
-services/mech/mech_status_cache_service.py:1-466
-services/mech/mech_story_service.py:1-204
+services/mech/mech_state_manager.py:1-222
+services/mech/mech_status_cache_service.py:1-467
+services/mech/mech_story_service.py:1-205
 services/mech/progress/__init__.py:1-17
 services/mech/progress_paths.py:1-189
 
@@ -239,27 +239,27 @@ services/translation/translation_config_service.py:1-687
 ## Section 28  (1893 lines, 4 pieces)
 services/translation/translation_service.py:1-762
 services/web/__init__.py:1-12
-services/web/configuration_page_service.py:1-554
-services/web/configuration_save_service.py:1-652
+services/web/configuration_page_service.py:1-555
+services/web/configuration_save_service.py:1-653
 
 ## Section 29  (1842 lines, 7 pieces)
-services/web/container_log_service.py:1-458
-services/web/container_refresh_service.py:1-207
-services/web/diagnostics_service.py:1-263
-services/web/donation_service.py:1-360
-services/web/donation_status_service.py:1-251
-services/web/donation_tracking_service.py:1-164
+services/web/container_log_service.py:1-459
+services/web/container_refresh_service.py:1-208
+services/web/diagnostics_service.py:1-264
+services/web/donation_service.py:1-361
+services/web/donation_status_service.py:1-252
+services/web/donation_tracking_service.py:1-165
 services/web/i18n_service.py:1-214
 
 ## Section 30  (1841 lines, 5 pieces)
-services/web/mech_music_service.py:1-224
-services/web/mech_status_details_service.py:1-410
-services/web/mech_web_service.py:1-640
-services/web/performance_stats_service.py:1-181
-services/web/security_service.py:1-350
+services/web/mech_music_service.py:1-225
+services/web/mech_status_details_service.py:1-411
+services/web/mech_web_service.py:1-641
+services/web/performance_stats_service.py:1-182
+services/web/security_service.py:1-351
 
 ## Section 31  (1792 lines, 4 pieces)
-services/web/task_management_service.py:1-1170
+services/web/task_management_service.py:1-1171
 app/__init__.py:1-13
 app/auth.py:1-337
 app/blueprints/automation_routes.py:1-272
@@ -335,11 +335,11 @@ app/web/blueprints.py:1-39
 # went 204 -> 232 lines, and this section reached 2,013 of the 2,000 a section
 # may hold. 38 is the emptiest one and the caching sits fine beside the
 # security pieces there.
-app/web/config.py:1-169
-app/web/csrf.py:1-125
+app/web/config.py:1-170
+app/web/csrf.py:1-126
 app/web/diagnostics.py:1-30
 app/web/extensions.py:1-84
-app/web/i18n.py:1-64
+app/web/i18n.py:1-65
 app/web/logging.py:1-98
 app/web/routes.py:1-258
 app/web/security.py:1-102
@@ -370,7 +370,7 @@ utils/time_utils.py:1-387
 # the config loaders.
 utils/performance_metrics.py:1-419
 utils/key_crypto.py:1-84
-utils/token_security.py:1-278
+utils/token_security.py:1-279
 # group_references.py joined on 2026-09-24 (new: everything outside
 # groups.json that points at a group by name, moved by a rename).
 services/config/group_references.py:1-153
@@ -386,7 +386,7 @@ services/config/group_service.py:1-415
 # ends up naming a section that no longer holds its file.
 # app/web/compat.py moved here from 34 on 2026-09-22: web_helpers.py grew with
 # the v3.0 client factory and 34 reached 2,003; 35 had no room either.
-app/blueprints/security_routes.py:1-205
+app/blueprints/security_routes.py:1-206
 app/web/compat.py:1-102
 cogs/ddc_ui.py:1-175
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
@@ -444,4 +444,4 @@ app/blueprints/system_routes.py:1-104
 # next to the other app/utils piece, which reads better than either of them
 # did in a section of web wiring.
 app/utils/shared_data.py:1-105
-app/utils/port_diagnostics.py:1-738
+app/utils/port_diagnostics.py:1-739

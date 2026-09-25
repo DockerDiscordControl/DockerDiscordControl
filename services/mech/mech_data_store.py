@@ -27,6 +27,7 @@ Usage:
     power = data.current_power
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 import time
 from datetime import datetime, timezone
@@ -34,7 +35,7 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_data_store')
 
 
 @dataclass

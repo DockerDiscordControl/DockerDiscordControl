@@ -14,13 +14,14 @@ Prevents Discord interaction timeouts by pre-generating:
 2. Display animations for unlocked mechs (with consistent speed/power)
 """
 
+from utils.logging_utils import get_module_logger
 import io
 import logging
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_display_cache_service')
 
 
 @dataclass(frozen=True)

@@ -6,6 +6,7 @@
 # Licensed under the MIT License                                              #
 # ============================================================================ #
 
+from utils.logging_utils import get_module_logger
 import socket
 from pathlib import Path
 import subprocess
@@ -15,7 +16,7 @@ import re
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('port_diagnostics')
 
 
 def _own_container_id():

@@ -12,6 +12,7 @@ Mech Status Cache Service - Provides high-performance cached access to mech stat
 with background refresh loop for instant Discord and Web UI responses.
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 import asyncio
 import threading
@@ -20,7 +21,7 @@ from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_status_cache_service')
 
 
 @dataclass

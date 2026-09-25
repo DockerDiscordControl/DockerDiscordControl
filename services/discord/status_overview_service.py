@@ -15,6 +15,7 @@ This service provides:
 - Integration with existing docker_control.py logic (NON-BREAKING)
 """
 
+from utils.logging_utils import get_module_logger
 import asyncio
 import logging
 import time
@@ -23,7 +24,7 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass
 import discord
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('status_overview_service')
 
 @dataclass
 class StatusOverviewUpdateConfig:

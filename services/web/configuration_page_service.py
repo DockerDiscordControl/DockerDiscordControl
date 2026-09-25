@@ -11,6 +11,7 @@
 Configuration Page Service - Handles complex configuration page data preparation and assembly
 """
 
+from utils.logging_utils import get_module_logger
 import os
 import logging
 from datetime import datetime, timezone
@@ -20,7 +21,7 @@ from dataclasses import dataclass
 # SERVICE FIRST: Import ServerConfigService for server configuration access
 from services.config.server_config_service import get_server_config_service
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('configuration_page_service')
 
 # Days of week for schedule display
 DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]

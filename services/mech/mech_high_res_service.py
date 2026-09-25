@@ -12,13 +12,14 @@ Mech High Resolution Service - Handles big/small mech resolution detection and s
 Provides proportional smart cropping parameters for variable size ratios (2.5x-3.0x).
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 from pathlib import Path
 from typing import Tuple, Optional, Dict, Any
 from dataclasses import dataclass
 from PIL import Image
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_high_res_service')
 
 
 @dataclass

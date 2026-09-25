@@ -9,12 +9,13 @@
 """
 Minimal Mech State Manager - Simple JSON persistence for Discord bot state
 """
+from utils.logging_utils import get_module_logger
 import json
 import os
 import logging
 from typing import Dict, Any
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_state_manager')
 
 class MechStateManager:
     """Minimal state manager for Discord bot persistence"""

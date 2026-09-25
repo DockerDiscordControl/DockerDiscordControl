@@ -12,13 +12,14 @@ Security Service - Handles comprehensive security operations including token
 management, encryption, security auditing, and migration assistance.
 """
 
+from utils.logging_utils import get_module_logger
 import os
 from services.exceptions import ConfigServiceError
 import logging
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('security_service')
 
 
 @dataclass

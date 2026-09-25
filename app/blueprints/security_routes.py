@@ -10,12 +10,13 @@ Security Routes for DockerDiscordControl
 Handles token security, encryption status, and migration features.
 """
 
+from utils.logging_utils import get_module_logger
 from flask import Blueprint, request, jsonify
 from app.auth import auth
 from services.exceptions import ConfigServiceError
 import logging
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('security_routes')
 
 # Create blueprint
 security_bp = Blueprint('security', __name__, url_prefix='/api')

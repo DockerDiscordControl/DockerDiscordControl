@@ -8,6 +8,7 @@
 """Configuration helpers for the Flask web application."""
 
 from __future__ import annotations
+from utils.logging_utils import get_module_logger
 
 import logging
 import os
@@ -17,7 +18,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Mapping, MutableMapping, Optional
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('config')
 
 def _is_dev_environment(env: Mapping[str, str]) -> bool:
     """Return True if the runtime looks like a dev environment."""

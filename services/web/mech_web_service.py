@@ -12,6 +12,7 @@ Mech Web Service - Handles all web-related mech operations including animations,
 speed configuration, difficulty management, and testing endpoints.
 """
 
+from utils.logging_utils import get_module_logger
 import sys
 import os
 import logging
@@ -19,7 +20,7 @@ from io import BytesIO
 from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_web_service')
 
 
 @dataclass

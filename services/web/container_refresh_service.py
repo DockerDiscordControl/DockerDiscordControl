@@ -11,6 +11,7 @@
 Container Refresh Service - Handles Docker container refresh operations with timestamp formatting
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 import time
 import pytz
@@ -19,7 +20,7 @@ from typing import Optional
 from dataclasses import dataclass
 import docker
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('container_refresh_service')
 
 
 @dataclass

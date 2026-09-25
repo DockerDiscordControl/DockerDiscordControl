@@ -11,6 +11,7 @@
 Configuration Save Service - Handles complex configuration saving operations with cache management
 """
 
+from utils.logging_utils import get_module_logger
 import os
 import logging
 from typing import Dict, Any, Optional, List, Tuple
@@ -24,7 +25,7 @@ from services.exceptions import (
 )
 from services.scheduling.task_timezone import tasks_in_other_timezones
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('configuration_save_service')
 
 
 @dataclass

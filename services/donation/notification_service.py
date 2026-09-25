@@ -10,12 +10,13 @@
 Donation Notification Service - Handles file-based notifications from Web UI
 """
 
+from utils.logging_utils import get_module_logger
 import json
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('notification_service')
 
 class DonationNotificationService:
     """Service for checking and retrieving donation notifications."""

@@ -11,6 +11,7 @@
 Donation Service - Handles donation processing, validation, and notifications
 """
 
+from utils.logging_utils import get_module_logger
 import os
 import time
 import json
@@ -26,7 +27,7 @@ from utils.atomic_io import atomic_write_json
 from services.donation.donation_utils import donation_is_already_recorded
 from services.donation.unified.validation import MAX_DONATION_DOLLARS
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('donation_service')
 
 
 @dataclass

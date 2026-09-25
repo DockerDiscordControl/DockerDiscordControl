@@ -10,11 +10,12 @@ Enhanced Token Security Module for DockerDiscordControl
 Encrypts the bot token when asked to (never on its own) and reports its status.
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 import os
 from typing import Dict, Any
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('token_security')
 
 
 

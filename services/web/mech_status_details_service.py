@@ -12,6 +12,7 @@ Mech Status Details Service - Provides formatted mech status details for Discord
 Follows service-first architecture pattern, combining existing mech services.
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
@@ -30,7 +31,7 @@ except ImportError:
 _DISCORD_ERRORS = ((discord.Forbidden, discord.HTTPException, discord.NotFound)
                    if discord is not None else ())
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_status_details_service')
 
 
 @dataclass

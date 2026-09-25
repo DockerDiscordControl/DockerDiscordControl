@@ -14,6 +14,7 @@ This service provides simple methods to reset the Mech system to Level 1
 without having to manually edit JSON files.
 """
 
+from utils.logging_utils import get_module_logger
 import json
 import logging
 import os
@@ -24,7 +25,7 @@ from dataclasses import dataclass
 
 from utils.atomic_io import atomic_write_json
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_reset_service')
 
 @dataclass
 class ResetResult:

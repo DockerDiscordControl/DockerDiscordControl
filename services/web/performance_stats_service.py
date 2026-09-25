@@ -11,6 +11,7 @@
 Performance Stats Service - Handles system performance monitoring and statistics collection
 """
 
+from utils.logging_utils import get_module_logger
 import time
 import logging
 from datetime import datetime
@@ -32,7 +33,7 @@ except ImportError:
 _DOCKER_ERRORS = ((docker.errors.APIError, docker.errors.DockerException)
                   if docker is not None else ())
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('performance_stats_service')
 
 
 @dataclass

@@ -12,6 +12,7 @@ Container Log Service - Handles comprehensive log retrieval, filtering, and proc
 for various log types including container logs, bot logs, Discord logs, and action logs.
 """
 
+from utils.logging_utils import get_module_logger
 import os
 import logging
 from typing import Dict, Any, Optional, List
@@ -21,7 +22,7 @@ from pathlib import Path
 
 from services.exceptions import ContainerLogError
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('container_log_service')
 
 
 class LogType(Enum):

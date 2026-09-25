@@ -7,6 +7,7 @@
 # ============================================================================ #
 """Flask i18n integration - context processor for Jinja2 templates."""
 
+from utils.logging_utils import get_module_logger
 import logging
 
 from flask import Flask, g
@@ -14,7 +15,7 @@ from flask import Flask, g
 from services.config.config_service import load_config
 from services.web.i18n_service import get_i18n_service
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('i18n')
 
 
 def _request_scoped_config() -> dict:

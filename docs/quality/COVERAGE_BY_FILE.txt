@@ -56,7 +56,7 @@ app/blueprints/login_routes.py	123	new 2026-09-23 (the panel form login and logo
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
 app/blueprints/system_routes.py	104	pass2:s32:1-51  [self-restart route, added 2026-09-24]
 app/blueprints/main_routes.py	1490	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
-app/blueprints/security_routes.py	205	pass1:s32:plan pass2:s32:1-193
+app/blueprints/security_routes.py	206	pass1:s32:plan pass2:s32:1-193
 app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never in a package]
 app/blueprints/two_factor_routes.py	237	v3rev:1-198
@@ -85,7 +85,7 @@ app/bot/token.py	128	pass1:s33:1-101
 app/constants.py	17	pass1:s33:1-17
 app/utils/__init__.py	7	pass1:s33:1-7
 app/utils/container_info_web_handler.py	325	pass1:s33:1-256  [19 of 275 lines never in a package]
-app/utils/port_diagnostics.py	738	pass1:s34:1-595  [5 of 600 lines never in a package]
+app/utils/port_diagnostics.py	739	pass1:s34:1-595  [5 of 600 lines never in a package]
 app/utils/shared_data.py	105	pass1:s34:1-97  [8 of 105 lines never in a package]
 app/utils/web_helpers.py	942	pass1:s34:1-862  [43 of 905 lines never in a package]
 app/web/__init__.py	12	pass1:s34:1-12
@@ -94,11 +94,11 @@ app/web/app_factory.py	68	pass1:s34:1-61 v3rev2:1-68
 app/web/background.py	85	pass1:s34:1-85
 app/web/blueprints.py	39	pass1:s34:1-31
 app/web/compat.py	102	pass1:s34:1-102
-app/web/config.py	169	pass1:s35:1-169
-app/web/csrf.py	125	pass1:s35:1-125
+app/web/config.py	170	pass1:s35:1-169
+app/web/csrf.py	126	pass1:s35:1-125
 app/web/diagnostics.py	30	pass1:s35:1-30
 app/web/extensions.py	84	pass1:s35:1-26 v3rev:1-84
-app/web/i18n.py	64	pass1:s35:1-54  [10 of 64 lines never in a package]
+app/web/i18n.py	65	pass1:s35:1-54  [10 of 64 lines never in a package]
 app/web/logging.py	98	pass1:s35:1-98
 app/web/routes.py	258	pass1:s35:1-100  [81 of 181 lines never in a package]
 app/web/security.py	102	pass1:s35:1-86
@@ -155,7 +155,7 @@ services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	509	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
 services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s14:1-169  [15 of 184 lines never in a package]
 services/discord/embed_helper_service.py	209	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
-services/discord/status_overview_service.py	365	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
+services/discord/status_overview_service.py	366	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	281	v3rev:1-272
 services/docker_service/self_restart.py	122	pass2:s34:1-117  [self-restart, added 2026-09-24]
@@ -176,7 +176,7 @@ services/donation/__init__.py	24	pass2:s17:1-24
 services/donation/donation_config.py	50	pass1:s17:plan pass2:s17:1-41
 services/donation/donation_management_service.py	491	pass1:s17:plan pass2:s17:1-440  [6 of 446 lines never in a package]
 services/donation/donation_utils.py	89	pass1:s17:plan pass2:s17:1-62
-services/donation/notification_service.py	98	pass1:s17:plan pass2:s17:1-79
+services/donation/notification_service.py	99	pass1:s17:plan pass2:s17:1-79
 services/donation/unified/__init__.py	30	pass2:s17:1-30
 services/donation/unified/events.py	93	pass1:s17:plan pass2:s17:1-86  [7 of 93 lines never in a package]
 services/donation/unified/member_count.py	38	pass1:s17:plan pass2:s17:1-38
@@ -194,7 +194,7 @@ services/infrastructure/container_info_service.py	332	pass1:s18:plan pass2:s18:1
 services/infrastructure/container_status_service.py	887	pass1:s19:1-816  [14 of 830 lines never in a package]
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239
 services/infrastructure/dynamic_cooldown_manager.py	193	pass1:s19:1-179  [14 of 193 lines never in a package]
-services/infrastructure/event_manager.py	118	pass1:s19:1-118
+services/infrastructure/event_manager.py	119	pass1:s19:1-118
 services/infrastructure/game_query_service.py	553	pass1:s19:1-525  [28 of 553 lines never in a package]
 services/infrastructure/game_query_support_service.py	341	pass1:s20:1-282  [59 of 341 lines never in a package]
 services/infrastructure/spam_protection_service.py	574	pass1:s20:1-504  [49 of 553 lines never in a package]
@@ -202,18 +202,18 @@ services/infrastructure/update_notifier.py	247	pass1:s20:1-213  [22 of 235 lines
 services/mech/__init__.py	30	pass1:s20:1-30
 services/mech/animation_cache_service.py	1823	pass1:s21:1-1813  [33 of 1846 lines never in a package]
 services/mech/animation_disk_cache.py	76	NONE
-services/mech/gifts.py	154	NONE
-services/mech/mech_data_store.py	939	pass1:s22:1-886  [53 of 939 lines never in a package]
+services/mech/gifts.py	155	NONE
+services/mech/mech_data_store.py	940	pass1:s22:1-886  [53 of 939 lines never in a package]
 services/mech/mech_defaults.py	34	pass1:s22:1-34
-services/mech/mech_display_cache_service.py	387	pass1:s22:1-387
-services/mech/mech_evolutions.py	449	pass1:s22:1-417  [32 of 449 lines never in a package]
-services/mech/mech_high_res_service.py	248	pass1:s22:1-248
-services/mech/mech_reset_service.py	378	pass1:s23:1-376  [2 of 378 lines never in a package]
+services/mech/mech_display_cache_service.py	388	pass1:s22:1-387
+services/mech/mech_evolutions.py	450	pass1:s22:1-417  [32 of 449 lines never in a package]
+services/mech/mech_high_res_service.py	249	pass1:s22:1-248
+services/mech/mech_reset_service.py	379	pass1:s23:1-376  [2 of 378 lines never in a package]
 services/mech/mech_service.py	32	pass1:s23:1-32
 services/mech/mech_service_adapter.py	336	pass1:s23:1-300
-services/mech/mech_state_manager.py	221	pass1:s23:1-152  [9 of 161 lines never in a package]
-services/mech/mech_status_cache_service.py	466	pass1:s23:1-439  [25 of 464 lines never in a package]
-services/mech/mech_story_service.py	204	pass1:s23:1-194  [10 of 204 lines never in a package]
+services/mech/mech_state_manager.py	222	pass1:s23:1-152  [9 of 161 lines never in a package]
+services/mech/mech_status_cache_service.py	467	pass1:s23:1-439  [25 of 464 lines never in a package]
+services/mech/mech_story_service.py	205	pass1:s23:1-194  [10 of 204 lines never in a package]
 services/mech/progress/__init__.py	17	pass1:s23:1-17
 services/mech/progress/runtime.py	201	pass1:s23:1-153  [5 of 158 lines never in a package]
 services/mech/progress_paths.py	189	pass1:s23:1-188  [1 of 189 lines never in a package]
@@ -237,21 +237,21 @@ services/translation/__init__.py	12	pass1:s27:1-12
 services/translation/translation_config_service.py	687	pass1:s27:1-607  [33 of 640 lines never in a package]
 services/translation/translation_service.py	762	pass1:s28:1-741  [21 of 762 lines never in a package]
 services/web/__init__.py	12	pass1:s28:1-12
-services/web/configuration_page_service.py	554	pass1:s28:1-554
-services/web/configuration_save_service.py	652	pass1:s28:1-531  [34 of 652 lines never in a package] v3rev2:1-652
-services/web/container_log_service.py	458	pass1:s29:1-439  [31 of 470 lines never in a package]
-services/web/container_refresh_service.py	207	pass1:s29:1-201  [6 of 207 lines never in a package]
-services/web/diagnostics_service.py	263	pass1:s29:1-263
-services/web/donation_service.py	360	pass1:s29:1-290  [24 of 314 lines never in a package]
-services/web/donation_status_service.py	251	pass1:s29:1-245  [6 of 251 lines never in a package]
-services/web/donation_tracking_service.py	164	pass1:s29:1-163
+services/web/configuration_page_service.py	555	pass1:s28:1-554
+services/web/configuration_save_service.py	653	pass1:s28:1-531  [34 of 652 lines never in a package] v3rev2:1-652
+services/web/container_log_service.py	459	pass1:s29:1-439  [31 of 470 lines never in a package]
+services/web/container_refresh_service.py	208	pass1:s29:1-201  [6 of 207 lines never in a package]
+services/web/diagnostics_service.py	264	pass1:s29:1-263
+services/web/donation_service.py	361	pass1:s29:1-290  [24 of 314 lines never in a package]
+services/web/donation_status_service.py	252	pass1:s29:1-245  [6 of 251 lines never in a package]
+services/web/donation_tracking_service.py	165	pass1:s29:1-163
 services/web/i18n_service.py	214	pass1:s29:1-214
-services/web/mech_music_service.py	224	pass1:s30:1-224
-services/web/mech_status_details_service.py	410	pass1:s30:1-401  [9 of 410 lines never in a package]
-services/web/mech_web_service.py	640	pass1:s30:1-676
-services/web/performance_stats_service.py	181	pass1:s30:1-172  [9 of 181 lines never in a package]
-services/web/security_service.py	350	pass1:s30:1-339  [6 of 345 lines never in a package]
-services/web/task_management_service.py	1170	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
+services/web/mech_music_service.py	225	pass1:s30:1-224
+services/web/mech_status_details_service.py	411	pass1:s30:1-401  [9 of 410 lines never in a package]
+services/web/mech_web_service.py	641	pass1:s30:1-676
+services/web/performance_stats_service.py	182	pass1:s30:1-172  [9 of 181 lines never in a package]
+services/web/security_service.py	351	pass1:s30:1-339  [6 of 345 lines never in a package]
+services/web/task_management_service.py	1171	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
 services/web/two_factor_service.py	224	v3rev:1-224
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150
@@ -267,4 +267,4 @@ utils/observability.py	593	pass1:s36:1-579  [14 of 593 lines never in a package]
 utils/performance_metrics.py	419	pass1:s36:1-389  [30 of 419 lines never in a package]
 utils/settings.py	113	pass1:s36:1-98  [15 of 113 lines never in a package]
 utils/time_utils.py	387	pass1:s36:1-374  [13 of 387 lines never in a package]
-utils/token_security.py	278	pass2:E11:the-answering-path
+utils/token_security.py	279	pass2:E11:the-answering-path

@@ -12,12 +12,13 @@ Event Manager - SERVICE FIRST compliant event system for decoupled service commu
 Enables services to communicate without direct service-to-service calls.
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 from typing import Dict, List, Callable, Any
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('event_manager')
 
 
 @dataclass

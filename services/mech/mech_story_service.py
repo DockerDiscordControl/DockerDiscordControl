@@ -11,13 +11,14 @@
 Mech Story Service - Handles multi-language mech evolution story content
 """
 
+from utils.logging_utils import get_module_logger
 import os
 import logging
 from pathlib import Path
 from typing import Dict, Optional, Any
 from functools import lru_cache
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_story_service')
 
 
 class MechStoryService:

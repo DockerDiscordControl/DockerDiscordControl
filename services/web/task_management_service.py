@@ -12,13 +12,14 @@ Task Management Service - Handles complex task management operations including
 creation, validation, scheduling, status management, and lifecycle operations.
 """
 
+from utils.logging_utils import get_module_logger
 import time
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('task_management_service')
 
 
 @dataclass

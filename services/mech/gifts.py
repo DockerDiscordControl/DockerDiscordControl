@@ -20,6 +20,7 @@ may only shrink.
 """
 
 from __future__ import annotations
+from utils.logging_utils import get_module_logger
 
 import hashlib
 import logging
@@ -34,7 +35,7 @@ from services.mech.progress_service import (
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from services.mech.progress_service import ProgressService
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('gifts')
 
 
 def three_days_of_energy(level: int) -> int:

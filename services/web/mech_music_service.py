@@ -12,11 +12,12 @@ Mech Music Service - Provides YouTube URLs for custom-composed mech music tracks
 Each mech level has its own epic soundtrack with monetized YouTube streaming.
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_music_service')
 
 
 @dataclass

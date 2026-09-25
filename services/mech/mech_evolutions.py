@@ -11,6 +11,7 @@ Mech Evolution System - Maps donation amounts to evolution levels
 SERVICE FIRST: Unified evolution system replacing evolution_config_manager
 """
 
+from utils.logging_utils import get_module_logger
 import json
 import logging
 import math
@@ -18,7 +19,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, Tuple
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('mech_evolutions')
 
 @dataclass
 class EvolutionLevelInfo:

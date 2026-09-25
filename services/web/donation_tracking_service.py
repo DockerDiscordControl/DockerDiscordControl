@@ -11,12 +11,13 @@
 Donation Tracking Service - Handles donation button click tracking and user identification
 """
 
+from utils.logging_utils import get_module_logger
 import logging
 from datetime import datetime, timezone
 from typing import Optional
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger('donation_tracking_service')
 
 
 @dataclass
