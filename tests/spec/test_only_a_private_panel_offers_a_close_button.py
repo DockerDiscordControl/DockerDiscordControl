@@ -230,26 +230,71 @@ def test_the_admin_panel_does_ask_for_one():
     assert callers == 2, f"expected the two admin-panel sites, found {callers}"
 
 
-def test_the_word_is_translated_everywhere():
-    """A new string needs a key in all forty catalogues. These are not
-    invented: every catalogue already carries a checked translation under
-    web.common.close, and the new key takes that value."""
-    missing = []
+def test_it_sits_with_the_other_buttons_and_carries_no_word():
+    """THE OPERATOR, shown the panel (2026-09-25): "only the X, behind the
+    Info button."
+
+    IT STARTED AS A LABELLED BUTTON ON A ROW OF ITS OWN - "✖ Schließen"
+    under ⏹️ 🔄 ℹ️ - because his first complaint was that "Dismiss message"
+    is not obvious. The word turned out to be the wrong answer to that: it
+    made the panel two rows tall and read as a fourth kind of thing next to
+    three controls that say what they do with an icon alone.
+
+    So the rule is the row, not the word: the close button is the LAST item
+    of the same row as the actions, and it carries no label. Built through
+    the real factory, because a check on the class alone would not notice a
+    call site putting it back on row 1.
+    """
+    import asyncio
+
+    from cogs.group_control import admin_control_view
+
+    async def build():
+        cog = SimpleNamespace(pending_actions={}, expanded_states={})
+        config = {"docker_name": "alpha", "name": "alpha",
+                  "allowed_actions": ["stop", "restart"],
+                  "allow_detailed_status": True}
+        return admin_control_view(cog, config, is_running=True)
+
+    view = asyncio.run(build())
+    items = list(view.children)
+    closing = items[-1]
+
+    assert type(closing).__name__ == "CloseButton", [type(i).__name__ for i in items]
+    assert closing.label is None, f"the button still carries a word: {closing.label!r}"
+    assert closing.emoji is not None and "\u2716" in str(closing.emoji), str(closing.emoji)
+
+    rows = {item.row for item in items}
+
+    assert rows == {0}, f"the panel is more than one row: {[(type(i).__name__, i.row) for i in items]}"
+
+    # Discord fits five to a row. A container offers at most stop, restart and
+    # info, so the fourth seat is the close button and one stays free.
+    assert len(items) <= 5, len(items)
+
+
+def test_the_word_it_used_to_carry_is_gone_from_the_catalogues():
+    """The other half of removing a label: the key it read is left behind in
+    forty files otherwise.
+
+    ``"Close"`` is a bot-style key - the English sentence IS the key - which
+    test_no_catalogue_key_is_read_by_nobody.py cannot sweep, because that one
+    only handles the dotted ``web.…`` keys. It was added by the same commit
+    that added the label (44872ffb) and had exactly one reader.
+    """
+    still_there = []
     for catalogue in sorted((PROJECT / "locales").glob("*.json")):
         if catalogue.name == "meta.json":
             continue
         words = json.loads(catalogue.read_text(encoding="utf-8"))
-        if not words.get("Close"):
-            missing.append(catalogue.stem)
+        if "Close" in words:
+            still_there.append(catalogue.stem)
 
-    assert missing == [], f"no close button text in: {missing}"
+    assert still_there == [], (
+        f"the label is gone but its key is still translated in: {still_there}")
 
+    # The panel's own key is a different one and stays: it is read by five
+    # templates (_diagnostics_modal.html and others).
+    panel = json.loads((PROJECT / "locales" / "de.json").read_text(encoding="utf-8"))
 
-def test_the_translation_matches_the_one_already_checked():
-    """Counter-check on the case above: filling all forty with the English
-    word would pass it and leave a German panel saying "Close"."""
-    for name, expected in (("de", "Schließen"), ("fr", "Fermer"), ("ja", "閉じる")):
-        words = json.loads((PROJECT / "locales" / f"{name}.json").read_text(encoding="utf-8"))
-
-        assert words["Close"] == expected, f"{name}: {words['Close']!r}"
-        assert words["Close"] == words["web.common.close"]
+    assert panel["web.common.close"] == "Schlie\u00dfen"

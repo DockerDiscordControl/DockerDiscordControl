@@ -376,7 +376,7 @@ utils/token_security.py:1-279
 services/config/group_references.py:1-153
 services/config/group_service.py:1-416
 
-## Section 38  (1144 lines, 7 pieces)
+## Section 38  (1148 lines, 7 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
 # lines a section may hold, and the next repair in main_routes.py (review D25)
 # did not fit. The section cut is an instrument for reading the code, not a
@@ -388,7 +388,7 @@ services/config/group_service.py:1-416
 # the v3.0 client factory and 34 reached 2,003; 35 had no room either.
 app/blueprints/security_routes.py:1-206
 app/web/compat.py:1-102
-cogs/ddc_ui.py:1-175
+cogs/ddc_ui.py:1-179
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
 cogs/group_control.py:1-329

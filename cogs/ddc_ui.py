@@ -99,8 +99,12 @@ class CloseButton(discord.ui.Button):
     the rule; the second is what survives somebody forgetting it.
     """
 
-    def __init__(self, row: int = 1):
-        super().__init__(style=discord.ButtonStyle.secondary, label=_("Close"),
+    def __init__(self, row: int = 0):
+        # NO LABEL, AND THE SAME ROW AS THE ACTIONS. The operator asked for
+        # "only the X, behind the Info button" once he saw it: the word made
+        # the panel two rows tall and read as a fourth kind of thing beside
+        # three controls that say what they do with an icon alone.
+        super().__init__(style=discord.ButtonStyle.secondary,
                          emoji="\u2716\ufe0f", row=row, custom_id="ddc_close_panel")
 
     async def callback(self, interaction: discord.Interaction) -> None:

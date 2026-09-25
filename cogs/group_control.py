@@ -305,7 +305,7 @@ def admin_control_view(cog, container_config: dict, is_running: bool):
 
     view = ControlView(cog, container_config, is_running=is_running,
                        channel_has_control_permission=True)  # an admin always has it
-    view.add_item(CloseButton(row=1))
+    view.add_item(CloseButton())  # last on the action row
     return view
 
 
