@@ -158,25 +158,40 @@ def _notice_state():
     """
     from app.auth import session_user
 
+    # ONE SHAPE, ALWAYS. Every return below gives the same keys, so a template
+    # asking two_factor.enabled cannot quietly read Undefined on the paths
+    # that used to answer with a single "show".
+    quiet = {"two_factor": {"show": False, "prompt": False, "secure": False,
+                            "enabled": False, "codes": 0,
+                            "remembering": False, "devices": 0}}
     if session_user() is None:
-        return {"two_factor": {"show": False}}
+        return quiet
     # NOT ON THE PAGES THAT DO IT. The same lesson as the login page above,
     # one step further: these templates now use the shared shell, so the
     # notice came with them and the setup page opened by urging the reader to
     # set up the second factor - "Set up now" linking to the page they were
     # already on, and "Later" dismissing the offer they had just accepted.
     if request.blueprint == two_factor_bp.name:
-        return {"two_factor": {"show": False}}
+        return quiet
     try:
         store = TwoFactorStore()
         enabled = store.enabled
         dismissed = store.prompt_dismissed()
     except TwoFactorUnreadable:
-        return {"two_factor": {"show": False}}
+        return quiet
+    # WHAT THE PANEL SHOWS BESIDE THE DOOR. The operator had the button and
+    # still said "I see nothing": a way in is not an answer, and what he
+    # wanted - is device-memory on, how many codes are left - sat two clicks
+    # and a six-digit code away. A click is for CHANGING it now, not for
+    # finding out.
     return {"two_factor": {
         "show": not enabled,
         "prompt": not enabled and not dismissed,
         "secure": request.is_secure,
+        "enabled": enabled,
+        "codes": store.remaining_recovery_codes() if enabled else 0,
+        "remembering": store.remembering_devices_allowed(),
+        "devices": store.remembered_devices(),
     }}
 
 

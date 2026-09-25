@@ -59,7 +59,7 @@ app/blueprints/security_routes.py	206	pass1:s32:plan pass2:s32:1-193
 app/blueprints/system_routes.py	104	pass2:s32:1-51  [self-restart route, added 2026-09-24]
 app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	364	pass1:s33:1-350  [13 of 363 lines never in a package]
-app/blueprints/two_factor_routes.py	337	v3rev:1-198
+app/blueprints/two_factor_routes.py	352	v3rev:1-198
 app/bootstrap/__init__.py	34	pass1:s33:1-34
 app/bootstrap/performance.py	55	pass1:s33:1-55
 app/bootstrap/runtime.py	206	pass1:s33:1-200

@@ -45,4 +45,20 @@
             <i class="bi bi-tools"></i> {{ _t('web.auth.system_diagnostics_button') }}
         </button>
     </div>
+
+    {# HOW IT STANDS, beside the door rather than behind it. Both sentences
+       already exist in all forty catalogues, so this needed no new
+       translation. Nothing is said while 2FA is off: the yellow notice
+       above already says that, and a second line would be noise on the page
+       he looks at most. #}
+    {% if two_factor is defined and two_factor.enabled %}
+    <div class="text-center small text-secondary mt-2">
+        <i class="bi bi-check-circle text-success me-1"></i>{{ _t('web.two_factor.status_on', count=two_factor.codes) }}
+        {% if two_factor.remembering %}
+        &middot; {{ _t('web.two_factor.remembered_now', count=two_factor.devices) }}
+        {% else %}
+        &middot; <i class="bi bi-slash-circle me-1"></i>{{ _t('web.two_factor.allow_remember', days=90) }}
+        {% endif %}
+    </div>
+    {% endif %}
 </div> 

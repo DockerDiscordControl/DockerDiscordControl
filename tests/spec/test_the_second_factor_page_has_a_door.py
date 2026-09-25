@@ -106,6 +106,18 @@ def _doors_in(html):
     return re.findall(r'href="([^"]*security/2fa[^"]*)"', html)
 
 
+def _the_auth_section(html):
+    """Just that card, because the page carries more than it shows.
+
+    _i18n.html ships the WHOLE catalogue to the browser for the JavaScript,
+    so every translated sentence is in the source of every page whether it
+    is displayed or not. A case that searched the page for a word found it
+    in the bundle and called the panel talkative when it was silent.
+    """
+    where = html.index('id="auth-settings"')
+    return html[where:html.index("<hr", where + 10)]
+
+
 def test_the_panel_leads_there_while_the_second_factor_is_off(panel):
     """The state he started in, and it worked - through the notice."""
     app, store = panel
@@ -141,6 +153,37 @@ def test_the_door_is_where_the_panel_password_is(panel):
     assert _doors_in(nearby), (
         "the way to the second factor is not in the Web UI authentication "
         "section, which is where the panel password lives")
+
+
+def test_the_panel_says_how_the_second_factor_stands(panel):
+    """A DOOR IS NOT AN ANSWER. With the button in place he still said "I
+    see nothing": the row led somewhere but told him nothing, and what he
+    wanted to know - is device-memory on, how many codes are left - was two
+    clicks and a six-digit code away.
+
+    So the state is written beside the door. A click is for CHANGING it.
+    Both sentences already exist in all forty catalogues, so nothing here
+    needed a new translation.
+    """
+    app, store = panel
+    _switch_on(store)
+    card = _the_auth_section(_the_settings_page(app, store, verified=True))
+
+    # the remaining recovery codes, and how many devices are remembered
+    assert "10" in card, f"the panel does not say how many codes are left: {card[-400:]}"
+    assert re.search(r"(Ger\u00e4te|[Dd]evices)[^<]*0", card), (
+        f"the panel does not say how many devices are remembered: {card[-400:]}")
+
+
+def test_it_stays_quiet_while_the_second_factor_is_off(panel):
+    """The opposite mistake. With 2FA off there is nothing to report, and
+    the yellow notice already says so - a second line repeating it would be
+    noise on the page he looks at most."""
+    app, store = panel
+    card = _the_auth_section(_the_settings_page(app, store, verified=False))
+
+    assert "check-circle" not in card, (
+        f"the panel reports on a second factor that is off: {card[-400:]}")
 
 
 def test_the_notice_is_still_the_door_while_it_is_off(panel):
