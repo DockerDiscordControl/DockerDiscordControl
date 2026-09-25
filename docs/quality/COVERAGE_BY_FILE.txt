@@ -68,7 +68,7 @@ app/bot/commands.py	47	pass1:s33:1-47
 app/bot/dependencies.py	62	pass1:s33:1-62
 app/bot/events.py	140	pass1:s33:1-83  [9 of 92 lines never in a package]
 app/bot/factory.py	44	pass1:s33:1-44
-app/bot/runtime.py	62	pass1:s33:1-62
+app/bot/runtime.py	68	pass1:s33:1-62
 app/bot/startup.py	39	pass1:s33:1-39
 app/bot/startup_context.py	57	pass1:s33:1-57
 app/bot/startup_steps/__init__.py	56	pass1:s33:1-52

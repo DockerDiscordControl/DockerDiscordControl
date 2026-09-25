@@ -292,7 +292,7 @@ app/bot/commands.py:1-47
 app/bot/dependencies.py:1-62
 app/bot/events.py:1-140
 app/bot/factory.py:1-44
-app/bot/runtime.py:1-62
+app/bot/runtime.py:1-68
 app/bot/startup.py:1-39
 app/bot/startup_context.py:1-57
 app/bot/startup_steps/__init__.py:1-56

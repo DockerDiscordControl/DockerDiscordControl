@@ -46,7 +46,13 @@ def build_runtime(config: Mapping[str, object]) -> BotRuntime:
     timezone = resolve_timezone(config, logger=logger)
 
     logs_dir = Path(__file__).resolve().parents[2] / "logs"
-    ensure_log_files(logger, logs_dir)
+    # On `ddc`, not on `ddc.bot`. Every DDC module logs under ddc.<something>
+    # and they are SIBLINGS of ddc.bot, not its children - attached to the bot
+    # alone, the two files collected one logger out of twenty while everything
+    # else reached only the console, where setup_logger gives each module its
+    # own stream handler. That gap is invisible until you open the file, and
+    # bot_error.log is what the panel's Application tab shows after a crash.
+    ensure_log_files(logging.getLogger("ddc"), logs_dir)
     ensure_token_security(logger)
 
     logger.info("Final effective timezone for logging and operations: %s", timezone)
