@@ -26,7 +26,7 @@ from urllib.parse import quote
 from flask import (Blueprint, Flask, Response, current_app, jsonify, redirect, render_template,
                    request, session, url_for)
 
-from app.auth import auth, two_factor_limiter, verify_password
+from app.auth import auth, session_user, two_factor_limiter, verify_password
 from services.web.two_factor_service import (TRUSTED_DEVICE_DAYS, TwoFactorStore,
                                             TwoFactorUnreadable)
 
@@ -126,11 +126,19 @@ def _require_second_factor():
                 status=403, mimetype="text/plain")
     if request.path.startswith(EXEMPT_PREFIXES):
         return None
-    credentials = request.authorization
-    if credentials is None or credentials.type != "basic":
-        return None  # the route's own login check answers
-    if not verify_password(credentials.username, credentials.password):
-        return None  # wrong password: the route's own 401
+    # WHO IS LOGGED IN, BY EITHER DOOR. This used to read request.authorization
+    # alone, because when it was written HTTP Basic was the only way in. The
+    # login form arrived on 2026-09-23 and became the normal one - and the gate
+    # was never told, so from that day the second factor stood in front of curl
+    # and the Unraid integrations and in front of nobody using the panel. The
+    # operator's own log of 26/Sep 00:14 has it in two lines: "Panel login:
+    # admin", then "GET / 200", with 2FA on and no code asked for.
+    if session_user() is None:
+        credentials = request.authorization
+        if credentials is None or credentials.type != "basic":
+            return None  # nobody is logged in: the route's own login check answers
+        if not verify_password(credentials.username, credentials.password):
+            return None  # wrong password: the route's own 401
     binding = _binding()
     if not enabled or session.get(SESSION_KEY) == binding:
         return None

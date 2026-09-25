@@ -402,7 +402,7 @@ utils/config_cache.py:1-307
 # socket, the TLS modes and the second factor of the web panel. Their own section because they
 # are the security boundary of v3.0 and must be reviewed as one piece, not as
 # a tail of a busier section.
-app/blueprints/two_factor_routes.py:1-352
+app/blueprints/two_factor_routes.py:1-360
 app/web/tls.py:1-497
 app/web/two_factor.py:1-8
 services/docker_proxy/__init__.py:1-2
