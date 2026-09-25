@@ -322,8 +322,7 @@ app/utils/container_info_web_handler.py:1-325
 app/bot/startup_steps/sequence.py:1-65
 app/bot/startup_steps/cooldowns.py:1-29
 app/bot/startup_steps/diagnostics.py:1-26
-app/utils/port_diagnostics.py:1-600
-app/utils/shared_data.py:1-105
+app/utils/port_diagnostics.py:1-643
 app/utils/web_helpers.py:1-942
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
@@ -432,3 +431,10 @@ services/automation/image_updates.py:1-164
 # this file put it over - the same reason main_routes.py could not hold the
 # routes in the first place.
 app/blueprints/system_routes.py:1-104
+
+## Section 44  (105 lines, 1 piece)
+# Moved out of 34 on 2026-09-25: port_diagnostics.py grew when the startup
+# line stopped guessing the host address and started asking which one the
+# panel had actually been reached on, and 34 went to 2,034 of its 2,000.
+# This is the smallest piece in it that carries its own subject.
+app/utils/shared_data.py:1-105

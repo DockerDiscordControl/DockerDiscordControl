@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import socket
+from pathlib import Path
 import subprocess
 import logging
 import os
@@ -415,6 +416,10 @@ class PortDiagnostics:
 
         # Log access information with actual IP resolution
         actual_host_ip = self._get_actual_host_ip()
+        # http:// on a panel that answers only https is a link that fails, or
+        # at best redirects (app/web/tls.py).
+        scheme = "https" if os.environ.get("DDC_TLS_MODE", "").strip().lower() == "self-signed" \
+            else "http"
 
         if report['port_check']['external_ports']:
             for port_info in report['port_check']['external_ports']:
@@ -422,17 +427,45 @@ class PortDiagnostics:
                     host = port_info['host']
                     if host in ['0.0.0.0', '::']:
                         host = actual_host_ip or 'localhost'
-                    logger.info(f"Web UI should be accessible at: http://{host}:{port_info['port']}")
+                    logger.info(f"Web UI should be accessible at: {scheme}://{host}:{port_info['port']}")
                 else:
                     host = actual_host_ip or 'localhost'
-                    logger.info(f"Web UI should be accessible at: http://{host}:{port_info}")
+                    logger.info(f"Web UI should be accessible at: {scheme}://{host}:{port_info}")
         else:
             host = actual_host_ip or 'localhost'
-            logger.info(f"Web UI: http://{host}:{self.EXPECTED_WEB_PORT}")
+            logger.info(f"Web UI: {scheme}://{host}:{self.EXPECTED_WEB_PORT}")
 
         logger.info("=== End Diagnostics ===")
 
         return report
+
+    # Reached, but useless in a line an operator reads on another computer:
+    # the health check and the container itself use these.
+    NOT_WORTH_PRINTING = frozenset({"localhost", "127.0.0.1", "::1", "0.0.0.0"})
+
+    def _try_an_address_that_was_used(self) -> Optional[str]:
+        """An address the panel has actually been reached on.
+
+        The TLS side learns these - from SNI, from the plain-HTTP redirect and
+        from the Host of every request - and keeps them beside the certificate,
+        because a certificate has to name them (app/web/tls.py). That makes
+        them the one source here that is an observation rather than a guess.
+
+        Nothing is learned on an installation nobody has visited yet, and then
+        this returns None and the guessing below has its turn. An address can
+        be observed or guessed; it cannot be known before anybody has been.
+        """
+        try:
+            from app.web.tls import known_names
+            from utils.config_paths import get_config_dir
+
+            for name in known_names(Path(get_config_dir()) / "tls"):
+                if name.lower() not in self.NOT_WORTH_PRINTING:
+                    logger.info(f"Using an address the panel was reached on: {name}")
+                    return name
+        except Exception as error:  # noqa: BLE001 - this runs during startup
+            logger.debug(f"Could not read the addresses the panel was reached on: {error}")
+        return None
 
     def _try_environment_variable_ip(self) -> Optional[str]:
         """Try to get host IP from environment variables."""
@@ -527,6 +560,16 @@ class PortDiagnostics:
         """Get the actual accessible IP address of the host."""
         try:
             logger.info("Starting IP detection (looking for host IP)...")
+
+            # Method 0: an address somebody has actually reached the panel on.
+            # Asked FIRST because it is the only one that is not a guess: the
+            # three below try to work out, from inside a container, an address
+            # belonging to the host, and on the operator's own machine all
+            # three fail (2026-09-25). Asking first also saves spawning
+            # traceroute on every start.
+            host_ip = self._try_an_address_that_was_used()
+            if host_ip:
+                return host_ip
 
             # Method 1: Try environment variables (fastest)
             host_ip = self._try_environment_variable_ip()
