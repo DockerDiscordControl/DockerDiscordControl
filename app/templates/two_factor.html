@@ -20,8 +20,13 @@
 
 {% block content %}
 <div class="d-flex justify-content-center">
-  <div class="card p-4 my-4" style="width: 100%; max-width: 560px;">
-    <h1 class="h4 mb-4"><i class="bi bi-shield-lock me-2"></i>{{ _t('web.two_factor.title') }}</h1>
+  {# text-light on purpose: theme.css gives .card a background and no colour,
+     so the text would fall back to Bootstrap's, which is meant for a light
+     page - dark on dark. The panel's own dialogs say the same thing
+     (_spam_protection_modal.html). And <h4>, not <h1 class="h4">: the theme
+     colours the ELEMENT, so the class alone left the heading unreadable. #}
+  <div class="card p-4 my-4 text-light" style="width: 100%; max-width: 560px;">
+    <h4 class="mb-4"><i class="bi bi-shield-lock me-2"></i>{{ _t('web.two_factor.title') }}</h4>
     {% set token = csrf_token() if csrf_token is defined else '' %}
 
     {% if view == 'needs_tls' %}

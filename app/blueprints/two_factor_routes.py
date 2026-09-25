@@ -138,6 +138,13 @@ def _notice_state():
 
     if session_user() is None:
         return {"two_factor": {"show": False}}
+    # NOT ON THE PAGES THAT DO IT. The same lesson as the login page above,
+    # one step further: these templates now use the shared shell, so the
+    # notice came with them and the setup page opened by urging the reader to
+    # set up the second factor - "Set up now" linking to the page they were
+    # already on, and "Later" dismissing the offer they had just accepted.
+    if request.blueprint == two_factor_bp.name:
+        return {"two_factor": {"show": False}}
     try:
         store = TwoFactorStore()
         enabled = store.enabled

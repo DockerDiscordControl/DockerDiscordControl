@@ -100,9 +100,19 @@ def panel(monkeypatch, tmp_path):
 
 
 def _pages(panel):
-    """Every second-factor page the operator can reach, as HTML."""
+    """Every second-factor page the operator can reach, as HTML.
+
+    LOGGED IN THROUGH THE FORM, not through Basic auth, and that distinction
+    is the whole reason one of the cases below can fail at all. The shell's
+    notice is decided by a context processor that asks ``session_user()``;
+    with Basic auth there is no session, the banner never renders, and a case
+    looking for it would be green while the operator watches it sit on top of
+    his page. A harness that cannot reproduce the failure is not a test.
+    """
     app, store = panel
     client = app.test_client()
+    client.post("/login", data={"username": "admin", "password": PASSWORD},
+                base_url=SECURE, follow_redirects=True)
     seen = {}
 
     seen["status (off)"] = client.get("/security/2fa", headers=_basic(),
@@ -145,6 +155,44 @@ def test_the_scan_has_pages_to_look_at(panel):
     assert len(pages) >= 5, sorted(pages)
     for where, html in pages.items():
         assert "<form" in html or "alert" in html, (where, html[:200])
+
+
+def test_the_pages_do_not_ask_for_what_they_are_already_doing(panel):
+    """THE SECOND HALF OF THE SAME MISTAKE. Putting these pages on the shared
+    shell brought the shell's notice with them, so the page where 2FA is set
+    up opened with a yellow banner urging the reader to set up 2FA - with a
+    "Set up now" link to the page they were on, and a "Later" that dismisses
+    the offer they had just accepted.
+
+    THE CONTEXT PROCESSOR HAD LEARNED THIS ONCE ALREADY, earlier the same
+    day: it runs for every template, and the banner used to appear on the
+    LOGIN page, where both of its buttons led nowhere. The fix then was "only
+    to somebody who is logged in". The fix now is the other half: not on the
+    pages that do the thing.
+    """
+    nagging = [where for where, html in _pages(panel).items()
+               if "data-two-factor" in html]
+
+    assert nagging == [], (
+        "these pages urge the reader to set up the second factor while they "
+        f"are setting it up: {nagging}")
+
+
+def test_the_card_says_what_colour_its_text_is(panel):
+    """THE FIRST HALF, and it is why the operator asked whether I was having
+    him on: the page was dark and unreadable, heading and text alike.
+
+    theme.css gives .card a background and no colour, so the text falls back
+    to Bootstrap's - which is meant for a light page. The panel's own dialogs
+    say `bg-dark text-light` for exactly this reason
+    (_spam_protection_modal.html). A rendered page is asked here, because the
+    template can say `card` and still be served without it.
+    """
+    for where, html in _pages(panel).items():
+        card = html[html.index('class="card'):][:120] if 'class="card' in html else ""
+
+        assert "text-light" in card, (
+            f"{where}: the card sets no text colour, so it is dark on dark: {card!r}")
 
 
 def test_the_setup_page_still_shows_the_code_to_scan(panel):
