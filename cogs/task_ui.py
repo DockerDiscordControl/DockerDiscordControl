@@ -23,7 +23,7 @@ from services.automation import get_auto_action_config_service
 from services.config.config_service import load_config
 from utils.logging_utils import get_module_logger
 
-from .ddc_ui import NOTICE_STAYS_FOR, DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, DDCView, PrivateView
 from .translation_manager import _
 
 # Same logger name as before the move: log lines read as they did.
@@ -158,7 +158,7 @@ class TaskManagementButton(discord.ui.Button):
             except Exception:
                 pass  # Interaction might have expired
 
-class TaskManagementView(DDCView):
+class TaskManagementView(PrivateView):
     """View with buttons for task management (Add Task, Delete Tasks, Auto-Action)."""
 
     def __init__(self, cog_instance, container_name: str):
@@ -403,7 +403,7 @@ def _get_allowed_task_actions(container_name: str) -> List[str]:
     return []
 
 
-class TaskCreationView(DDCView):
+class TaskCreationView(PrivateView):
     """View for task creation using sequential dropdowns."""
 
     def __init__(self, cog_instance, container_name: str, allowed_actions: Optional[List[str]] = None):
@@ -1059,7 +1059,7 @@ class CreateTaskButton(discord.ui.Button):
                 )
 
 
-class ContainerTaskDeleteView(DDCView):
+class ContainerTaskDeleteView(PrivateView):
     """View for deleting tasks specific to a container."""
 
     def __init__(self, cog_instance, tasks: list, container_name: str):

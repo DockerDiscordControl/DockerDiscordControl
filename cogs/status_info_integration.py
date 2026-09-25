@@ -27,7 +27,7 @@ from .translation_manager import _
 import asyncio
 import aiohttp
 from services.automation import get_auto_action_config_service
-from .ddc_ui import NOTICE_STAYS_FOR, PROGRESS_STAYS_FOR, DDCView
+from .ddc_ui import NOTICE_STAYS_FOR, PROGRESS_STAYS_FOR, DDCView, CloseButton, PrivateView
 # The task UI (buttons, dropdowns, creation and deletion views) lives in
 # task_ui.py since the Phase 3 split; the names stay importable from here.
 from .task_ui import (  # noqa: F401
@@ -104,7 +104,7 @@ async def container_logs_text(container_name: str) -> str:
         logger.debug(f"Error getting logs for {container_name}: {e}")
         return f"Error retrieving logs: {str(e)[:100]}"
 
-class ContainerInfoAdminView(DDCView):
+class ContainerInfoAdminView(PrivateView):
     """
     Admin view for container info with Edit and Debug buttons (control channels only).
     """
@@ -375,6 +375,12 @@ class LiveLogView(DDCView):
         )
         toggle_button.callback = self.toggle_updates
         self.add_item(toggle_button)
+
+        # The Close this method's own comment has promised since it was
+        # written. It is added here and not by PrivateView because
+        # _create_all_buttons clears the view and runs again on every
+        # refresh, which would take an inherited button away.
+        self.add_item(CloseButton())
 
 
     def _start_auto_recreation(self):
@@ -856,7 +862,7 @@ class StatusInfoView(DDCView):
         if self.info_config.get('protected_enabled', False):
             self.add_item(ProtectedInfoButton(cog_instance, server_config, self.info_config))
 
-class ProtectedInfoOnlyView(DDCView):
+class ProtectedInfoOnlyView(PrivateView):
     """
     View for /info command in status channels that only shows protected info button.
     """

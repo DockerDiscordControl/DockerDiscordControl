@@ -113,7 +113,7 @@ cogs/background_loops.py	744	v3rev:1-652
 cogs/channel_lifecycle.py	620	v3rev2:1-646
 cogs/control_helpers.py	297	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/control_ui.py	2707	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
-cogs/ddc_ui.py	189	passE:written-2026-09-21
+cogs/ddc_ui.py	233	passE:written-2026-09-21
 cogs/docker_control.py	1255	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	645	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
@@ -124,7 +124,7 @@ cogs/overview_embeds.py	655	v3rev2:1-964
 cogs/slash_commands.py	851	NONE
 cogs/stack_restart.py	320	v3rev:1-196
 cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
-cogs/status_info_integration.py	1261	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
+cogs/status_info_integration.py	1267	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	97	passE:E32:read-in-full

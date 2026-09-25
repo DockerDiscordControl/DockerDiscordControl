@@ -37,6 +37,9 @@ directly, so one added tomorrow is covered today.
 
 from __future__ import annotations
 
+import functools
+from typing import Optional
+
 import discord
 
 from utils.logging_utils import get_module_logger
@@ -99,7 +102,7 @@ class CloseButton(discord.ui.Button):
     the rule; the second is what survives somebody forgetting it.
     """
 
-    def __init__(self, row: int = 0):
+    def __init__(self, row: Optional[int] = None):
         # A SYMBOL AS THE LABEL, ON THE SAME ROW AS THE ACTIONS.
         #
         # THE ROW: he asked for "only the X, behind the Info button" once he
@@ -187,3 +190,44 @@ class DDCModal(discord.ui.Modal):
                      type(self).__name__, type(error).__name__, error,
                      exc_info=error)
         await _answer(interaction)
+
+
+class PrivateView(DDCView):
+    """A view only one person can see, which therefore carries its own way out.
+
+    THE OPERATOR (2026-09-25): "everywhere there are buttons, the closing X
+    has to be there." Twelve views were delivered only as ephemeral messages
+    and offered none - the mech details, the gallery and its stories, the
+    container info panels, the task views, the password prompt.
+
+    WHY A TYPE AND NOT TWELVE CALLS. Six of them live in cogs/control_ui.py,
+    which is on the size ceiling and may not grow
+    (tests/spec/test_no_file_or_class_grows_past_its_ceiling.py). That ceiling
+    exists to push mechanism out of an oversized file, so this is it doing its
+    job: "a panel only you can see" became a KIND of view, and the way out
+    comes with the kind. Each of the eleven says so by its base class.
+
+    WHY IT IS APPENDED AFTER ``__init__`` AND NOT INSIDE IT: a subclass adds
+    its items AFTER calling ``super().__init__()``, and he asked for the X to
+    sit behind the others. Wrapping the subclass's ``__init__`` puts it last
+    and does so AT CONSTRUCTION, which matters because ``bot.add_view()``
+    reads the children to route presses on messages that outlived a restart.
+
+    A VIEW THAT REBUILDS ITS ITEMS cannot use this: LiveLogView clears and
+    rebuilds on every refresh, so it adds the button itself and stays a plain
+    DDCView.
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        built = cls.__init__
+
+        @functools.wraps(built)
+        def __init__(self, *args, **rest):
+            built(self, *args, **rest)
+            # Idempotent: a subclass of a subclass wraps twice, and a view
+            # that adds its own close button keeps the one it chose.
+            if not any(isinstance(item, CloseButton) for item in self.children):
+                self.add_item(CloseButton())
+
+        cls.__init__ = __init__

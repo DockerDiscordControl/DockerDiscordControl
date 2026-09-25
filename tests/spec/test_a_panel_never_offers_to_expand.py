@@ -218,4 +218,5 @@ def test_the_controls_the_operator_actually_sees_are_intact():
 
     assert "MechDetailsButton" in overview, overview
     assert {"InfoDropdownButton", "AdminButton", "HelpButton"} <= set(overview), overview
-    assert {"MechPrivateDonateButton", "MechPrivateHistoryButton"} == set(private), private
+    assert {"MechPrivateDonateButton", "MechPrivateHistoryButton",
+            "CloseButton"} == set(private), private

@@ -46,6 +46,10 @@ EXPECTED_KEYS = {
     *((BUTTON, None, f"{name}_{CHANNEL}") for name in (
         "mech_donate", "mech_history",
         "mech_private_donate", "mech_private_history")),
+    # The way out of the private mech details panel. One id for every close
+    # button in DDC, so registering it once is enough for a press on a panel
+    # that outlived a restart (tests/spec/test_every_private_panel_has_a_way_out.py).
+    (BUTTON, None, "ddc_close_panel"),
     # channel-independent mech buttons
     (BUTTON, None, "epilogue_button"),
     *((BUTTON, None, f"{kind}_{level}") for kind in ("mech_display", "read_story", "play_song")

@@ -260,10 +260,12 @@ def test_it_sits_with_the_other_buttons_and_carries_no_word():
         config = {"docker_name": "alpha", "name": "alpha",
                   "allowed_actions": ["stop", "restart"],
                   "allow_detailed_status": True}
-        return admin_control_view(cog, config, is_running=True)
+        view = admin_control_view(cog, config, is_running=True)
+        # what Discord actually receives, not what the objects say: the
+        # button is added with no row and py-cord lays it out at send time.
+        return list(view.children), view.to_components()
 
-    view = asyncio.run(build())
-    items = list(view.children)
+    items, rendered = asyncio.run(build())
     closing = items[-1]
 
     assert type(closing).__name__ == "CloseButton", [type(i).__name__ for i in items]
@@ -282,13 +284,18 @@ def test_it_sits_with_the_other_buttons_and_carries_no_word():
     # catalogue key, in any of the forty languages.
     assert not any(character.isalpha() for character in closing.label), repr(closing.label)
 
-    rows = {item.row for item in items}
-
-    assert rows == {0}, f"the panel is more than one row: {[(type(i).__name__, i.row) for i in items]}"
+    # ONE ROW, which is what he asked for: the X behind the Info button.
+    # Asked of the rendered layout - ``item.row`` is None for a button whose
+    # row py-cord chooses, so reading the attribute would say "no row" for a
+    # panel that looks exactly right.
+    assert len(rendered) == 1, (
+        f"the panel is {len(rendered)} rows: "
+        f"{[[c.get('label') or c.get('custom_id') for c in r['components']] for r in rendered]}")
 
     # Discord fits five to a row. A container offers at most stop, restart and
     # info, so the fourth seat is the close button and one stays free.
-    assert len(items) <= 5, len(items)
+    assert len(rendered[0]["components"]) == 4, rendered[0]
+    assert rendered[0]["components"][-1]["custom_id"] == "ddc_close_panel", rendered[0]
 
 
 def test_the_word_it_used_to_carry_is_gone_from_the_catalogues():
