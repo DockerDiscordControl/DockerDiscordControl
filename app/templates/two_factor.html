@@ -4,7 +4,13 @@
    nothing else, on <body class="bg-light"> - so it came out white and in the
    browser's font while every other page was dark (operator, 2026-09-25). The
    login page is the closest thing to this one and has always used the shared
-   shell; this does the same, which is the whole change.
+   shell; this does the same.
+
+   THEN IT WAS READABLE AND PLAIN: "looks very technical - can it be a good
+   deal prettier?" These are the panel's doorway pages - the verify screen is
+   the second half of logging in - so they wear the same mark the login page
+   wears, and the setup is told as three numbered steps instead of a wall of
+   controls.
 
    THE OLD HEADER SAID "No script: plain forms work under the CSP", and the
    shell does load scripts. The policy is set once for the whole application
@@ -12,8 +18,9 @@
    the note was about what this page NEEDS, not about what it may have. The
    forms below are still plain forms.
 
-   tests/spec/test_the_second_factor_pages_look_like_ddc.py renders all six
-   views and fails if any of them is served without the panel's stylesheet. #}
+   tests/spec/test_the_second_factor_pages_look_like_ddc.py renders every view
+   and fails if one is served without the panel's stylesheet, without the
+   mark, or with the way back as loud as the way on. #}
 {% extends '_base.html' %}
 
 {% block title %}{{ _t('web.two_factor.title') }}{% endblock %}
@@ -23,78 +30,143 @@
   {# text-light on purpose: theme.css gives .card a background and no colour,
      so the text would fall back to Bootstrap's, which is meant for a light
      page - dark on dark. The panel's own dialogs say the same thing
-     (_spam_protection_modal.html). And <h4>, not <h1 class="h4">: the theme
-     colours the ELEMENT, so the class alone left the heading unreadable. #}
-  <div class="card p-4 my-4 text-light" style="width: 100%; max-width: 560px;">
-    <h4 class="mb-4"><i class="bi bi-shield-lock me-2"></i>{{ _t('web.two_factor.title') }}</h4>
-    {% set token = csrf_token() if csrf_token is defined else '' %}
+     (_spam_protection_modal.html). Headings are ELEMENTS below, not classes:
+     the theme colours h4 and h5, so <h1 class="h4"> left the title dark. #}
+  <div class="card text-light my-4" style="width: 100%; max-width: 560px;">
+    <div class="card-body p-4">
 
-    {% if view == 'needs_tls' %}
-      <div class="alert alert-warning">{{ _t('web.two_factor.needs_tls') }}</div>
-      <a href="/" class="btn btn-secondary">{{ _t('web.two_factor.back') }}</a>
-
-    {% elif view == 'status' %}
-      {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
-      {% if enabled %}
-        <p class="text-success"><i class="bi bi-check-circle me-1"></i>{{ _t('web.two_factor.status_on', count=remaining) }}</p>
-        <form method="post" action="{{ url_for('two_factor.disable') }}" class="card card-body">
-          <input type="hidden" name="csrf_token" value="{{ token }}">
-          <label for="code" class="form-label">{{ _t('web.two_factor.disable_label') }}</label>
-          <input id="code" name="code" class="form-control mb-2" inputmode="numeric" autocomplete="one-time-code" required>
-          <button class="btn btn-outline-danger">{{ _t('web.two_factor.disable') }}</button>
-        </form>
-      {% else %}
-        <p>{{ _t('web.two_factor.status_off') }}</p>
-        {% if secure %}
-        <form method="post" action="{{ url_for('two_factor.setup') }}">
-          <input type="hidden" name="csrf_token" value="{{ token }}">
-          <button class="btn btn-primary">{{ _t('web.two_factor.set_up_now') }}</button>
-        </form>
-        {% else %}
-        <div class="alert alert-warning">{{ _t('web.two_factor.needs_tls') }}</div>
-        {% endif %}
-      {% endif %}
-      <a href="/" class="btn btn-link px-0 mt-3">{{ _t('web.two_factor.back') }}</a>
-
-    {% elif view == 'setup' %}
-      <p>{{ _t('web.two_factor.scan') }}</p>
-      {# The QR stays on white on purpose: a scanner needs the dark-on-light
-         contrast the code is drawn with, so the SVG gets a light plate of its
-         own rather than the page being light around it. #}
-      <div class="text-center my-3">
-        <span class="d-inline-block p-3 rounded" style="background:#fff">{{ qr_svg | safe }}</span>
+      {# The same mark as the login page, by the same classes: the flicker in
+         _base.html finds it by id without knowing about either page. #}
+      <div class="text-center mb-2 logo-header logo-header--compact">
+        <img src="{{ url_for('static', filename='ddc_web.png') }}" alt="DDC">
+        <div class="ddc-title">
+          <span class="neon-text-large" id="neon-ddc">DDC</span>
+        </div>
       </div>
-      <p class="small text-muted">{{ _t('web.two_factor.manual_key') }} <code class="user-select-all">{{ secret }}</code></p>
-      <form method="post" action="{{ url_for('two_factor.confirm') }}" class="card card-body">
-        <input type="hidden" name="csrf_token" value="{{ token }}">
-        <label for="code" class="form-label">{{ _t('web.two_factor.confirm_label') }}</label>
-        <input id="code" name="code" class="form-control mb-2" inputmode="numeric" autocomplete="one-time-code" required>
-        <button class="btn btn-primary">{{ _t('web.two_factor.confirm') }}</button>
-      </form>
+      <h4 class="text-center mb-4">
+        <i class="bi bi-shield-lock me-2"></i>{{ _t('web.two_factor.title') }}
+      </h4>
 
-    {% elif view == 'setup_failed' %}
-      <div class="alert alert-danger">{{ _t('web.two_factor.setup_failed') }}</div>
-      <a href="{{ url_for('two_factor.status') }}" class="btn btn-secondary">{{ _t('web.two_factor.back') }}</a>
+      {% set token = csrf_token() if csrf_token is defined else '' %}
 
-    {% elif view == 'recovery_codes' %}
-      <div class="alert alert-success">{{ _t('web.two_factor.enabled') }}</div>
-      <p><strong>{{ _t('web.two_factor.recovery_intro') }}</strong></p>
-      <pre class="border rounded p-3 user-select-all">{% for code in codes %}{{ code }}
+      {% if view == 'needs_tls' %}
+        <div class="alert alert-warning">{{ _t('web.two_factor.needs_tls') }}</div>
+        <div class="text-center">
+          <a href="/" class="btn btn-link btn-sm text-secondary">{{ _t('web.two_factor.back') }}</a>
+        </div>
+
+      {% elif view == 'status' %}
+        {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
+        {% if enabled %}
+          <p class="text-center mb-4">
+            <span class="badge bg-success px-3 py-2">
+              <i class="bi bi-check-circle me-1"></i>{{ _t('web.two_factor.status_on', count=remaining) }}
+            </span>
+          </p>
+          <form method="post" action="{{ url_for('two_factor.disable') }}">
+            <input type="hidden" name="csrf_token" value="{{ token }}">
+            <label for="code" class="form-label">{{ _t('web.two_factor.disable_label') }}</label>
+            <input id="code" name="code" class="form-control mb-3" inputmode="numeric" autocomplete="one-time-code" required>
+            <div class="d-grid">
+              <button class="btn btn-outline-danger">{{ _t('web.two_factor.disable') }}</button>
+            </div>
+          </form>
+        {% else %}
+          <p class="text-secondary text-center mb-4">{{ _t('web.two_factor.status_off') }}</p>
+          {% if secure %}
+          <form method="post" action="{{ url_for('two_factor.setup') }}">
+            <input type="hidden" name="csrf_token" value="{{ token }}">
+            <div class="d-grid">
+              <button class="btn btn-primary btn-lg">
+                <i class="bi bi-shield-plus me-2"></i>{{ _t('web.two_factor.set_up_now') }}
+              </button>
+            </div>
+          </form>
+          {% else %}
+          <div class="alert alert-warning">{{ _t('web.two_factor.needs_tls') }}</div>
+          {% endif %}
+        {% endif %}
+        <div class="text-center mt-4">
+          <a href="/" class="btn btn-link btn-sm text-secondary">{{ _t('web.two_factor.back') }}</a>
+        </div>
+
+      {% elif view == 'setup' %}
+        {# Three numbered steps rather than one column of controls. The wall
+           was what read as "technical": a QR, a key and a field, with nothing
+           saying which to do first. #}
+        <p class="text-secondary mb-4">{{ _t('web.two_factor.scan') }}</p>
+
+        <div class="d-flex align-items-center mb-2">
+          <span class="badge rounded-pill bg-primary me-2">1</span>
+          <span class="text-secondary small">{{ _t('web.two_factor.scan') }}</span>
+        </div>
+        {# The QR keeps a light plate of its own: a scanner needs the
+           dark-on-light contrast the code is drawn with. #}
+        <div class="text-center mb-4">
+          <span class="d-inline-block p-3 rounded" style="background:#fff">{{ qr_svg | safe }}</span>
+        </div>
+
+        <div class="d-flex align-items-center mb-2">
+          <span class="badge rounded-pill bg-secondary me-2">2</span>
+          <span class="text-secondary small">{{ _t('web.two_factor.manual_key') }}</span>
+        </div>
+        <p class="mb-4"><code class="user-select-all d-block p-2 rounded border">{{ secret }}</code></p>
+
+        <div class="d-flex align-items-center mb-2">
+          <span class="badge rounded-pill bg-primary me-2">3</span>
+          <span class="text-secondary small">{{ _t('web.two_factor.confirm_label') }}</span>
+        </div>
+        <form method="post" action="{{ url_for('two_factor.confirm') }}">
+          <input type="hidden" name="csrf_token" value="{{ token }}">
+          <label for="code" class="visually-hidden">{{ _t('web.two_factor.confirm_label') }}</label>
+          <input id="code" name="code" class="form-control form-control-lg text-center mb-3"
+                 inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                 style="letter-spacing: 0.4em" required>
+          <div class="d-grid">
+            <button class="btn btn-primary btn-lg">
+              <i class="bi bi-check2-circle me-2"></i>{{ _t('web.two_factor.confirm') }}
+            </button>
+          </div>
+        </form>
+        <div class="text-center mt-4">
+          <a href="/" class="btn btn-link btn-sm text-secondary">{{ _t('web.two_factor.back') }}</a>
+        </div>
+
+      {% elif view == 'setup_failed' %}
+        <div class="alert alert-danger">{{ _t('web.two_factor.setup_failed') }}</div>
+        <div class="text-center">
+          <a href="{{ url_for('two_factor.status') }}" class="btn btn-secondary">{{ _t('web.two_factor.back') }}</a>
+        </div>
+
+      {% elif view == 'recovery_codes' %}
+        <div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>{{ _t('web.two_factor.enabled') }}</div>
+        <p class="mb-2"><strong>{{ _t('web.two_factor.recovery_intro') }}</strong></p>
+        <pre class="border rounded p-3 mb-2 user-select-all">{% for code in codes %}{{ code }}
 {% endfor %}</pre>
-      <p class="small text-muted">{{ _t('web.two_factor.break_glass') }}</p>
-      <a href="/" class="btn btn-primary">{{ _t('web.two_factor.done') }}</a>
+        <p class="small text-secondary">{{ _t('web.two_factor.break_glass') }}</p>
+        <div class="d-grid">
+          <a href="/" class="btn btn-primary">{{ _t('web.two_factor.done') }}</a>
+        </div>
 
-    {% elif view == 'verify' %}
-      {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
-      {% if error == 'rate' %}<div class="alert alert-danger">{{ _t('web.two_factor.too_many') }}</div>{% endif %}
-      <form method="post" action="{{ url_for('two_factor.verify') }}" class="card card-body">
-        <input type="hidden" name="csrf_token" value="{{ token }}">
-        <input type="hidden" name="next" value="{{ next }}">
-        <label for="code" class="form-label">{{ _t('web.two_factor.verify_label') }}</label>
-        <input id="code" name="code" class="form-control mb-2" autocomplete="one-time-code" autofocus required>
-        <button class="btn btn-primary">{{ _t('web.two_factor.verify') }}</button>
-      </form>
-    {% endif %}
+      {% elif view == 'verify' %}
+        {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
+        {% if error == 'rate' %}<div class="alert alert-danger">{{ _t('web.two_factor.too_many') }}</div>{% endif %}
+        <form method="post" action="{{ url_for('two_factor.verify') }}">
+          <input type="hidden" name="csrf_token" value="{{ token }}">
+          <input type="hidden" name="next" value="{{ next }}">
+          <label for="code" class="form-label">{{ _t('web.two_factor.verify_label') }}</label>
+          <input id="code" name="code" class="form-control form-control-lg text-center mb-3"
+                 autocomplete="one-time-code" style="letter-spacing: 0.4em" autofocus required>
+          <div class="d-grid">
+            <button class="btn btn-primary btn-lg">{{ _t('web.two_factor.verify') }}</button>
+          </div>
+        </form>
+        <div class="text-center mt-4">
+          <a href="/" class="btn btn-link btn-sm text-secondary">{{ _t('web.two_factor.back') }}</a>
+        </div>
+      {% endif %}
+
+    </div>
   </div>
 </div>
 {% endblock %}

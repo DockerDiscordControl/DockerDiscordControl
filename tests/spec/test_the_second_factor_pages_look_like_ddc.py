@@ -195,6 +195,58 @@ def test_the_card_says_what_colour_its_text_is(panel):
             f"{where}: the card sets no text colour, so it is dark on dark: {card!r}")
 
 
+def test_they_carry_the_same_mark_as_the_login_page(panel):
+    """THE OPERATOR, once it was readable: "looks very technical - can it be
+    a good deal prettier?" It could: it was a bare Bootstrap card with a
+    heading, a sentence and a button.
+
+    THESE ARE THE PANEL'S DOORWAY PAGES. The verify page is the second half
+    of logging in, and the login page beside it carries the whole mark - the
+    whale and the word. Wearing the same one is what makes them feel like the
+    same product rather than a form that happens to be dark.
+
+    THE MARK IS NOT COPIED, it is the same classes: logo-header, the compact
+    modifier sized for a card, and the neon title. The flicker in _base.html
+    finds it by id without knowing about either page.
+    """
+    login = (PROJECT / "app" / "templates" / "login.html").read_text(encoding="utf-8")
+    # Once: _pages walks the whole setup, and calling it again would try to
+    # switch the second factor on a second time.
+    pages = _pages(panel)
+    for piece in ("logo-header logo-header--compact", "neon-text-large", 'id="neon-ddc"'):
+
+        assert piece in login, f"the login page no longer carries {piece!r} - re-read this rule"
+
+        for where, html in pages.items():
+            assert piece in html, f"{where} does not carry {piece!r}"
+
+
+def test_the_way_back_is_quieter_than_the_way_on(panel):
+    """A page with two calls of equal weight makes the reader choose; the
+    button is the thing to do, and "back to the panel" is the way out. It was
+    a full-size blue link under the button, louder than the step it undoes.
+
+    THE FIRST VERSION OF THIS CASE COULD NOT FAIL. It cut a window around a
+    translation KEY that never appears in rendered HTML, fell back to the
+    whole page, and found ``text-secondary`` in the footer. So it asks the
+    tag itself now - the anchor that leads back to the panel - which is the
+    twelfth time today a check of mine had to be turned from a word into the
+    thing it is about.
+    """
+    html = _pages(panel)["status (off)"]
+    inside_the_card = html[html.index('class="card'):]
+    back = re.search(r'<a[^>]*href="/"[^>]*>', inside_the_card)
+
+    assert back is not None, "no way back to the panel at all"
+
+    classes = re.search(r'class="([^"]*)"', back.group(0))
+
+    assert classes is not None, back.group(0)
+    assert "text-secondary" in classes.group(1), (
+        f"the way back is as loud as the button: {back.group(0)!r}")
+    assert "btn-primary" not in classes.group(1), back.group(0)
+
+
 def test_the_setup_page_still_shows_the_code_to_scan(panel):
     """The opposite mistake: a new shell that drops what the page is FOR.
     The operator's second screenshot is this one - the QR code, the key to
