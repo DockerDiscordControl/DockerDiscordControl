@@ -100,12 +100,22 @@ class CloseButton(discord.ui.Button):
     """
 
     def __init__(self, row: int = 0):
-        # NO LABEL, AND THE SAME ROW AS THE ACTIONS. The operator asked for
-        # "only the X, behind the Info button" once he saw it: the word made
-        # the panel two rows tall and read as a fourth kind of thing beside
-        # three controls that say what they do with an icon alone.
-        super().__init__(style=discord.ButtonStyle.secondary,
-                         emoji="\u2716\ufe0f", row=row, custom_id="ddc_close_panel")
+        # A SYMBOL AS THE LABEL, ON THE SAME ROW AS THE ACTIONS.
+        #
+        # THE ROW: he asked for "only the X, behind the Info button" once he
+        # saw it - the word made the panel two rows tall and read as a fourth
+        # kind of thing beside three controls that say what they do with an
+        # icon alone.
+        #
+        # THE SYMBOL, and not an emoji: Discord draws these with its own
+        # emoji set, which colours \u25b6\ufe0f \u23f9\ufe0f \ud83d\udd04 \u2139\ufe0f blue and \u2716\ufe0f dark grey, so the X
+        # came out washed out beside its blue neighbours and he asked whether
+        # a blue one existed. It does not - \u274c is red, \u274e is green - and a
+        # LABEL is drawn in the button's own white instead. U+2715 has no
+        # emoji form at all, which is exactly why it stays text. It is a
+        # symbol rather than a word, so it needs no catalogue key.
+        super().__init__(style=discord.ButtonStyle.secondary, label="\u2715",
+                         row=row, custom_id="ddc_close_panel")
 
     async def callback(self, interaction: discord.Interaction) -> None:
         # ANSWER FIRST. Discord gives three seconds, and deleting a message is

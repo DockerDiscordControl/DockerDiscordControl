@@ -240,10 +240,16 @@ def test_it_sits_with_the_other_buttons_and_carries_no_word():
     made the panel two rows tall and read as a fourth kind of thing next to
     three controls that say what they do with an icon alone.
 
-    So the rule is the row, not the word: the close button is the LAST item
-    of the same row as the actions, and it carries no label. Built through
-    the real factory, because a check on the class alone would not notice a
-    call site putting it back on row 1.
+    THEN THE ICON WAS WRONG TOO. As the ✖️ emoji it came out dark grey
+    beside three blue neighbours - he asked whether there was a blue X to
+    match. There is not, so it is written as a text symbol and drawn in the
+    button's own white.
+
+    So the rule is the row and the shape, not the word: the close button is
+    the LAST item of the same row as the actions, and carries a single
+    symbol that needs no translation. Built through the real factory,
+    because a check on the class alone would not notice a call site putting
+    it back on row 1.
     """
     import asyncio
 
@@ -261,8 +267,20 @@ def test_it_sits_with_the_other_buttons_and_carries_no_word():
     closing = items[-1]
 
     assert type(closing).__name__ == "CloseButton", [type(i).__name__ for i in items]
-    assert closing.label is None, f"the button still carries a word: {closing.label!r}"
-    assert closing.emoji is not None and "\u2716" in str(closing.emoji), str(closing.emoji)
+
+    # A SYMBOL AS THE LABEL, NOT AN EMOJI - and that is about colour, not
+    # taste. Discord draws these controls with its own emoji set, which
+    # colours ▶️ ⏹️ 🔄 ℹ️ blue and ✖️ dark grey; on the grey button the X
+    # came out washed out beside its blue neighbours, and the operator said
+    # so. There is no blue X in that set: the alternatives are ❌ (red) and
+    # ❎ (green). A LABEL is drawn in the button's own white, so the X is
+    # written as text instead.
+    assert closing.emoji is None, f"an emoji is back: {closing.emoji}"
+    assert closing.label == "\u2715", repr(closing.label)
+
+    # Still no WORD, which is what he asked for: nothing here needs a
+    # catalogue key, in any of the forty languages.
+    assert not any(character.isalpha() for character in closing.label), repr(closing.label)
 
     rows = {item.row for item in items}
 
