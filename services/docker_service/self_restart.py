@@ -26,8 +26,10 @@ way before the restart is asked for. The request thread therefore returns at
 once and a timer does the asking a moment later. Nothing waits for the result:
 by the time Docker acts there is nobody left to tell.
 
-`protected_containers` (["ddc", "portainer"]) is not a guard against this. It
-stops AUTO-ACTION RULES from acting on DDC, which is about a rule firing
+The auto-action guard is not a guard against this. It stops RULES from acting
+on DDC - automation_service.protected_names, which adds DDC's own container to
+`protected_containers`; the list alone ("ddc") never matched the real name
+"dockerdiscordcontrol" (audit 2026-09-26). That is about a rule firing
 unattended - the opposite of an operator pressing a button and being told the
 bot is going down.
 """

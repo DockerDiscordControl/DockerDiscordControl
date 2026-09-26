@@ -150,6 +150,46 @@ def rule_listens_to(rule, container: str) -> bool:
     return container in _resolved(rule.trigger.containers)
 
 
+# DDC's own container name, looked up once (None: not known yet, "": none).
+_own_name: Optional[str] = None
+
+
+def _own_container_name() -> str:
+    """The name of the container DDC runs in, or "" outside one.
+
+    Blocking (one Docker call through the proxy) - callers run it in a thread.
+    A failed lookup is not remembered, so the next action asks again.
+    """
+    global _own_name
+    if _own_name is None:
+        from services.docker_service.self_restart import describe_self, own_container_id
+
+        if not own_container_id():
+            _own_name = ""
+        else:
+            ok, name = describe_self()
+            if not ok:
+                return ""
+            _own_name = name
+    return _own_name
+
+
+async def protected_names(settings: Dict) -> set:
+    """The containers no rule may act on: the configured list AND DDC itself.
+
+    THE LIST ALONE DID NOT HOLD DDC. Its default names "ddc", and the
+    container is called "dockerdiscordcontrol" on the operator's server and in
+    every template (audit 2026-09-26). A rule with no container list and
+    RESTART on high_memory would have restarted DDC - and the process dies
+    before the cooldown is written, so it would do it again every time.
+    """
+    names = {str(p).lower() for p in settings.get('protected_containers', []) or []}
+    own = await asyncio.to_thread(_own_container_name)
+    if own:
+        names.add(own.lower())
+    return names
+
+
 def rule_may_act_on(rule, container: str) -> bool:
     """Whether a container-state rule may DO its action to this container.
 
@@ -452,14 +492,14 @@ class AutomationService:
         """Execute the action defined in the rule."""
         
         # 1. Check Protected Containers (Question 18)
-        protected = global_settings.get('protected_containers', [])
+        protected = await protected_names(global_settings)
         # Groups resolved: a rule may target "group:<name>", and asking Docker
         # to restart a container of that name would simply fail. A group that
         # is gone resolves to nothing, and nothing is what happens.
         target_containers = containers_of_action(rule)
         
         for container in target_containers:
-            if container.lower() in [p.lower() for p in protected]:
+            if container.lower() in protected:
                 logger.warning(f"AAS: Blocked action on protected container '{container}'")
                 self.state_service.record_trigger(
                     rule.id, rule.name, container, rule.action.type, "SKIPPED", "Protected container"
@@ -675,7 +715,7 @@ class AutomationService:
         container = event.container
         action_type = rule.action.type.upper()
         channel_id = rule.action.notification_channel_id or control_channel_id
-        protected = [p.lower() for p in settings.get('protected_containers', [])]
+        protected = await protected_names(settings)
 
         # Before the locks, so a refused action spends no cooldown.
         if not rule_may_act_on(rule, container):
