@@ -343,8 +343,8 @@ class BackgroundLoopsMixin:
         through the client factory; asks the registry by HEAD. Never pulls.
         """
         from services.automation.automation_service import get_automation_service
-        from services.automation.image_updates import (ImageUpdateChecker, local_digests,
-                                                       parse_image_reference, remote_digest)
+        from services.automation.image_updates import (ImageUpdateChecker, read_running_image,
+                                                       remote_digest)
         from services.docker_service.client_factory import build_docker_client
 
         checker = self.__dict__.setdefault('_image_update_checker', ImageUpdateChecker())
@@ -352,11 +352,7 @@ class BackgroundLoopsMixin:
         def read_local(name):
             client = build_docker_client(timeout=20)
             try:
-                image_name = client.containers.get(name).attrs.get('Config', {}).get('Image', '')
-                ref = parse_image_reference(image_name)
-                if ref is None:
-                    return image_name, None, set()
-                return image_name, ref, local_digests(client.images.get(image_name).attrs, ref)
+                return read_running_image(client, name)
             finally:
                 client.close()
 

@@ -109,7 +109,7 @@ cogs/__init__.py	7	pass2:s01:1-7
 cogs/action_effect.py	163	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
 cogs/admin_overview.py	988	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
-cogs/background_loops.py	750	v3rev:1-652
+cogs/background_loops.py	746	v3rev:1-652
 cogs/channel_lifecycle.py	631	v3rev2:1-646
 cogs/control_helpers.py	320	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/control_ui.py	2707	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
@@ -136,7 +136,7 @@ services/automation/auto_action_config_service.py	859	passE:bothscans+E25 v3rev:
 services/automation/auto_action_state_service.py	379	passE:bothscans+E25
 services/automation/automation_service.py	937	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	197	v3rev:1-157
-services/automation/image_updates.py	164	v3rev:1-164
+services/automation/image_updates.py	183	v3rev:1-164
 services/automation/own_actions.py	93	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/channel_config_service.py	585	passE:E28+bothscans:126-300

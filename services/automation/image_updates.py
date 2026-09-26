@@ -92,6 +92,25 @@ def local_digests(image_attrs: Dict, ref: ImageRef) -> Set[str]:
     return digests
 
 
+def read_running_image(client, container_name: str):
+    """(tag, parsed reference, digests of the image the container RUNS).
+
+    THE RUNNING IMAGE, NOT THE TAG'S. Config.Image names the tag the container
+    was created from; after a `docker pull` without recreating the container
+    that tag already points at the new image while the old one still runs.
+    Until 2026-09-26 the check read the tag's digests and said "no update" for
+    exactly that container. The container's own "Image" field is the id of what
+    runs; the tag only says which repository to ask the registry about.
+    """
+    attrs = client.containers.get(container_name).attrs
+    image_name = (attrs.get('Config') or {}).get('Image', '')
+    ref = parse_image_reference(image_name)
+    if ref is None:
+        return image_name, None, set()
+    running = attrs.get('Image') or image_name
+    return image_name, ref, local_digests(client.images.get(running).attrs, ref)
+
+
 def update_available(remote: Optional[str], local: Set[str]) -> Optional[bool]:
     """True/False when both sides are known, None (unknown) otherwise."""
     if not remote or not local:
