@@ -94,16 +94,52 @@ class AdminOverviewMaintenanceButton(Button):
             view=view, ephemeral=True, wait=True)
 
 
-class MaintenanceView(PrivateView):
-    """Private to whoever pressed 🔧, so it carries its own close button (PrivateView)."""
+class ContainerMaintenanceButton(Button):
+    """🔧 on a container's private admin panel (operator, 2026-09-26: "hang the
+    maintenance button directly on the containers"). The container is already
+    chosen there, so only the duration is asked. Green while it is paused."""
 
-    def __init__(self, containers, current_pauses):
+    def __init__(self, container: str, paused: bool = False):
+        self.container = container
+        super().__init__(style=discord.ButtonStyle.success if paused else discord.ButtonStyle.secondary,
+                         label=None, emoji="🔧")
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        from services.admin.admin_service import get_admin_service
+        from services.automation.maintenance import pauses
+
+        if not await get_admin_service().is_user_admin_async(str(interaction.user.id)):
+            await interaction.response.send_message(
+                _("❌ Only admins can put a container into maintenance."),
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+            return
+        current = pauses()
+        pause = current.get(self.container)
+        text = (_("🔧 `{container}` is in maintenance until {time}.").format(
+                    container=self.container,
+                    time=time.strftime("%H:%M", time.localtime(float(pause["until"]))))
+                if pause else
+                _("🔧 How long should the watchdog leave `{container}` alone? "
+                  "No notices, no restarts; the pause ends by itself.").format(container=self.container))
+        await interaction.response.send_message(text, view=MaintenanceView([self.container], current,
+                                                                           fixed=self.container),
+                                                ephemeral=True)
+
+
+class MaintenanceView(PrivateView):
+    """Private to whoever pressed 🔧, so it carries its own close button (PrivateView).
+
+    With ``fixed`` the container is already chosen (its own admin panel) and
+    only the durations are offered; without it a select comes first."""
+
+    def __init__(self, containers, current_pauses, fixed=None):
         super().__init__(timeout=300)
-        self.chosen = None
-        self.select = Select(placeholder=_("Container"), min_values=1, max_values=1,
-                             options=maintenance_options(containers, current_pauses), row=0)
-        self.select.callback = self._chosen
-        self.add_item(self.select)
+        self.chosen = fixed
+        if fixed is None:
+            self.select = Select(placeholder=_("Container"), min_values=1, max_values=1,
+                                 options=maintenance_options(containers, current_pauses), row=0)
+            self.select.callback = self._chosen
+            self.add_item(self.select)
         for minutes, label in DURATIONS:
             button = Button(style=discord.ButtonStyle.primary, label=label, row=1)
             button.callback = self._pause_for(minutes)

@@ -293,8 +293,10 @@ def test_it_sits_with_the_other_buttons_and_carries_no_word():
         f"{[[c.get('label') or c.get('custom_id') for c in r['components']] for r in rendered]}")
 
     # Discord fits five to a row. A container offers at most stop, restart and
-    # info, so the fourth seat is the close button and one stays free.
-    assert len(rendered[0]["components"]) == 4, rendered[0]
+    # info; since 2026-09-26 the free fifth seat is the 🔧 of watchdog
+    # maintenance (operator: "hang it directly on the containers"), so the row
+    # is full and the close button is still last on it.
+    assert len(rendered[0]["components"]) == 5, rendered[0]
     assert rendered[0]["components"][-1]["custom_id"] == "ddc_close_panel", rendered[0]
 
 

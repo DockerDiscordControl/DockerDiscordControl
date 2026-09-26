@@ -73,8 +73,7 @@ async def test_without_a_group_or_a_stack_the_button_is_not_there(world):
     view = ao.AdminOverviewView(SimpleNamespace(), 42, has_running_containers=True)
 
     assert _group_button(view) is None, "a button that can do nothing takes up the row"
-    # 5 since 2026-09-26: the 🔧 of watchdog maintenance joined the overview.
-    assert len(_buttons(view)) == 5
+    assert len(_buttons(view)) == 4
 
 
 @pytest.mark.asyncio
@@ -94,8 +93,7 @@ async def test_a_group_does_not_bring_it_back(world):
     view = ao.AdminOverviewView(SimpleNamespace(), 42, has_running_containers=True)
 
     assert _group_button(view) is None, "the stack button is drawn again"
-    # 5 since 2026-09-26: the 🔧 of watchdog maintenance joined the overview.
-    assert len(_buttons(view)) == 5
+    assert len(_buttons(view)) == 4
 
 
 @pytest.mark.asyncio

@@ -850,7 +850,7 @@
   "web.aas.tab_rules": "Regeln",
   "web.aas.tab_settings": "Globale Einstellungen",
   "web.maintenance.tab": "Wartung",
-  "web.maintenance.description": "Pausiere den Watchdog für einen Container, während du daran arbeitest: keine Meldungen, keine automatischen Neustarts. Die Pause endet von selbst, übersteht einen DDC-Neustart und lässt sich auch in Discord setzen (🔧 in der Admin-Übersicht).",
+  "web.maintenance.description": "Pausiere den Watchdog für einen Container, während du daran arbeitest: keine Meldungen, keine automatischen Neustarts. Die Pause endet von selbst, übersteht einen DDC-Neustart und lässt sich auch in Discord setzen (🔧 im Admin-Panel eines Containers).",
   "web.maintenance.container": "Container",
   "web.maintenance.duration": "Dauer",
   "web.maintenance.start": "Watchdog pausieren",
@@ -1845,5 +1845,7 @@
   "❌ No containers configured.": "❌ Keine Container konfiguriert.",
   "❌ Only admins can put a container into maintenance.": "❌ Nur Admins können einen Container in Wartung setzen.",
   "🔧 **Watchdog maintenance** - pick a container and how long the watchdog leaves it alone. No notices, no restarts; the pause ends by itself.": "🔧 **Watchdog-Wartung** - wähle einen Container und wie lange der Watchdog ihn in Ruhe lässt. Keine Meldungen, keine Neustarts; die Pause endet von selbst.",
-  "🔧 `{container}` is in maintenance until {time} - the watchdog leaves it alone.": "🔧 `{container}` ist bis {time} in Wartung - der Watchdog lässt ihn in Ruhe."
+  "🔧 `{container}` is in maintenance until {time} - the watchdog leaves it alone.": "🔧 `{container}` ist bis {time} in Wartung - der Watchdog lässt ihn in Ruhe.",
+  "🔧 `{container}` is in maintenance until {time}.": "🔧 `{container}` ist bis {time} in Wartung.",
+  "🔧 How long should the watchdog leave `{container}` alone? No notices, no restarts; the pause ends by itself.": "🔧 Wie lange soll der Watchdog `{container}` in Ruhe lassen? Keine Meldungen, keine Neustarts; die Pause endet von selbst."
 }

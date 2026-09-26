@@ -850,7 +850,7 @@
   "web.aas.tab_rules": "Regler",
   "web.aas.tab_settings": "Globala inställningar",
   "web.maintenance.tab": "Maintenance",
-  "web.maintenance.description": "Pause the watchdog for one container while you work on it: no notices, no automatic restarts. The pause ends by itself, survives a DDC restart, and can also be set from Discord (🔧 on the admin overview).",
+  "web.maintenance.description": "Pause the watchdog for one container while you work on it: no notices, no automatic restarts. The pause ends by itself, survives a DDC restart, and can also be set from Discord (🔧 on a container's admin panel).",
   "web.maintenance.container": "Container",
   "web.maintenance.duration": "Duration",
   "web.maintenance.start": "Pause watchdog",
@@ -1845,5 +1845,7 @@
   "❌ No containers configured.": "❌ No containers configured.",
   "❌ Only admins can put a container into maintenance.": "❌ Only admins can put a container into maintenance.",
   "🔧 **Watchdog maintenance** - pick a container and how long the watchdog leaves it alone. No notices, no restarts; the pause ends by itself.": "🔧 **Watchdog maintenance** - pick a container and how long the watchdog leaves it alone. No notices, no restarts; the pause ends by itself.",
-  "🔧 `{container}` is in maintenance until {time} - the watchdog leaves it alone.": "🔧 `{container}` is in maintenance until {time} - the watchdog leaves it alone."
+  "🔧 `{container}` is in maintenance until {time} - the watchdog leaves it alone.": "🔧 `{container}` is in maintenance until {time} - the watchdog leaves it alone.",
+  "🔧 `{container}` is in maintenance until {time}.": "🔧 `{container}` is in maintenance until {time}.",
+  "🔧 How long should the watchdog leave `{container}` alone? No notices, no restarts; the pause ends by itself.": "🔧 How long should the watchdog leave `{container}` alone? No notices, no restarts; the pause ends by itself."
 }

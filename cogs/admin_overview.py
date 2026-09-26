@@ -206,9 +206,14 @@ class AdminOverviewView(DDCView):
             self.add_item(AdminOverviewRestartStackButton(cog_instance, channel_id,
                                                           enabled=has_running_containers))
         self.add_item(AdminOverviewDonateButton(cog_instance, channel_id))
-        # Watchdog maintenance (operator, 2026-09-26), in row 1: row 0 is full.
-        from .watchdog_maintenance import AdminOverviewMaintenanceButton
-        self.add_item(AdminOverviewMaintenanceButton(cog_instance, channel_id))
+        # Watchdog maintenance sat here for one evening (2026-09-26) and moved to
+        # each container's own admin panel (group_control.admin_control_view):
+        # the operator wanted it where the container already is. Built only for
+        # bot.add_view, like the stack button: an overview posted that evening
+        # still carries the 🔧, and it must go on answering.
+        if every_button:
+            from .watchdog_maintenance import AdminOverviewMaintenanceButton
+            self.add_item(AdminOverviewMaintenanceButton(cog_instance, channel_id))
 
 async def _admin_button_braked(interaction: discord.Interaction, name: str) -> bool:
     """Spam brake for the admin overview's buttons. True means: refused.

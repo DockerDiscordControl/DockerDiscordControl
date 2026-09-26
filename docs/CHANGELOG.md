@@ -149,7 +149,7 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
     100 per core) or the whole host. Existing rules keep "one core".
 - **Maintenance per container** (operator request 2026-09-26): a pause of 1 minute to a week,
   kept in `config/watchdog_maintenance.json`; events of a paused container reach no rule. Panel:
-  Auto-Actions -> Maintenance. Discord: 🔧 on the admin overview (admin list only).
+  Auto-Actions -> Maintenance. Discord: 🔧 on each container's admin panel (admin list only).
 - **Alarm webhook:** Auto-Actions -> Settings. ntfy, Gotify or a generic JSON POST, recognised by
   the URL; "only when Discord fails" (also when there is no bot) or "always".
 - Container-state rules survive a round trip through v2.4.1 (measured with both images: v2.4.1

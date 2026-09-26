@@ -108,7 +108,7 @@ app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/action_effect.py	163	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
-cogs/admin_overview.py	991	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/admin_overview.py	996	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	807	v3rev:1-652
 cogs/channel_lifecycle.py	631	v3rev2:1-646
@@ -118,7 +118,7 @@ cogs/ddc_ui.py	233	passE:written-2026-09-21
 cogs/docker_control.py	1252	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	655	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
-cogs/group_control.py	329	NONE
+cogs/group_control.py	339	NONE
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	728	v3rev2:1-791
 cogs/overview_embeds.py	655	v3rev2:1-964
@@ -129,7 +129,7 @@ cogs/status_info_integration.py	1267	passE:buttons+loops+bothscans:32-76,159-225
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	97	passE:E32:read-in-full
-cogs/watchdog_maintenance.py	154	NONE
+cogs/watchdog_maintenance.py	190	NONE
 services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	417	passE:F1-feature-read:87-160,262-330

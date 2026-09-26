@@ -305,6 +305,16 @@ def admin_control_view(cog, container_config: dict, is_running: bool):
 
     view = ControlView(cog, container_config, is_running=is_running,
                        channel_has_control_permission=True)  # an admin always has it
+    # Watchdog maintenance for THIS container (operator, 2026-09-26). Not for
+    # a group: a pause is per container.
+    from services.docker_service.group_actions import is_group_target
+
+    name = container_config.get('docker_name') or container_config.get('name') or ''
+    if name and not is_group_target(name):
+        from services.automation.maintenance import is_paused
+
+        from .watchdog_maintenance import ContainerMaintenanceButton
+        view.add_item(ContainerMaintenanceButton(name, paused=is_paused(name)))
     view.add_item(CloseButton())  # last on the action row
     return view
 
