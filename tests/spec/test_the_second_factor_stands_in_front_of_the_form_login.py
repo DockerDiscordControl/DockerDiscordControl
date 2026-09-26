@@ -238,4 +238,7 @@ def test_a_wrong_password_is_not_let_in_by_the_gate(panel):
                                    base_url=SECURE)
 
     assert answer.status_code in (302, 401), answer.status_code
-    assert answer.status_code != 200
+    # A redirect must go to the login, not to the code page: the code page
+    # would mean the gate took the wrong password for a right one (audit
+    # 2026-09-26 - the status alone let that pass).
+    assert "/security/2fa/verify" not in answer.headers.get("Location", "")
