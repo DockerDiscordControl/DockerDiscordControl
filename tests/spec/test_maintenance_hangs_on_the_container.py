@@ -6,10 +6,12 @@ panel (stop, restart, info, close): "we should hang the maintenance button
 directly on the containers in Discord". The 🔧 of the overview asked for the
 container a second time; here it is already chosen, so only the duration is.
 
-THE CONTRACT: every container's admin panel carries 🔧 before its close
-button, green while the container is paused; a group's panel does not (a
-pause is per container); pressing it offers the durations for THAT container
-and sets its pause. The overview no longer draws a 🔧, but still registers it
+THE CONTRACT: a container's admin panel carries 🔧 before its close button,
+green while the container is paused; pressing it offers the durations for
+THAT container and sets its pause. Since 2026-09-27 only where the watchdog
+looks, and a group's panel has one too - both in
+test_the_wrench_shows_where_the_watchdog_looks.py; here the watchdog is
+taken to watch every container. The overview no longer draws a 🔧, but still registers it
 so an overview posted that evening goes on answering.
 
 COUNTER-CHECK (2026-09-26): red before the move - no 🔧 on the container
@@ -28,6 +30,7 @@ from services.automation import maintenance
 @pytest.fixture(autouse=True)
 def config(monkeypatch, tmp_path):
     monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setattr(maintenance, "watched", lambda _container: True)
     return tmp_path
 
 
@@ -65,7 +68,8 @@ async def test_it_is_green_while_the_container_is_paused():
 
 
 @pytest.mark.asyncio
-async def test_a_group_panel_has_none():
+async def test_a_group_without_members_has_none():
+    """A group whose members DDC does not have: nothing to pause."""
     view = _panel({"docker_name": "group:Gameserver", "name": "Gameserver", "allowed_actions": ["restart"]})
 
     assert _wrench(view) is None

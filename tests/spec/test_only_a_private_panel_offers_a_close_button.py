@@ -230,7 +230,7 @@ def test_the_admin_panel_does_ask_for_one():
     assert callers == 2, f"expected the two admin-panel sites, found {callers}"
 
 
-def test_it_sits_with_the_other_buttons_and_carries_no_word():
+def test_it_sits_with_the_other_buttons_and_carries_no_word(monkeypatch):
     """THE OPERATOR, shown the panel (2026-09-25): "only the X, behind the
     Info button."
 
@@ -254,6 +254,11 @@ def test_it_sits_with_the_other_buttons_and_carries_no_word():
     import asyncio
 
     from cogs.group_control import admin_control_view
+    from services.automation import maintenance
+
+    # The 🔧 shows only where the watchdog looks (2026-09-27); this panel is
+    # the full row, so it does.
+    monkeypatch.setattr(maintenance, "watched", lambda _container: True)
 
     async def build():
         cog = SimpleNamespace(pending_actions={}, expanded_states={})

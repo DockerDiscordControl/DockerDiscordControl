@@ -305,18 +305,40 @@ def admin_control_view(cog, container_config: dict, is_running: bool):
 
     view = ControlView(cog, container_config, is_running=is_running,
                        channel_has_control_permission=True)  # an admin always has it
-    # Watchdog maintenance for THIS container (operator, 2026-09-26). Not for
-    # a group: a pause is per container.
-    from services.docker_service.group_actions import is_group_target
-
-    name = container_config.get('docker_name') or container_config.get('name') or ''
-    if name and not is_group_target(name):
-        from services.automation.maintenance import is_paused
-
-        from .watchdog_maintenance import ContainerMaintenanceButton
-        view.add_item(ContainerMaintenanceButton(name, paused=is_paused(name)))
+    # Watchdog maintenance (operator, 2026-09-26/27): on a container's panel and
+    # on a group's, but only where the watchdog looks - a pause of something no
+    # rule watches changes nothing. A paused one keeps it, so the pause can end.
+    wrench = _maintenance_button(container_config)
+    if wrench is not None:
+        view.add_item(wrench)
     view.add_item(CloseButton())  # last on the action row
     return view
+
+
+def _maintenance_button(container_config: dict):
+    """The 🔧 for this panel, or None. A group's pauses every member."""
+    from services.automation.maintenance import is_paused, watched
+    from services.docker_service.group_actions import group_name_of, is_group_target
+
+    from .watchdog_maintenance import ContainerMaintenanceButton
+
+    name = container_config.get('docker_name') or container_config.get('name') or ''
+    if not name:
+        return None
+    if not is_group_target(name):
+        paused = is_paused(name)
+        return ContainerMaintenanceButton(name, paused=paused) if paused or watched(name) else None
+    try:
+        from services.config.group_service import get_group_service
+
+        members = get_group_service().members_of(group_name_of(name)).containers or []
+    except OSError:
+        return None
+    paused = [member for member in members if is_paused(member)]
+    if not paused and not any(watched(member) for member in members):
+        return None
+    return ContainerMaintenanceButton(list(members), paused=len(paused) == len(members),
+                                      label=container_config.get('name') or group_name_of(name))
 
 
 async def running_state_for(cog, selected: str, config: dict) -> Tuple[bool, bool]:

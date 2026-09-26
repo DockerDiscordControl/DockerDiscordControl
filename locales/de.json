@@ -1859,5 +1859,10 @@
   "js.aas.webhook_without_id_hint": "Nur Webhooks, aber ohne Webhook-ID: Jeder Webhook im Kanal löst diese Regel aus. Trage die ID des Webhooks unter 'Erlaubte Benutzer-IDs' ein - aktiv speichern lässt sie sich nur noch damit.",
   "js.ct.auto_disabled": "Nach 5 Fehlern gestoppt",
   "js.ct.auto_disabled_hint": "Der Bot hat dieses Paar nach fünf fehlgeschlagenen Übersetzungen in Folge gestoppt. Prüfe die Sprachen und den Anbieter-Schlüssel und speichere das Paar dann erneut oder schalte es aus und wieder ein.",
-  "web.lang.microsoft_region_label": "Azure-Region (Microsoft)"
+  "web.lang.microsoft_region_label": "Azure-Region (Microsoft)",
+  "🔧 How long should the watchdog leave the {count} containers of `{group}` alone? No notices, no restarts; the pause ends by itself.": "🔧 Wie lange soll der Watchdog die {count} Container von `{group}` in Ruhe lassen? Keine Meldungen, keine Neustarts; die Pause endet von selbst.",
+  "✅ Maintenance ended for {names} - the watchdog watches them again.": "✅ Wartung beendet für {names} - der Watchdog beobachtet sie wieder.",
+  "None of these containers was in maintenance.": "Keiner dieser Container war in Wartung.",
+  "🔧 {names} in maintenance until {time} - the watchdog leaves them alone.": "🔧 {names} in Wartung bis {time} - der Watchdog lässt sie in Ruhe.",
+  "Left out, not assigned to you: {names}": "Ausgelassen, dir nicht zugewiesen: {names}"
 }

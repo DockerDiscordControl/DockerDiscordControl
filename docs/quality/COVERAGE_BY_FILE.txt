@@ -118,7 +118,7 @@ cogs/ddc_ui.py	233	passE:written-2026-09-21
 cogs/docker_control.py	1252	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	693	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
-cogs/group_control.py	339	NONE
+cogs/group_control.py	361	NONE
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	728	v3rev2:1-791
 cogs/overview_embeds.py	655	v3rev2:1-964
@@ -129,7 +129,7 @@ cogs/status_info_integration.py	1285	passE:buttons+loops+bothscans:32-76,159-225
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	107	passE:E32:read-in-full
-cogs/watchdog_maintenance.py	217	NONE
+cogs/watchdog_maintenance.py	262	NONE
 services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	429	passE:F1-feature-read:87-160,262-330
@@ -140,7 +140,7 @@ services/automation/auto_action_state_service.py	379	passE:bothscans+E25
 services/automation/automation_service.py	983	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	224	v3rev:1-157
 services/automation/image_updates.py	183	v3rev:1-164
-services/automation/maintenance.py	95	NONE
+services/automation/maintenance.py	124	NONE
 services/automation/own_actions.py	93	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/backup_service.py	206	NONE

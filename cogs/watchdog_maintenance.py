@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Optional
 
 import discord
 from discord.ui import Button, Select
@@ -110,36 +111,48 @@ def _may_pause(user_id, container: str) -> bool:
 class ContainerMaintenanceButton(Button):
     """🔧 on a container's private admin panel (operator, 2026-09-26: "hang the
     maintenance button directly on the containers"). The container is already
-    chosen there, so only the duration is asked. Green while it is paused."""
+    chosen there, so only the duration is asked. Green while it is paused.
 
-    def __init__(self, container: str, paused: bool = False):
-        self.container = container
+    On a GROUP's panel it carries the members (operator, 2026-09-27: "I should
+    be able to put groups into maintenance too") and pauses every one of them
+    the admin may control; ``label`` is the group's name for the messages."""
+
+    def __init__(self, containers, paused: bool = False, label: Optional[str] = None):
+        self.containers = [containers] if isinstance(containers, str) else list(containers)
+        self.container = self.containers[0] if len(self.containers) == 1 else None
+        self.label_text = label
         super().__init__(style=discord.ButtonStyle.success if paused else discord.ButtonStyle.secondary,
                          label=None, emoji="🔧")
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        from services.admin.admin_service import get_admin_service
         from services.automation.maintenance import pauses
         from .admin_overview import _admin_button_braked
 
         # The same brake as the overview's 🔧 (spam audit 2026-09-26: this one had none).
         if await _admin_button_braked(interaction, "admin_overview_maintenance"):
             return
-        if not _may_pause(interaction.user.id, self.container):
+        if not any(_may_pause(interaction.user.id, c) for c in self.containers):
             await interaction.response.send_message(
                 _("❌ Only admins can put a container into maintenance."),
                 ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
         current = pauses()
-        pause = current.get(self.container)
-        text = (_("🔧 `{container}` is in maintenance until {time}.").format(
-                    container=self.container,
-                    time=time.strftime("%H:%M", time.localtime(float(pause["until"]))))
-                if pause else
-                _("🔧 How long should the watchdog leave `{container}` alone? "
-                  "No notices, no restarts; the pause ends by itself.").format(container=self.container))
-        await interaction.response.send_message(text, view=MaintenanceView([self.container], current,
-                                                                           fixed=self.container),
+        if self.container is None:
+            text = _("🔧 How long should the watchdog leave the {count} containers of `{group}` alone? "
+                     "No notices, no restarts; the pause ends by itself.").format(
+                         count=len(self.containers), group=self.label_text or "")
+            fixed = list(self.containers)
+        else:
+            pause = current.get(self.container)
+            text = (_("🔧 `{container}` is in maintenance until {time}.").format(
+                        container=self.container,
+                        time=time.strftime("%H:%M", time.localtime(float(pause["until"]))))
+                    if pause else
+                    _("🔧 How long should the watchdog leave `{container}` alone? "
+                      "No notices, no restarts; the pause ends by itself.").format(container=self.container))
+            fixed = self.container
+        await interaction.response.send_message(text, view=MaintenanceView(self.containers, current,
+                                                                           fixed=fixed),
                                                 ephemeral=True)
 
 
@@ -183,6 +196,10 @@ class MaintenanceView(PrivateView):
 
             if await self._need_choice(interaction):
                 return
+            if isinstance(self.chosen, list):
+                await self._for_members(interaction, lambda c: pause(
+                    c, minutes, by=f"discord:{interaction.user.id}"), f"Discord, {minutes} min")
+                return
             if not _may_pause(interaction.user.id, self.chosen):
                 await interaction.response.send_message(
                     _("❌ Only admins can put a container into maintenance."),
@@ -203,6 +220,9 @@ class MaintenanceView(PrivateView):
 
         if await self._need_choice(interaction):
             return
+        if isinstance(self.chosen, list):
+            await self._for_members(interaction, resume, "Discord", ending=True)
+            return
         if not _may_pause(interaction.user.id, self.chosen):
             await interaction.response.send_message(
                 _("❌ Only admins can put a container into maintenance."),
@@ -215,3 +235,28 @@ class MaintenanceView(PrivateView):
             (_("✅ Maintenance of `{container}` ended - the watchdog watches it again.") if ended
              else _("`{container}` was not in maintenance.")).format(container=self.chosen),
             ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+
+    async def _for_members(self, interaction, act, source: str, ending: bool = False) -> None:
+        """A group's 🔧: act on every member this admin may control - asked per
+        member at every press - and name the ones left out."""
+        from services.infrastructure.action_logger import log_user_action
+
+        allowed = [c for c in self.chosen if _may_pause(interaction.user.id, c)]
+        skipped = [c for c in self.chosen if c not in allowed]
+        results = {c: act(c) for c in allowed}
+        done = [c for c in allowed if results[c]]
+        for container in done:
+            log_user_action("MAINTENANCE_END" if ending else "MAINTENANCE", container,
+                            source=source, user=str(interaction.user))
+        names = ", ".join(f"`{c}`" for c in done)
+        if ending:
+            text = (_("✅ Maintenance ended for {names} - the watchdog watches them again.").format(names=names)
+                    if done else _("None of these containers was in maintenance."))
+        else:
+            until = max(results.values()) if results else time.time()
+            text = _("🔧 {names} in maintenance until {time} - the watchdog leaves them alone.").format(
+                names=names, time=time.strftime("%H:%M", time.localtime(until)))
+        if skipped:
+            text += "\n" + _("Left out, not assigned to you: {names}").format(
+                names=", ".join(f"`{c}`" for c in skipped))
+        await interaction.response.send_message(text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)

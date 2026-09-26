@@ -393,7 +393,7 @@ app/web/compat.py:1-102
 cogs/ddc_ui.py:1-233
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
-cogs/group_control.py:1-339
+cogs/group_control.py:1-361
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).
@@ -465,8 +465,8 @@ services/config/backup_service.py:1-206
 # Watchdog maintenance (operator, 2026-09-26): the pause store and the
 # Discord button that sets it; the panel's three routes live with the other
 # automation routes.
-cogs/watchdog_maintenance.py:1-217
-services/automation/maintenance.py:1-95
+cogs/watchdog_maintenance.py:1-262
+services/automation/maintenance.py:1-124
 # The alarm webhook joined on 2026-09-26: the watchdog's way out of Discord.
 services/automation/alert_webhook.py:1-104
 

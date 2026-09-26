@@ -93,3 +93,32 @@ def resume(container: str) -> bool:
         del data[container]
         _write(data)
         return True
+
+
+def watched(container: str) -> bool:
+    """Whether the watchdog looks at this container at all: auto-actions on, and
+    an enabled container-state rule listening to it.
+
+    The 🔧 is drawn only then (operator, 2026-09-27: "only when the watchdog is
+    active - that would make sense"): a pause of a container no rule watches
+    changes nothing, and the button promised otherwise. When the rules cannot
+    be read, the answer is yes - a button too many is harmless, a pause that
+    cannot be set or ended is not.
+    """
+    try:
+        from services.automation.auto_action_config_service import (
+            TRIGGER_CONTAINER_STATE, get_auto_action_config_service)
+        from services.automation.automation_service import rule_listens_to
+
+        service = get_auto_action_config_service()
+        if not service.get_global_settings().get('enabled', True):
+            return False
+        return any(rule.enabled and rule.trigger.type == TRIGGER_CONTAINER_STATE
+                   and rule_listens_to(rule, container)
+                   for rule in service.get_rules())
+    except (ImportError, OSError, ValueError, RuntimeError, AttributeError) as e:
+        import logging
+
+        logging.getLogger('ddc.maintenance').warning(
+            f"Could not tell whether the watchdog watches {container}: {e}")
+        return True
