@@ -328,7 +328,7 @@ app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-68
 app/web/background.py:1-85
-app/web/blueprints.py:1-39
+app/web/blueprints.py:1-41
 
 ## Section 35  (1778 lines, 14 pieces)
 # utils/config_cache.py left for section 38 on 2026-09-24: /health stopped
@@ -453,3 +453,9 @@ app/utils/port_diagnostics.py:1-824
 # the wait - and put section 11 at 2,053; container_watch.py is the piece of
 # it that stands on its own.
 services/automation/container_watch.py:1-224
+
+## Section 46  (334 lines, 2 pieces)
+# Backup and restore of the whole configuration (operator, 2026-09-26): the
+# routes and the service that writes and reads the archive, one subject.
+app/blueprints/backup_routes.py:1-128
+services/config/backup_service.py:1-206

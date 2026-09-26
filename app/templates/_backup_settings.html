@@ -1,0 +1,41 @@
+{# Backup & restore of the whole configuration (operator, 2026-09-26).
+   INSIDE #config-form because the System tab is, but NOT PART OF IT: none of
+   these inputs has a name, so saveConfigAjax never collects them - the
+   password asked here must not travel with an ordinary settings save, and the
+   buttons are type="button" so none of them submits the form.
+   The routes: app/blueprints/backup_routes.py. The script:
+   app/static/js/backup_restore.js. #}
+<hr class="my-4">
+<div id="backup-settings" class="mb-3 card p-3">
+    <h4>{{ _t('web.backup.heading') }}</h4>
+    <p class="form-text">{{ _t('web.backup.description') }}</p>
+    <div class="row">
+        <div class="col-md-4 mb-3 d-flex flex-column">
+            <label for="backupPassword" class="form-label">{{ _t('web.backup.password_label') }}</label>
+            <input type="password" class="form-control mt-auto" id="backupPassword" autocomplete="current-password" data-changes-the-view="true">
+        </div>
+        <div class="col-md-4 mb-3 d-flex flex-column justify-content-end">
+            <button type="button" class="btn btn-outline-primary" onclick="downloadBackup()">
+                <i class="bi bi-download"></i> {{ _t('web.backup.download_btn') }}
+            </button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-8 mb-3 d-flex flex-column">
+            <label for="restoreFile" class="form-label">{{ _t('web.backup.restore_file_label') }}</label>
+            <input type="file" class="form-control mt-auto" id="restoreFile" accept=".zip,application/zip" data-changes-the-view="true">
+        </div>
+        <div class="col-md-4 mb-3 d-flex flex-column justify-content-end">
+            <button type="button" class="btn btn-outline-secondary" onclick="previewRestore()">
+                <i class="bi bi-search"></i> {{ _t('web.backup.preview_btn') }}
+            </button>
+        </div>
+    </div>
+    <div id="restorePreview" class="alert alert-warning d-none">
+        <p id="restorePreviewText" class="mb-2"></p>
+        <p class="small mb-2">{{ _t('web.backup.apply_warning') }}</p>
+        <button type="button" class="btn btn-danger btn-sm" onclick="applyRestore()">
+            <i class="bi bi-arrow-counterclockwise"></i> {{ _t('web.backup.apply_btn') }}
+        </button>
+    </div>
+</div>

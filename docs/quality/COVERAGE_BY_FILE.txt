@@ -51,6 +51,7 @@ app/__init__.py	13	pass1:s31:plan pass2:s31:1-13
 app/auth.py	344	pass1:s31:plan pass2:s31:1-249 v3rev2:1-270
 app/blueprints/action_log_routes.py	91	pass1:s31:plan pass2:s31:1-86  [5 of 91 lines never in a package]
 app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
+app/blueprints/backup_routes.py	128	NONE
 app/blueprints/group_routes.py	169	NONE
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
 app/blueprints/login_routes.py	123	new 2026-09-23 (the panel form login and logout), written test-first
@@ -92,7 +93,7 @@ app/web/__init__.py	12	pass1:s34:1-12
 app/web/action_logger.py	20	pass1:s34:1-20
 app/web/app_factory.py	68	pass1:s34:1-61 v3rev2:1-68
 app/web/background.py	85	pass1:s34:1-85
-app/web/blueprints.py	39	pass1:s34:1-31
+app/web/blueprints.py	41	pass1:s34:1-31
 app/web/compat.py	102	pass1:s34:1-102
 app/web/config.py	170	pass1:s35:1-169
 app/web/csrf.py	130	pass1:s35:1-125
@@ -139,6 +140,7 @@ services/automation/container_watch.py	224	v3rev:1-157
 services/automation/image_updates.py	183	v3rev:1-164
 services/automation/own_actions.py	93	NONE
 services/config/__init__.py	16	passE:read-in-full
+services/config/backup_service.py	206	NONE
 services/config/channel_config_service.py	585	passE:E28+bothscans:126-300
 services/config/channel_roles.py	38	NONE
 services/config/config_cache_service.py	177	passE:E29:read-in-full
