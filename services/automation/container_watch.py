@@ -73,6 +73,23 @@ class ContainerWatcher:
         self._last: Dict[str, ContainerState] = {}
         self._restarts: Dict[str, Deque[Tuple[float, int]]] = {}
         self._loop_alerted_at: Dict[str, float] = {}
+        # Names whose last state came from before this process started (restore);
+        # their first event says so.
+        self._restored: set = set()
+
+    # THE STATE SURVIVES A RESTART (operator decision 2026-09-26). Until then
+    # every start began with a silent baseline, so a container that went down
+    # while DDC was offline - a rebuild, a host reboot - was never reported.
+    # Only running and health are kept: restart counts start afresh.
+    def export(self) -> Dict[str, Dict]:
+        return {name: {"running": state.running, "health": state.health}
+                for name, state in self._last.items()}
+
+    def restore(self, saved: Dict[str, Dict]) -> None:
+        for name, entry in (saved or {}).items():
+            if isinstance(entry, dict) and name not in self._last:
+                self._last[name] = ContainerState(bool(entry.get("running")), entry.get("health"))
+                self._restored.add(name)
 
     def observe(self, states: Dict[str, ContainerState], now: float,
                 expected: Iterable[str] = ()) -> List[WatchEvent]:
@@ -85,10 +102,14 @@ class ContainerWatcher:
             # The state is remembered before any decision: the next poll compares
             # against THIS one, so a state that does not change is reported once.
             self._last[name] = state
+            restored = name in self._restored
+            self._restored.discard(name)
             if before is None:
                 continue
             if before.running and not state.running and name not in expected:
-                events.append(WatchEvent(name, STOPPED, f"Container '{name}' stopped (it was running)."))
+                events.append(WatchEvent(name, STOPPED, (
+                    f"Container '{name}' stopped while DDC was offline (it was running before)."
+                    if restored else f"Container '{name}' stopped (it was running).")))
             # UNHEALTHY ONLY WHILE RUNNING. Docker reports a stopped (or paused)
             # container with a health check as "unhealthy"; until 2026-09-26 that
             # made every stop an unhealthy alarm - DDC's own scheduled stops too,

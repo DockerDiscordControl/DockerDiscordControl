@@ -66,6 +66,46 @@ def _measured_for(result, metric: str, unit: str):
     return getattr(result, 'memory_mb', None) if limited is False else None
 
 
+WATCH_STATE_FILE = "watchdog_state.json"
+
+
+def _watch_state_path():
+    from utils.config_paths import get_config_dir
+
+    return get_config_dir() / WATCH_STATE_FILE
+
+
+def _load_watch_state() -> dict:
+    """The watchdog's last known container states, or {} (never raises)."""
+    import json
+
+    try:
+        data = json.loads(_watch_state_path().read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_watch_state(states: dict) -> None:
+    import json
+
+    from utils.atomic_io import atomic_write_text
+
+    try:
+        atomic_write_text(_watch_state_path(), json.dumps(states, indent=2, sort_keys=True))
+    except OSError as e:
+        logger.warning(f"[WATCHDOG] Could not keep the container states for the next start: {e}")
+
+
+def _forget_watch_state() -> None:
+    try:
+        _watch_state_path().unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as e:
+        logger.warning(f"[WATCHDOG] Could not remove {WATCH_STATE_FILE}: {e}")
+
+
 class BackgroundLoopsMixin:
     """Periodic loops, mixed into DockerControlCog."""
 
@@ -247,6 +287,7 @@ class BackgroundLoopsMixin:
             # against a state from days ago: a maintenance stop made meanwhile was
             # reported, and a restart rule acted on it (audit 2026-09-26).
             self.__dict__.pop('_container_watchers', None)
+            _forget_watch_state()
             return
         control = control_channel_ids(config or {})
         control_id = control[0] if control else None
@@ -267,8 +308,16 @@ class BackgroundLoopsMixin:
         # "for five minutes" on a single sample (a step forward).
         now = time.monotonic()
         expected = set(getattr(self, 'pending_actions', {}) or {}) | expected_stops(now)
-        base = watchers.setdefault('base', ContainerWatcher())
+        if 'base' not in watchers:
+            # A fresh process: pick up where the last one left off (F11).
+            watchers['base'] = ContainerWatcher()
+            watchers['base'].restore(_load_watch_state())
+        base = watchers['base']
         events = [e for e in base.observe(snapshot, now, expected) if e.kind != RESTART_LOOP]
+        kept = base.export()
+        if kept != self.__dict__.get('_saved_watch_state'):
+            _save_watch_state(kept)
+            self.__dict__['_saved_watch_state'] = kept
         # The note has done its work once this poll has seen the container stopped
         for name in (n for n, state in snapshot.items() if not state.running and n in expected):
             forget_own_action(name)
