@@ -235,10 +235,10 @@ services/scheduling/scheduler.py:1-1745
 services/scheduling/scheduler.py:1746-2243
 services/scheduling/scheduler_service.py:1-568
 services/status/status_cache_service.py:1-225
-services/translation/translation_config_service.py:1-687
+services/translation/translation_config_service.py:1-683
 
 ## Section 28  (1982 lines, 4 pieces)
-services/translation/translation_service.py:1-762
+services/translation/translation_service.py:1-766
 services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-555
 services/web/configuration_save_service.py:1-653

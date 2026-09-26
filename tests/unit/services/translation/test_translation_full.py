@@ -1116,16 +1116,35 @@ class TestProcessMessage:
         out = await translation_service.process_message(ctx, MagicMock())
         assert out == []
 
-    async def test_target_loop_prevention(self, translation_service, setup_pair):
-        # Message coming from a target channel (also accidentally a source)
+    async def test_a_target_channel_may_also_be_a_source(self, translation_service, setup_pair,
+                                                         monkeypatch):
+        """REVERSED 2026-09-26 (audit). This case pinned the opposite: a message
+        in any channel that is some pair's TARGET was never translated. That
+        made A->B plus B->A translate nothing in either direction, and A->B
+        plus B->C left B->C dead - silently, the save said success. The loop it
+        guarded against is already closed twice: the monitor ignores the bot's
+        own posts, and every translated message id is remembered."""
         cs = translation_service.config_service
         # Add a second pair where source == previous pair's target
         cs.add_pair(_make_pair_data(
-            name="P-loop",
+            name="P-chain",
             src="222222222222222222", tgt="333333333333333333",
         ))
-        ctx = self._ctx(channel_id="222222222222222222")
+        monkeypatch.setattr(translation_service, "_translate_with_retry",
+                            AsyncMock(return_value=TranslationResult(
+                                success=True, translated_text="Hallo",
+                                detected_language="EN", provider="DeepL")))
+        monkeypatch.setattr(translation_service, "_post_translation", AsyncMock())
+        monkeypatch.setattr(translation_service, "_get_session", AsyncMock(return_value=MagicMock()))
+        ctx = self._ctx(channel_id="222222222222222222", content="Hello")
         out = await translation_service.process_message(ctx, MagicMock())
+        assert out == ["P-chain"]
+
+    async def test_a_translated_message_is_never_translated_again(self, translation_service,
+                                                                  setup_pair):
+        """The loop guard that remains, pinned: a message this service posted."""
+        translation_service.mark_as_translated("m1")
+        out = await translation_service.process_message(self._ctx(content="Hello"), MagicMock())
         assert out == []
 
     async def test_no_api_key(self, translation_service, setup_pair, monkeypatch):

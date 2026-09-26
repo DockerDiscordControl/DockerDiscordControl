@@ -543,15 +543,11 @@ class TranslationConfigService:
             try:
                 config = self._load_config_file()
 
-                # Cross-pair loop detection
-                existing_sources = {p.get('source_channel_id') for p in config.get('channel_pairs', [])}
-                existing_targets = {p.get('target_channel_id') for p in config.get('channel_pairs', [])}
-                if new_pair.target_channel_id in existing_sources:
-                    logger.warning(f"Loop risk: target channel {new_pair.target_channel_id} "
-                                   f"is a source in another pair")
-                if new_pair.source_channel_id in existing_targets:
-                    logger.warning(f"Loop risk: source channel {new_pair.source_channel_id} "
-                                   f"is a target in another pair")
+                # No "loop risk" warning any more: a channel may be the target of
+                # one pair and the source of another (A<->B, A->B->C). The bot's
+                # own posts are never translated (translation_service), so there
+                # is no loop to warn about - the warning was the only trace of a
+                # rule that made such pairs translate nothing (audit 2026-09-26).
 
                 config['channel_pairs'].append(new_pair.to_dict())
                 if self._save_config_file(config):

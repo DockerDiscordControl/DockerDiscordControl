@@ -487,9 +487,13 @@ class TranslationService:
         if context.channel_id not in source_ids:
             return []
 
-        # Never translate messages from target channels (loop prevention)
-        target_ids = self.config_service.get_target_channel_ids()
-        if context.channel_id in target_ids:
+        # A message THIS SERVICE POSTED is never translated again. That is the
+        # loop guard, together with the monitor ignoring the bot's own messages.
+        # Until 2026-09-26 every message in any pair's TARGET channel was skipped
+        # instead - so A->B plus B->A translated nothing either way, and a chain
+        # A->B->C stopped at B, silently (audit). A person writing in B is
+        # somebody to translate; the bot's post there is not.
+        if self.is_translated_message(str(context.message_id)):
             return []
 
         # The key is needed for TRANSLATING, not for forwarding. Returning here
