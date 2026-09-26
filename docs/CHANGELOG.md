@@ -147,9 +147,24 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
     while DDC was offline is reported once after the start.
   - **CPU thresholds say what their percent is of:** one core (as `docker stats` shows it - up to
     100 per core) or the whole host. Existing rules keep "one core".
+- **Maintenance per container** (operator request 2026-09-26): a pause of 1 minute to a week,
+  kept in `config/watchdog_maintenance.json`; events of a paused container reach no rule. Panel:
+  Auto-Actions -> Maintenance. Discord: 🔧 on the admin overview (admin list only).
+- **Alarm webhook:** Auto-Actions -> Settings. ntfy, Gotify or a generic JSON POST, recognised by
+  the URL; "only when Discord fails" (also when there is no bot) or "always".
 - Container-state rules survive a round trip through v2.4.1 (measured with both images: v2.4.1
   never fires them and refuses to save them). That is not a promise of a supported downgrade -
   see "Going back to v2.4.1" above.
+
+### ✨ Backup & restore
+
+- **The whole configuration as one file** (operator request 2026-09-26). System tab: download
+  every file of `config/` (hidden ones too, never lock/temp files or earlier backups) with a
+  manifest; restore with a preview (date, version, containers, tasks, rules, groups), then
+  "replace and restart". The replaced configuration is kept in `config/backups/` (last five).
+- Unencrypted by decision, so each step asks for the panel password again, braked per address.
+  Uploads are read as hostile: paths leaving the directory, links, unknown formats and oversize
+  archives are refused and nothing changes.
 
 ### ✨ Container groups
 

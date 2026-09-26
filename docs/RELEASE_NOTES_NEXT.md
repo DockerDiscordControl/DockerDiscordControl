@@ -74,6 +74,15 @@ NOT protect.
   *Container state*. It remembers the containers across a DDC restart, so a container that went
   down while DDC was offline is reported after the start. A CPU threshold is per core (like
   `docker stats`) or of the whole host - your choice per rule.
+- **Maintenance for one container.** Pause the watchdog for a container while you work on it -
+  no notices, no automatic restarts, the pause ends by itself. In the panel (Auto-Actions ->
+  Maintenance) and in Discord (🔧 on the admin overview).
+- **Alarms beyond Discord.** An optional alarm webhook - ntfy, Gotify or any JSON webhook -
+  carries watchdog alarms when Discord cannot be reached, or always.
+- **Backup & restore.** System tab: download the complete configuration as one file, or restore
+  one - with a preview first, the replaced configuration kept, and DDC restarting. The file holds
+  your bot token, second factor and password hash unencrypted; both steps ask for the panel
+  password again. (Backups made by v3.0 cannot be restored into v2.4.1 - see below.)
 - **Image-update notices.** A rule can report when the registry has a newer image for the tag a
   container runs - a HEAD request every six hours, no pull, no effect on Docker Hub's pull
   limit.
