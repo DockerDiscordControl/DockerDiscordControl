@@ -362,7 +362,7 @@ class TestDonationClickErrorPaths:
             lambda: svc,
         )
         resp = main_app.test_client().post(
-            "/api/donation/click", json={"type": "x"}
+            "/api/donation/click", json={"type": "x"}, headers=_AUTH_HEADER
         )
         assert resp.status_code == 400
         assert resp.get_json()["success"] is False
@@ -376,7 +376,7 @@ class TestDonationClickErrorPaths:
             _boom,
         )
         resp = main_app.test_client().post(
-            "/api/donation/click", json={"type": "paypal"}
+            "/api/donation/click", json={"type": "paypal"}, headers=_AUTH_HEADER
         )
         assert resp.status_code == 500
 

@@ -15,7 +15,7 @@ import io
 import re
 
 # Import auth from app.auth
-from app.auth import auth, setup_is_closed
+from app.auth import SimpleRateLimiter, auth, setup_is_closed
 from services.config.config_service import load_config, save_config, update_config_fields
 from services.exceptions import ConfigServiceError
 from services.infrastructure.action_logger import log_user_action
@@ -406,9 +406,22 @@ def get_donation_status():
         current_app.logger.error(f"Data error in get_donation_status route: {e}", exc_info=True)
         return jsonify({'error': 'Data error: Failed to process donation status'}), 500
 
+# Ten clicks a minute per address is far more than a hand does; the rest would
+# only be lines in the user action log.
+donation_click_limiter = SimpleRateLimiter(limit=10, per_seconds=60)
+
+
 @main_bp.route('/api/donation/click', methods=['POST'])
+@auth.login_required
 def record_donation_click():
-    """Record a donation button click - USING DONATION TRACKING SERVICE."""
+    """Record a donation button click - USING DONATION TRACKING SERVICE.
+
+    Behind the login since 2026-09-26: it was the one write route without one,
+    and every anonymous request wrote a DONATION_CLICK line into the user
+    action log. The buttons live only on the logged-in configuration page.
+    """
+    if donation_click_limiter.is_rate_limited(request.remote_addr):
+        return jsonify({'success': False, 'error': 'Too many clicks'}), 429
     try:
         data = request.get_json()
         if not data or 'type' not in data:

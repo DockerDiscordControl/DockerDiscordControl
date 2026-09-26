@@ -497,12 +497,13 @@ class TestDonationStatusEndpoint:
         assert resp.status_code == 500
 
 
-# ---- /api/donation/click (no auth) ------------------------------------------
+# ---- /api/donation/click (behind the login since 2026-09-26) ----------------
 
 
 class TestDonationClickEndpoint:
     def test_missing_type_returns_400(self, main_app):
-        resp = main_app.test_client().post("/api/donation/click", json={})
+        resp = main_app.test_client().post("/api/donation/click", json={},
+                                          headers=_AUTH_HEADER)
         assert resp.status_code == 400
         assert resp.get_json()["success"] is False
 
@@ -516,7 +517,7 @@ class TestDonationClickEndpoint:
             lambda: svc,
         )
         resp = main_app.test_client().post(
-            "/api/donation/click", json={"type": "paypal"}
+            "/api/donation/click", json={"type": "paypal"}, headers=_AUTH_HEADER
         )
         assert resp.status_code == 200
         body = resp.get_json()
