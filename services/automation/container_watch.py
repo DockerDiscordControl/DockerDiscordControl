@@ -72,7 +72,14 @@ class ContainerWatcher:
                 continue
             if before.running and not state.running and name not in expected:
                 events.append(WatchEvent(name, STOPPED, f"Container '{name}' stopped (it was running)."))
-            if state.health == "unhealthy" and before.health != "unhealthy":
+            # UNHEALTHY ONLY WHILE RUNNING. Docker reports a stopped (or paused)
+            # container with a health check as "unhealthy"; until 2026-09-26 that
+            # made every stop an unhealthy alarm - DDC's own scheduled stops too,
+            # which a "restart on unhealthy" rule would have undone. The last
+            # state counts as unhealthy only if it was a running one, so a
+            # container that comes back up still failing is reported.
+            if (state.running and state.health == "unhealthy"
+                    and not (before.running and before.health == "unhealthy")):
                 events.append(WatchEvent(name, UNHEALTHY, f"Container '{name}' is unhealthy (its health check fails)."))
             loop = self._restart_loop(name, before, state, now)
             if loop:
