@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "コミュニティサイズに基づく動的進化コスト（最小1.0倍）",
   "web.advanced.difficulty_easy": "簡単",
   "web.advanced.difficulty_easy_btn": "簡単（0.5倍）",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "難しい",
   "web.advanced.difficulty_hard_btn": "難しい（2.0倍）",
   "web.advanced.difficulty_normal_btn": "通常（1.0倍）",

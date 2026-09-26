@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "Динамическая стоимость эволюции на основе размера сообщества (мин. 1.0x)",
   "web.advanced.difficulty_easy": "Легко",
   "web.advanced.difficulty_easy_btn": "Легко (0.5x)",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "Сложно",
   "web.advanced.difficulty_hard_btn": "Сложно (2.0x)",
   "web.advanced.difficulty_normal_btn": "Обычно (1.0x)",

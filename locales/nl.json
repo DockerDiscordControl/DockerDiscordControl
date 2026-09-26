@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "Dynamische evolutiekosten op basis van communitygrootte (min 1,0x)",
   "web.advanced.difficulty_easy": "Makkelijk",
   "web.advanced.difficulty_easy_btn": "Makkelijk (0,5x)",
+  "web.advanced.difficulty_current": "Huidig:",
   "web.advanced.difficulty_hard": "Moeilijk",
   "web.advanced.difficulty_hard_btn": "Moeilijk (2,0x)",
   "web.advanced.difficulty_normal_btn": "Normaal (1,0x)",

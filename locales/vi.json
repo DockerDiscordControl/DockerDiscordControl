@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "Chi phí tiến hóa động dựa trên quy mô cộng đồng (tối thiểu 1.0x)",
   "web.advanced.difficulty_easy": "Dễ",
   "web.advanced.difficulty_easy_btn": "Dễ (0.5x)",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "Khó",
   "web.advanced.difficulty_hard_btn": "Khó (2.0x)",
   "web.advanced.difficulty_normal_btn": "Bình thường (1.0x)",

@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "Δυναμικά κόστη εξέλιξης βάσει μεγέθους κοινότητας (ελάχ. 1,0x)",
   "web.advanced.difficulty_easy": "Εύκολο",
   "web.advanced.difficulty_easy_btn": "Εύκολο (0,5x)",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "Δύσκολο",
   "web.advanced.difficulty_hard_btn": "Δύσκολο (2,0x)",
   "web.advanced.difficulty_normal_btn": "Κανονικό (1,0x)",

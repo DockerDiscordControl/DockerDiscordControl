@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "Biaya evolusi dinamis berasaskan ukuran komunitas (min 1.0x)",
   "web.advanced.difficulty_easy": "Mudah",
   "web.advanced.difficulty_easy_btn": "Mudah (0.5x)",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "Sulit",
   "web.advanced.difficulty_hard_btn": "Sulit (2.0x)",
   "web.advanced.difficulty_normal_btn": "Normal (1.0x)",

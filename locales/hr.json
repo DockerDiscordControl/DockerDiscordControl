@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "Dinamički troškovi evolucije na temelju veličine zajednice (min 1,0x)",
   "web.advanced.difficulty_easy": "Lako",
   "web.advanced.difficulty_easy_btn": "Lako (0,5x)",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "Teško",
   "web.advanced.difficulty_hard_btn": "Teško (2,0x)",
   "web.advanced.difficulty_normal_btn": "Normalno (1,0x)",

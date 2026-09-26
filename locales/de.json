@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "Dynamische Evolutionskosten basierend auf Community-Größe (min. 1,0x)",
   "web.advanced.difficulty_easy": "Einfach",
   "web.advanced.difficulty_easy_btn": "Einfach (0,5x)",
+  "web.advanced.difficulty_current": "Aktuell:",
   "web.advanced.difficulty_hard": "Schwer",
   "web.advanced.difficulty_hard_btn": "Schwer (2,0x)",
   "web.advanced.difficulty_normal_btn": "Normal (1,0x)",

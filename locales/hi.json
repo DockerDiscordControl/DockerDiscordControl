@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "समुदाय आकार पर आधारित गतिशील विकास लागत (न्यूनतम 1.0x)",
   "web.advanced.difficulty_easy": "आसान",
   "web.advanced.difficulty_easy_btn": "आसान (0.5x)",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "कठिन",
   "web.advanced.difficulty_hard_btn": "कठिन (2.0x)",
   "web.advanced.difficulty_normal_btn": "सामान्य (1.0x)",

@@ -139,3 +139,18 @@ def test_no_english_sentence_waits_in_the_card():
         waiting = re.search(rf'id="{element}"[^>]*>(.*?)</span>', markup, re.S).group(1).strip()
 
         assert waiting == "", f"{element} carries untranslated text: {waiting!r}"
+
+
+def test_the_label_of_the_reading_is_translated_too():
+    """AUDIT 2026-09-26: the three spans were emptied, and the label in front
+    of them stayed a literal "<strong>Current:</strong>" no catalogue knows.
+    The separator between the value and the preview went with the old line,
+    so it read "Current: 1.00x Max level reached".
+
+    COUNTER-CHECK (2026-09-26): red before the fix on the literal label."""
+    markup = MARKUP.read_text(encoding="utf-8")
+    reading = re.search(r'<div class="form-text">\s*(.*?)</div>', markup[markup.index('id="difficultyValue"') - 400:], re.S).group(1)
+
+    assert "Current:" not in reading, reading
+    assert "_t('web.advanced.difficulty_current')" in reading, reading
+    assert re.search(r'id="difficultyValue"></span>\s*-\s*<span id="levelCostPreview"', reading), reading

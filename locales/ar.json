@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "تكاليف تطور ديناميكية بناءً على حجم المجتمع (الحد الأدنى 1.0×)",
   "web.advanced.difficulty_easy": "سهل",
   "web.advanced.difficulty_easy_btn": "سهل (0.5×)",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "صعب",
   "web.advanced.difficulty_hard_btn": "صعب (2.0×)",
   "web.advanced.difficulty_normal_btn": "عادي (1.0×)",

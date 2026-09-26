@@ -872,6 +872,7 @@
   "web.advanced.difficulty_dynamic": "ค่าวิวัฒนาการแบบไดนามิกตามขนาดชุมชน (ต่ำสุด 1.0x)",
   "web.advanced.difficulty_easy": "ง่าย",
   "web.advanced.difficulty_easy_btn": "ง่าย (0.5x)",
+  "web.advanced.difficulty_current": "Current:",
   "web.advanced.difficulty_hard": "ยาก",
   "web.advanced.difficulty_hard_btn": "ยาก (2.0x)",
   "web.advanced.difficulty_normal_btn": "ปกติ (1.0x)",
