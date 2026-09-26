@@ -33,8 +33,6 @@ from services.web.mech_web_service import (
     MechAnimationRequest,
     MechConfigResult,
     MechDifficultyRequest,
-    MechSpeedConfigRequest,
-    MechTestAnimationRequest,
     MechWebService,
     get_mech_web_service,
 )
@@ -458,60 +456,6 @@ class TestMechWebServiceLifecycle:
     def test_init_does_not_raise(self):
         # Constructor must succeed without any external services
         MechWebService()
-
-
-class TestMechWebServiceSpeedConfig:
-    """get_speed_config end-to-end (with helpers patched)."""
-
-    def setup_method(self):
-        self.svc = MechWebService()
-
-    def test_get_speed_config_happy_path(self):
-        # Patch the helpers used inside get_speed_config so we exercise the
-        # request->result flow without touching the real mech_evolutions.
-        with patch(
-            "services.mech.speed_levels._get_evolution_context",
-            return_value=(3, 20),
-        ), patch(
-            "services.mech.speed_levels._calculate_speed_level_from_power_ratio",
-            return_value=42,
-        ), patch.object(
-            self.svc, "_log_user_action",
-        ):
-            result = self.svc.get_speed_config(MechSpeedConfigRequest(total_donations=15.0))
-
-        assert result.success is True
-        assert result.data["speed_level"] == 42
-        assert result.data["total_donations"] == 15.0
-        assert result.data["description"] == SPEED_DESCRIPTIONS[42][0]
-        assert result.data["color"] == SPEED_DESCRIPTIONS[42][1]
-
-    def test_get_speed_config_falls_back_when_helpers_raise(self):
-        # When _get_evolution_context raises ImportError the calculation
-        # falls back to ``min(int(total_donations), 100)``.
-        with patch(
-            "services.mech.speed_levels._get_evolution_context",
-            side_effect=ImportError("missing"),
-        ), patch.object(self.svc, "_log_user_action"):
-            result = self.svc.get_speed_config(
-                MechSpeedConfigRequest(total_donations=42.0)
-            )
-
-        assert result.success is True
-        assert result.data["speed_level"] == 42
-
-    def test_get_speed_config_with_zero_donations(self):
-        with patch(
-            "services.mech.speed_levels._get_evolution_context",
-            side_effect=ImportError("missing"),
-        ), patch.object(self.svc, "_log_user_action"):
-            result = self.svc.get_speed_config(
-                MechSpeedConfigRequest(total_donations=0.0)
-            )
-
-        assert result.success is True
-        assert result.data["speed_level"] == 0
-        assert result.data["description"] == "OFFLINE"
 
 
 class TestMechWebServiceDifficulty:

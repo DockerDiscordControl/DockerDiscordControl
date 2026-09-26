@@ -32,20 +32,6 @@ class MechAnimationRequest:
 
 
 @dataclass
-class MechTestAnimationRequest:
-    """Represents a test mech animation request."""
-    donor_name: str = "Test User"
-    amount: str = "10$"
-    total_donations: float = 0
-
-
-@dataclass
-class MechSpeedConfigRequest:
-    """Represents a mech speed configuration request."""
-    total_donations: float
-
-
-@dataclass
 class MechDifficultyRequest:
     """Represents a mech difficulty request."""
     operation: str  # 'get', 'set', or 'reset'
@@ -181,102 +167,6 @@ class MechWebService:
             # Service/data errors (missing services, invalid types, missing attributes/keys)
             self.logger.error(f"Service error in get_live_animation: {e}", exc_info=True)
             return self._create_error_animation(current_power if 'current_power' in locals() else 0.0, str(e))
-
-    def get_test_animation(self, request: MechTestAnimationRequest) -> MechAnimationResult:
-        """
-        Generate test mech animation with specified parameters using cached system.
-
-        Args:
-            request: MechTestAnimationRequest with test parameters
-
-        Returns:
-            MechAnimationResult with animation bytes or error information
-        """
-        try:
-            self.logger.info(f"Generating test mech animation for {request.donor_name}, donations: {request.total_donations}")
-
-            # PERFORMANCE OPTIMIZATION: Use cached animations for test too
-            from services.mech.animation_cache_service import get_animation_cache_service
-            from services.mech.mech_evolutions import get_evolution_level
-
-            # Calculate evolution level from test parameters
-            evolution_level = max(1, min(11, get_evolution_level(request.total_donations)))
-
-            # SERVICE FIRST: Use unified animation system for test animations too
-            test_request = MechAnimationRequest(
-                force_power=request.total_donations,  # Use donation amount as power for test
-                resolution="small"  # Test animations use small resolution
-            )
-
-            # Use the same unified system as live animations
-            result = self.get_live_animation(test_request)
-
-            if result.success:
-                return result
-            else:
-                return self._create_fallback_animation(request.total_donations)
-
-        except (ImportError, AttributeError, TypeError, ValueError, KeyError) as e:
-            # Service/data errors (missing services, invalid types, missing attributes/keys)
-            self.logger.error(f"Service error in get_test_animation: {e}", exc_info=True)
-            return self._create_error_animation(request.total_donations, str(e))
-
-    def get_speed_config(self, request: MechSpeedConfigRequest) -> MechConfigResult:
-        """
-        Get speed configuration using 101-level system.
-
-        Args:
-            request: MechSpeedConfigRequest with total donations
-
-        Returns:
-            MechConfigResult with speed configuration data
-        """
-        try:
-            from services.mech.speed_levels import SPEED_DESCRIPTIONS, get_speed_emoji, _get_evolution_context, _calculate_speed_level_from_power_ratio
-
-            # Calculate speed level using evolution-based system
-            try:
-                evolution_level, max_power_for_level = _get_evolution_context(request.total_donations)
-                level = _calculate_speed_level_from_power_ratio(evolution_level, request.total_donations, max_power_for_level)
-            except (ImportError, ValueError, ZeroDivisionError):
-                level = min(int(request.total_donations), 100) if request.total_donations > 0 else 0
-
-            # Get description directly from SPEED_DESCRIPTIONS
-            if level in SPEED_DESCRIPTIONS:
-                description, color = SPEED_DESCRIPTIONS[level]
-            else:
-                description, color = SPEED_DESCRIPTIONS.get(0, ("OFFLINE", "#888888"))
-
-            emoji = get_speed_emoji(level)
-
-            config = {
-                'speed_level': level,
-                'description': description,
-                'emoji': emoji,
-                'color': color,
-                'total_donations': request.total_donations
-            }
-
-            # Log the action
-            self._log_user_action(
-                action="GET_MECH_SPEED_CONFIG",
-                target=f"Level {level} - {description}",
-                source="Web UI"
-            )
-
-            return MechConfigResult(
-                success=True,
-                data=config
-            )
-
-        except (ImportError, AttributeError, TypeError, ValueError, ZeroDivisionError) as e:
-            # Service/calculation errors (missing services, invalid types, missing attributes, division errors)
-            self.logger.error(f"Service error in get_speed_config: {e}", exc_info=True)
-            return MechConfigResult(
-                success=False,
-                error=str(e),
-                status_code=500
-            )
 
     def manage_difficulty(self, request: MechDifficultyRequest) -> MechConfigResult:
         """

@@ -254,7 +254,7 @@ services/web/i18n_service.py:1-214
 ## Section 30  (1846 lines, 5 pieces)
 services/web/mech_music_service.py:1-225
 services/web/mech_status_details_service.py:1-447
-services/web/mech_web_service.py:1-641
+services/web/mech_web_service.py:1-531
 services/web/performance_stats_service.py:1-182
 services/web/security_service.py:1-351
 
@@ -273,7 +273,7 @@ app/blueprints/login_routes.py:1-123
 app/blueprints/log_routes.py:1-242
 
 ## Section 32  (1929 lines, 3 pieces)
-app/blueprints/main_routes.py:1-1374
+app/blueprints/main_routes.py:1-1293
 app/blueprints/tasks_bp.py:1-348
 app/blueprints/action_log_routes.py:1-91
 

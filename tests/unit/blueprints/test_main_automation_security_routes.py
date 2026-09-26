@@ -767,41 +767,9 @@ class TestDeleteDonation:
         assert resp.status_code == 400
 
 
-# ---- /api/mech/speed-config + test-mech-animation + mech_animation ---------
 
 
 class TestMechSpeedAndAnimation:
-    def test_speed_config_success(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.get_speed_config.return_value = SimpleNamespace(
-            success=True, data={"speed": 100}, error=None
-        )
-        monkeypatch.setattr(
-            "services.web.mech_web_service.get_mech_web_service", lambda: svc
-        )
-        resp = main_app.test_client().post(
-            "/api/mech-speed-config",
-            json={"total_donations": 100},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 200
-        assert resp.get_json() == {"speed": 100}
-
-    def test_speed_config_failure_returns_500(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.get_speed_config.return_value = SimpleNamespace(
-            success=False, data=None, error="bad"
-        )
-        monkeypatch.setattr(
-            "services.web.mech_web_service.get_mech_web_service", lambda: svc
-        )
-        resp = main_app.test_client().post(
-            "/api/mech-speed-config",
-            json={"total_donations": 0},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 500
-
     def test_mech_animation_success_returns_bytes(self, main_app, monkeypatch):
         svc = MagicMock()
         svc.get_live_animation.return_value = SimpleNamespace(
@@ -818,26 +786,6 @@ class TestMechSpeedAndAnimation:
         assert resp.status_code == 200
         assert resp.data.startswith(b"\x89PNG")
         assert resp.headers.get("Cache-Control") == "max-age=10"
-
-    def test_test_mech_animation_success(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.get_test_animation.return_value = SimpleNamespace(
-            success=True,
-            animation_bytes=b"FAKE",
-            content_type="image/webp",
-            status_code=200,
-        )
-        monkeypatch.setattr(
-            "services.web.mech_web_service.get_mech_web_service", lambda: svc
-        )
-        resp = main_app.test_client().post(
-            "/api/test-mech-animation",
-            json={"donor_name": "Test", "amount": "5$", "total_donations": 5},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 200
-        assert resp.data == b"FAKE"
-
 
 # ---- /api/mech/status ---------------------------------------------------
 

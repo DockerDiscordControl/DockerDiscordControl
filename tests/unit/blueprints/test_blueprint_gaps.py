@@ -472,74 +472,8 @@ class TestMechAnimationErrorPaths:
         assert "Data error" in resp.get_json()["error"]
 
 
-# ---- /api/test-mech-animation error paths (lines 805-818) ------------------
 
 
-class TestTestMechAnimationErrorPaths:
-    def test_failure_returns_error_response(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.get_test_animation.return_value = SimpleNamespace(
-            success=False,
-            animation_bytes=b"",
-            content_type="image/webp",
-            status_code=503,
-        )
-        monkeypatch.setattr(
-            "services.web.mech_web_service.get_mech_web_service", lambda: svc
-        )
-        resp = main_app.test_client().post(
-            "/api/test-mech-animation",
-            json={"donor_name": "X", "amount": "1$", "total_donations": 0},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 503
-        assert b"Service not available" in resp.data
-
-    def test_runtime_error_returns_500(self, main_app, monkeypatch):
-        def _boom():
-            raise RuntimeError("svc gone")
-
-        monkeypatch.setattr(
-            "services.web.mech_web_service.get_mech_web_service", _boom
-        )
-        resp = main_app.test_client().post(
-            "/api/test-mech-animation",
-            json={"donor_name": "X"},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 500
-
-
-# ---- /api/mech-speed-config error paths (lines 859-866) --------------------
-
-
-class TestSpeedConfigErrorPaths:
-    def test_runtime_error_returns_500(self, main_app, monkeypatch):
-        def _boom():
-            raise RuntimeError("svc gone")
-
-        monkeypatch.setattr(
-            "services.web.mech_web_service.get_mech_web_service", _boom
-        )
-        resp = main_app.test_client().post(
-            "/api/mech-speed-config",
-            json={"total_donations": 5},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 500
-
-    def test_value_error_returns_400(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.get_speed_config.side_effect = ValueError("bad input")
-        monkeypatch.setattr(
-            "services.web.mech_web_service.get_mech_web_service", lambda: svc
-        )
-        resp = main_app.test_client().post(
-            "/api/mech-speed-config",
-            json={"total_donations": "x"},
-            headers=_AUTH_HEADER,
-        )
-        assert resp.status_code == 400
 
 
 # ---- /port_diagnostics runtime error (lines 893-896) -----------------------
