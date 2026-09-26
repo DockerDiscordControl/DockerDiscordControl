@@ -1,4 +1,7 @@
 # DDC PRODUCTION REQUIREMENTS (minimal)
+# 2026-09-26: APScheduler, PyYAML, python-json-logger, flask-limiter and limits
+# left this list - nothing in the code imports them (PyYAML is a test
+# dependency now, requirements-test.txt).
 # Upper bounds default to ``< next-next major`` from the floor to allow current
 # major + one future major (breathing room for CVE fixes) while still excluding
 # distant future majors with potential breaking changes.
@@ -7,23 +10,18 @@ Werkzeug>=3.1.6,<5.0.0  # Security fix for GHSA-hgf8-39gv-g3f2 + CVE-2026-21860
 py-cord==2.6.1
 waitress==3.0.2
 cryptography>=50.0.0,<52.0.0  # Security fix for CVE-2026-69247 (PKCS#7 Bleichenbacher oracle, GHSA-g6cj-pr64-35w5) + CVE-2026-26007 + CVE-2026-39892 (bundled OpenSSL)
-APScheduler==3.11.2
-PyYAML==6.0.3
 requests>=2.33.0,<3.0.0  # Security fix for CVE-2026-25645
 urllib3>=2.6.0,<3.0.0  # Security fix for GHSA-s4qh-5xfq-xqjg
 aiohttp>=3.12.14,<4.0.0
 opengsq>=3.6.2,<4.0.0  # Game-server player-count queries (only dep is aiohttp, already pinned)
 Flask-HTTPAuth>=4.8.1,<5.0.0  # Security fix: token verification callback bypass
 Jinja2>=3.1.4,<5.0.0
-python-json-logger==2.0.7
 pytz==2024.2
 cachetools==5.3.2
 itsdangerous>=2.2.0,<3.0.0
 click>=8.1.7,<10.0.0
 blinker>=1.8.2,<2.0.0
 MarkupSafe>=2.1.5,<4.0.0
-flask-limiter>=3.5.0,<5.0.0
-limits>=3.9.0,<6.0.0
 zope.event>=5.0,<6.0
 zope.interface>=6.2,<8.0
 # gevent (required for async container lifecycle management)

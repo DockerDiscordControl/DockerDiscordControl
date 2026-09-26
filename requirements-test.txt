@@ -78,4 +78,4 @@ graphviz>=0.20.0,<1.0.0      # Dependency graph visualization
 # Heavy packages (selenium, locust, testcontainers, safety, semgrep) have been
 # removed from requirements-test.txt to avoid dependency resolution issues.
 # Install separately if needed for specific test scenarios.
-
+PyYAML==6.0.3               # tests/spec/test_z10_ci_test_gate.py reads the workflows
