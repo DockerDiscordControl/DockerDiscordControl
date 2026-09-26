@@ -55,7 +55,7 @@ app/blueprints/backup_routes.py	128	NONE
 app/blueprints/group_routes.py	169	NONE
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
 app/blueprints/login_routes.py	123	new 2026-09-23 (the panel form login and logout), written test-first
-app/blueprints/main_routes.py	1306	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
+app/blueprints/main_routes.py	1309	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
 app/blueprints/security_routes.py	206	pass1:s32:plan pass2:s32:1-193
 app/blueprints/system_routes.py	104	pass2:s32:1-51  [self-restart route, added 2026-09-24]
 app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
@@ -129,7 +129,7 @@ cogs/status_info_integration.py	1285	passE:buttons+loops+bothscans:32-76,159-225
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	104	passE:E32:read-in-full
-cogs/watchdog_maintenance.py	213	NONE
+cogs/watchdog_maintenance.py	217	NONE
 services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	429	passE:F1-feature-read:87-160,262-330
@@ -202,7 +202,7 @@ services/infrastructure/dynamic_cooldown_manager.py	193	pass1:s19:1-179  [14 of 
 services/infrastructure/event_manager.py	119	pass1:s19:1-118
 services/infrastructure/game_query_service.py	553	pass1:s19:1-525  [28 of 553 lines never in a package]
 services/infrastructure/game_query_support_service.py	341	pass1:s20:1-282  [59 of 341 lines never in a package]
-services/infrastructure/spam_protection_service.py	571	pass1:s20:1-504  [49 of 553 lines never in a package]
+services/infrastructure/spam_protection_service.py	611	pass1:s20:1-504  [49 of 553 lines never in a package]
 services/infrastructure/update_notifier.py	247	pass1:s20:1-213  [22 of 235 lines never in a package]
 services/mech/__init__.py	30	pass1:s20:1-30
 services/mech/animation_cache_service.py	1823	pass1:s21:1-1813  [33 of 1846 lines never in a package]

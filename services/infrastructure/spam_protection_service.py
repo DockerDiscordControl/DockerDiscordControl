@@ -15,7 +15,7 @@ import time
 from collections import deque
 from pathlib import Path
 from dataclasses import dataclass, replace
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 import discord
 from utils.atomic_io import atomic_write_json, cross_process_lock
 from utils.logging_utils import get_module_logger
@@ -59,6 +59,40 @@ class SpamProtectionConfig:
                 'log_violations': self.log_violations
             }
         }
+
+# The ranges the panel's number fields show. Only the browser read them until
+# 2026-09-26: -5, 10**9, "abc" or true went straight into channels_config.json,
+# and a limit of 0 per minute refused every button.
+COOLDOWN_RANGE = (0, 300)
+PER_MINUTE_RANGE = (1, 100)
+
+
+def problems_in(settings: Dict[str, Any]) -> List[str]:
+    """What is wrong with spam settings sent by the panel; empty when nothing is."""
+    def whole(value) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    problems = []
+    for section in ('command_cooldowns', 'button_cooldowns'):
+        cooldowns = settings.get(section, {})
+        if not isinstance(cooldowns, dict):
+            problems.append(f"{section} is not a list of cooldowns")
+            continue
+        for name, value in cooldowns.items():
+            if not whole(value) or not COOLDOWN_RANGE[0] <= value <= COOLDOWN_RANGE[1]:
+                problems.append(f"{section}.{name} must be a whole number of seconds "
+                                f"from {COOLDOWN_RANGE[0]} to {COOLDOWN_RANGE[1]}")
+    global_settings = settings.get('global_settings', {})
+    if not isinstance(global_settings, dict):
+        return problems + ["global_settings is not a list of settings"]
+    for name in ('max_commands_per_minute', 'max_buttons_per_minute'):
+        if name in global_settings:
+            value = global_settings[name]
+            if not whole(value) or not PER_MINUTE_RANGE[0] <= value <= PER_MINUTE_RANGE[1]:
+                problems.append(f"{name} must be a whole number from "
+                                f"{PER_MINUTE_RANGE[0]} to {PER_MINUTE_RANGE[1]}")
+    return problems
+
 
 @dataclass(frozen=True)
 class ServiceResult:
@@ -469,6 +503,9 @@ class SpamProtectionService:
         return SpamProtectionConfig(
             command_cooldowns={
                 "control": 5,
+                # Asked for by /addadmin, without an entry until 2026-09-26 - it
+                # braked by the silent five-second fallback. 5 is that fallback.
+                "addadmin": 5,
                 "serverstatus": 30,
                 "info": 5,
                 "info_edit": 10,
@@ -494,6 +531,9 @@ class SpamProtectionService:
                 "admin_overview_stop_all": 30,
                 "admin_overview_restart_stack": 20,
                 "admin_overview_donate": 10,
+                # Both 🔧 buttons (admin overview and a container's admin panel)
+                # share this one; no entry until 2026-09-26, same fallback value.
+                "admin_overview_maintenance": 5,
                 "start": 10,
                 "stop": 10,
                 "restart": 20,

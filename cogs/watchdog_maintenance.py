@@ -120,7 +120,11 @@ class ContainerMaintenanceButton(Button):
     async def callback(self, interaction: discord.Interaction) -> None:
         from services.admin.admin_service import get_admin_service
         from services.automation.maintenance import pauses
+        from .admin_overview import _admin_button_braked
 
+        # The same brake as the overview's 🔧 (spam audit 2026-09-26: this one had none).
+        if await _admin_button_braked(interaction, "admin_overview_maintenance"):
+            return
         if not _may_pause(interaction.user.id, self.container):
             await interaction.response.send_message(
                 _("❌ Only admins can put a container into maintenance."),

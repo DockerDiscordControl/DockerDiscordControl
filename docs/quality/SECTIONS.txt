@@ -171,7 +171,7 @@ services/infrastructure/game_query_service.py:1-553
 
 ## Section 20  (1577 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-341
-services/infrastructure/spam_protection_service.py:1-571
+services/infrastructure/spam_protection_service.py:1-611
 services/infrastructure/update_notifier.py:1-247
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-388
@@ -274,7 +274,7 @@ app/blueprints/login_routes.py:1-123
 app/blueprints/log_routes.py:1-242
 
 ## Section 32  (1929 lines, 3 pieces)
-app/blueprints/main_routes.py:1-1306
+app/blueprints/main_routes.py:1-1309
 app/blueprints/tasks_bp.py:1-348
 app/blueprints/action_log_routes.py:1-91
 
@@ -464,7 +464,7 @@ services/config/backup_service.py:1-206
 # Watchdog maintenance (operator, 2026-09-26): the pause store and the
 # Discord button that sets it; the panel's three routes live with the other
 # automation routes.
-cogs/watchdog_maintenance.py:1-213
+cogs/watchdog_maintenance.py:1-217
 services/automation/maintenance.py:1-95
 # The alarm webhook joined on 2026-09-26: the watchdog's way out of Discord.
 services/automation/alert_webhook.py:1-104

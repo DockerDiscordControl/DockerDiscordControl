@@ -350,8 +350,11 @@ def save_spam_protection():
         if not settings:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
+        from services.infrastructure.spam_protection_service import SpamProtectionConfig, problems_in
+        problems = problems_in(settings)
+        if problems:
+            return jsonify({'success': False, 'error': '; '.join(problems)}), 400
         spam_service = get_spam_protection_service()
-        from services.infrastructure.spam_protection_service import SpamProtectionConfig
         config = SpamProtectionConfig.from_dict(settings)
         result = spam_service.save_config(config)
         success = result.success
