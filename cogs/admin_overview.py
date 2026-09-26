@@ -206,6 +206,9 @@ class AdminOverviewView(DDCView):
             self.add_item(AdminOverviewRestartStackButton(cog_instance, channel_id,
                                                           enabled=has_running_containers))
         self.add_item(AdminOverviewDonateButton(cog_instance, channel_id))
+        # Watchdog maintenance (operator, 2026-09-26), in row 1: row 0 is full.
+        from .watchdog_maintenance import AdminOverviewMaintenanceButton
+        self.add_item(AdminOverviewMaintenanceButton(cog_instance, channel_id))
 
 async def _admin_button_braked(interaction: discord.Interaction, name: str) -> bool:
     """Spam brake for the admin overview's buttons. True means: refused.

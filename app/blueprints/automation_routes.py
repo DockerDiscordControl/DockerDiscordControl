@@ -270,3 +270,53 @@ def get_channels():
         # of its own (review D23). The message stays generic on purpose: no
         # stack trace to the client.
         return jsonify({'channels': [], 'error': 'Failed to fetch channels'}), 500
+
+# --- Watchdog maintenance (operator, 2026-09-26) ---
+#
+# A pause per container, with an end: the watchdog leaves it alone meanwhile
+# (services/automation/maintenance.py). The same pauses are set from Discord.
+
+def _configured_containers():
+    from services.config.server_config_service import get_server_config_service
+
+    return [s.get('docker_name') for s in get_server_config_service().get_all_servers()
+            if s.get('docker_name')]
+
+
+@automation_bp.route('/api/watchdog/maintenance', methods=['GET'])
+@auth.login_required
+def list_maintenance():
+    from services.automation.maintenance import pauses
+
+    return jsonify({'containers': _configured_containers(), 'pauses': pauses()})
+
+
+@automation_bp.route('/api/watchdog/maintenance', methods=['POST'])
+@auth.login_required
+def start_maintenance():
+    from app.auth import session_user
+    from services.automation.maintenance import pause
+    from services.infrastructure.action_logger import log_user_action
+
+    data = request.get_json(silent=True) or {}
+    container = str(data.get('container') or '')
+    if container not in _configured_containers():
+        return jsonify({'success': False, 'error': 'unknown_container'}), 400
+    try:
+        until = pause(container, int(data.get('minutes', 0)), by=f"panel:{session_user() or 'admin'}")
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'bad_minutes'}), 400
+    log_user_action("MAINTENANCE", container, source=f"Web UI, {int(data.get('minutes'))} min")
+    return jsonify({'success': True, 'until': until})
+
+
+@automation_bp.route('/api/watchdog/maintenance/<container>', methods=['DELETE'])
+@auth.login_required
+def end_maintenance(container):
+    from services.automation.maintenance import resume
+    from services.infrastructure.action_logger import log_user_action
+
+    ended = resume(container)
+    if ended:
+        log_user_action("MAINTENANCE_END", container, source="Web UI")
+    return jsonify({'success': True, 'ended': ended})

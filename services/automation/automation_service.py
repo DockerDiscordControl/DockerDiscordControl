@@ -659,6 +659,18 @@ class AutomationService:
         settings = self.config_service.get_global_settings()
         if not settings.get('enabled', True) or not events:
             return []
+        # A container in maintenance is left alone: no notice, no action
+        # (services/automation/maintenance.py). Dropped here, after the watchers
+        # have seen the state, so ending the pause raises nothing about it.
+        from services.automation.maintenance import pauses
+
+        paused = pauses()
+        if paused:
+            for event in [e for e in events if e.container in paused]:
+                logger.info(f"AAS: '{event.container}' is in maintenance - {event.kind} not acted on")
+            events = [e for e in events if e.container not in paused]
+            if not events:
+                return []
         rules = sorted((r for r in self.config_service.get_rules()
                         if r.enabled and r.trigger.type == TRIGGER_CONTAINER_STATE),
                        key=lambda r: r.priority, reverse=True)
@@ -794,7 +806,9 @@ class AutomationService:
                                               f"🚨 {event.reason} → `{action_type}` — *{rule.name}*")
                 if delayed:
                     await asyncio.sleep(rule.action.delay_seconds)
-                    if not await self._condition_still_holds(event, container):
+                    from services.automation.maintenance import is_paused
+
+                    if is_paused(container) or not await self._condition_still_holds(event, container):
                         logger.info(f"AAS: '{container}' recovered during the {rule.action.delay_seconds}s "
                                     f"delay of '{rule.name}' - {action_type} not carried out")
                         self.state_service.release_execution_lock(rule.id, container, success=False)

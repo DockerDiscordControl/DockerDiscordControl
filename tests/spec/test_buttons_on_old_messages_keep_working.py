@@ -38,7 +38,8 @@ EXPECTED_KEYS = {
     *((BUTTON, OVERVIEW, f"{name}_{CHANNEL}") for name in ("admin_button", "help_button", "info_button", "mech_details")),
     # the admin overview message, bound to its tracked message id
     *((BUTTON, ADMIN_OVERVIEW, f"admin_overview_{name}_{CHANNEL}")
-      for name in ("admin", "donate", "restart_all", "restart_stack", "stop_all")),
+      for name in ("admin", "donate", "maintenance", "restart_all", "restart_stack", "stop_all")),
+    # "maintenance" since 2026-09-26: the 🔧 of watchdog maintenance (operator).
     # per-channel mech buttons, any message
     # mech_expand and mech_collapse stood here until 2026-09-25: the old
     # shape of the overview, registered for messages nothing posts any more

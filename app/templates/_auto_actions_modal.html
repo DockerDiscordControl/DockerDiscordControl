@@ -30,6 +30,11 @@
                             <i class="bi bi-gear"></i> {{ _t('web.aas.tab_settings') }}
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="aas-maintenance-tab" data-bs-toggle="tab" href="#aas-maintenance-view" role="tab" onclick="loadMaintenance()">
+                            <i class="bi bi-wrench"></i> {{ _t('web.maintenance.tab') }}
+                        </a>
+                    </li>
                 </ul>
 
                 <div class="tab-content p-3">
@@ -110,6 +115,34 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
+
+                    {# Watchdog maintenance (operator, 2026-09-26): a pause per
+                       container that ends by itself - app/static/js/maintenance.js #}
+                    <div class="tab-pane fade" id="aas-maintenance-view" role="tabpanel">
+                        <p class="form-text">{{ _t('web.maintenance.description') }}</p>
+                        <div class="row g-2 align-items-end mb-3">
+                            <div class="col-md-5 d-flex flex-column">
+                                <label class="form-label" for="maintenanceContainer">{{ _t('web.maintenance.container') }}</label>
+                                <select class="form-select mt-auto" id="maintenanceContainer"></select>
+                            </div>
+                            <div class="col-md-4 d-flex flex-column">
+                                <label class="form-label" for="maintenanceMinutes">{{ _t('web.maintenance.duration') }}</label>
+                                <select class="form-select mt-auto" id="maintenanceMinutes">
+                                    <option value="30">30 min</option>
+                                    <option value="60" selected>1 h</option>
+                                    <option value="240">4 h</option>
+                                    <option value="1440">24 h</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-grid">
+                                <button type="button" class="btn btn-warning" onclick="startMaintenance()">
+                                    <i class="bi bi-pause-circle"></i> {{ _t('web.maintenance.start') }}
+                                </button>
+                            </div>
+                        </div>
+                        <h6>{{ _t('web.maintenance.active') }}</h6>
+                        <ul id="maintenanceList" class="list-group"></ul>
                     </div>
                 </div>
             </div>
