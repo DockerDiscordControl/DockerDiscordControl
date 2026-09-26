@@ -611,6 +611,9 @@ class SlashCommandsMixin:
     async def info_command(self, ctx: discord.ApplicationContext,
                            container_name: str = discord.Option(description=_("The Docker container name"), autocomplete=container_select)):
         """Shows container information with appropriate buttons based on channel permissions."""
+        # Free text - autocomplete only suggests. A line break in it forged a log
+        # line of its own (audit 2026-09-26, F8); no container name has one.
+        container_name = " ".join(str(container_name or "").splitlines())
         # Log command invocation for debugging with unique tracking
         import time
         import uuid

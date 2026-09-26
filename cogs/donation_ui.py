@@ -234,7 +234,9 @@ class DonationBroadcastModal(DDCModal):
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle modal submission."""
         logger.info(f"=== DONATION MODAL CALLBACK STARTED ===")
-        logger.info(f"User: {interaction.user.name}, Raw inputs: name={self.name_input.value}, amount={self.amount_input.value}")
+        # !r: the inputs are the donor's free text, and a line break in them
+        # forged a log line of its own (audit 2026-09-26, F8).
+        logger.info(f"User: {interaction.user.name}, Raw inputs: name={self.name_input.value!r}, amount={self.amount_input.value!r}")
 
         # Send immediate acknowledgment to avoid timeout (will be replaced quickly)
         from .translation_manager import _
@@ -248,8 +250,9 @@ class DonationBroadcastModal(DDCModal):
             # Text, not markdown: the name goes into an embed in every DDC
             # channel, and "[Claim your reward](https://evil.example)" rendered
             # as a masked link in the admins' control channels (audit 2026-09-26).
+            # One line, too: it is also logged, and a break forged a log line.
             donor_name = discord.utils.escape_markdown(
-                (self.name_input.value or interaction.user.name).strip())
+                " ".join((self.name_input.value or interaction.user.name).split()))
             raw_amount = self.amount_input.value.strip() if self.amount_input.value else ""
             logger.info(f"Processed values: donor_name={donor_name}, raw_amount={raw_amount}")
 
