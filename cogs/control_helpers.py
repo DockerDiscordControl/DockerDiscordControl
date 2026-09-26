@@ -318,3 +318,34 @@ def is_private_panel_message(message) -> bool:
     """
     flags = getattr(message, 'flags', None)
     return bool(getattr(flags, 'ephemeral', False))
+
+
+# How long an action may be "running" before its entry is taken as stale: a
+# stop honours the container's own StopTimeout, which Docker defaults to 10 s
+# and some images raise; two minutes covers them without locking a container
+# for good when an interaction is lost.
+PENDING_ACTION_SECONDS = 120
+
+
+async def refused_while_busy(cog, docker_name: str, display_name: str, interaction) -> bool:
+    """True (and the presser told why) while an action on this container runs.
+
+    ONE ACTION PER CONTAINER AT A TIME (audit 2026-09-26). The spam brake is
+    per user and per action name, so two people - or one person alternating
+    stop, start and restart - could send several actions to the same container
+    at once; ActionButton wrote pending_actions and never asked it. An entry
+    older than PENDING_ACTION_SECONDS is taken as stale (a lost interaction),
+    so a stuck entry cannot lock a container. The interaction is deferred.
+    """
+    running = getattr(cog, 'pending_actions', {}).get(docker_name)
+    if not running:
+        return False
+    age = (datetime.now(timezone.utc) - running['timestamp']).total_seconds()
+    if age >= PENDING_ACTION_SECONDS:
+        return False
+    from .ddc_ui import NOTICE_STAYS_FOR
+
+    await interaction.followup.send(
+        _("⏳ An action on {name} is still running - wait until it is done.").format(name=display_name),
+        ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+    return True

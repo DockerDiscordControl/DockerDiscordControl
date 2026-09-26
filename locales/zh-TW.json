@@ -1848,5 +1848,6 @@
   "🔧 `{container}` is in maintenance until {time} - the watchdog leaves it alone.": "🔧 `{container}` is in maintenance until {time} - the watchdog leaves it alone.",
   "🔧 `{container}` is in maintenance until {time}.": "🔧 `{container}` is in maintenance until {time}.",
   "🔧 How long should the watchdog leave `{container}` alone? No notices, no restarts; the pause ends by itself.": "🔧 How long should the watchdog leave `{container}` alone? No notices, no restarts; the pause ends by itself.",
-  "Only admins without a container assignment can add new admins in status channels. Use this command in a control channel or ask such an admin.": "Only admins without a container assignment can add new admins in status channels. Use this command in a control channel or ask such an admin."
+  "Only admins without a container assignment can add new admins in status channels. Use this command in a control channel or ask such an admin.": "Only admins without a container assignment can add new admins in status channels. Use this command in a control channel or ask such an admin.",
+  "⏳ An action on {name} is still running - wait until it is done.": "⏳ An action on {name} is still running - wait until it is done."
 }

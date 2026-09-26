@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .docker_control import DockerControlCog
 
 from utils.time_utils import format_datetime_with_timezone
-from .control_helpers import (_admin_may_control, _admin_may_control_task,
+from .control_helpers import (_admin_may_control, _admin_may_control_task, refused_while_busy,
                               _channel_has_permission, _get_pending_embed,
                               _is_registered_admin, is_private_panel_message)
 from .action_effect import not_confirmed_embed, wait_until_the_action_took_effect
@@ -386,7 +386,8 @@ class ActionButton(Button):
 
         logger.info(f"[ACTION_BTN] {self.action.upper()} action for '{self.display_name}' triggered by {user.name}")
 
-        # Add to pending_actions - use docker_name as key!
+        if await refused_while_busy(self.cog, self.docker_name, self.display_name, interaction):
+            return  # one action per container at a time (control_helpers)
         pending_entry = {
             'action': self.action,
             'timestamp': datetime.now(timezone.utc),
@@ -441,7 +442,6 @@ class ActionButton(Button):
 
                     action_done = True
 
-                    # Remove from pending_actions - use docker_name as key!
                     if self.docker_name in self.cog.pending_actions:
                         del self.cog.pending_actions[self.docker_name]
 
