@@ -27,7 +27,7 @@ function ctShowAlert(message, type) {
         return;
     }
     // Fallback: create a visible alert in the CT section
-    const container = document.getElementById('ctCollapseSection');
+    const container = document.getElementById('ctSection');
     if (container) {
         const alertDiv = document.createElement('div');
         alertDiv.className = `alert alert-${type === 'danger' ? 'danger' : type === 'warning' ? 'warning' : 'success'} alert-dismissible fade show mt-2`;
@@ -508,41 +508,17 @@ async function testCTConnection() {
     await testCTTranslation();
 }
 
-// --- Collapse Initialization ---
+// --- Initialization ---
+//
+// Everything loads with the page. The section was folded away until
+// 2026-09-26 and loaded its data on the first unfold; on a tab of its own
+// that only hid the feature and its state (operator), so the unfolding went.
+async function initChannelTranslation() {
+    if (ctInitialized || !document.getElementById('ctSection')) return;
+    ctInitialized = true;
+    await loadCTLanguages();
+    await loadCTPairs();
+    await loadCTSettings();
+}
 
-document.addEventListener('DOMContentLoaded', function() {
-    const collapseEl = document.getElementById('ctCollapseSection');
-    if (!collapseEl) return;
-
-    // Load toggle state IMMEDIATELY (even before section is expanded)
-    (async function() {
-        try {
-            const data = await ctFetch('/api/translation/settings');
-            const s = data.settings || {};
-            const toggle = document.getElementById('ctGlobalToggle');
-            if (toggle) toggle.checked = s.enabled || false;
-        } catch (e) {
-            console.debug('[CT] Could not load initial toggle state:', e);
-        }
-    })();
-
-    // Load full data when section is first expanded
-    collapseEl.addEventListener('show.bs.collapse', async function() {
-        if (!ctInitialized) {
-            ctInitialized = true;
-            await loadCTLanguages();
-            await loadCTPairs();
-            await loadCTSettings();
-        }
-    });
-
-    // Rotate chevron icon on collapse toggle
-    collapseEl.addEventListener('show.bs.collapse', function() {
-        const icon = document.getElementById('ctCollapseIcon');
-        if (icon) icon.className = 'bi bi-chevron-up ms-1 small';
-    });
-    collapseEl.addEventListener('hide.bs.collapse', function() {
-        const icon = document.getElementById('ctCollapseIcon');
-        if (icon) icon.className = 'bi bi-chevron-down ms-1 small';
-    });
-});
+document.addEventListener('DOMContentLoaded', initChannelTranslation);
