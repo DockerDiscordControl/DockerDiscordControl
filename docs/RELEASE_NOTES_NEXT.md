@@ -71,7 +71,9 @@ NOT protect.
 - **A container watchdog.** Rules can react when a container stops on its own, turns unhealthy,
   restarts several times in a few minutes, or stays above a CPU or memory threshold. Notify, or
   restart/start/stop the container that changed. Set it up under Auto-Actions, trigger type
-  *Container state*.
+  *Container state*. It remembers the containers across a DDC restart, so a container that went
+  down while DDC was offline is reported after the start. A CPU threshold is per core (like
+  `docker stats`) or of the whole host - your choice per rule.
 - **Image-update notices.** A rule can report when the registry has a newer image for the tag a
   container runs - a HEAD request every six hours, no pull, no effect on Docker Hub's pull
   limit.

@@ -127,6 +127,26 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   the new image (the proxy refuses that on purpose), so "restart on update" is refused as a rule.
 - The status cache now keeps each container's health, restart count, and CPU and memory as numbers
   (from the answers DDC already fetched - no extra Docker call).
+- **Tested live on the operator's server (2026-09-26) and tightened:**
+  - Cooldowns are per rule **and** container. One rule acting on a container no longer holds every
+    other rule off it - a NOTIFY beside a RESTART on the same event both fire.
+  - A stopped or paused container is not "unhealthy" (Docker reports a stopped container with a
+    health check that way); a paused or restarting container is not "stopped".
+  - DDC's own stops stay quiet for longer than the watchdog can lag (the window follows
+    `DDC_DOCKER_CACHE_DURATION`).
+  - Watchdog events no longer fall into the 30 s global cooldown and get lost; a refused first
+    event does not hold back the rest of its poll.
+  - A delayed action runs beside the status loop and looks again after the wait: a container that
+    recovered meanwhile is left alone.
+  - Switching rules off and on again raises no alarm about what happened while they were off.
+  - DDC's own container is always protected, whatever it is called.
+  - A notice that no channel took is recorded as FAILED and falls back to the control channel.
+  - The image-update check compares the image the container runs, not the one its tag points to
+    after a pull.
+  - **The state survives a DDC restart** (`config/watchdog_state.json`): a container that went down
+    while DDC was offline is reported once after the start.
+  - **CPU thresholds say what their percent is of:** one core (as `docker stats` shows it - up to
+    100 per core) or the whole host. Existing rules keep "one core".
 - Container-state rules survive a round trip through v2.4.1 (measured with both images: v2.4.1
   never fires them and refuses to save them). That is not a promise of a supported downgrade -
   see "Going back to v2.4.1" above.
