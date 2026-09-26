@@ -178,15 +178,47 @@ def test_the_save_itself_moves_nothing(monkeypatch, tasks):
 
 
 def test_the_panel_asks_and_can_send_the_answer():
-    """A question nobody is shown is not a question."""
+    """A question nobody is shown is not a question.
+
+    THE CALL SITE, NOT A FILE THAT MENTIONS IT (audit 2026-09-26). This case
+    used to grep main.js for "timezone_question" - and main.js is loaded by no
+    template. The live save handler, saveConfigAjax in panel.js, ignored the
+    question, so it was computed on every such save and never put. The case
+    now holds the chain the browser actually runs: the page loads the helper
+    before panel.js, and panel.js hands the save answer's question to it.
+
+    COUNTER-CHECK (2026-09-26): red before - _scripts.html loaded no such
+    helper and panel.js never read timezone_question.
+    """
+    import re
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]
-    script = "".join((root / "app" / "static" / "js" / name).read_text(encoding="utf-8")
-                     for name in ("config_page.js", "main.js") if (root / "app" / "static" / "js" / name).is_file())
+    js = root / "app" / "static" / "js"
+    scripts = (root / "app" / "templates" / "_scripts.html").read_text(encoding="utf-8")
+    panel = (js / "panel.js").read_text(encoding="utf-8")
 
-    assert "timezone_question" in script, "the save answer's question is ignored"
-    assert "/tasks/retime" in script, "there is no way to answer yes"
+    assert "js/timezone_question.js" in scripts, "the page does not load the question"
+    assert scripts.index("js/timezone_question.js") < scripts.index("js/panel.js")
+    assert re.search(r"askAboutTaskTimezone\(\s*data\.timezone_question", panel), (
+        "the save handler does not pass the question on")
+    assert "/tasks/retime" in (js / "timezone_question.js").read_text(encoding="utf-8")
+    assert not (js / "main.js").exists(), "main.js is back - no template loads it"
+
+
+def test_the_question_in_node():
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not installed here - run tests/js/timezone_question.test.js by hand")
+    root = Path(__file__).resolve().parents[2]
+    result = subprocess.run([node, str(root / "tests" / "js" / "timezone_question.test.js")],
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.count("ok   - ") == 5, result.stdout
 
 
 def test_the_endpoint_moves_the_tasks_and_says_how_many():

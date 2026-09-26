@@ -1437,6 +1437,25 @@
                  notification.style.display = 'block';
                  hideUnsavedChangesAlert();
                  hasUnsavedChanges = false; // Reset flag
+
+                 // The timezone changed while tasks exist: ask whether they move
+                 // along (app/static/js/timezone_question.js). Until 2026-09-26
+                 // this handler ignored the question, so it was never put. A
+                 // reload after a move shows the tasks at their new times.
+                 if (data.timezone_question && window.askAboutTaskTimezone) {
+                     window.askAboutTaskTimezone(data.timezone_question, {
+                         confirm: text => window.confirm(text),
+                         fetch: (url, init) => window.fetch(url, init),
+                         t: t
+                     }).then(moved => {
+                         if (moved > 0) { window.location.reload(); }
+                         else if (moved < 0) {
+                             notification.textContent = t('web.timezone.move_failed');
+                             notification.className = 'alert alert-danger';
+                             notification.style.display = 'block';
+                         }
+                     });
+                 }
                  
                  // Show special message if critical settings changed
                  if (data.critical_settings_changed) {
