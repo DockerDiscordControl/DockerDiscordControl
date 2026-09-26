@@ -33,7 +33,11 @@ def _data(**trigger):
 
 def test_validation_and_round_trip():
     assert validate_rule_data(_data())[0]
-    assert not validate_rule_data(_data(cpu_threshold_percent=150))[0]
+    # Above 100 is valid per core since 2026-09-26 (cpu_basis, a 12-core host
+    # reaches 1200); per host it is not, and neither is more than 64 cores.
+    assert validate_rule_data(_data(cpu_threshold_percent=150))[0]
+    assert not validate_rule_data(_data(cpu_threshold_percent=150, cpu_basis="host"))[0]
+    assert not validate_rule_data(_data(cpu_threshold_percent=7000))[0]
     assert not validate_rule_data(_data(resource_minutes=0))[0]
     again = AutoActionRule.from_dict(AutoActionRule.from_dict(_data(states=["high_memory"])).to_dict())
     assert again.trigger.states == ["high_memory"]

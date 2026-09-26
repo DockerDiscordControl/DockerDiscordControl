@@ -18,7 +18,9 @@ function makeEnv() {
     // Added 2026-09-24 with the memory watchdog's second threshold: the form
     // reads it on every save and on every edit, so leaving it out of the
     // stand-in made every case here fail on a null element.
-    'aasRuleMemoryThresholdMb'];
+    'aasRuleMemoryThresholdMb',
+    // Added 2026-09-26: what the CPU percent is of (one core or the host).
+    'aasRuleCpuBasis'];
   for (const id of ids) {
     els[id] = { id, value: '', checked: false, focus() {}, style: {},
       classList: { add() {}, remove() {}, toggle() {} } };
@@ -189,6 +191,36 @@ const tests = {
     const again = edit.sent[0].body.trigger;
     assert.deepStrictEqual([again.cpu_threshold_percent, again.memory_threshold_percent, again.resource_minutes],
       [85, 95, 7]);
+  },
+
+  async 'the cpu basis is sent and kept on edit'() {
+    // Operator decision 2026-09-26: a CPU rule says whether its percent is of
+    // one core or of the whole host. Absent, it is "core" - what it always was.
+    const env = makeEnv();
+    env.els.aasRuleName.value = 'Host hot';
+    env.els.aasRuleTriggerType.value = 'container_state';
+    env.states[3].checked = true;  // high_cpu
+    env.els.aasRuleCpuThreshold.value = '80';
+    env.els.aasRuleCpuBasis.value = 'host';
+    await env.ctx.saveAASRule();
+    const trigger = env.sent[0].body.trigger;
+    assert.strictEqual(trigger.cpu_basis, 'host');
+
+    const edit = makeEnv();
+    edit.ctx.populateRuleForm({ id: 'r', name: 'Host hot', priority: 10, enabled: true,
+      trigger: { ...trigger, restart_threshold: 3, restart_window_minutes: 10 },
+      action: { type: 'NOTIFY', containers: [], delay_seconds: 0, notification_channel_id: null },
+      safety: { cooldown_minutes: 30, cooldown_scope: 'container', only_if_running: true } });
+    assert.strictEqual(edit.els.aasRuleCpuThreshold.max, '100');
+    await edit.ctx.saveAASRule();
+    assert.strictEqual(edit.sent[0].body.trigger.cpu_basis, 'host');
+
+    const plain = makeEnv();
+    plain.els.aasRuleName.value = 'Core hot';
+    plain.els.aasRuleTriggerType.value = 'container_state';
+    plain.states[3].checked = true;
+    await plain.ctx.saveAASRule();
+    assert.strictEqual(plain.sent[0].body.trigger.cpu_basis, 'core');
   },
 
   async 'a message rule is sent as before'() {

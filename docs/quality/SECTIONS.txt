@@ -53,7 +53,7 @@ cogs/slash_commands.py:1-851
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:845-1252
-cogs/background_loops.py:1-795
+cogs/background_loops.py:1-807
 cogs/donation_ui.py:1-655
 
 ## Section 07  (694 lines, 1 piece)
@@ -72,11 +72,11 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-417
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-859
+services/automation/auto_action_config_service.py:1-873
 
 ## Section 11  (1856 lines, 4 pieces)
 services/automation/auto_action_state_service.py:1-379
-services/automation/automation_service.py:1-937
+services/automation/automation_service.py:1-945
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
 # config_cache_service.py left for section 12; both are small. own_actions.py
 # followed it on 2026-09-26: automation_service.py grew by the group check of
@@ -447,9 +447,9 @@ app/blueprints/system_routes.py:1-104
 app/utils/shared_data.py:1-105
 app/utils/port_diagnostics.py:1-824
 
-## Section 45  (218 lines, 1 piece)
+## Section 45  (224 lines, 1 piece)
 # The watchdog's watchers. automation_service.py grew again on 2026-09-26 -
 # delayed watchdog actions run beside the status loop and look again after
 # the wait - and put section 11 at 2,053; container_watch.py is the piece of
 # it that stands on its own.
-services/automation/container_watch.py:1-218
+services/automation/container_watch.py:1-224

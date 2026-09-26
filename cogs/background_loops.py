@@ -17,6 +17,7 @@ these inherited loops.
 
 import asyncio
 import logging
+import os
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -40,6 +41,11 @@ logger = setup_logger('ddc.docker_control', level=logging.INFO)
 VERIFY_OVER_THE_NETWORK_EVERY = 10
 
 
+# A CPU rule on the "host" basis measures percent of the whole machine; its
+# watcher's unit is this, so its events and its message say so.
+from services.automation.container_watch import CPU_HOST_UNIT  # noqa: E402
+
+
 def _measured_for(result, metric: str, unit: str):
     """The number THIS watcher measures for this container, or None for
     "not this watcher's container" - which ResourceWatcher reads as "not
@@ -59,6 +65,11 @@ def _measured_for(result, metric: str, unit: str):
     if not result.is_running:
         return None
     if metric == 'cpu':
+        # Docker's number is percent of ONE core (a 12-core host reaches 1200).
+        # A "host" rule divides by the cores this process sees, which in a
+        # container without a cpuset is every core of the host.
+        if unit == CPU_HOST_UNIT and result.cpu_percent is not None:
+            return result.cpu_percent / max(1, os.cpu_count() or 1)
         return result.cpu_percent
     limited = getattr(result, 'memory_limited', None)
     if unit == '%':
@@ -342,7 +353,8 @@ class BackgroundLoopsMixin:
                     continue
                 if metric == 'cpu':
                     resource_keys.add(('cpu', rule.trigger.cpu_threshold_percent,
-                                       rule.trigger.resource_minutes, '%'))
+                                       rule.trigger.resource_minutes,
+                                       CPU_HOST_UNIT if rule.trigger.cpu_basis == 'host' else '%'))
                 else:
                     resource_keys.add(('memory', rule.trigger.memory_threshold_percent,
                                        rule.trigger.resource_minutes, '%'))

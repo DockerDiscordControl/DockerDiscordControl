@@ -57,6 +57,15 @@ function updateTriggerTypeFields() {
     if (containerFields) containerFields.style.display = containerState ? '' : 'none';
 }
 
+// A CPU percent of one core goes up to 100 per core; of the whole host, to 100.
+// The server holds the same limits (auto_action_config_service.CPU_BASES).
+function updateCpuThresholdLimit() {
+    const basis = document.getElementById('aasRuleCpuBasis');
+    const threshold = document.getElementById('aasRuleCpuThreshold');
+    if (!basis || !threshold) { return; }
+    threshold.max = basis.value === 'host' ? '100' : '6400';
+}
+
 function loadContainersForAAS() {
     // Get ACTIVE containers from the Docker container list table
     // Respects: 1) Order in table, 2) Only containers with "Active" checkbox checked
@@ -460,6 +469,9 @@ function populateRuleForm(rule) {
         document.getElementById('aasRuleRestartThreshold').value = rule.trigger.restart_threshold || 3;
         document.getElementById('aasRuleRestartWindow').value = rule.trigger.restart_window_minutes || 10;
         document.getElementById('aasRuleCpuThreshold').value = rule.trigger.cpu_threshold_percent || 90;
+        const cpuBasis = document.getElementById('aasRuleCpuBasis');
+        if (cpuBasis) { cpuBasis.value = rule.trigger.cpu_basis === 'host' ? 'host' : 'core'; }
+        updateCpuThresholdLimit();
         document.getElementById('aasRuleMemoryThreshold').value = rule.trigger.memory_threshold_percent || 90;
         document.getElementById('aasRuleMemoryThresholdMb').value = rule.trigger.memory_threshold_mb || 4096;
         document.getElementById('aasRuleResourceMinutes').value = rule.trigger.resource_minutes || 5;
@@ -631,6 +643,7 @@ async function saveContainerStateRule(ruleName, watchedContainers) {
             restart_threshold: safeInt(document.getElementById('aasRuleRestartThreshold').value, 3),
             restart_window_minutes: safeInt(document.getElementById('aasRuleRestartWindow').value, 10),
             cpu_threshold_percent: safeInt(document.getElementById('aasRuleCpuThreshold').value, 90),
+            cpu_basis: (document.getElementById('aasRuleCpuBasis') || {}).value === 'host' ? 'host' : 'core',
             memory_threshold_percent: safeInt(document.getElementById('aasRuleMemoryThreshold').value, 90),
             memory_threshold_mb: safeInt(document.getElementById('aasRuleMemoryThresholdMb').value, 4096),
             resource_minutes: safeInt(document.getElementById('aasRuleResourceMinutes').value, 5),

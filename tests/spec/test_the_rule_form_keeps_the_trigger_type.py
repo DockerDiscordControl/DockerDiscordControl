@@ -37,7 +37,7 @@ def test_the_rule_editor_in_node():
     result = subprocess.run([node, str(ROOT / "tests" / "js" / "auto_actions_rule_form.test.js")],
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok     ") == 5, result.stdout
+    assert result.stdout.count("ok     ") == 6, result.stdout
 
 
 def test_the_template_offers_both_trigger_types():

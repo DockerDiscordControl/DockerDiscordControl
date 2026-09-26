@@ -195,7 +195,16 @@
                             </div>
                             <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label" for="aasRuleCpuThreshold">{{ _t('web.aas.cpu_threshold') }}</label>
-                                <input type="number" class="form-control mt-auto" id="aasRuleCpuThreshold" value="90" min="10" max="100">
+                                <input type="number" class="form-control mt-auto" id="aasRuleCpuThreshold" value="90" min="10" max="6400">
+                            </div>
+                            {# What the CPU percent is OF (operator decision 2026-09-26): one core,
+                               as docker stats shows it, or the whole host. #}
+                            <div class="col-md-3 d-flex flex-column">
+                                <label class="form-label" for="aasRuleCpuBasis">{{ _t('web.aas.cpu_basis') }}</label>
+                                <select class="form-select mt-auto" id="aasRuleCpuBasis" onchange="updateCpuThresholdLimit()">
+                                    <option value="core">{{ _t('web.aas.cpu_basis_core') }}</option>
+                                    <option value="host">{{ _t('web.aas.cpu_basis_host') }}</option>
+                                </select>
                             </div>
                             <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label" for="aasRuleMemoryThreshold">{{ _t('web.aas.memory_threshold') }}</label>

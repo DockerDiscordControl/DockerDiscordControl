@@ -49,6 +49,12 @@ CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_me
 MIN_RESTART_THRESHOLD, MAX_RESTART_THRESHOLD = 2, 50
 MIN_RESTART_WINDOW_MINUTES, MAX_RESTART_WINDOW_MINUTES = 1, 1440
 MIN_RESOURCE_PERCENT, MAX_RESOURCE_PERCENT = 10, 100
+# What a CPU percent is OF (operator decision 2026-09-26): "core" is what docker
+# stats shows - 100 per core, so a 12-core host reaches 1200 - and what every rule
+# written before this meant; "host" is percent of the whole machine. A core
+# threshold may go up to 64 cores' worth.
+CPU_BASES = ('core', 'host')
+MAX_CPU_CORE_PERCENT = 6400
 # The absolute memory yardstick, for containers without a --memory limit. The
 # lowest MB is deliberately above the highest percent: an event carries only its
 # number, so keeping the two ranges apart makes "90" unambiguously a percentage.
@@ -365,10 +371,15 @@ def _validate_container_state_trigger(trigger: Dict[str, Any], errors: List[str]
     if not isinstance(window, int) or not MIN_RESTART_WINDOW_MINUTES <= window <= MAX_RESTART_WINDOW_MINUTES:
         errors.append(f"Restart window must be between {MIN_RESTART_WINDOW_MINUTES} and "
                       f"{MAX_RESTART_WINDOW_MINUTES} minutes")
-    for key, label in (('cpu_threshold_percent', 'CPU threshold'), ('memory_threshold_percent', 'Memory threshold')):
+    basis = trigger.get('cpu_basis', 'core')
+    if basis not in CPU_BASES:
+        errors.append(f"CPU basis must be one of: {', '.join(CPU_BASES)}")
+    cpu_max = MAX_CPU_CORE_PERCENT if basis == 'core' else MAX_RESOURCE_PERCENT
+    for key, label, top in (('cpu_threshold_percent', 'CPU threshold', cpu_max),
+                            ('memory_threshold_percent', 'Memory threshold', MAX_RESOURCE_PERCENT)):
         value = trigger.get(key, 90)
-        if not isinstance(value, int) or not MIN_RESOURCE_PERCENT <= value <= MAX_RESOURCE_PERCENT:
-            errors.append(f"{label} must be between {MIN_RESOURCE_PERCENT} and {MAX_RESOURCE_PERCENT} percent")
+        if not isinstance(value, int) or not MIN_RESOURCE_PERCENT <= value <= top:
+            errors.append(f"{label} must be between {MIN_RESOURCE_PERCENT} and {top} percent")
     megabytes = trigger.get('memory_threshold_mb', 4096)
     if not isinstance(megabytes, int) or not MIN_RESOURCE_MB <= megabytes <= MAX_RESOURCE_MB:
         errors.append(f"Memory threshold must be between {MIN_RESOURCE_MB} and {MAX_RESOURCE_MB} MB")
@@ -400,6 +411,7 @@ class TriggerConfig:
     restart_window_minutes: int = 10
     # Resource thresholds (Phase 4b): high_cpu / high_memory above this for resource_minutes
     cpu_threshold_percent: int = 90
+    cpu_basis: str = 'core'          # "core" (docker stats) or "host" - see CPU_BASES
     # Memory has two yardsticks, picked per container: percent of the container's
     # --memory limit, or these absolute MB when it was started without one.
     memory_threshold_percent: int = 90
@@ -415,6 +427,7 @@ class TriggerConfig:
             restart_threshold=data.get('restart_threshold', 3),
             restart_window_minutes=data.get('restart_window_minutes', 10),
             cpu_threshold_percent=data.get('cpu_threshold_percent', 90),
+            cpu_basis=data.get('cpu_basis', 'core'),
             memory_threshold_percent=data.get('memory_threshold_percent', 90),
             memory_threshold_mb=data.get('memory_threshold_mb', 4096),
             resource_minutes=data.get('resource_minutes', 5),
@@ -454,6 +467,7 @@ class TriggerConfig:
                 "restart_threshold": self.restart_threshold,
                 "restart_window_minutes": self.restart_window_minutes,
                 "cpu_threshold_percent": self.cpu_threshold_percent,
+                "cpu_basis": self.cpu_basis,
                 "memory_threshold_percent": self.memory_threshold_percent,
                 "memory_threshold_mb": self.memory_threshold_mb,
                 "resource_minutes": self.resource_minutes,

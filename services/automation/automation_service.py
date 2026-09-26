@@ -701,6 +701,14 @@ class AutomationService:
             'high_memory': [(trigger.memory_threshold_percent, trigger.resource_minutes),
                             (trigger.memory_threshold_mb, trigger.resource_minutes)],
         }.get(event.kind)
+        if event.kind == 'high_cpu' and getattr(event, 'unit', None) is not None:
+            # Two CPU rules with the same number may mean different things -
+            # one core, or the host (cpu_basis) - and each gets its own events.
+            from services.automation.container_watch import CPU_HOST_UNIT
+
+            wanted = CPU_HOST_UNIT if trigger.cpu_basis == 'host' else '%'
+            if event.unit != wanted:
+                return False
         return own is None or (event.threshold, event.window_minutes) in own
 
     async def _execute_container_rule(self, rule: AutoActionRule, event, settings: Dict,

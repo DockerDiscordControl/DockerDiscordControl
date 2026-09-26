@@ -64,6 +64,8 @@ class WatchEvent:
     # reacts only to loops measured by its own settings.
     threshold: Optional[int] = None
     window_minutes: Optional[int] = None
+    # resource events: the yardstick ("%", "MB", or CPU percent of the host)
+    unit: Optional[str] = None
 
 
 class ContainerWatcher:
@@ -145,6 +147,10 @@ class ContainerWatcher:
         return None
 
 
+# The unit of a CPU watcher on the "host" basis: percent of the whole machine,
+# where the default "%" is percent of one core (auto_action_config_service.CPU_BASES).
+CPU_HOST_UNIT = "% of the host"
+
 HIGH_CPU = "high_cpu"
 HIGH_MEMORY = "high_memory"
 RESOURCE_KINDS = {"cpu": HIGH_CPU, "memory": HIGH_MEMORY}
@@ -212,7 +218,7 @@ class ResourceWatcher:
                         name, self.kind,
                         f"{label} of '{name}' at or above {self.threshold:g}{unit} for "
                         f"{self.minutes} min (now {value:.0f}{unit}).",
-                        threshold=int(self.threshold), window_minutes=self.minutes))
+                        threshold=int(self.threshold), window_minutes=self.minutes, unit=self.unit))
             else:
                 self._high_since.pop(name, None)
         return events
