@@ -52,7 +52,7 @@ function checkHandlers(html, fn) {
   for (const [name, code] of found) {
     assert.ok(name !== 'onmouseover', `the id opened a new attribute: ${html}`);
     const call = /^([A-Za-z]+)\((.*)\)$/.exec(code.replace(/, this\.checked\)$/, ')'));
-    if (!call || !/^(openRuleEditor|toggleRuleEnabled|openCTPairEditor|toggleCTPair)$/.test(call[1])) continue;
+    if (!call || !/^(openRuleEditor|toggleRuleEnabled|openCTPairEditor|toggleCTPair|setAdminUnscoped)$/.test(call[1])) continue;
     // The argument must be ONE JavaScript string literal that reads back as the id.
     assert.strictEqual(JSON.parse(call[2]), EVIL, `${name}="${code}" is not the id as a string`);
   }
@@ -74,6 +74,25 @@ const cases = {
       target_channel_id: '2', target_language: 'DE' }];
     vm.runInContext('ctPairsData = __pairs; renderCTPairs();', ctx);
     checkHandlers(list.innerHTML, 'openCTPairEditor');
+  },
+  // The admin assignment's "every container" switch, same pattern. Admin ids
+  // are checked for digits on save - but not on a restored backup.
+  'an admin id stays a string'() {
+    const source = js('config-ui.js');
+    const take = name => {
+      const start = source.indexOf(`function ${name}`);
+      assert.ok(start > -1, `${name} is gone`);
+      const end = source.indexOf('\nfunction ', start + 1);
+      return source.slice(start, end === -1 ? undefined : end);
+    };
+    const ctx = { console, t: k => k, availableContainers: ['web'] };
+    vm.createContext(ctx);
+    vm.runInContext(js('escape.js'), ctx);
+    // escapeHtmlConfigUI escapes the same five characters; the page code right
+    // after it reaches for document, so it is not sliced out.
+    ctx.escapeHtmlConfigUI = ctx.ddcEscapeHtml;
+    vm.runInContext(['adminAssignmentLabel', 'renderAdminContainers'].map(take).join('\n'), ctx);
+    checkHandlers(ctx.renderAdminContainers(EVIL, ['web']), 'setAdminUnscoped');
   },
 };
 

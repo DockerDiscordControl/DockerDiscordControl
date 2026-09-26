@@ -9,6 +9,9 @@ helped, because the browser decodes it before the handler runs. An id of
 and ``add_pair`` took the id from the request, and a restored backup brings
 its own files, so the id was the sender's to choose.
 
+The admin list's "every container" switch had the same pattern; admin ids
+are checked for digits on save, but not on a restored backup.
+
 THE TWO HALVES, each on its own: the server now makes the id of every NEW
 rule and pair itself, and the lists write any id - old, restored - as a
 JavaScript string (``ddcJsArg`` in escape.js). tests/js/list_ids_stay_data.test.js
@@ -65,4 +68,4 @@ def test_the_lists_in_node():
     result = subprocess.run([node, str(ROOT / "tests" / "js" / "list_ids_stay_data.test.js")],
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok     ") == 2, result.stdout
+    assert result.stdout.count("ok     ") == 3, result.stdout

@@ -784,7 +784,7 @@ function renderAdminContainers(userId, assigned) {
         <div class="d-flex align-items-center flex-wrap">
             <label class="me-3 text-nowrap">
                 <input type="checkbox" ${scoped ? '' : 'checked'}
-                       onchange="setAdminUnscoped('${safeId}', this.checked)">
+                       onchange="setAdminUnscoped(${ddcJsArg(userId)}, this.checked)">
                 <strong>${t('admin.all_containers')}</strong>
             </label>
             <span class="text-muted me-3">${summary}</span>

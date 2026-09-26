@@ -37,6 +37,10 @@ function decode(text) {
 function render(names) {
   const sandbox = { console, t: key => key, availableContainers: names };
   vm.createContext(sandbox);
+  // escape.js first, as the page loads it: the "every container" switch
+  // passes the admin id through ddcJsArg since 2026-09-26.
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'app', 'static', 'js',
+    'escape.js'), 'utf8'), sandbox);
   vm.runInContext(['escapeHtmlConfigUI', 'adminAssignmentLabel', 'renderAdminContainers']
     .map(take).join('\n'), sandbox);
   return sandbox.renderAdminContainers('123456789012345678', []);
