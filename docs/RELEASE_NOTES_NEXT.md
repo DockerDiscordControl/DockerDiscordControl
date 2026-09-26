@@ -32,6 +32,14 @@ NOT protect.
   a group then acts on a container of that name - after upgrading again, too. It also does not
   enforce the second factor. Keep a copy of your `config/` folder before upgrading if you want a
   way back.
+- **Some things got stricter on purpose** (your decisions of 2026-09-26):
+  - `/donate` works only in DDC's own channels; a broadcast needs an amount, and one person
+    broadcasts at most once every five minutes.
+  - An admin with a container assignment acts only on those containers - also through Restart
+    All, Stop All, a stack restart and maintenance - and cannot use `/addadmin` in status channels.
+  - A "webhook only" auto-action rule must name the webhook's ID. Existing rules without one keep
+    running and are marked "Any webhook" in the list; saving one active needs the ID.
+  - Channel translation no longer translates other bots or webhooks.
 
 ## The boundary
 
@@ -94,6 +102,13 @@ NOT protect.
 
 Three independent review passes over the code found these, among others. Each one is fixed with
 a test that was red against the old code.
+
+- **Channel translation works in both directions.** A->B plus B->A translated nothing, and a
+  chain stopped at the middle. It also stopped paying the provider for a target channel that is
+  gone, sends every provider a language code it accepts (Chinese on Microsoft, European
+  Portuguese, a DeepL source "English (British)"), shows a pair it had to stop, lets you set
+  the Microsoft region, and marks a cut text with "…".
+- **The bot pings nobody,** and a container takes one action at a time - from anybody.
 
 - **The update interval you set is kept.** The overview was edited every minute whatever you had
   configured.

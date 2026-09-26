@@ -90,6 +90,22 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   TLS certificate survive such a round trip, but it covers nothing else. Keep a copy of `config/`
   before upgrading if you want a way back.
 
+- **Operator decisions of 2026-09-26 that change behaviour** (after audits of every Discord
+  input, the channel translation and the spam protection):
+  - **`/donate` answers only in DDC's own channels.** A broadcast needs an amount (and so a
+    booked donation), and one person broadcasts at most once every five minutes - whatever the
+    spam switch says. The donor name is shown as text, never as markdown.
+  - **An admin assigned to some containers acts only on those.** `/addadmin` in a status channel
+    needs an admin without an assignment; Restart All, Stop All, a stack restart and maintenance
+    leave the other containers alone and say which ones they skipped.
+  - **A "webhook only" auto-action rule must name the webhook's ID** under Allowed User IDs. An
+    active rule without one is refused on save; old ones keep running, carry an "Any webhook"
+    badge in the list and can still be switched off. Allowed usernames never vouch for a webhook.
+  - **Channel translation ignores other bots and webhooks.** Two translation bots in the same
+    channels translated each other in a loop.
+  - **The donation click counter needs the panel login**, and spam settings outside 0-300 s per
+    cooldown or 1-100 per minute are refused by the server.
+
 ### 🔒 Security
 
 - **Allowlist proxy in front of the Docker socket.** Inside the one container, a separate user
@@ -107,6 +123,19 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   says so at the start instead of refusing every request behind a container that looks healthy.
 - **Two-factor authentication** for the web panel: TOTP, recovery codes, host break-glass
   (`scripts/disable_2fa.py`). Offered, never forced.
+- **The bot pings nobody** (`AllowedMentions.none()` on the client): a re-posted text - a
+  translation, a donor name, an info text - can no longer mention @everyone or a role.
+- **One action per container at a time.** A press on a container with an action still running
+  (younger than 120 s) is refused, from any user; with spam protection off nothing else stood
+  between a control channel and a container restarted as fast as Discord allows.
+- **Ids cannot run script in the panel.** The rule, translation-pair and admin lists wrote ids into
+  `onclick` handlers after an HTML escape the browser undoes first; an id like `x');alert(1);//`
+  (from a request or a restored backup) ran as script. New rules and pairs get server-made ids,
+  and every list passes ids as one JavaScript string (`ddcJsArg`).
+- **A regex hit no longer skips a rule's ignore keywords.**
+- **The public ℹ️ button in status channels has the "info" brake**, and the WAN IP is asked of
+  the outside services once per ten minutes instead of on every press.
+- **A line break typed into Discord cannot forge a log line** (`/info` name, donor name).
 
 ### ✨ Container watchdog
 
@@ -327,6 +356,21 @@ came out of the cog split. Thirteen findings.
   already overtaken.
 
 ### 🐛 Fixed (behaviour you may have seen before v3.0)
+
+- **Channel translation, read end to end (2026-09-26):**
+  - two-way pairs (A->B and B->A) and chains (A->B->C) translated nothing, silently;
+  - the global switch reset "show original link" and "provider footer";
+  - a deleted target channel or a lost "Send Messages" still paid the provider for every message
+    and counted it; now the channel is checked first and only a posted translation counts;
+  - every attachment was downloaded in full before its size was checked; a file over the target
+    guild's upload limit is now linked instead;
+  - DeepL got EN-GB/PT-PT as a SOURCE (400 on every message), Microsoft got "zh" (no such code),
+    PT-PT became Brazilian, Google got "nb" for Norwegian;
+  - a pair the bot stopped after five failures still showed its switch on - now it carries a
+    badge, and saving it gives it another chance;
+  - Microsoft Translator always sent the region "global", so a regional Azure key got 401 - there
+    is a region field now;
+  - a cut text ends in "…" instead of stopping mid-sentence.
 
 - **A container DDC could not ask is no longer reported as offline.** A Docker query that timed
   out was counted as a successful "not running": the overview showed 🔴 and, with a watchdog rule,
