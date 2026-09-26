@@ -55,7 +55,8 @@ async def _run_bulk(button_cls, action):
     # The presser is on the admin list: since review D36 the confirmation
     # button reads it itself, because a permission is read at the moment of
     # the press and the first button's check was up to 30 seconds ago.
-    admin_service = SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True))
+    admin_service = SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True),
+                                controllable=lambda _uid, servers: servers)  # unscoped admin
 
     with patch.object(admin_overview, "get_admin_service", return_value=admin_service), \
          patch.object(admin_overview, "get_server_config_service", return_value=scs), \

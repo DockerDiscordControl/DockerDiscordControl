@@ -752,6 +752,9 @@ class ConfirmRestartAllButton(Button):
             # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
             # A missing 'active' field means active (same default as ServerConfigService)
             servers = [s for s in all_servers if s.get('active', True)]
+            # An assigned admin acts on their own containers only - "all" is
+            # all THEY may control (operator, 2026-09-26; SPEC B2).
+            servers = admin_service.controllable(str(interaction.user.id), servers)
 
             if not servers:
                 await interaction.followup.send(
@@ -891,6 +894,9 @@ class ConfirmStopAllButton(Button):
             # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
             # A missing 'active' field means active (same default as ServerConfigService)
             servers = [s for s in all_servers if s.get('active', True)]
+            # An assigned admin acts on their own containers only - "all" is
+            # all THEY may control (operator, 2026-09-26; SPEC B2).
+            servers = admin_service.controllable(str(interaction.user.id), servers)
 
             if not servers:
                 await interaction.followup.send(

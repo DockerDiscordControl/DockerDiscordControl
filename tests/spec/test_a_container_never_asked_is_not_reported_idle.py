@@ -78,7 +78,8 @@ def world(monkeypatch):
         return True
 
     monkeypatch.setattr(admin_overview, "get_admin_service",
-                        lambda: SimpleNamespace(is_user_admin_async=_is_admin))
+                        lambda: SimpleNamespace(is_user_admin_async=_is_admin,
+                                controllable=lambda _uid, servers: servers))  # unscoped admin
     monkeypatch.setattr(admin_overview.asyncio, "sleep",
                         lambda seconds: _done())
     return _Interaction()

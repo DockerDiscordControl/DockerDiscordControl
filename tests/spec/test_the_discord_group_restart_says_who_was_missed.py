@@ -72,7 +72,8 @@ def world(tmp_path, monkeypatch):
                         lambda: SimpleNamespace(get_all_servers=lambda: servers))
     monkeypatch.setattr(ao, "get_status_cache_service", lambda: SimpleNamespace(get=_entry))
     monkeypatch.setattr(ao, "get_admin_service",
-                        lambda: SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True)))
+                        lambda: SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True),
+                                controllable=lambda _uid, servers: servers))  # unscoped admin
     monkeypatch.setattr(ao.asyncio, "sleep", AsyncMock())
     monkeypatch.setattr("services.docker_service.docker_action_service.docker_action_service_first",
                         AsyncMock(return_value=True))

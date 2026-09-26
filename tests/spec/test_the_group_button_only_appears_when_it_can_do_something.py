@@ -178,7 +178,8 @@ async def test_confirming_a_group_restarts_its_containers(world, monkeypatch):
     cog = SimpleNamespace(_bulk_operation_in_progress=False,
                           bot=SimpleNamespace(get_channel=lambda cid: None))
     monkeypatch.setattr(ao, "get_admin_service",
-                        lambda: SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True)))
+                        lambda: SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True),
+                                controllable=lambda _uid, servers: servers))  # unscoped admin
 
     interaction = SimpleNamespace(
         response=SimpleNamespace(defer=AsyncMock()),

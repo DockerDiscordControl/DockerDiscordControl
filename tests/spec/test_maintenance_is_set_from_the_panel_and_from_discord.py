@@ -114,8 +114,10 @@ class _Interaction:
 
 @pytest.mark.asyncio
 async def test_discord_writes_the_same_pause(monkeypatch):
+    import cogs.watchdog_maintenance as wm
     from cogs.watchdog_maintenance import MaintenanceView
 
+    monkeypatch.setattr(wm, "_may_pause", lambda _uid, _name: True)   # an admin of Valheim
     view = MaintenanceView(["Valheim"], {})
     view.chosen = "Valheim"
     hour = next(item for item in view.children if getattr(item, "label", None) == "1 h")

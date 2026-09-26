@@ -117,6 +117,18 @@ class AdminService:
             return True
         return str(docker_name) in containers
 
+    def is_unscoped_admin(self, user_id: Union[str, int], force_refresh: bool = False) -> bool:
+        """An admin with no container assignment - the only kind that may make
+        admins (operator, 2026-09-26). A scoped admin who could add one would
+        simply add an unscoped second account and be out of the scope."""
+        return (self.is_user_admin(user_id, force_refresh=force_refresh)
+                and self.get_admin_containers(user_id, force_refresh=force_refresh) is None)
+
+    def controllable(self, user_id: Union[str, int], servers: List[Dict]) -> List[Dict]:
+        """The servers of this list the admin may control (B2 assignment)."""
+        return [s for s in servers
+                if self.may_control(user_id, s.get('docker_name') or s.get('container_name') or '')]
+
     def _load_admin_users(self) -> List[str]:
         """Load admin users from admins.json file.
 

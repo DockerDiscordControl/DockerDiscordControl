@@ -37,7 +37,8 @@ def _interaction():
 
 
 def _admin_service(monkeypatch, behaviour):
-    monkeypatch.setattr(ao, "get_admin_service", lambda: SimpleNamespace(is_user_admin_async=behaviour))
+    monkeypatch.setattr(ao, "get_admin_service", lambda: SimpleNamespace(is_user_admin_async=behaviour,
+                                controllable=lambda _uid, servers: servers))  # unscoped admin
 
 
 def _said(inter):

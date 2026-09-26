@@ -82,7 +82,7 @@ class AdminOverviewMaintenanceButton(Button):
             await interaction.followup.send(_("❌ Only admins can put a container into maintenance."),
                                             ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
-        containers = _containers()
+        containers = [c for c in _containers() if _may_pause(interaction.user.id, c)]
         if not containers:
             await interaction.followup.send(_("❌ No containers configured."), ephemeral=True,
                                             delete_after=NOTICE_STAYS_FOR)
@@ -92,6 +92,19 @@ class AdminOverviewMaintenanceButton(Button):
             _("🔧 **Watchdog maintenance** - pick a container and how long the watchdog leaves it alone. "
               "No notices, no restarts; the pause ends by itself."),
             view=view, ephemeral=True, wait=True)
+
+
+def _may_pause(user_id, container: str) -> bool:
+    """An admin, assigned this container or none (SPEC B2, operator 2026-09-26).
+    Asked at every press - the private panel lives five minutes, and an admin
+    list can change in that time."""
+    from services.admin.admin_service import get_admin_service
+
+    try:
+        return bool(get_admin_service().may_control(str(user_id), container))
+    except (ImportError, OSError, ValueError, RuntimeError) as e:
+        logger.error(f"Admin assignment could not be read for {user_id}: {e}")
+        return False
 
 
 class ContainerMaintenanceButton(Button):
@@ -108,7 +121,7 @@ class ContainerMaintenanceButton(Button):
         from services.admin.admin_service import get_admin_service
         from services.automation.maintenance import pauses
 
-        if not await get_admin_service().is_user_admin_async(str(interaction.user.id)):
+        if not _may_pause(interaction.user.id, self.container):
             await interaction.response.send_message(
                 _("❌ Only admins can put a container into maintenance."),
                 ephemeral=True, delete_after=NOTICE_STAYS_FOR)
@@ -166,6 +179,11 @@ class MaintenanceView(PrivateView):
 
             if await self._need_choice(interaction):
                 return
+            if not _may_pause(interaction.user.id, self.chosen):
+                await interaction.response.send_message(
+                    _("❌ Only admins can put a container into maintenance."),
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+                return
             until = pause(self.chosen, minutes, by=f"discord:{interaction.user.id}")
             log_user_action("MAINTENANCE", self.chosen, source=f"Discord, {minutes} min",
                             user=str(interaction.user))
@@ -180,6 +198,11 @@ class MaintenanceView(PrivateView):
         from services.infrastructure.action_logger import log_user_action
 
         if await self._need_choice(interaction):
+            return
+        if not _may_pause(interaction.user.id, self.chosen):
+            await interaction.response.send_message(
+                _("❌ Only admins can put a container into maintenance."),
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
         ended = resume(self.chosen)
         if ended:

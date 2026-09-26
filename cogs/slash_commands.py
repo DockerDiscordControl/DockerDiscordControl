@@ -384,12 +384,15 @@ class SlashCommandsMixin:
                 # Status channel: only existing admins can add new admins
                 from services.admin.admin_service import get_admin_service
                 admin_service = get_admin_service()
-                user_is_admin = admin_service.is_user_admin(ctx.author.id)
+                # UNSCOPED admins only (operator, 2026-09-26): an admin assigned
+                # to some containers could otherwise add an unscoped second
+                # account and leave the assignment behind.
+                user_is_admin = admin_service.is_unscoped_admin(ctx.author.id)
 
                 if not user_is_admin:
                     embed = discord.Embed(
                         title=translate("⚠️ Permission Denied"),
-                        description=translate("Only admins can add new admins in status channels. Use this command in a control channel or ask an existing admin."),
+                        description=translate("Only admins without a container assignment can add new admins in status channels. Use this command in a control channel or ask such an admin."),
                         color=discord.Color.red()
                     )
                     await ctx.respond(embed=embed, ephemeral=True)

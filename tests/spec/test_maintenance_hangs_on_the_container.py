@@ -77,7 +77,8 @@ async def test_pressing_it_offers_the_durations_for_that_container(monkeypatch):
     from cogs.watchdog_maintenance import ContainerMaintenanceButton
 
     monkeypatch.setattr(admin_module, "get_admin_service",
-                        lambda: SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True)))
+                        lambda: SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True),
+                                          may_control=lambda _uid, _name: True))
     sent = AsyncMock()
     interaction = SimpleNamespace(user=SimpleNamespace(id=1), response=SimpleNamespace(send_message=sent))
 

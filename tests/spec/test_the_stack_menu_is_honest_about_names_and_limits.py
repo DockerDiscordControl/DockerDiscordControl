@@ -94,7 +94,8 @@ async def test_more_stacks_than_the_menu_holds_are_named_as_missing(monkeypatch)
                         lambda: SimpleNamespace(get_all_servers=lambda: servers))
     monkeypatch.setattr(ao, "get_status_cache_service", lambda: SimpleNamespace(get=cache.get))
     monkeypatch.setattr(ao, "get_admin_service",
-                        lambda: SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True)))
+                        lambda: SimpleNamespace(is_user_admin_async=AsyncMock(return_value=True),
+                                controllable=lambda _uid, servers: servers))  # unscoped admin
     inter = _interaction()
 
     await offer_stacks(SimpleNamespace(), CHANNEL, inter)

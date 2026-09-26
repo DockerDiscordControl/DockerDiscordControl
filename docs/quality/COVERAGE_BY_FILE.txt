@@ -108,7 +108,7 @@ app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/action_effect.py	163	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
-cogs/admin_overview.py	996	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/admin_overview.py	1002	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	807	v3rev:1-652
 cogs/channel_lifecycle.py	631	v3rev2:1-646
@@ -122,17 +122,17 @@ cogs/group_control.py	339	NONE
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	728	v3rev2:1-791
 cogs/overview_embeds.py	655	v3rev2:1-964
-cogs/slash_commands.py	851	NONE
-cogs/stack_restart.py	320	v3rev:1-196
+cogs/slash_commands.py	854	NONE
+cogs/stack_restart.py	325	v3rev:1-196
 cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1267	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	97	passE:E32:read-in-full
-cogs/watchdog_maintenance.py	190	NONE
+cogs/watchdog_maintenance.py	213	NONE
 services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full
-services/admin/admin_service.py	417	passE:F1-feature-read:87-160,262-330
+services/admin/admin_service.py	429	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/alert_webhook.py	104	NONE
 services/automation/auto_action_config_service.py	881	passE:bothscans+E25 v3rev:1-813
@@ -239,7 +239,7 @@ services/scheduling/task_writeback.py	119	NONE
 services/status/__init__.py	13	pass1:s27:1-13
 services/status/status_cache_service.py	225	pass1:s27:1-225
 services/translation/__init__.py	12	pass1:s27:1-12
-services/translation/translation_config_service.py	683	pass1:s27:1-607  [33 of 640 lines never in a package]
+services/translation/translation_config_service.py	691	pass1:s27:1-607  [33 of 640 lines never in a package]
 services/translation/translation_service.py	766	pass1:s28:1-741  [21 of 762 lines never in a package]
 services/web/__init__.py	12	pass1:s28:1-12
 services/web/configuration_page_service.py	555	pass1:s28:1-554

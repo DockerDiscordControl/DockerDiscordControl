@@ -96,7 +96,8 @@ def world(monkeypatch, tmp_path):
     async def _is_admin(user_id):
         return str(user_id) in admins
 
-    monkeypatch.setattr(ao, "get_admin_service", lambda: SimpleNamespace(is_user_admin_async=_is_admin))
+    monkeypatch.setattr(ao, "get_admin_service", lambda: SimpleNamespace(is_user_admin_async=_is_admin,
+                                controllable=lambda _uid, servers: servers))  # unscoped admin
     monkeypatch.setattr(ao.asyncio, "sleep", AsyncMock())
     return SimpleNamespace(acted=acted, admins=admins, cache=cache)
 

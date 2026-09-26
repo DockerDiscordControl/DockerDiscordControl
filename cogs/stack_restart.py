@@ -287,6 +287,11 @@ class ConfirmRestartStackButton(Button):
             # current_stacks(), and looking only there told the admin "the stack
             # has no active containers any more" about a group full of them.
             members, not_touched = _servers_of(self.stack)
+            # An assigned admin restarts only the members assigned to them
+            # (operator, 2026-09-26); the others are named as not touched.
+            allowed = ao.get_admin_service().controllable(str(interaction.user.id), members)
+            not_touched = list(not_touched) + [m.get('docker_name') for m in members if m not in allowed]
+            members = allowed
             if not members:
                 await interaction.followup.send(
                     _("❌ **{stack}** has no active containers any more.").format(stack=self.stack),

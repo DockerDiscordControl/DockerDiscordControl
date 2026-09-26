@@ -87,8 +87,11 @@ def environment(monkeypatch):
     async def _is_admin(user_id):
         return str(user_id) in admins
 
+    # An UNSCOPED admin: every server is theirs to control (the scoped case is
+    # tests/spec/test_an_admin_acts_only_on_their_containers.py).
     monkeypatch.setattr(ao, "get_admin_service",
-                        lambda: SimpleNamespace(is_user_admin_async=_is_admin))
+                        lambda: SimpleNamespace(is_user_admin_async=_is_admin,
+                                                controllable=lambda _uid, servers: servers))
     return acted, admins
 
 
