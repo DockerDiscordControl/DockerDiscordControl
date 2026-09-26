@@ -107,18 +107,6 @@
     }
     // --- End Global Definitions ---
 
-    // --- NEW: Global Function for Checkbox Toggle ---
-    function handleCheckboxToggle(checkbox) {
-        const row = checkbox.closest('tr');
-        const targetSelector = checkbox.getAttribute('data-target-input');
-        if (row && targetSelector) {
-            const targetInput = row.querySelector(targetSelector);
-            if (targetInput) {
-                targetInput.disabled = !checkbox.checked;
-            }
-        }
-    }
-    // --- End Global Function Checkbox Toggle ---
 
     document.addEventListener('DOMContentLoaded', function() {
         console.log("=== PAGE LOAD DEBUG ===");
@@ -1019,72 +1007,7 @@
          });
     }
 
-    // <<< NEW: Function to enforce command exclusivity >>>
-    function enforceCommandExclusivity(changedCheckbox) {
-        const row = changedCheckbox.closest('tr');
-        if (!row) return;
-
-        // Use classes for easier selection
-        const controlCheckbox = row.querySelector('.cmd-control');
-        const serverStatusCheckbox = row.querySelector('.cmd-serverstatus');
-
-        if (!controlCheckbox || !serverStatusCheckbox) return;
-
-        // If the changed checkbox is the Control checkbox
-        if (changedCheckbox === controlCheckbox) {
-            if (controlCheckbox.checked) {
-                // Control activated -> Deactivate ServerStatus (and uncheck)
-                if (serverStatusCheckbox.checked) {
-                    serverStatusCheckbox.checked = false;
-                }
-                serverStatusCheckbox.disabled = true;
-                controlCheckbox.disabled = false; // Ensure this checkbox remains active
-            } else {
-                 // Control deactivated -> Reactivate ServerStatus
-                 serverStatusCheckbox.disabled = false;
-            }
-        }
-        // If the changed checkbox is the ServerStatus checkbox
-        else if (changedCheckbox === serverStatusCheckbox) {
-            if (serverStatusCheckbox.checked) {
-                 // ServerStatus activated -> Deactivate Control (and uncheck)
-                 if (controlCheckbox.checked) {
-                     controlCheckbox.checked = false;
-                 }
-                 controlCheckbox.disabled = true;
-                 serverStatusCheckbox.disabled = false; // Ensure this checkbox remains active
-            } else {
-                 // ServerStatus deactivated -> Reactivate Control
-                 controlCheckbox.disabled = false;
-            }
-        }
-    }
-
     // <<< NEW: Function to add event listeners for exclusivity >>>
-    function addExclusivityListeners(row) {
-        const controlCheckbox = row.querySelector('.cmd-control');
-        const serverStatusCheckbox = row.querySelector('.cmd-serverstatus');
-
-        if (controlCheckbox) {
-            controlCheckbox.addEventListener('change', function() {
-                enforceCommandExclusivity(this);
-            });
-            // Initial check on add/load
-             if (controlCheckbox.checked) {
-                 enforceCommandExclusivity(controlCheckbox);
-             }
-        }
-        if (serverStatusCheckbox) {
-            serverStatusCheckbox.addEventListener('change', function() {
-                enforceCommandExclusivity(this);
-            });
-             // Initial check on add/load (only if control wasn't already checked)
-             if (serverStatusCheckbox.checked && !(controlCheckbox && controlCheckbox.checked)) {
-                 enforceCommandExclusivity(serverStatusCheckbox);
-             }
-        }
-    }
-
     // Collect the non-empty channel IDs of one permission table together with their inputs.
     function collectChannelIdInputs(prefix) {
         const entries = [];

@@ -32,6 +32,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Refresh / Recreate unlock their minutes field - delegated, so it holds for
+    // the rows the template renders as well as the ones the + button adds.
+    // Until 2026-09-26 only added rows had a listener: the template renders a
+    // saved row's minutes field disabled while its box is unticked, and the
+    // handler that once covered those rows (panel.js) was bound to a table id
+    // that no longer exists. Ticking the box left the field locked, and the
+    // save sent the stale value.
+    document.addEventListener('change', function(event) {
+        const box = event.target;
+        if (box && box.matches && box.matches('.auto-refresh-checkbox, .recreate-checkbox')) {
+            const row = box.closest('tr');
+            const field = row && row.querySelector(box.getAttribute('data-target-input'));
+            if (field) {
+                field.disabled = !box.checked;
+            }
+        }
+    });
+
     // Handle channel remove buttons (event delegation for both template-rendered and JS-added rows)
     document.addEventListener('click', function(event) {
         const removeBtn = event.target.closest('.remove-channel-btn');
@@ -961,9 +979,6 @@ function addStatusChannelRow() {
     `;
 
     tbody.appendChild(newRow);
-
-    // Re-initialize checkbox handlers for new row
-    initializeCheckboxHandlers(newRow);
 }
 
 function addControlChannelRow() {
@@ -1006,35 +1021,4 @@ function addControlChannelRow() {
     `;
 
     tbody.appendChild(newRow);
-
-    // Re-initialize checkbox handlers for new row
-    initializeCheckboxHandlers(newRow);
-}
-
-// Helper function to initialize checkbox handlers
-function initializeCheckboxHandlers(row) {
-    // Auto-refresh checkbox handler
-    const refreshCheckbox = row.querySelector('.auto-refresh-checkbox');
-    if (refreshCheckbox) {
-        refreshCheckbox.addEventListener('change', function() {
-            const targetInput = row.querySelector('.interval-minutes-input');
-            if (targetInput) {
-                targetInput.disabled = !this.checked;
-            }
-        });
-    }
-
-    // Recreate checkbox handler
-    const recreateCheckbox = row.querySelector('.recreate-checkbox');
-    if (recreateCheckbox) {
-        recreateCheckbox.addEventListener('change', function() {
-            const targetInput = row.querySelector('.inactivity-minutes-input');
-            if (targetInput) {
-                targetInput.disabled = !this.checked;
-            }
-        });
-    }
-
-    // Remove button handler: handled via event delegation in DOMContentLoaded
-    // (works for both template-rendered and dynamically added rows)
 }
