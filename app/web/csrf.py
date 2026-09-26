@@ -17,8 +17,12 @@ The client side lives in ``_base.html``: it reads the token from
 ``fetch()`` calls and a hidden ``csrf_token`` field to POST forms. Pages that
 do not extend ``_base.html`` (``setup.html``) embed the token themselves.
 
-No route is exempt: nothing outside the browser UI posts to the web server
-(the bot talks to the services directly, not over HTTP).
+One route is exempt, and only one: ``POST /security/2fa/disable``, the way out
+of the second factor (app/blueprints/two_factor_routes.py). Over plain HTTP
+with 2FA on, no page can hand out a token, and the request carries its own
+proof against forgery - a current code no other site can know. Everything else
+needs the token: nothing outside the browser UI posts to the web server (the
+bot talks to the services directly, not over HTTP).
 """
 
 from __future__ import annotations

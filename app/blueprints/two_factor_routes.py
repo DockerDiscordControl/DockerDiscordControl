@@ -23,8 +23,9 @@ import logging
 import secrets
 from urllib.parse import quote
 
-from flask import (Blueprint, Flask, Response, current_app, jsonify, redirect, render_template,
-                   request, session, url_for)
+from flask import (Blueprint, Flask, Response, current_app, g, jsonify, redirect,
+                   render_template, request, session, url_for)
+from flask.sessions import SecureCookieSessionInterface
 
 from app.auth import auth, session_user, two_factor_limiter, verify_password
 from services.web.two_factor_service import (TRUSTED_DEVICE_DAYS, TwoFactorStore,
@@ -118,11 +119,20 @@ def _require_second_factor():
         # The session marker IS the passed second factor. Without this, a panel
         # behind a TLS-terminating proxy (DDC_TLS_MODE=off, the default) handed
         # that cookie out over the plain port as well, and took codes there too.
-        current_app.config["SESSION_COOKIE_SECURE"] = True
+        #
+        # PER RESPONSE, NOT IN app.config. Until 2026-09-26 this wrote True into
+        # the app's global config and nothing ever set it back: after 2FA was
+        # switched off, a plain-HTTP install kept sending Secure cookies the
+        # browser drops, and the login failed its CSRF check until a restart.
+        g.ddc_secure_session_cookie = True
         if not request.is_secure and not request.path.startswith(PLAIN_HTTP_WAY_OUT):
             return Response(
                 "Two-factor authentication is on, so DDC answers only over HTTPS.\n"
-                "Open the panel through your reverse proxy, or set DDC_TLS_MODE.\n",
+                "Open the panel through your reverse proxy, or set DDC_TLS_MODE.\n"
+                "\n"
+                "To switch 2FA off without HTTPS, post a current code with the panel password:\n"
+                "  curl -u admin -d code=123456 http://<host>:<port>/security/2fa/disable\n"
+                "or run: docker exec -it -u ddc <container> python3 scripts/disable_2fa.py\n",
                 status=403, mimetype="text/plain")
     if request.path.startswith(EXEMPT_PREFIXES):
         return None
@@ -203,10 +213,28 @@ def _notice_state():
     }}
 
 
+class _SecureWhileTheFactorIsOn(SecureCookieSessionInterface):
+    """The session cookie is Secure when the app says so, or when this request
+    passed through the gate with 2FA on (g.ddc_secure_session_cookie) - so the
+    flag ends with the factor instead of lasting until the next restart."""
+
+    def get_cookie_secure(self, app):
+        return super().get_cookie_secure(app) or bool(g.get("ddc_secure_session_cookie"))
+
+
 def install_two_factor(app: Flask) -> None:
     """Stand the second factor in front of every authenticated request."""
+    app.session_interface = _SecureWhileTheFactorIsOn()
     app.before_request(_require_second_factor)
     app.context_processor(_notice_state)
+    # THE WAY OUT NEEDS NO CSRF TOKEN, and nothing else here is spared one.
+    # Over plain HTTP with 2FA on, every page that could hand out a token
+    # answers 403, so until 2026-09-26 the promised way out ended in a CSRF
+    # 400 every time. The request carries its own proof against forgery: a
+    # current code (braked by two_factor_limiter), which no other site knows.
+    csrf = app.extensions.get("ddc_csrf")
+    if csrf is not None:
+        csrf.exempt(disable)
 
 
 # -- pages ------------------------------------------------------------------

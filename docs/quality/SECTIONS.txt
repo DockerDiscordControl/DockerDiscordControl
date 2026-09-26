@@ -336,7 +336,7 @@ app/web/blueprints.py:1-39
 # may hold. 38 is the emptiest one and the caching sits fine beside the
 # security pieces there.
 app/web/config.py:1-170
-app/web/csrf.py:1-126
+app/web/csrf.py:1-130
 app/web/diagnostics.py:1-30
 app/web/extensions.py:1-84
 app/web/i18n.py:1-65
@@ -402,7 +402,7 @@ utils/config_cache.py:1-307
 # socket, the TLS modes and the second factor of the web panel. Their own section because they
 # are the security boundary of v3.0 and must be reviewed as one piece, not as
 # a tail of a busier section.
-app/blueprints/two_factor_routes.py:1-375
+app/blueprints/two_factor_routes.py:1-403
 app/web/tls.py:1-497
 app/web/two_factor.py:1-8
 services/docker_proxy/__init__.py:1-2
