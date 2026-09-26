@@ -57,6 +57,7 @@
 
       {% elif view == 'status' %}
         {% if error == 'wrong' %}<div class="alert alert-danger">{{ _t('web.two_factor.wrong_code') }}</div>{% endif %}
+        {% if error == 'rate' %}<div class="alert alert-danger">{{ _t('web.two_factor.too_many') }}</div>{% endif %}
         {% if enabled %}
           <p class="text-center mb-4">
             <span class="badge bg-success px-3 py-2">

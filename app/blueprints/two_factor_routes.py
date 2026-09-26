@@ -292,6 +292,17 @@ def disable():
     # locked into a second factor they can no longer set up.
     # The store forgets every remembered device as part of switching off, so
     # no caller has to remember to (services/web/two_factor_service.py).
+    #
+    # THE SAME BRAKE AS THE CODE PAGE. This route is exempt from the passed
+    # second factor, so until 2026-09-26 whoever held only the password could
+    # guess codes here without limit (~330,000 tries on average) and switch the
+    # factor off with the hit. It shares two_factor_limiter with verify(), so
+    # alternating between the two doors buys nothing.
+    if two_factor_limiter.is_rate_limited(request.remote_addr):
+        logger.warning(f"Second-factor attempts rate-limited from {request.remote_addr}")
+        return render_template("two_factor.html", view="status", enabled=True, error="rate",
+                               remaining=TwoFactorStore().remaining_recovery_codes(),
+                               secure=request.is_secure), 429
     if TwoFactorStore().disable(request.form.get("code", "")):
         session.pop(SESSION_KEY, None)
         logger.warning("Two-factor authentication switched OFF for the web panel")
