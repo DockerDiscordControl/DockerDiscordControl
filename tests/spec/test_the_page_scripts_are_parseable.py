@@ -88,7 +88,9 @@ def _scan(source):
     contain another backtick string, which may contain another `${...}`. The
     first version of this scanner skipped from one backtick to the next and
     reported an imbalance in config.html that was not there - the CSS builder
-    in testSpeedControl() nests two levels deep.
+    in testSpeedControl() nested two levels deep (that function went with the
+    mech test bench, 37c8efe1; test_the_scanner_follows_nested_template_literals keeps the
+    scanner honest).
     """
     stack = []                 # open brackets; "${" is one of them
     modes = ["code"]           # "code" or "template"

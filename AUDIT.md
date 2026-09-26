@@ -30,7 +30,7 @@
 | P1 | `TEMPLATES_AUTO_RELOAD = False` in production | ✅ | Default now `False`. New helper function `_is_dev_environment()` switches to `True` if `FLASK_ENV=development` or `FLASK_DEBUG=1` |
 | P3 | `SESSION_REFRESH_EACH_REQUEST = False` | ✅ | Cookie re-serialization per request no longer happens |
 | L1 | `discord.log` → `RotatingFileHandler` (10 MB × 5) | ✅ | `app/bootstrap/runtime.py` now uses `RotatingFileHandler`: discord.log 10MB×5, bot_error.log 5MB×3. `isinstance(FileHandler)` check remains valid (subclass) |
-| L3 | Temp debug mode max 5 min instead of 10 | ✅ | `enable_temporary_debug(duration_minutes=5)` |
+| L3 | Temp debug mode max 5 min instead of 10 | ✅ | `enable_temporary_debug(duration_minutes=5)` - the whole temporary debug mode was removed on 2026-09-26 (84b28801): nothing could switch it on any more |
 | C1 | 6 root MD files → `docs/archive/` | ✅ | `git mv` into `docs/archive/proposals/` (5 files) or `docs/archive/completed/` (STARTUP_OPTIMIZATION_CHANGES.md) |
 | C2 | Delete `commit_fix.sh` | ✅ | File removed |
 | C3 | `.gitignore`: cache files | ✅ | Patterns `cached_animations/*.cache`, `cached_animations/*.webp`, `cached_displays/*.png`, `cached_displays/*.webp` added |

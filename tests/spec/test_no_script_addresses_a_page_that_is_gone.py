@@ -13,9 +13,9 @@ WHAT IT FOUND, 2026-09-26: twenty-two, and three whole features among them.
     the mech animation test bench 6 ids, 4 layers  -> removed
     five admin-overview cooldowns                  -> stopped being written
     two inside a commented-out block               -> not subjects, see below
-    SIX still here, listed below
+    six more                                       -> removed later that day (106b8b40)
 
-THE SIX ARE THE REMAINS OF DESIGNS THAT WERE REPLACED, and each replacement
+THE SIX WERE THE REMAINS OF DESIGNS THAT WERE REPLACED, and each replacement
 works today::
 
     command-permissions-table   one table, now status-channels-table
@@ -29,12 +29,11 @@ works today::
                                 selection lives in the bulk bar and the
                                 container-groups dialog
 
-EVERY ONE IS GUARDED - ``if (!x) return;`` or ``if (x) {`` - so nothing
-misbehaves and the operator sees nothing wrong. They are dead weight inside a
-2400-line handler, not a defect he feels, and untangling them is surgery on
-the panel's main script. So they are written down and held, not removed in
-passing: the list may only ever get SHORTER, which is the same rule the file
-and class ceilings follow.
+EVERY ONE WAS GUARDED - ``if (!x) return;`` or ``if (x) {`` - so nothing
+misbehaved, and at first they were written down and held in STILL_HERE rather
+than removed in passing. 106b8b40 removed them, and STILL_HERE is empty. It
+stays as the ratchet it was: the list may only ever get SHORTER, the same rule
+the file and class ceilings follow.
 
 A COMMENTED-OUT BLOCK IS NOT A SUBJECT. panel.js carries a ``toggleChannelId``
 inside ``/* ... */`` marked "No longer needed", and its two lookups are not

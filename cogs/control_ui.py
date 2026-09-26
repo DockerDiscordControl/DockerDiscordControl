@@ -957,7 +957,7 @@ class InfoButton(Button):
         return _channel_has_permission(channel_id, 'info', config)
 
 # =============================================================================
-# TASK DELETE COMPONENTS (UNVERÄNDERT)
+# TASK DELETE COMPONENTS
 # =============================================================================
 
 class TaskDeleteButton(Button):
