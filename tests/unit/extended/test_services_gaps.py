@@ -1809,7 +1809,14 @@ class TestSchedulerGaps:
             task._calculate_next_donation_run()
 
         assert task.next_run_ts, "a failed calculation left the task without a date"
-        landed = datetime.fromtimestamp(task.next_run_ts)
+        # READ BACK IN THE TIMEZONE IT WAS COMPUTED FOR. fromtimestamp()
+        # without one answers in the machine's, and the task works out 13:37
+        # Europe/Berlin - so in the image (Berlin) it read 13:37 and on a CI
+        # runner (UTC) 11:37, and these two cases were red the first time CI
+        # reached this group (2026-09-26). The rule is about the wall clock
+        # the operator set, not the one the test happens to stand in.
+        from zoneinfo import ZoneInfo
+        landed = datetime.fromtimestamp(task.next_run_ts, ZoneInfo("Europe/Berlin"))
         assert (landed.day, landed.hour, landed.minute) == (10, 13, 37), landed
 
     def test_calculate_next_donation_run_has_a_last_resort(self, scheduler_isolated):
@@ -1843,7 +1850,14 @@ class TestSchedulerGaps:
                 patch("pytz.timezone", return_value=tz):
             task._calculate_next_donation_run()
 
-        landed = datetime.fromtimestamp(task.next_run_ts)
+        # READ BACK IN THE TIMEZONE IT WAS COMPUTED FOR. fromtimestamp()
+        # without one answers in the machine's, and the task works out 13:37
+        # Europe/Berlin - so in the image (Berlin) it read 13:37 and on a CI
+        # runner (UTC) 11:37, and these two cases were red the first time CI
+        # reached this group (2026-09-26). The rule is about the wall clock
+        # the operator set, not the one the test happens to stand in.
+        from zoneinfo import ZoneInfo
+        landed = datetime.fromtimestamp(task.next_run_ts, ZoneInfo("Europe/Berlin"))
         assert landed.weekday() == 6, f"{landed} is not a Sunday"
         assert 8 <= landed.day <= 14, f"{landed} is not the second Sunday"
         assert (landed.hour, landed.minute) == (13, 37), landed
