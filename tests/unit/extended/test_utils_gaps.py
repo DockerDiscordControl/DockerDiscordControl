@@ -881,11 +881,11 @@ class TestLoggingUtilsExtra:
     def _reset(self):
         import utils.logging_utils as lu
 
-        prev_temp = lu._temp_debug_mode_enabled
-        prev_expiry = lu._temp_debug_expiry
+        # The temporary debug mode this fixture also saved was removed on
+        # 2026-09-26, with the four cases that drove it: its controls left
+        # _log_section.html on 2025-08-12 and nothing could reach any layer of
+        # it since. The permanent switch is what is left, and what is saved.
         prev_perm = lu._debug_mode_enabled
-        lu._temp_debug_mode_enabled = False
-        lu._temp_debug_expiry = 0
         lu._debug_mode_enabled = False
         # Also clear loading guard if leaked
         if hasattr(lu.is_debug_mode_enabled, "_loading"):
@@ -893,41 +893,9 @@ class TestLoggingUtilsExtra:
         try:
             yield
         finally:
-            lu._temp_debug_mode_enabled = prev_temp
-            lu._temp_debug_expiry = prev_expiry
             lu._debug_mode_enabled = prev_perm
             if hasattr(lu.is_debug_mode_enabled, "_loading"):
                 delattr(lu.is_debug_mode_enabled, "_loading")
-
-    def test_is_debug_mode_enabled_temp_active(self, monkeypatch):
-        """Lines 56-61: temp debug active branch."""
-        import utils.logging_utils as lu
-
-        lu._temp_debug_mode_enabled = True
-        lu._temp_debug_expiry = time.time() + 60
-        # Enabled returns True from temp branch
-        assert lu.is_debug_mode_enabled() is True
-
-    def test_is_debug_mode_enabled_temp_expired_resets(self, monkeypatch):
-        """Lines 62-65: temp debug expired path resets and falls through."""
-        import utils.logging_utils as lu
-
-        lu._temp_debug_mode_enabled = True
-        lu._temp_debug_expiry = time.time() - 60  # expired
-
-        # Stub out config service call so we don't blow up
-        class _FakeSvc:
-            def get_config(self, force_reload=False):
-                return {"scheduler_debug_mode": False}
-
-        monkeypatch.setattr(
-            "services.config.config_service.get_config_service",
-            lambda: _FakeSvc(),
-        )
-        result = lu.is_debug_mode_enabled()
-        # Expired -> reset -> returns False
-        assert result is False
-        assert lu._temp_debug_mode_enabled is False
 
     def test_is_debug_mode_enabled_config_import_error(self, monkeypatch):
         """Lines 76-81: config service fails -> returns safe default."""
@@ -940,8 +908,6 @@ class TestLoggingUtilsExtra:
             "services.config.config_service.get_config_service",
             _broken,
         )
-        # Force into the config-error branch by ensuring temp debug is OFF
-        lu._temp_debug_mode_enabled = False
         result = lu.is_debug_mode_enabled()
         assert result is False
 
@@ -959,58 +925,6 @@ class TestLoggingUtilsExtra:
         finally:
             if hasattr(lu.is_debug_mode_enabled, "_loading"):
                 delattr(lu.is_debug_mode_enabled, "_loading")
-
-    def test_enable_temporary_debug_handles_logger_error(self, monkeypatch):
-        """Lines 319-320: AttributeError in regular logger setup."""
-        from utils.logging_utils import enable_temporary_debug
-        import utils.logging_utils as lu
-
-        # Spy on getLogger to make ddc.config getLogger raise on info() call
-        real_get = logging.getLogger
-
-        class _BadLogger:
-            handlers = []
-
-            def setLevel(self, *a):
-                pass
-
-            def info(self, *a, **k):
-                raise AttributeError("logger broken")
-
-            def addHandler(self, h):
-                pass
-
-        def _gl(name=None):
-            if name == "ddc.config":
-                return _BadLogger()
-            return real_get(name)
-
-        # Carefully patch the lookup used inside enable_temporary_debug
-        monkeypatch.setattr(logging, "getLogger", _gl)
-        success, expiry = enable_temporary_debug(1)
-        assert success is True
-        assert expiry > time.time()
-
-    def test_disable_temporary_debug_swallows_runtime_error(self, monkeypatch):
-        """Lines 357-359: error path in disable_temporary_debug."""
-        import utils.logging_utils as lu
-
-        # Force getLogger to raise RuntimeError when 'ddc.config' is requested
-        real_get = logging.getLogger
-
-        class _BadLogger:
-            def info(self, *a, **k):
-                raise RuntimeError("oops")
-
-        def _gl(name=None):
-            if name == "ddc.config":
-                return _BadLogger()
-            return real_get(name)
-
-        monkeypatch.setattr(logging, "getLogger", _gl)
-        # Should not raise — error caught and returns False
-        result = lu.disable_temporary_debug()
-        assert result is False
 
     def test_refresh_debug_status_handles_invalidate_error(self, monkeypatch):
         """Lines 257-258: ImportError on cache invalidation."""

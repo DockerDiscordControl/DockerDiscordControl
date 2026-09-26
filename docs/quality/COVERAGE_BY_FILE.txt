@@ -54,7 +54,7 @@ app/blueprints/automation_routes.py	272	pass1:s31:plan pass2:s31:1-267  [5 of 27
 app/blueprints/group_routes.py	169	NONE
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
 app/blueprints/login_routes.py	123	new 2026-09-23 (the panel form login and logout), written test-first
-app/blueprints/main_routes.py	1490	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
+app/blueprints/main_routes.py	1374	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
 app/blueprints/security_routes.py	206	pass1:s32:plan pass2:s32:1-193
 app/blueprints/system_routes.py	104	pass2:s32:1-51  [self-restart route, added 2026-09-24]
 app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
@@ -241,7 +241,7 @@ services/web/configuration_page_service.py	555	pass1:s28:1-554
 services/web/configuration_save_service.py	653	pass1:s28:1-531  [34 of 652 lines never in a package] v3rev2:1-652
 services/web/container_log_service.py	459	pass1:s29:1-439  [31 of 470 lines never in a package]
 services/web/container_refresh_service.py	208	pass1:s29:1-201  [6 of 207 lines never in a package]
-services/web/diagnostics_service.py	264	pass1:s29:1-263
+services/web/diagnostics_service.py	87	pass1:s29:1-263
 services/web/donation_service.py	361	pass1:s29:1-290  [24 of 314 lines never in a package]
 services/web/donation_status_service.py	252	pass1:s29:1-245  [6 of 251 lines never in a package]
 services/web/donation_tracking_service.py	165	pass1:s29:1-163
@@ -262,7 +262,7 @@ utils/config_paths.py	47	pass1:s35:1-47
 utils/container_image.py	67	passE:written-2026-09-22:E53
 utils/import_utils.py	165	pass1:s35:1-160  [5 of 165 lines never in a package]
 utils/key_crypto.py	84	pass1:s35:1-79  [5 of 84 lines never in a package]
-utils/logging_utils.py	556	pass1:s36:1-467  [79 of 556 lines never in a package]
+utils/logging_utils.py	448	pass1:s36:1-467  [79 of 556 lines never in a package]
 utils/observability.py	593	pass1:s36:1-579  [14 of 593 lines never in a package]
 utils/performance_metrics.py	419	pass1:s36:1-389  [30 of 419 lines never in a package]
 utils/settings.py	113	pass1:s36:1-98  [15 of 113 lines never in a package]

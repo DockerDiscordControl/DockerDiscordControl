@@ -29,9 +29,6 @@
     window.DDC_PANEL_URLS = {
         refreshContainers: "{{ url_for('main_bp.refresh_containers') }}",
         saveConfig: "{{ url_for('main_bp.save_config_api') }}",
-        tempDebugStatus: "{{ url_for('main_bp.temp_debug_status') }}",
-        enableTempDebug: "{{ url_for('main_bp.enable_temp_debug') }}",
-        disableTempDebug: "{{ url_for('main_bp.disable_temp_debug') }}",
         containerLogs: "{{ url_for('log_bp.get_container_logs', container_name='dockerdiscordcontrol') }}",
         botLogs: "{{ url_for('log_bp.get_bot_logs') }}",
         discordLogs: "{{ url_for('log_bp.get_discord_logs') }}",

@@ -245,7 +245,7 @@ services/web/configuration_save_service.py:1-653
 ## Section 29  (1923 lines, 7 pieces)
 services/web/container_log_service.py:1-459
 services/web/container_refresh_service.py:1-208
-services/web/diagnostics_service.py:1-264
+services/web/diagnostics_service.py:1-87
 services/web/donation_service.py:1-361
 services/web/donation_status_service.py:1-252
 services/web/donation_tracking_service.py:1-165
@@ -273,7 +273,7 @@ app/blueprints/login_routes.py:1-123
 app/blueprints/log_routes.py:1-242
 
 ## Section 32  (1929 lines, 3 pieces)
-app/blueprints/main_routes.py:1-1490
+app/blueprints/main_routes.py:1-1374
 app/blueprints/tasks_bp.py:1-348
 app/blueprints/action_log_routes.py:1-91
 
@@ -358,7 +358,7 @@ utils/config_paths.py:1-47
 # sits on the 35/36 boundary, and 35 is the section that already overflowed.
 utils/container_image.py:1-67
 utils/import_utils.py:1-165
-utils/logging_utils.py:1-556
+utils/logging_utils.py:1-448
 utils/observability.py:1-593
 utils/settings.py:1-113
 utils/time_utils.py:1-387

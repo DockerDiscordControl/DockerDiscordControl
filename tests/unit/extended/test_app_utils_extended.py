@@ -1868,49 +1868,14 @@ class TestLoggingUtilsHelpers:
     def _reset_state(self):
         import utils.logging_utils as lu
 
-        prev_temp = lu._temp_debug_mode_enabled
-        prev_expiry = lu._temp_debug_expiry
+        # The temporary debug mode saved here as well went on 2026-09-26,
+        # with its own cases: unreachable since 2025-08-12, in all four layers.
         prev_perm = lu._debug_mode_enabled
-        lu._temp_debug_mode_enabled = False
-        lu._temp_debug_expiry = 0
         lu._debug_mode_enabled = False
         try:
             yield
         finally:
-            lu._temp_debug_mode_enabled = prev_temp
-            lu._temp_debug_expiry = prev_expiry
             lu._debug_mode_enabled = prev_perm
-
-    def test_get_temporary_debug_status_returns_disabled(self):
-        from utils.logging_utils import get_temporary_debug_status
-
-        is_enabled, expiry, remaining = get_temporary_debug_status()
-        assert is_enabled is False
-        assert remaining == 0
-
-    def test_get_temporary_debug_status_returns_enabled(self):
-        from utils.logging_utils import (
-            enable_temporary_debug,
-            get_temporary_debug_status,
-        )
-
-        enable_temporary_debug(2)
-        is_enabled, expiry, remaining = get_temporary_debug_status()
-        assert is_enabled is True
-        assert remaining > 0
-
-    def test_disable_temporary_debug(self):
-        from utils.logging_utils import (
-            disable_temporary_debug,
-            enable_temporary_debug,
-            get_temporary_debug_status,
-        )
-
-        enable_temporary_debug(2)
-        assert get_temporary_debug_status()[0] is True
-        result = disable_temporary_debug()
-        assert result is True
-        assert get_temporary_debug_status()[0] is False
 
     def test_setup_logger_idempotent(self):
         from utils.logging_utils import setup_logger

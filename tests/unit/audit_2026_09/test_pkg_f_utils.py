@@ -207,7 +207,7 @@ class _FakeConfigService:
 def lu(monkeypatch):
     import utils.logging_utils as lu
 
-    saved = (lu._temp_debug_mode_enabled, lu._temp_debug_expiry, lu._debug_mode_enabled, lu._last_debug_status_log)
+    saved = (lu._debug_mode_enabled, lu._last_debug_status_log)
     if hasattr(lu.is_debug_mode_enabled, "_loading"):
         delattr(lu.is_debug_mode_enabled, "_loading")
     svc = _FakeConfigService(False)
@@ -216,24 +216,30 @@ def lu(monkeypatch):
     try:
         yield lu
     finally:
-        (lu._temp_debug_mode_enabled, lu._temp_debug_expiry, lu._debug_mode_enabled, lu._last_debug_status_log) = saved
+        (lu._debug_mode_enabled, lu._last_debug_status_log) = saved
         if hasattr(lu.is_debug_mode_enabled, "_loading"):
             delattr(lu.is_debug_mode_enabled, "_loading")
         del lu._fake_svc
 
 
 class TestF7DebugGuard:
-    def test_guard_cleared_after_temp_debug_return(self, lu):
-        lu._temp_debug_mode_enabled = True
-        lu._temp_debug_expiry = time.time() + 60
-        assert lu.is_debug_mode_enabled() is True
+    """The recursion guard is always cleared, whichever way the call leaves.
+
+    RE-AIMED 2026-09-26, rule unchanged. Two of these used an ACTIVE temporary
+    debug window to take the early return out of is_debug_mode_enabled(), and
+    that whole feature was removed the same day - its three controls left
+    _log_section.html on 2025-08-12 and nothing could reach any layer of it
+    since. With the early return gone there is one way out less to guard; the
+    two that remain, the ordinary return and an exception, are what is asked
+    here.
+    """
+
+    def test_guard_cleared_after_an_ordinary_return(self, lu):
+        assert lu.is_debug_mode_enabled() is False
         assert not hasattr(lu.is_debug_mode_enabled, "_loading")
 
-    def test_toggle_after_temp_debug_is_picked_up(self, lu):
-        lu._temp_debug_mode_enabled = True
-        lu._temp_debug_expiry = time.time() + 60
-        assert lu.is_debug_mode_enabled() is True
-        lu.disable_temporary_debug()
+    def test_a_toggle_is_picked_up(self, lu):
+        assert lu.is_debug_mode_enabled() is False
 
         lu._fake_svc.value = True
         assert lu.refresh_debug_status() is True

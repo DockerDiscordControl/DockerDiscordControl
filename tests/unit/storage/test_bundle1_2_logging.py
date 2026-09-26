@@ -220,29 +220,32 @@ class TestActionLogTextRotation:
 
 
 # ---------------------------------------------------------------------------
-# Bundle 1 / L3 -- DebugModeFilter + enable_temporary_debug
+# Bundle 1 / L3 -- DebugModeFilter
 # ---------------------------------------------------------------------------
 
 class TestDebugModeFilter:
-    """Validate the debug-filter behaviour and the new 5 minute default."""
+    """Validate the debug-filter behaviour.
+
+    RE-AIMED 2026-09-26, not relaxed. This class also held the two cases for
+    the TEMPORARY debug mode - its five-minute default and a custom duration -
+    and that whole feature was removed the same day: its three controls left
+    _log_section.html on 2025-08-12 and nothing has been able to reach any
+    layer of it since. The rule that survives is the filter's, and the case
+    that used an expiring window to make is_debug_mode_enabled() true now uses
+    the switch that is actually in the panel.
+    """
 
     @pytest.fixture(autouse=True)
     def _reset_debug_state(self):
-        # Snapshot then reset the module globals around each test so we can
+        # Snapshot then reset the module global around each test so we can
         # assert deterministic behaviour without leaking into siblings.
         import utils.logging_utils as lu
 
-        prev_temp = lu._temp_debug_mode_enabled
-        prev_expiry = lu._temp_debug_expiry
         prev_perm = lu._debug_mode_enabled
-        lu._temp_debug_mode_enabled = False
-        lu._temp_debug_expiry = 0
         lu._debug_mode_enabled = False
         try:
             yield
         finally:
-            lu._temp_debug_mode_enabled = prev_temp
-            lu._temp_debug_expiry = prev_expiry
             lu._debug_mode_enabled = prev_perm
 
     def _make_record(self, level: int) -> logging.LogRecord:
@@ -256,34 +259,6 @@ class TestDebugModeFilter:
             exc_info=None,
         )
 
-    def test_default_duration_is_five_minutes(self) -> None:
-        from utils.logging_utils import enable_temporary_debug
-        import utils.logging_utils as lu
-
-        before = time.time()
-        success, expiry = enable_temporary_debug()
-        after = time.time()
-
-        assert success is True
-        # 5 min = 300s, allow a generous wall-clock tolerance.
-        elapsed = expiry - before
-        assert 299 <= elapsed <= 301 + (after - before)
-        # Ensure it's NOT the previous 10-minute default.
-        assert elapsed < 600
-        assert lu._temp_debug_mode_enabled is True
-
-    def test_custom_duration_two_minutes(self) -> None:
-        from utils.logging_utils import enable_temporary_debug
-
-        before = time.time()
-        success, expiry = enable_temporary_debug(2)
-        after = time.time()
-
-        assert success is True
-        elapsed = expiry - before
-        # 2 min = 120s.
-        assert 119 <= elapsed <= 121 + (after - before)
-
     def test_filter_blocks_debug_when_disabled(self) -> None:
         from utils.logging_utils import DebugModeFilter
 
@@ -291,14 +266,14 @@ class TestDebugModeFilter:
         with patch("utils.logging_utils.is_debug_mode_enabled", return_value=False):
             assert flt.filter(self._make_record(logging.DEBUG)) is False
 
-    def test_filter_allows_debug_when_temp_debug_active(self) -> None:
-        from utils.logging_utils import DebugModeFilter, enable_temporary_debug
+    def test_filter_allows_debug_when_the_switch_is_on(self) -> None:
+        """The other half of the rule above, and the one the operator can
+        actually reach: the panel's debug switch."""
+        from utils.logging_utils import DebugModeFilter
 
-        enable_temporary_debug(1)
         flt = DebugModeFilter()
-        # The active temp-debug window means is_debug_mode_enabled() is True
-        # without needing to mock it.
-        assert flt.filter(self._make_record(logging.DEBUG)) is True
+        with patch("utils.logging_utils.is_debug_mode_enabled", return_value=True):
+            assert flt.filter(self._make_record(logging.DEBUG)) is True
 
     def test_filter_always_allows_info(self) -> None:
         from utils.logging_utils import DebugModeFilter

@@ -382,65 +382,6 @@ class TestRefreshContainers:
         assert "docker down" not in body["message"]
 
 
-# ---- /enable_temp_debug + /disable_temp_debug + /temp_debug_status ----------
-
-
-class TestTempDebugRoutes:
-    def test_enable_temp_debug_success(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.enable_temp_debug.return_value = SimpleNamespace(
-            success=True, data={"expires_at": "soon"}, error=None
-        )
-        monkeypatch.setattr(
-            "services.web.diagnostics_service.get_diagnostics_service", lambda: svc
-        )
-        resp = main_app.test_client().post(
-            "/enable_temp_debug", data={"duration": "15"}, headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["success"] is True
-        assert body["expires_at"] == "soon"
-
-    def test_enable_temp_debug_failure_returns_500(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.enable_temp_debug.return_value = SimpleNamespace(
-            success=False, data={}, error="cannot enable"
-        )
-        monkeypatch.setattr(
-            "services.web.diagnostics_service.get_diagnostics_service", lambda: svc
-        )
-        resp = main_app.test_client().post(
-            "/enable_temp_debug", data={}, headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 500
-        assert resp.get_json()["success"] is False
-
-    def test_disable_temp_debug_success(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.disable_temp_debug.return_value = SimpleNamespace(
-            success=True, data={"disabled_at": "now"}, error=None
-        )
-        monkeypatch.setattr(
-            "services.web.diagnostics_service.get_diagnostics_service", lambda: svc
-        )
-        resp = main_app.test_client().post(
-            "/disable_temp_debug", headers=_AUTH_HEADER
-        )
-        assert resp.status_code == 200
-        assert resp.get_json()["success"] is True
-
-    def test_temp_debug_status_returns_200(self, main_app, monkeypatch):
-        svc = MagicMock()
-        svc.get_debug_status.return_value = SimpleNamespace(
-            success=True, data={"is_enabled": False}, error=None
-        )
-        monkeypatch.setattr(
-            "services.web.diagnostics_service.get_diagnostics_service", lambda: svc
-        )
-        resp = main_app.test_client().get("/temp_debug_status", headers=_AUTH_HEADER)
-        assert resp.status_code == 200
-        assert resp.get_json()["success"] is True
 
 
 # ---- /api/spam-protection (GET + POST) --------------------------------------

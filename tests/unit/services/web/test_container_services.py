@@ -615,8 +615,6 @@ class TestStatusCacheService:
 # diagnostics_service                                                         #
 # --------------------------------------------------------------------------- #
 from services.web.diagnostics_service import (
-    DebugModeRequest,
-    DebugStatusRequest,
     DiagnosticsResult,
     DiagnosticsService,
     PortDiagnosticsRequest,
@@ -633,86 +631,6 @@ class TestDiagnosticsService:
         assert a is b
         assert isinstance(a, DiagnosticsService)
 
-    @pytest.mark.parametrize("inp,expected", [
-        (None, 10),       # default fallback
-        (5, 5),           # accepts integer
-        ("15", 15),       # accepts numeric string
-        (-3, 1),          # clamps below 1
-        (120, 60),        # clamps above 60
-        ("garbage", 10),  # non-numeric string falls back to default
-    ])
-    def test_validate_debug_duration(self, inp, expected):
-        service = DiagnosticsService()
-        assert service._validate_debug_duration(inp) == expected
-
-    def test_format_debug_status_enabled(self):
-        service = DiagnosticsService()
-        expiry = time.time() + 600
-        out = service._format_debug_status(True, expiry, 605.5)
-        assert out["is_enabled"] is True
-        assert out["expiry_formatted"]
-        assert "10m" in out["remaining_formatted"]
-
-    def test_format_debug_status_disabled(self):
-        service = DiagnosticsService()
-        out = service._format_debug_status(False, 0.0, 0.0)
-        assert out["is_enabled"] is False
-        assert out["remaining_formatted"] == ""
-        assert out["expiry_formatted"] == ""
-
-    def test_enable_temp_debug_success(self):
-        service = DiagnosticsService()
-        future = time.time() + 600
-        with patch("utils.logging_utils.enable_temporary_debug",
-                   return_value=(True, future)), \
-             patch.object(service, "_log_debug_action"):
-            result = service.enable_temp_debug(DebugModeRequest(duration_minutes=10))
-        assert isinstance(result, DiagnosticsResult)
-        assert result.success is True
-        assert result.data["duration_minutes"] == 10
-        assert result.data["expiry"] == future
-
-    def test_enable_temp_debug_helper_returns_false(self):
-        service = DiagnosticsService()
-        with patch("utils.logging_utils.enable_temporary_debug",
-                   return_value=(False, 0)):
-            result = service.enable_temp_debug(DebugModeRequest(duration_minutes=10))
-        assert result.success is False
-        assert result.status_code == 500
-
-    def test_disable_temp_debug_success(self):
-        service = DiagnosticsService()
-        with patch("utils.logging_utils.disable_temporary_debug", return_value=True), \
-             patch.object(service, "_log_debug_action"):
-            result = service.disable_temp_debug(DebugModeRequest())
-        assert result.success is True
-        assert "disabled" in result.data["message"].lower()
-
-    def test_disable_temp_debug_helper_returns_false(self):
-        service = DiagnosticsService()
-        with patch("utils.logging_utils.disable_temporary_debug", return_value=False):
-            result = service.disable_temp_debug(DebugModeRequest())
-        assert result.success is False
-        assert result.status_code == 500
-
-    def test_get_debug_status_enabled(self):
-        service = DiagnosticsService()
-        expiry = time.time() + 300
-        with patch("utils.logging_utils.get_temporary_debug_status",
-                   return_value=(True, expiry, 305.0)):
-            result = service.get_debug_status(DebugStatusRequest())
-        assert result.success is True
-        assert result.data["is_enabled"] is True
-        assert "5m" in result.data["remaining_formatted"]
-
-    def test_get_debug_status_disabled(self):
-        service = DiagnosticsService()
-        with patch("utils.logging_utils.get_temporary_debug_status",
-                   return_value=(False, 0.0, 0.0)):
-            result = service.get_debug_status(DebugStatusRequest())
-        assert result.success is True
-        assert result.data["is_enabled"] is False
-
     def test_run_port_diagnostics(self):
         service = DiagnosticsService()
         fake_report = {"port_5000": "open", "host": "0.0.0.0"}
@@ -722,9 +640,3 @@ class TestDiagnosticsService:
         assert result.success is True
         assert result.data["diagnostics"] == fake_report
 
-    def test_log_debug_action_swallows_import_errors(self):
-        service = DiagnosticsService()
-        # Force the import inside ``_log_debug_action`` to raise
-        with patch.dict("sys.modules", {"services.infrastructure.action_logger": None}):
-            # Should not raise
-            service._log_debug_action("ENABLE", "Test")
