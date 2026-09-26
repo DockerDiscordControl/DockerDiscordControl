@@ -94,6 +94,7 @@ def engine(monkeypatch):
 
     async def _feedback(bot, channel_id, message):
         sent.append((channel_id, message))
+        return True  # delivered - since 2026-09-26 an undelivered notice falls back
 
     service._send_feedback = _feedback
     service._trigger_status_refresh = AsyncMock()

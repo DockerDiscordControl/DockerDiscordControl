@@ -715,6 +715,10 @@ class AutomationService:
         container = event.container
         action_type = rule.action.type.upper()
         channel_id = rule.action.notification_channel_id or control_channel_id
+        # Where a notice goes: the rule's channel, and the control channel when
+        # that one cannot be reached (see _notify).
+        channels = tuple(dict.fromkeys(c for c in (rule.action.notification_channel_id,
+                                                   control_channel_id) if c))
         protected = await protected_names(settings)
 
         # Before the locks, so a refused action spends no cooldown.
@@ -739,8 +743,8 @@ class AutomationService:
             logger.warning(f"AAS: Blocked {action_type} on protected container '{container}' (watchdog)")
             self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED",
                                               "Protected container")
-            if bot and channel_id and not rule.action.silent:
-                await self._send_feedback(bot, channel_id,
+            if bot and channels and not rule.action.silent:
+                await self._notify(bot, channels,
                                           f"🚨 {event.reason} — *{rule.name}* (protected: no `{action_type}`)")
             return False
 
@@ -755,28 +759,30 @@ class AutomationService:
             # nothing looked again after the wait, so a container that had
             # recovered in the meantime was restarted anyway.
             task = asyncio.create_task(self._act_on_container(
-                rule, event, action_type, container, bot, channel_id, delayed=True))
+                rule, event, action_type, container, bot, channels, delayed=True))
             delayed = self.__dict__.setdefault('_delayed_actions', set())
             delayed.add(task)
             task.add_done_callback(delayed.discard)
             return True
-        return await self._act_on_container(rule, event, action_type, container, bot, channel_id)
+        return await self._act_on_container(rule, event, action_type, container, bot, channels)
 
     async def _act_on_container(self, rule: AutoActionRule, event, action_type: str, container: str,
-                                bot, channel_id, delayed: bool = False) -> bool:
+                                bot, channels, delayed: bool = False) -> bool:
         """The action of one container-state rule, its notice and its record.
 
         The lock was taken by the caller; every way out of here settles it.
         """
         try:
             if action_type == 'NOTIFY':
-                # silent, like every other branch: the rule's own setting decides
-                if bot and channel_id and not rule.action.silent:
-                    await self._send_feedback(bot, channel_id, f"🚨 {event.reason} — *{rule.name}*")
+                # silent, like every other branch: the rule's own setting decides.
+                # A notice that reached nobody is a FAILED notify: it used to be
+                # recorded SUCCESS and spend the cooldown (audit 2026-09-26).
                 result = True
+                if bot and channels and not rule.action.silent:
+                    result = await self._notify(bot, channels, f"🚨 {event.reason} — *{rule.name}*")
             else:
-                if bot and channel_id and not rule.action.silent:
-                    await self._send_feedback(bot, channel_id,
+                if bot and channels and not rule.action.silent:
+                    await self._notify(bot, channels,
                                               f"🚨 {event.reason} → `{action_type}` — *{rule.name}*")
                 if delayed:
                     await asyncio.sleep(rule.action.delay_seconds)
@@ -786,8 +792,8 @@ class AutomationService:
                         self.state_service.release_execution_lock(rule.id, container, success=False)
                         self.state_service.record_trigger(rule.id, rule.name, container, action_type,
                                                           "SKIPPED", f"{event.kind}: recovered during the delay")
-                        if bot and channel_id and not rule.action.silent:
-                            await self._send_feedback(bot, channel_id,
+                        if bot and channels and not rule.action.silent:
+                            await self._notify(bot, channels,
                                                       f"✅ **{container}** recovered - no `{action_type}` "
                                                       f"— *{rule.name}*")
                         return False
@@ -795,8 +801,8 @@ class AutomationService:
                 result = await docker_action(container, verb)
                 if result:
                     await self._trigger_status_refresh(bot, container)
-                elif bot and channel_id and not rule.action.silent:
-                    await self._send_feedback(bot, channel_id,
+                elif bot and channels and not rule.action.silent:
+                    await self._notify(bot, channels,
                                               f"⚠️ `{action_type}` **{container}** failed — *{rule.name}*")
         except BaseException:
             # The lock was taken above; an error or a cancellation must not leave
@@ -884,14 +890,29 @@ class AutomationService:
             return None
         return bool(info.get('State', {}).get('Running', False))
 
-    async def _send_feedback(self, bot, channel_id, message):
-        """Helper to send feedback to Discord."""
+    async def _send_feedback(self, bot, channel_id, message) -> bool:
+        """Send one message to one channel. True when it was sent.
+
+        A channel the bot cannot see used to be skipped without a word - the
+        rule looked as if it had reported (audit 2026-09-26).
+        """
         try:
             channel = bot.get_channel(int(channel_id))
             if channel:
                 await channel.send(message)
+                return True
+            logger.warning(f"AAS: channel {channel_id} is unknown to the bot or not visible to it - "
+                           f"a notice could not be delivered there")
         except Exception as e:
             logger.warning(f"Failed to send AAS feedback: {e}")
+        return False
+
+    async def _notify(self, bot, channels, message) -> bool:
+        """Send to the first of ``channels`` that takes it. True when one did."""
+        for channel_id in channels:
+            if await self._send_feedback(bot, channel_id, message):
+                return True
+        return False
 
     async def _trigger_status_refresh(self, bot, container_name: str):
         """Trigger status refresh after AAS action via DockerControlCog."""
