@@ -10,7 +10,10 @@ services:
       - "9374:9374" # Equivalent to -p 9374:9374 (<host-port>:<container-port>)
                     # Change the host port (9374) if it's already in use.
     volumes:
-      # Mount for Docker Socket (Adjust if your socket is located elsewhere)
+      # The Docker socket (adjust if yours is located elsewhere). Only DDC's
+      # allowlist proxy inside the container opens it; DDC itself talks to the
+      # proxy (docs/V3_ARCHITECTURE_PLAN.md §4). ":ro" protects the socket FILE,
+      # not the API behind it - the proxy is what limits what DDC can ask for.
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Mount for the configuration directory
       # Use relative paths for easier setup
@@ -18,19 +21,19 @@ services:
       # Mount for logs
       - ./logs:/app/logs:cached
       # Note: cached_displays are now built into the Docker image for Community App compatibility
-    # user: "99:100"
+    # Do NOT set "user:" here: a container started with --user cannot run the
+    # allowlist proxy and falls back to the raw socket. Choose the IDs DDC runs
+    # as with PUID/PGID below instead.
     environment:
+      # PUID: "99"     # Unraid's nobody
+      # PGID: "100"    # Unraid's users
       # FLASK_SECRET_KEY: Optional, best set via a .env file. If empty, DDC generates a
       # random key once and keeps it in config/.flask_secret_key.
       FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
-      # ENV_FLASK_SECRET_KEY: Is also set to the same value (for Supervisor)
-      ENV_FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
-      # ENV_DOCKER_SOCKET: Path to the Docker socket (used in web_ui.py)
-      ENV_DOCKER_SOCKET: 'unix:///var/run/docker.sock'
-      # DOCKER_SOCKET: Also used in web_ui.py (set both to be safe)
-      DOCKER_SOCKET: 'unix:///var/run/docker.sock'
-      # Explicitly set DOCKER_HOST to correct URL format
-      DOCKER_HOST: 'unix:///var/run/docker.sock'
+      # No DOCKER_HOST here: the image points it at the allowlist proxy
+      # (unix:///run/ddc-proxy/docker.sock). Setting it to the raw socket sent
+      # every "docker exec" session - reset_password.py, disable_2fa.py -
+      # around the proxy.
       # SECURITY: Discord Bot Token via environment variable (recommended)
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       # Uncomment and set this to change the default admin password (admin)
