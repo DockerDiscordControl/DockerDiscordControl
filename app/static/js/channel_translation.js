@@ -140,6 +140,10 @@ function renderCTPairs() {
         const embedBadge = pair.translate_embeds
             ? '<span class="badge bg-info ms-1">+Embeds</span>'
             : '';
+        // Switched off by the bot after five failures - the switch still says on.
+        const stoppedBadge = pair.auto_disabled
+            ? `<span class="badge bg-warning text-dark ms-1" title="${ddcEscapeHtml(t('ct.auto_disabled_hint'))}"><i class="bi bi-exclamation-triangle"></i> ${ddcEscapeHtml(t('ct.auto_disabled'))}</span>`
+            : '';
 
         return `
             <div class="list-group-item list-group-item-action bg-dark text-light ${enabledClass}" style="cursor:pointer;" onclick="openCTPairEditor(${idArg})">
@@ -148,6 +152,7 @@ function renderCTPairs() {
                         <strong>${ctEscapeHtml(pair.name)}</strong>
                         <span class="badge bg-secondary ms-2">${langBadge}</span>
                         ${embedBadge}
+                        ${stoppedBadge}
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <small class="text-muted">${count} ${t('ct.translations_count')}</small>

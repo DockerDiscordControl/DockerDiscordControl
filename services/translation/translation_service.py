@@ -790,6 +790,12 @@ class TranslationService:
         session = await self._get_session()
         return await provider.translate(text, target_lang, source_lang, session)
 
+    def auto_disabled_ids(self) -> set:
+        """Pairs switched off after five failures in a row - in memory only, so
+        the panel asks here to show them (audit 2026-09-26, #8)."""
+        with self._state_lock:
+            return set(self._auto_disabled_pairs)
+
     def reset_auto_disabled(self, pair_id: str):
         """Re-enable an auto-disabled pair (called when user re-enables in UI)."""
         with self._state_lock:

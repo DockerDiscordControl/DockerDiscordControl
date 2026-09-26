@@ -48,7 +48,11 @@ def get_pairs():
     try:
         config_service = get_translation_config_service()
         pairs = config_service.get_pairs()
-        return jsonify({'pairs': [p.to_dict() for p in pairs]})
+        # A pair the bot stopped using after five failures kept showing its
+        # switch ON - looking exactly like one that works (audit 2026-09-26).
+        stopped = get_translation_service().auto_disabled_ids()
+        return jsonify({'pairs': [dict(p.to_dict(), auto_disabled=p.id in stopped)
+                                  for p in pairs]})
     except Exception as e:
         logger.error(f"Error loading pairs: {e}", exc_info=True)
         return jsonify({'pairs': [], 'error': 'Failed to load pairs'}), 500
@@ -84,6 +88,8 @@ def update_pair(pair_id):
 
     result = config_service.update_pair(pair_id, data)
     if result.success:
+        # A pair fixed in the editor gets another chance, as the toggle gives it.
+        get_translation_service().reset_auto_disabled(pair_id)
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': result.error}), 400
 

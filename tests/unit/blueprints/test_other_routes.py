@@ -117,7 +117,9 @@ class TestTranslationPairs:
 
         assert resp.status_code == 200
         body = resp.get_json()
-        assert body == {"pairs": [{"id": "p1", "name": "alpha", "enabled": True}]}
+        # auto_disabled joined on 2026-09-26: whether the bot stopped the pair.
+        assert body == {"pairs": [{"id": "p1", "name": "alpha", "enabled": True,
+                                   "auto_disabled": False}]}
 
     def test_get_pairs_returns_500_on_service_exception(
         self, translation_app, mock_translation_config
