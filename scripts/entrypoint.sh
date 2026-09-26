@@ -509,7 +509,13 @@ find_unusable_entries() {
     local uid="$2"
     local gid="$3"
     shift 3
-    find "$dir" \( \
+    # NO HARDLINK AND NO SYMLINK IS EVER LISTED. This runs as root and its
+    # caller chowns what it lists to the app user. A file with a second name
+    # may be one the app user linked in from elsewhere on the same filesystem -
+    # /app/entrypoint.sh, when cached_animations or assets is no volume - and
+    # chowning the link chowns the entrypoint; the next start then ran the app
+    # user's version as root (audit 2026-09-26). A file DDC wrote has one link.
+    find "$dir" ! -type l \( -type d -o -links 1 \) \( \
         \( ! -type d ! \( -user "$uid" -perm -600 \) ! \( -group "$gid" -perm -060 \) ! -perm -006 \) -o \
         \( -type d ! \( -user "$uid" -perm -700 \) ! \( -group "$gid" -perm -070 \) ! -perm -007 \) \
     \) "$@" 2>/dev/null
