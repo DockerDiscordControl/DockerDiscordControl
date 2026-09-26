@@ -523,6 +523,13 @@ class TranslationService:
             if not text.strip() and not has_attachments:
                 continue
 
+            # Where it would go, BEFORE the provider is paid: the channel check
+            # used to live only in _post_translation, so a deleted target channel
+            # or a lost "Send Messages" still sent every message to DeepL, and
+            # the pair counted a translation nobody saw (audit 2026-09-26, #4).
+            if self._postable_channel(bot_instance, pair) is None:
+                continue
+
             if text.strip():
                 if provider is None:
                     logger.warning("No translation API key configured — skipping "
@@ -550,7 +557,8 @@ class TranslationService:
             if result.success:
                 with self._state_lock:
                     self._consecutive_failures.pop(pair.id, None)
-                await self._post_translation(bot_instance, pair, context, result, settings)
+                if not await self._post_translation(bot_instance, pair, context, result, settings):
+                    continue  # nothing was posted, so nothing is counted
                 self.config_service.increment_translation_count(pair.id)
                 translated_pairs.append(pair.name)
                 if result.provider == "passthrough":
@@ -594,23 +602,29 @@ class TranslationService:
                 parts.append(et)
         return "\n\n".join(parts)
 
+    @staticmethod
+    def _postable_channel(bot, pair: ChannelPair):
+        """The pair's target channel if the bot can post there, else None (logged)."""
+        target_channel = bot.get_channel(int(pair.target_channel_id))
+        if not target_channel:
+            logger.error(f"Target channel {pair.target_channel_id} not found for pair '{pair.name}'")
+            return None
+        if hasattr(target_channel, 'guild') and target_channel.guild:
+            perms = target_channel.permissions_for(target_channel.guild.me)
+            if not perms.send_messages:
+                logger.error(f"No send permission in target channel {pair.target_channel_id}")
+                return None
+        return target_channel
+
     async def _post_translation(self, bot, pair: ChannelPair,
                                 context: TranslationContext,
                                 result: TranslationResult,
-                                settings: Optional['TranslationSettings'] = None):
-        """Post compact translation embed to target channel."""
+                                settings: Optional['TranslationSettings'] = None) -> bool:
+        """Post compact translation embed to target channel. True when it was posted."""
         try:
-            target_channel = bot.get_channel(int(pair.target_channel_id))
-            if not target_channel:
-                logger.error(f"Target channel {pair.target_channel_id} not found for pair '{pair.name}'")
-                return
-
-            # Check permissions
-            if hasattr(target_channel, 'guild') and target_channel.guild:
-                perms = target_channel.permissions_for(target_channel.guild.me)
-                if not perms.send_messages:
-                    logger.error(f"No send permission in target channel {pair.target_channel_id}")
-                    return
+            target_channel = self._postable_channel(bot, pair)
+            if target_channel is None:
+                return False
 
             # Build compact embed
             translated_text = _safe_truncate(result.translated_text, DISCORD_EMBED_DESC_LIMIT) if result.translated_text else ""
@@ -678,6 +692,11 @@ class TranslationService:
             # so Discord shows proper video players and image previews
             files = []
             session = await self._get_session()
+            # The target guild's own upload limit (boosted servers allow more),
+            # 25 MB when it cannot be read.
+            upload_limit = getattr(getattr(target_channel, 'guild', None), 'filesize_limit', None)
+            if not isinstance(upload_limit, int) or isinstance(upload_limit, bool):
+                upload_limit = 25 * 1024 * 1024
             for att in context.attachment_urls:
                 ct = att.get('content_type', '')
                 filename = att.get('filename', 'file')
@@ -687,14 +706,22 @@ class TranslationService:
                 # image fell through both branches: not embedded, not uploaded,
                 # not linked, not logged - simply gone from the forwarded post
                 # (review C12).
-                if ct.startswith('video/') or (ct.startswith('image/')
-                                               and att['url'] != embedded_image_url):
+                size = att.get('size')
+                too_big = isinstance(size, int) and size > upload_limit
+                if too_big and (ct.startswith('video/') or ct.startswith('image/')):
+                    # Discord tells the size before anybody downloads: a 500 MB
+                    # video used to be read into memory in full and only then
+                    # dropped for being too big (audit 2026-09-26, #5).
+                    line = f"📎 [{filename}]({att['url']})\n"
+                    if len(extra_content) + len(line) <= 1900:
+                        extra_content += line
+                elif ct.startswith('video/') or (ct.startswith('image/')
+                                                 and att['url'] != embedded_image_url):
                     try:
                         async with session.get(att['url'], timeout=aiohttp.ClientTimeout(total=30)) as resp:
                             if resp.status == 200:
                                 data = await resp.read()
-                                # Discord file upload limit: 25MB for most servers
-                                if len(data) <= 25 * 1024 * 1024:
+                                if len(data) <= upload_limit:
                                     files.append(discord.File(io.BytesIO(data), filename=filename))
                                 else:
                                     line = att['url'] + "\n"
@@ -720,6 +747,7 @@ class TranslationService:
 
             sent_msg = await target_channel.send(**send_kwargs)
             self.mark_as_translated(str(sent_msg.id))
+            return True
 
         except discord.Forbidden:
             logger.error(f"Forbidden: Cannot send to channel {pair.target_channel_id}")
@@ -727,6 +755,7 @@ class TranslationService:
             logger.error(f"Discord HTTP error posting translation: {e}")
         except Exception as e:
             logger.error(f"Error posting translation for pair '{pair.name}': {e}", exc_info=True)
+        return False
 
     async def test_translation(self, text: str, target_lang: str,
                                source_lang: Optional[str] = None) -> TranslationResult:

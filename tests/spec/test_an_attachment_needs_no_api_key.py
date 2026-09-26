@@ -27,6 +27,7 @@ skipped, with its warning, and a normal translation still happens.
 import threading
 
 import pytest
+from types import SimpleNamespace
 
 from services.translation import translation_service as ts_mod
 from services.translation.translation_service import (
@@ -85,6 +86,7 @@ def service(monkeypatch):
 
     async def _post(bot, pair, context, result, settings=None):
         posted.append((pair.name, result))
+        return True  # posted - only a posted translation is counted since 2026-09-26
 
     monkeypatch.setattr(instance, "_post_translation", _post)
     instance.posted = posted
@@ -98,13 +100,19 @@ def _context(content="", attachments=()):
         content=content, attachment_urls=list(attachments))
 
 
+# A bot whose target channel exists and takes posts: since 2026-09-26 the
+# service looks for it BEFORE paying a provider (audit #4). No guild, so the
+# permission check has nothing to ask.
+BOT = SimpleNamespace(get_channel=lambda _channel_id: SimpleNamespace(guild=None))
+
+
 ATTACHMENT = [{"url": "https://cdn.example/shot.png", "filename": "shot.png",
                "content_type": "image/png"}]
 
 
 async def test_an_attachment_only_message_is_forwarded_without_a_key(service):
     """THE FINDING: nothing here needs a translation provider."""
-    await service.process_message(_context(attachments=ATTACHMENT), bot_instance=object())
+    await service.process_message(_context(attachments=ATTACHMENT), bot_instance=BOT)
 
     assert service.posted, "the screenshot was never mirrored"
     assert service.posted[0][1].provider == "passthrough"
@@ -114,7 +122,7 @@ async def test_a_text_message_without_a_key_is_still_skipped(service, caplog):
     """COUNTER-CHECK: text really does need a provider."""
     import logging
     with caplog.at_level(logging.WARNING):
-        await service.process_message(_context(content="hello"), bot_instance=object())
+        await service.process_message(_context(content="hello"), bot_instance=BOT)
 
     assert service.posted == []
     assert any("api key" in r.getMessage().lower() for r in caplog.records)
@@ -131,7 +139,7 @@ async def test_a_normal_translation_still_happens(service, monkeypatch):
 
     monkeypatch.setattr(service, "_translate_with_retry", _translate)
 
-    await service.process_message(_context(content="hello"), bot_instance=object())
+    await service.process_message(_context(content="hello"), bot_instance=BOT)
 
     assert service.posted and service.posted[0][1].translated_text == "hallo"
 

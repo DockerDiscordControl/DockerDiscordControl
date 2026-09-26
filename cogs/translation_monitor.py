@@ -77,7 +77,10 @@ class TranslationMonitor(commands.Cog):
                 attachment_urls.append({
                     'url': att.url,
                     'filename': att.filename,
-                    'content_type': att.content_type or ''
+                    'content_type': att.content_type or '',
+                    # Known before any download - the service links a file too
+                    # big for the target guild instead of fetching it.
+                    'size': att.size
                 })
 
             # 6. Build context

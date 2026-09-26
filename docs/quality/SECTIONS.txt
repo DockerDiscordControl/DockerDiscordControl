@@ -67,7 +67,7 @@ cogs/status_info_integration.py:1-1285
 
 ## Section 10  (1592 lines, 7 pieces)
 cogs/translation_manager.py:1-149
-cogs/translation_monitor.py:1-104
+cogs/translation_monitor.py:1-107
 services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-429
@@ -237,8 +237,9 @@ services/scheduling/scheduler_service.py:1-568
 services/status/status_cache_service.py:1-225
 services/translation/translation_config_service.py:1-693
 
-## Section 28  (1982 lines, 4 pieces)
-services/translation/translation_service.py:1-766
+## Section 28  (1220 lines, 3 pieces)
+# translation_service.py moved to section 48 on 2026-09-26: the target-channel
+# check before the provider call (audit #4, #5) took this section past 2,000.
 services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-555
 services/web/configuration_save_service.py:1-653
@@ -468,3 +469,8 @@ cogs/watchdog_maintenance.py:1-217
 services/automation/maintenance.py:1-95
 # The alarm webhook joined on 2026-09-26: the watchdog's way out of Discord.
 services/automation/alert_webhook.py:1-104
+
+## Section 48  (795 lines, 1 piece)
+# From section 28 on 2026-09-26 (see there). Reviewed in both passes as part
+# of section 28; the coverage ledger keeps its s28 labels.
+services/translation/translation_service.py:1-795

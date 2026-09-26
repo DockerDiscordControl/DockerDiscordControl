@@ -94,11 +94,12 @@ def _make_embed(*, title=None, description=None, footer_text=None, fields=(),
     return embed
 
 
-def _make_attachment(url, filename, content_type):
+def _make_attachment(url, filename, content_type, size=1024):
     att = MagicMock()
     att.url = url
     att.filename = filename
     att.content_type = content_type
+    att.size = size
     return att
 
 
@@ -205,7 +206,8 @@ class TestAttachments:
         att = _make_attachment("https://cdn/a.png", "a.png", "image/png")
         ctx = await _context_for(cog, _make_message(attachments=[att]))
         assert ctx.attachment_urls == [
-            {"url": "https://cdn/a.png", "filename": "a.png", "content_type": "image/png"}
+            {"url": "https://cdn/a.png", "filename": "a.png", "content_type": "image/png",
+             "size": 1024}
         ]
 
     async def test_missing_content_type_becomes_empty_string(self):
