@@ -520,7 +520,8 @@ class TestStateService:
         assert ok is True
         assert reason == ""
         assert state_service.global_last_triggered > 0
-        assert "nginx" in state_service.container_cooldowns
+        # keyed per rule and container since 2026-09-26
+        assert AutoActionStateService.cooldown_key("rule-1", "nginx") in state_service.container_cooldowns
         assert "rule-1" in state_service.rule_cooldowns
 
     def test_acquire_lock_blocked_by_global_cooldown(
@@ -541,7 +542,7 @@ class TestStateService:
         self, state_service: AutoActionStateService
     ):
         # Set the container cooldown directly to avoid global cooldown blocking
-        state_service.container_cooldowns["nginx"] = time.time()
+        state_service.container_cooldowns[AutoActionStateService.cooldown_key("rule-9", "nginx")] = time.time()
         # global_last_triggered is 0 so global passes; container blocks
         ok, reason = state_service.acquire_execution_lock(
             "rule-9", "nginx", global_cooldown=0, rule_cooldown_mins=60
@@ -569,7 +570,7 @@ class TestStateService:
     def test_check_cooldown_reports_container_block(
         self, state_service: AutoActionStateService
     ):
-        state_service.container_cooldowns["nginx"] = time.time()
+        state_service.container_cooldowns[AutoActionStateService.cooldown_key("r1", "nginx")] = time.time()
         blocked, reason = state_service.check_cooldown(
             "r1", "nginx", global_cooldown=0, rule_cooldown_mins=60
         )
@@ -586,7 +587,7 @@ class TestStateService:
         assert len(hist) == 1
         assert hist[0]["result"] == "SUCCESS"
         # Cooldowns confirmed
-        assert state_service.container_cooldowns["nginx"] > 0
+        assert state_service.container_cooldowns[AutoActionStateService.cooldown_key("r1", "nginx")] > 0
         assert state_service.rule_cooldowns["r1"] > 0
         # File written
         assert state_service.state_file.exists()
@@ -596,13 +597,13 @@ class TestStateService:
     ):
         # First acquire to set cooldowns
         state_service.acquire_execution_lock("r1", "nginx", 30, 60)
-        assert state_service.container_cooldowns["nginx"] > 0
+        assert state_service.container_cooldowns[AutoActionStateService.cooldown_key("r1", "nginx")] > 0
 
         state_service.record_trigger(
             "r1", "Restart", "nginx", "RESTART", "FAILED", "boom"
         )
         # Failed (without "cooldown" in details) -> the CONTAINER may retry at once
-        assert state_service.container_cooldowns["nginx"] == 0
+        assert state_service.container_cooldowns[AutoActionStateService.cooldown_key("r1", "nginx")] == 0
         # The rule's own cooldown is not touched by a single container's outcome since
         # 2026-09-20: with several targets, one failure used to wipe the cooldown a
         # successful sibling had just set (review B10). The caller releases it when
@@ -671,7 +672,7 @@ class TestStateService:
     ):
         state_service.acquire_execution_lock("r1", "nginx", 30, 60)
         state_service.release_execution_lock("r1", "nginx", success=False)
-        assert "nginx" not in state_service.container_cooldowns
+        assert AutoActionStateService.cooldown_key("r1", "nginx") not in state_service.container_cooldowns
         assert "r1" not in state_service.rule_cooldowns
 
     def test_release_execution_lock_keeps_on_success(
@@ -679,7 +680,7 @@ class TestStateService:
     ):
         state_service.acquire_execution_lock("r1", "nginx", 30, 60)
         state_service.release_execution_lock("r1", "nginx", success=True)
-        assert "nginx" in state_service.container_cooldowns
+        assert AutoActionStateService.cooldown_key("r1", "nginx") in state_service.container_cooldowns
 
     def test_trigger_event_to_dict(self):
         ev = TriggerEvent(

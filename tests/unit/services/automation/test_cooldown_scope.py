@@ -143,7 +143,7 @@ class TestRuleScope:
 
         # Pretend the cooldown elapsed (2 days ago for a 1 day window)
         svc.rule_cooldowns["r1"] = time.time() - (2 * ONE_DAY * 60)
-        svc.container_cooldowns["alpha"] = time.time() - (2 * ONE_DAY * 60)
+        svc.container_cooldowns[svc.cooldown_key("r1", "alpha")] = time.time() - (2 * ONE_DAY * 60)
 
         ok, reason, _ = svc.acquire_execution_locks("r1", ["alpha"], NO_GLOBAL, ONE_DAY, "rule")
         assert ok is True, reason

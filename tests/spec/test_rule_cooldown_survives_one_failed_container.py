@@ -48,7 +48,7 @@ def test_a_failure_after_a_success_keeps_the_rule_cooldown(state):
     state.record_trigger(RULE, "Rule", "alpha", "RESTART", "SUCCESS", "")
     state.record_trigger(RULE, "Rule", "beta", "RESTART", "FAILED", "Container not found")
 
-    assert state.container_cooldowns.get("beta") == 0, (
+    assert state.container_cooldowns.get(state.cooldown_key(RULE, "beta")) == 0, (
         "premise: the failed container may be retried at once"
     )
     assert state.rule_cooldowns.get(RULE, 0) > 0, (

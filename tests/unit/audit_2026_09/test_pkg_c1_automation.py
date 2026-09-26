@@ -130,18 +130,19 @@ class TestMultiContainerLocks:
         ok, reason, blocked = state_service.acquire_execution_locks("r1", ["alpha", "beta"], 30, 1440)
 
         assert (ok, reason, blocked) == (True, "", None)
-        assert state_service.container_cooldowns["alpha"] > 0
-        assert state_service.container_cooldowns["beta"] > 0
+        # keyed per rule and container since 2026-09-26
+        assert state_service.container_cooldowns[state_service.cooldown_key("r1", "alpha")] > 0
+        assert state_service.container_cooldowns[state_service.cooldown_key("r1", "beta")] > 0
         assert state_service.global_last_triggered > 0
 
     def test_blocked_container_leaves_nothing_locked(self, state_service):
-        state_service.container_cooldowns["beta"] = time.time()
+        state_service.container_cooldowns[state_service.cooldown_key("r1", "beta")] = time.time()
 
         ok, reason, blocked = state_service.acquire_execution_locks("r1", ["alpha", "beta"], 30, 1440)
 
         assert ok is False and blocked == "beta"
         assert "beta" in reason
-        assert "alpha" not in state_service.container_cooldowns
+        assert state_service.cooldown_key("r1", "alpha") not in state_service.container_cooldowns
         assert state_service.global_last_triggered == 0.0
         assert "r1" not in state_service.rule_cooldowns
 
@@ -176,12 +177,13 @@ class TestMultiContainerRuleExecution:
                                                             docker_action, monkeypatch):
         assert config_service.add_rule(_rule(["alpha", "beta"])).success
         _running_states(monkeypatch, {"alpha": True, "beta": True})
-        state_service.container_cooldowns["beta"] = time.time()
+        rule_id = config_service.get_rules()[0].id
+        state_service.container_cooldowns[state_service.cooldown_key(rule_id, "beta")] = time.time()
 
         assert await automation.process_message(_ctx()) == []
 
         docker_action.assert_not_awaited()
-        assert "alpha" not in state_service.container_cooldowns
+        assert state_service.cooldown_key(rule_id, "alpha") not in state_service.container_cooldowns
         history = state_service.get_history()
         assert len(history) == 1
         assert (history[0]["container"], history[0]["result"]) == ("beta", "SKIPPED")
@@ -204,7 +206,8 @@ class TestOnlyIfRunning:
         result, details = _results(state_service)["alpha"]
         assert result == "SKIPPED" and "only_if_running" in details
         # Nothing was executed, so the container cooldown was released again
-        assert not state_service.container_cooldowns.get("alpha")
+        rule_id = config_service.get_rules()[0].id
+        assert not state_service.container_cooldowns.get(state_service.cooldown_key(rule_id, "alpha"))
 
     async def test_only_running_targets_are_restarted(self, automation, config_service, state_service,
                                                       docker_action, monkeypatch):
