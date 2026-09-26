@@ -150,6 +150,27 @@ def rule_listens_to(rule, container: str) -> bool:
     return container in _resolved(rule.trigger.containers)
 
 
+def rule_may_act_on(rule, container: str) -> bool:
+    """Whether a container-state rule may DO its action to this container.
+
+    Such a rule acts on the container the event is about, not on its action
+    list, so containers_of_action never saw it - and until 2026-09-26 a rule
+    reaching a container only through "group:<name>" went on restarting it
+    after the operator switched the group off or took its box away. A
+    container named directly, or a rule with no container list, involves no
+    group and is not gated here. NOTIFY does nothing, so it is never gated.
+    """
+    action = getattr(rule.action, "type", None)
+    if ACTION_NEEDS.get((action or "").upper(), "") is None:
+        return True
+    entries = rule.trigger.containers or []
+    if not entries or container in entries:
+        return True
+    groups = [entry for entry in entries
+              if isinstance(entry, str) and entry.startswith(GROUP_PREFIX)]
+    return container in _resolved(groups, action)
+
+
 def containers_of_action(rule) -> list:
     """The containers a rule's action is about, groups resolved.
 
@@ -653,6 +674,14 @@ class AutomationService:
         action_type = rule.action.type.upper()
         channel_id = rule.action.notification_channel_id or control_channel_id
         protected = [p.lower() for p in settings.get('protected_containers', [])]
+
+        # Before the locks, so a refused action spends no cooldown.
+        if not rule_may_act_on(rule, container):
+            logger.info(f"AAS: Skipped watchdog rule '{rule.name}' for '{container}' - "
+                        f"no group it is reached through may {action_type}")
+            self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED",
+                                              "Group may not")
+            return False
 
         can_execute, reason, _blocked = self.state_service.acquire_execution_locks(
             rule.id, [container], global_cooldown, rule.cooldown_minutes, rule.cooldown_scope)

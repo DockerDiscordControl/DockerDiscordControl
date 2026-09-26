@@ -74,19 +74,21 @@ services/admin/admin_service.py:1-417
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-859
 
-## Section 11  (2000 lines, 6 pieces)
+## Section 11  (1959 lines, 5 pieces)
 services/automation/auto_action_state_service.py:1-364
-services/automation/automation_service.py:1-792
+services/automation/automation_service.py:1-821
 services/automation/container_watch.py:1-173
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
-# config_cache_service.py left for section 12; both are small.
-services/automation/own_actions.py:1-70
+# config_cache_service.py left for section 12; both are small. own_actions.py
+# followed it on 2026-09-26: automation_service.py grew by the group check of
+# the watchdog rules and put this section at 2,029.
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-585
 
-## Section 12  (1749 lines, 4 pieces)
+## Section 12  (1819 lines, 5 pieces)
 # config_cache_service.py followed on 2026-09-23: section 11 went over 2,000
 # when automation_service.py grew with the group resolution.
+services/automation/own_actions.py:1-70
 services/config/config_cache_service.py:1-177
 services/config/config_form_parser_service.py:1-625
 services/config/config_loader_service.py:1-481
