@@ -871,6 +871,35 @@ from services.infrastructure.update_notifier import (
 
 
 class TestUpdateNotifier:
+    @pytest.fixture(autouse=True)
+    def _a_version_to_announce(self, monkeypatch):
+        """DDC_VERSION, said out loud instead of inherited.
+
+        UpdateNotifier reads its version from that variable and announces
+        nothing without one, on purpose - "without a version there is nothing
+        to announce, and nothing to compare against either". The Dockerfile
+        sets it, so in the test image these cases had a version by accident of
+        where they ran; on a plain runner they did not, and five of them went
+        red the first time CI reached this group (2026-09-26). A case about
+        what happens WITH a version has to provide one.
+
+        test_it_announces_nothing_without_a_version below covers the other
+        branch, which nothing covered before.
+        """
+        monkeypatch.setenv("DDC_VERSION", "9.9.9")
+
+    def test_it_announces_nothing_without_a_version(self, tmp_path, monkeypatch):
+        """The branch the five cases above were accidentally standing in.
+
+        An installation that cannot say which version it is must not announce
+        one - there is nothing to compare against, and a notice naming an empty
+        version is worse than silence."""
+        monkeypatch.delenv("DDC_VERSION", raising=False)
+        notifier = UpdateNotifier(config_dir=str(tmp_path))
+
+        assert notifier.current_version == ""
+        assert notifier.should_show_update_notification() is False
+
     def test_init_creates_config_dir(self, tmp_path):
         notifier = UpdateNotifier(config_dir=str(tmp_path / "sub"))
         assert (tmp_path / "sub").exists()
