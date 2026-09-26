@@ -377,6 +377,12 @@ def redirect_to_https(request_head: bytes, port: int) -> bytes:
             b"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
 
 
+# How long a new connection may take to show its first byte and finish the TLS
+# handshake. Generous for a browser on a slow link; short enough that a client
+# that never speaks is let go.
+HANDSHAKE_TIMEOUT_SECONDS = 10
+
+
 def make_tls_server(app, host: str, port: int, certificate: Certificate):
     """A threaded HTTPS server for the self-signed mode.
 
@@ -389,9 +395,8 @@ def make_tls_server(app, host: str, port: int, certificate: Certificate):
     socket in TLS, so a plain request dies in the handshake before any code
     sees it. Here the listening socket stays plain and each connection is
     looked at first: a TLS one is wrapped and handed on unchanged, a plain one
-    is sent to the same address over HTTPS and closed. Raising OSError
-    afterwards is how socketserver is told there is no request to serve - it
-    catches exactly that around get_request and carries on.
+    is sent to the same address over HTTPS and closed - on the connection's
+    own thread (finish_request below), never on the accepting one.
     """
     from werkzeug.serving import make_server
 
@@ -432,22 +437,39 @@ def make_tls_server(app, host: str, port: int, certificate: Certificate):
 
     context.sni_callback = _learn_from_the_handshake
 
-    def get_request():
-        connection, address = server.socket.accept()
+    # THE LOOK AT A CONNECTION HAPPENS ON ITS OWN THREAD. Until 2026-09-26 the
+    # peek and the handshake ran in get_request, on socketserver's single
+    # accepting thread, and the peek had no timeout: one client that connected
+    # and sent nothing - or began a handshake and stalled - held that thread,
+    # and no other connection was accepted. finish_request runs on the thread
+    # ThreadingMixIn starts per connection, so a silent client now costs one
+    # thread and HANDSHAKE_TIMEOUT_SECONDS, not the panel.
+    serve_the_request = server.finish_request
+
+    def finish_request(connection, address):
+        connection.settimeout(HANDSHAKE_TIMEOUT_SECONDS)
         try:
             first = connection.recv(1, socket.MSG_PEEK)
-        except OSError:
-            connection.close()
-            raise
-        if looks_like_tls(first):
-            return context.wrap_socket(connection, server_side=True), address
-        # The port we are BOUND to, not the one we were asked for: they differ
-        # whenever port 0 was given, and a redirect to the wrong port is a
-        # redirect to nothing.
-        _answer_with_a_redirect(connection, server.socket.getsockname()[1], directory)
-        raise OSError("plain HTTP on the HTTPS port - answered with a redirect")
+            if not looks_like_tls(first):
+                # The port we are BOUND to, not the one we were asked for: they
+                # differ whenever port 0 was given, and a redirect to the wrong
+                # port is a redirect to nothing.
+                _answer_with_a_redirect(connection, server.socket.getsockname()[1], directory)
+                return
+            secured = context.wrap_socket(connection, server_side=True)
+        except OSError as error:                     # includes ssl.SSLError and timeouts
+            logger.debug(f"Dropped a connection before its first request: {error}")
+            return
+        secured.settimeout(None)
+        try:
+            serve_the_request(secured, address)
+        finally:
+            try:
+                secured.close()
+            except OSError:
+                pass
 
-    server.get_request = get_request
+    server.finish_request = finish_request
     server.ssl_context = context          # what werkzeug sets when it wraps
     return server
 
