@@ -175,7 +175,6 @@ COPY utils/ utils/
 COPY cogs/ cogs/
 COPY locales/ locales/
 COPY services/ services/
-COPY encrypted_assets/ encrypted_assets/
 # V2.0 Cache-Only: Only copy cached animations
 COPY cached_animations/ cached_animations/
 COPY cached_displays/ cached_displays/

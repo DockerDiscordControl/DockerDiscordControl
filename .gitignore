@@ -220,3 +220,9 @@ ROADMAP_2026-09_perf_mech.md
 
 # Runtime output of the performance monitor, written by the running app.
 data/
+
+# The mech assets' Fernet key and what it encrypted: nothing reads them at
+# runtime, and a key committed beside its ciphertext protects nothing
+# (removed 2026-09-26; a copy is kept outside the repository).
+.mech_key
+encrypted_assets/
