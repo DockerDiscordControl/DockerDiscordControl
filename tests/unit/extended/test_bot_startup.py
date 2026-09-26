@@ -240,7 +240,10 @@ class TestBotFactory:
         runtime = _make_runtime()
         sentinel_bot = SimpleNamespace(name="pycord-bot")
 
-        def fake_bot_cls(intents):
+        # Both constructors take allowed_mentions since 2026-09-26: the bot
+        # pings nobody (tests/spec/test_the_bot_pings_nobody.py).
+        def fake_bot_cls(intents, allowed_mentions):
+            assert allowed_mentions is bot_factory.NO_PINGS
             return sentinel_bot
 
         monkeypatch.setattr(bot_factory.discord, "Bot", fake_bot_cls)
@@ -253,11 +256,12 @@ class TestBotFactory:
         runtime = _make_runtime()
         sentinel_fallback = SimpleNamespace(name="dpy-bot")
 
-        def fail_pycord(intents):
+        def fail_pycord(intents, allowed_mentions):
             raise AttributeError("no PyCord here")
 
-        def fake_commands_bot(*, command_prefix, intents):
+        def fake_commands_bot(*, command_prefix, intents, allowed_mentions):
             assert command_prefix == "/"
+            assert allowed_mentions is bot_factory.NO_PINGS
             return sentinel_fallback
 
         monkeypatch.setattr(bot_factory.discord, "Bot", fail_pycord)
