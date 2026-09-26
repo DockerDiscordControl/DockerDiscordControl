@@ -242,6 +242,11 @@ class BackgroundLoopsMixin:
         rules = [r for r in get_auto_action_config_service().get_rules()
                  if r.enabled and r.trigger.type == TRIGGER_CONTAINER_STATE]
         if not rules:
+            # Nothing watches, so nothing is remembered. The watchers used to be
+            # kept here, and the first poll after the rules came back compared
+            # against a state from days ago: a maintenance stop made meanwhile was
+            # reported, and a restart rule acted on it (audit 2026-09-26).
+            self.__dict__.pop('_container_watchers', None)
             return
         control = control_channel_ids(config or {})
         control_id = control[0] if control else None
