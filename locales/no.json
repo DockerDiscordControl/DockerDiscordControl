@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Adminbrukere lagret",
   "js.admin.user_already_admin": "Denne brukeren er allerede admin",
   "js.admin.user_id_numbers_only": "Discord-bruker-ID må bare inneholde tall",
-  "js.channel.cannot_delete_last": "Kan ikke slette siste kanalrad.",
   "js.channel.id_placeholder": "Kanal-ID",
   "js.channel.name_placeholder": "Kanalnavn",
   "js.common.error": "Feil",

@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Διαχειριστές αποθηκεύτηκαν",
   "js.admin.user_already_admin": "Αυτός ο χρήστης είναι ήδη διαχειριστής",
   "js.admin.user_id_numbers_only": "Το Discord ID χρήστη πρέπει να περιέχει μόνο αριθμούς",
-  "js.channel.cannot_delete_last": "Δεν μπορεί να διαγραφεί η τελευταία γραμμή καναλιού.",
   "js.channel.id_placeholder": "ID καναλιού",
   "js.channel.name_placeholder": "Όνομα καναλιού",
   "js.common.error": "Σφάλμα",

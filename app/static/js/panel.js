@@ -330,7 +330,7 @@
                     return;
                 }
                 
-                const target = event.target.closest('.remove-channel-btn, #add-channel-btn, .move-up-btn, .move-down-btn');
+                const target = event.target.closest('.remove-channel-btn, .move-up-btn, .move-down-btn');
                 if (target) {
                     // Check if the clicked element requires a restart
                     const requiresRestart = target.classList.contains('requires-restart');
@@ -363,57 +363,6 @@
                  targetElement.style.display = checkbox.checked ? 'block' : 'none';
             }
         });
-
-        // --- Command Permissions Table Logic ---
-        const permissionsTableBody = document.getElementById('command-permissions-table')?.querySelector('tbody');
-
-        if (permissionsTableBody) { // Only execute if the table exists
-            // Event listener for "Add Channel" Button
-            const addChannelBtn = document.getElementById('add-channel-btn');
-            if (addChannelBtn) {
-                addChannelBtn.addEventListener('click', function() {
-                    // Safer method for finding index
-                    let maxIndex = 0;
-                    permissionsTableBody.querySelectorAll('tr').forEach(row => {
-                        const match = row.id.match(/channel-row-(\d+)/);
-                        if (match && match[1]) {
-                            maxIndex = Math.max(maxIndex, parseInt(match[1], 10));
-                        }
-                    });
-                    const newIndex = maxIndex + 1;
-
-                    const newRow = createEmptyChannelRow(newIndex); // Use external helper function
-                    permissionsTableBody.appendChild(newRow);
-                    initializeTooltips(newRow); // Initialize tooltips for new row
-                    addExclusivityListeners(newRow); // <<< NEW: Add exclusivity listener for new row
-                });
-            }
-
-            // Event listener for delete buttons (delegated to tbody)
-            permissionsTableBody.addEventListener('click', function(event) {
-                if (event.target.closest('.remove-channel-btn')) {
-                    removeChannelRow(event); // Use external helper function
-                }
-            });
-
-            // <<< NEW: Add event listener for existing rows on load
-            permissionsTableBody.querySelectorAll('tr').forEach(row => {
-                addExclusivityListeners(row);
-            });
-
-            // Event listener for clicks on Auto Refresh / Recreate checkboxes (delegation)
-            permissionsTableBody.addEventListener('change', function(event) {
-                if (event.target.classList.contains('auto-refresh-checkbox') || event.target.classList.contains('recreate-checkbox')) {
-                     handleCheckboxToggle(event.target);
-                     showUnsavedChangesAlert(false); // Trigger unsaved changes - no restart required
-                }
-            });
-
-            // Set initial status for all rows
-            permissionsTableBody.querySelectorAll('.auto-refresh-checkbox, .recreate-checkbox').forEach(checkbox => {
-                 handleCheckboxToggle(checkbox);
-             });
-        }
 
         // --- Log Update --- 
         const logContentElement = document.getElementById('logContent');
@@ -770,26 +719,11 @@
                             el.disabled = !isActive;
                         });
                         updateOrderNumbers(serverTableBody); // <<< Update numbering here
-                        updateContainerInfoVisibility(); // Update info configuration visibility
                         showUnsavedChangesAlert(true); // Server selection requires restart
                     }
                 }
             });
 
-            // Optional: Logic for "Select All" checkbox (if needed/desired)
-            const selectAllCheckbox = document.getElementById('select-all-servers');
-            if (selectAllCheckbox) {
-                selectAllCheckbox.addEventListener('change', function() {
-                    const allServerCheckboxes = serverTableBody.querySelectorAll('.server-checkbox');
-                    allServerCheckboxes.forEach(checkbox => {
-                        if (checkbox.checked !== selectAllCheckbox.checked) {
-                            checkbox.checked = selectAllCheckbox.checked;
-                            // Manually trigger the change event to activate the row logic
-                            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                    });
-                });
-            }
         }
         // --- END: Server Selection Table Logic ---
 
@@ -860,58 +794,6 @@
         }
         // --- END: Server Table Sorting ---
 
-        // --- Container Info Configuration Logic ---
-        function updateContainerInfoVisibility() {
-            const containerInfoConfig = document.getElementById('container-info-config');
-            const containerInfoPlaceholder = document.getElementById('container-info-placeholder');
-            
-            if (!containerInfoConfig || !containerInfoPlaceholder) return;
-            
-            // Get all selected containers
-            const selectedContainers = [];
-            const serverCheckboxes = document.querySelectorAll('.server-checkbox:checked');
-            serverCheckboxes.forEach(checkbox => {
-                const row = checkbox.closest('tr');
-                if (row) {
-                    const containerName = row.getAttribute('data-container-name');
-                    if (containerName) {
-                        selectedContainers.push(containerName);
-                    }
-                }
-            });
-            
-            // Show/hide container info items based on selection
-            const containerInfoItems = document.querySelectorAll('.container-info-item');
-            let visibleCount = 0;
-            
-            containerInfoItems.forEach(item => {
-                const containerName = item.getAttribute('data-container-name');
-                const shouldShow = selectedContainers.includes(containerName);
-                
-                if (shouldShow) {
-                    item.style.display = 'block';
-                    // Enable form elements
-                    const formElements = item.querySelectorAll('input, textarea');
-                    formElements.forEach(el => el.disabled = false);
-                    visibleCount++;
-                } else {
-                    item.style.display = 'none';
-                    // Disable form elements
-                    const formElements = item.querySelectorAll('input, textarea');
-                    formElements.forEach(el => el.disabled = true);
-                }
-            });
-            
-            // Show/hide the entire section
-            if (visibleCount > 0) {
-                containerInfoConfig.style.display = 'block';
-                containerInfoPlaceholder.style.display = 'none';
-            } else {
-                containerInfoConfig.style.display = 'none';
-                containerInfoPlaceholder.style.display = 'block';
-            }
-        }
-        
         // Character counter for info text areas
         function setupCharacterCounters() {
             const textareas = document.querySelectorAll('textarea[maxlength="250"]');
@@ -963,7 +845,6 @@
         
         // Initialize container info functionality
         if (serverTableBody) {
-            updateContainerInfoVisibility();
             setupCharacterCounters();
             setupPermissionLogic();
         }
@@ -1119,64 +1000,6 @@
     }); // End document.addEventListener('DOMContentLoaded', ...)
 
     // --- Helper Functions (Defined outside DOMContentLoaded) ---
-
-    // Function to remove a channel row
-    function removeChannelRow(event) {
-        const button = event.target.closest('.remove-channel-btn');
-         if (!button) return;
-
-        const rowId = button.dataset.rowId;
-        const rowToRemove = document.getElementById(rowId);
-        if (rowToRemove) {
-            const tableBody = document.getElementById('command-permissions-table')?.querySelector('tbody');
-            // Check if tableBody exists and if there is more than one row
-            if (tableBody && tableBody.querySelectorAll('tr').length > 1) {
-                 rowToRemove.remove();
-             } else {
-                 alert(t('channel.cannot_delete_last'));
-             }
-        }
-    }
-
-    // Helper to create an empty row 
-    function createEmptyChannelRow(index) {
-        const tr = document.createElement('tr');
-        tr.id = `channel-row-${index}`;
-        const defaultUpdateInterval = 5;
-        const defaultInactivityTimeout = 10; 
-        const defaultEnableRefresh = true;
-        const defaultRecreate = true;
-
-        // Correct string construction without template literals in HTML
-        tr.innerHTML = `
-            <td>
-                <input type="text" class="form-control form-control-sm" name="channel_name_${index}" placeholder="Channel Name">
-            </td>
-            <td>
-                <input type="text" class="form-control form-control-sm" name="channel_id_${index}" placeholder="Channel ID" id="channel_id_${index}">
-                 <input type="hidden" name="old_channel_id_${index}" value="">
-            </td>
-            <td class="text-center"><div class="form-check"><input class="form-check-input cmd-serverstatus" type="checkbox" name="cmd_serverstatus_${index}" value="1"><label class="form-check-label visually-hidden">/status</label></div></td>
-            <td class="text-center"><div class="form-check"><input class="form-check-input" type="checkbox" name="cmd_command_${index}" value="1"><label class="form-check-label visually-hidden">/command</label></div></td>
-            <td class="text-center"><div class="form-check"><input class="form-check-input cmd-control" type="checkbox" name="cmd_control_${index}" value="1"><label class="form-check-label visually-hidden">/control</label></div></td>
-            <td class="text-center"><div class="form-check"><input class="form-check-input" type="checkbox" name="cmd_schedule_${index}" value="1"><label class="form-check-label visually-hidden">/task</label></div></td>
-            <td class="text-center border-start border-secondary-subtle"><div class="form-check"><input class="form-check-input" type="checkbox" name="post_initial_${index}" value="1" ${defaultRecreate ? 'checked' : ''}><label class="form-check-label visually-hidden">Initial</label></div></td>
-            <td class="text-center"><div class="form-check"><input class="form-check-input auto-refresh-checkbox" type="checkbox" name="enable_auto_refresh_${index}" value="1" ${defaultEnableRefresh ? 'checked' : ''} data-target-input=".interval-minutes-input"><label class="form-check-label visually-hidden">Refresh</label></div></td>
-            <td><input type="number" class="form-control form-control-sm interval-minutes-input" name="update_interval_minutes_${index}" value="${defaultUpdateInterval}" min="1" style="width: 60px; margin: auto;" ${!defaultEnableRefresh ? 'disabled' : ''}></td>
-            <td class="text-center"><div class="form-check"><input class="form-check-input recreate-checkbox" type="checkbox" name="recreate_messages_on_inactivity_${index}" value="1" ${defaultRecreate ? 'checked' : ''} data-target-input=".inactivity-minutes-input"><label class="form-check-label visually-hidden">Recreate</label></div></td>
-            <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="inactivity_timeout_minutes_${index}" value="${defaultInactivityTimeout}" min="1" style="width: 60px; margin: auto;" ${!defaultRecreate ? 'disabled' : ''}></td>
-            <td class="text-center">
-                <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="channel-row-${index}">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </td>
-        `;
-        // Add listeners to the new row
-        addExclusivityListeners(tr);
-        handleCheckboxToggle(tr.querySelector('.auto-refresh-checkbox')); 
-        handleCheckboxToggle(tr.querySelector('.recreate-checkbox'));     
-        return tr;
-    }
 
     // Helper to initialize tooltips
     function initializeTooltips(parentElement) {
@@ -1568,68 +1391,6 @@
             console.error("Server table not found!");
         }
         
-        // --- NEW: Capture channel configuration ---
-        console.log("Processing channel configuration...");
-        const channelTable = document.getElementById('command-permissions-table');
-        if (channelTable) {
-            const channelRows = channelTable.querySelectorAll('tbody tr');
-            console.log(`Found ${channelRows.length} channel rows`);
-            
-            channelRows.forEach((row, index) => {
-                const rowIndex = index + 1; // 1-based indexing
-                
-                // Channel Name
-                const channelNameInput = row.querySelector(`input[name="channel_name_${rowIndex}"]`);
-                if (channelNameInput) {
-                    formData.set(`channel_name_${rowIndex}`, channelNameInput.value || '');
-                    console.log(`Channel ${rowIndex} name: ${channelNameInput.value}`);
-                }
-                
-                // Channel ID
-                const channelIdInput = row.querySelector(`input[name="channel_id_${rowIndex}"]`);
-                if (channelIdInput) {
-                    formData.set(`channel_id_${rowIndex}`, channelIdInput.value || '');
-                    console.log(`Channel ${rowIndex} ID: ${channelIdInput.value}`);
-                }
-                
-                // Command permissions
-                ['serverstatus', 'command', 'control', 'schedule'].forEach(cmd => {
-                    const cmdCheckbox = row.querySelector(`input[name="cmd_${cmd}_${rowIndex}"]`);
-                    if (cmdCheckbox) {
-                        formData.set(`cmd_${cmd}_${rowIndex}`, cmdCheckbox.checked ? '1' : '0');
-                        console.log(`Channel ${rowIndex} cmd_${cmd}: ${cmdCheckbox.checked ? '1' : '0'}`);
-                    }
-                });
-                
-                // Other channel settings
-                const settingsMap = {
-                    'post_initial': 'post_initial',
-                    'enable_auto_refresh': 'enable_auto_refresh', 
-                    'recreate_messages_on_inactivity': 'recreate_messages_on_inactivity'
-                };
-                
-                Object.entries(settingsMap).forEach(([setting, formName]) => {
-                    const checkbox = row.querySelector(`input[name="${formName}_${rowIndex}"]`);
-                    if (checkbox) {
-                        formData.set(`${formName}_${rowIndex}`, checkbox.checked ? '1' : '0');
-                        console.log(`Channel ${rowIndex} ${formName}: ${checkbox.checked ? '1' : '0'}`);
-                    }
-                });
-                
-                // Numeric settings
-                const numericSettings = ['update_interval_minutes', 'inactivity_timeout_minutes'];
-                numericSettings.forEach(setting => {
-                    const input = row.querySelector(`input[name="${setting}_${rowIndex}"]`);
-                    if (input) {
-                        formData.set(`${setting}_${rowIndex}`, input.value || '1');
-                        console.log(`Channel ${rowIndex} ${setting}: ${input.value}`);
-                    }
-                });
-            });
-        } else {
-            console.log("Channel permissions table not found");
-        }
-        
         // Add information about split configuration files
         formData.append('config_split_enabled', '1');
 
@@ -1732,20 +1493,6 @@
               }, 7000); // 7 seconds
          });
     }
-
-    // Function to show/hide Channel ID based on method (No longer needed)
-    /* function toggleChannelId() {
-        const methodSelect = document.getElementById('heartbeat_method');
-        const channelIdGroup = document.getElementById('heartbeat-channel-id-group'); // Assuming this ID exists for the div/group
-
-        if (methodSelect && channelIdGroup) {
-            if (methodSelect.value === 'channel') {
-                channelIdGroup.style.display = ''; // Show the group
-            } else {
-                channelIdGroup.style.display = 'none'; // Hide the group
-            }
-        }
-    } */
 
     // --- Enhanced Log Management Functions ---
     
@@ -2246,13 +1993,6 @@
                 // Smart refresh: only update if content changed
                 await this.smartRefreshContainerLogs();
                 
-                // Stagger action log refresh by 2 seconds
-                setTimeout(() => {
-                    if (this.isVisible) {
-                        this.smartRefreshActionLogs();
-                    }
-                }, 2000);
-                
                 this.hasErrors = false;
             } catch (error) {
                 console.error('Auto-refresh error:', error);
@@ -2317,27 +2057,6 @@
             }
         }
         
-        async smartRefreshActionLogs() {
-            const actionLogElement = document.getElementById('actionLogContent');
-            if (!actionLogElement) return;
-
-            try {
-                const response = await fetch(DDC_PANEL_URLS.actionLogs);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                const newContent = await response.text();
-                const newHash = this.simpleHash(newContent);
-
-                // Only update if content changed
-                if (newHash !== this.lastActionLogHash) {
-                    this.lastActionLogHash = newHash;
-                    actionLogElement.textContent = newContent;
-                }
-            } catch (error) {
-                console.warn('Action log auto-refresh failed:', error);
-            }
-        }
-
         simpleHash(str) {
             let hash = 0;
             if (str.length === 0) return hash;

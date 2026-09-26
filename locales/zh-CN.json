@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "管理员用户保存成功",
   "js.admin.user_already_admin": "此用户已是管理员",
   "js.admin.user_id_numbers_only": "Discord 用户 ID 只能包含数字",
-  "js.channel.cannot_delete_last": "无法删除最后一个频道行。",
   "js.channel.id_placeholder": "频道 ID",
   "js.channel.name_placeholder": "频道名称",
   "js.common.error": "错误",

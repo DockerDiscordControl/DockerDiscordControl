@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Administratoru lietotāji veiksmīgi saglabāti",
   "js.admin.user_already_admin": "Šis lietotājs jau ir administrators",
   "js.admin.user_id_numbers_only": "Discord lietotāja ID drīkst saturēt tikai ciparus",
-  "js.channel.cannot_delete_last": "Nevar dzēst pēdējo kanāla rindu.",
   "js.channel.id_placeholder": "Kanāla ID",
   "js.channel.name_placeholder": "Kanāla nosaukums",
   "js.common.error": "Kļūda",

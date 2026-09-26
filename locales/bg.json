@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Администраторските потребители са запазени успешно",
   "js.admin.user_already_admin": "Този потребител вече е администратор",
   "js.admin.user_id_numbers_only": "Discord потребителският идентификатор трябва да съдържа само цифри",
-  "js.channel.cannot_delete_last": "Не може да се изтрие последният ред на канал.",
   "js.channel.id_placeholder": "Идентификатор на канал",
   "js.channel.name_placeholder": "Име на канал",
   "js.common.error": "Грешка",

@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Pengguna admin berhasil disimpan",
   "js.admin.user_already_admin": "Pengguna ini sudah menjadi admin",
   "js.admin.user_id_numbers_only": "Discord User ID hanya boleh berisi angka",
-  "js.channel.cannot_delete_last": "Tidak dapat menghapus baris channel terakhir.",
   "js.channel.id_placeholder": "ID Channel",
   "js.channel.name_placeholder": "Nama Channel",
   "js.common.error": "Kesalahan",

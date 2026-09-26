@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Administraatorid edukalt salvestatud",
   "js.admin.user_already_admin": "See kasutaja on juba administraator",
   "js.admin.user_id_numbers_only": "Discord kasutaja ID peab sisaldama ainult numbreid",
-  "js.channel.cannot_delete_last": "Viimast kanali rida ei saa kustutada.",
   "js.channel.id_placeholder": "Kanali ID",
   "js.channel.name_placeholder": "Kanali nimi",
   "js.common.error": "Viga",

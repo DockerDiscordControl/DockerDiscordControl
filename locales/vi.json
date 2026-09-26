@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Đã lưu thành công người dùng quản trị",
   "js.admin.user_already_admin": "Người dùng này đã là quản trị viên",
   "js.admin.user_id_numbers_only": "Discord User ID chỉ được chứa số",
-  "js.channel.cannot_delete_last": "Không thể xóa hàng kênh cuối cùng.",
   "js.channel.id_placeholder": "ID kênh",
   "js.channel.name_placeholder": "Tên kênh",
   "js.common.error": "Lỗi",

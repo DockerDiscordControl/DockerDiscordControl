@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "व्यवस्थापक उपयोगकर्ता सफलतापूर्वक सहेजे गए",
   "js.admin.user_already_admin": "यह उपयोगकर्ता पहले से व्यवस्थापक है",
   "js.admin.user_id_numbers_only": "Discord उपयोगकर्ता ID में केवल संख्याएँ होनी चाहिए",
-  "js.channel.cannot_delete_last": "अंतिम चैनल पंक्ति नहीं हटाई जा सकती।",
   "js.channel.id_placeholder": "चैनल ID",
   "js.channel.name_placeholder": "चैनल नाम",
   "js.common.error": "त्रुटि",

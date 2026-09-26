@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Správcovskí používatelia úspešne uložení",
   "js.admin.user_already_admin": "Tento používateľ je už správcom",
   "js.admin.user_id_numbers_only": "Discord ID používateľa musí obsahovať iba čísla",
-  "js.channel.cannot_delete_last": "Nie je možné odstrániť posledný riadok kanálu.",
   "js.channel.id_placeholder": "ID kanálu",
   "js.channel.name_placeholder": "Názov kanálu",
   "js.common.error": "Chyba",

@@ -42,10 +42,11 @@ code. A first version of this scan claimed them - the same lesson this
 repository keeps learning from both sides - so comments are stripped before
 the text is read.
 
-HOW THIS TEST CAN FAIL: a seventh element addressed by a script and carried by
-no template, or one of the six quietly renamed instead of removed.
+HOW THIS TEST CAN FAIL: any element addressed by a script and carried by no
+template.
 
-COUNTER-CHECK (2026-09-26): red at twenty-two before the three removals.
+COUNTER-CHECK (2026-09-26): red at twenty-two before the removals, and red
+again under a sabotage that renames one live lookup.
 """
 
 import re
@@ -55,17 +56,12 @@ PROJECT = Path(__file__).resolve().parents[2]
 TEMPLATES = PROJECT / "app" / "templates"
 SCRIPTS = PROJECT / "app" / "static" / "js"
 
-# The remains of replaced designs, all guarded, all in app/static/js/panel.js.
-# THIS LIST MAY ONLY GET SHORTER. An entry removed from the panel leaves here;
+# EMPTY SINCE 2026-09-26, and it stays that way. It held six for one day -
+# the remains of designs that had been replaced, all guarded, all in
+# app/static/js/panel.js - and the operator asked for them the next morning.
+# THE LIST MAY ONLY GET SHORTER: an entry removed from the panel leaves here,
 # nothing is ever added. The same rule the file ceilings follow.
-STILL_HERE = {
-    "command-permissions-table",
-    "add-channel-btn",
-    "container-info-config",
-    "container-info-placeholder",
-    "actionLogContent",
-    "select-all-servers",
-}
+STILL_HERE = set()
 
 ASKED_FOR = re.compile(r"getElementById\((['\"])([\w-]+)\1\)")
 AN_ID = re.compile(r'\bid="([\w-]+)"')
@@ -110,7 +106,7 @@ def _addressed_but_absent():
 
 
 def test_no_script_addresses_an_element_the_panel_does_not_have():
-    """THE RULE, with the six that are written down held out."""
+    """THE RULE. Nothing is held out any more."""
     absent = _addressed_but_absent()
     unexpected = {name: sorted(where) for name, where in absent.items()
                   if name not in STILL_HERE}
@@ -131,13 +127,13 @@ def test_the_list_only_ever_gets_shorter():
         f"these are no longer addressed anywhere and must leave STILL_HERE: {gone}")
 
 
-def test_the_six_are_where_they_are_said_to_be():
-    """Written down with a place, not just a name: all six are in the panel's
-    own script, which is why they were left rather than untangled."""
+def test_anything_written_down_is_said_to_be_somewhere():
+    """A written-down entry carries a place, not just a name - so the next
+    reader knows where to look rather than searching for it."""
     absent = _addressed_but_absent()
 
     for name in STILL_HERE:
-        assert absent.get(name) == {"panel.js"}, f"{name}: {absent.get(name)}"
+        assert absent.get(name), f"{name} is written down and addressed nowhere"
 
 
 def test_a_commented_out_lookup_is_not_a_subject():

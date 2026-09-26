@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "משתמשי מנהל נשמרו בהצלחה",
   "js.admin.user_already_admin": "משתמש זה כבר מנהל",
   "js.admin.user_id_numbers_only": "מזהה משתמש Discord חייב להכיל מספרים בלבד",
-  "js.channel.cannot_delete_last": "לא ניתן למחוק את שורת הערוץ האחרונה.",
   "js.channel.id_placeholder": "מזהה ערוץ",
   "js.channel.name_placeholder": "שם ערוץ",
   "js.common.error": "שגיאה",

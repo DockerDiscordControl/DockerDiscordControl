@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Utilizatorii administratori au fost salvați cu succes",
   "js.admin.user_already_admin": "Acest utilizator este deja administrator",
   "js.admin.user_id_numbers_only": "ID-ul utilizatorului Discord trebuie să conțină doar cifre",
-  "js.channel.cannot_delete_last": "Nu se poate șterge ultimul rând de canal.",
   "js.channel.id_placeholder": "ID Canal",
   "js.channel.name_placeholder": "Nume Canal",
   "js.common.error": "Eroare",

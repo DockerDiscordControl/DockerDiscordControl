@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Admin felhasználók sikeresen mentve",
   "js.admin.user_already_admin": "Ez a felhasználó már admin",
   "js.admin.user_id_numbers_only": "A Discord felhasználó azonosító csak számokat tartalmazhat",
-  "js.channel.cannot_delete_last": "Nem törölhető az utolsó csatorna sor.",
   "js.channel.id_placeholder": "Csatorna azonosító",
   "js.channel.name_placeholder": "Csatorna neve",
   "js.common.error": "Hiba",

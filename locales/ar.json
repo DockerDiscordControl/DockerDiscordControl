@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "تم حفظ مستخدمي المشرفين بنجاح",
   "js.admin.user_already_admin": "هذا المستخدم مشرف بالفعل",
   "js.admin.user_id_numbers_only": "معرّف مستخدم Discord يجب أن يحتوي على أرقام فقط",
-  "js.channel.cannot_delete_last": "لا يمكن حذف آخر صف قناة.",
   "js.channel.id_placeholder": "معرّف القناة",
   "js.channel.name_placeholder": "اسم القناة",
   "js.common.error": "خطأ",

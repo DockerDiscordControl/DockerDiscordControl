@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "کاربران مدیر با موفقیت ذخیره شدند",
   "js.admin.user_already_admin": "این کاربر قبلاً مدیر است",
   "js.admin.user_id_numbers_only": "شناسه کاربر Discord باید فقط شامل اعداد باشد",
-  "js.channel.cannot_delete_last": "آخرین ردیف کانال قابل حذف نیست.",
   "js.channel.id_placeholder": "شناسه کانال",
   "js.channel.name_placeholder": "نام کانال",
   "js.common.error": "خطا",

@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "管理員使用者已成功儲存",
   "js.admin.user_already_admin": "此使用者已是管理員",
   "js.admin.user_id_numbers_only": "Discord 使用者 ID 必須僅包含數字",
-  "js.channel.cannot_delete_last": "無法刪除最後一個頻道列。",
   "js.channel.id_placeholder": "頻道 ID",
   "js.channel.name_placeholder": "頻道名稱",
   "js.common.error": "錯誤",

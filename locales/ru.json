@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Пользователи-администраторы успешно сохранены",
   "js.admin.user_already_admin": "Этот пользователь уже является администратором",
   "js.admin.user_id_numbers_only": "Discord User ID должен содержать только цифры",
-  "js.channel.cannot_delete_last": "Невозможно удалить последнюю строку канала.",
   "js.channel.id_placeholder": "ID канала",
   "js.channel.name_placeholder": "Название канала",
   "js.common.error": "Ошибка",

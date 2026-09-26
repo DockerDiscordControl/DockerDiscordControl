@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Yönetici kullanıcıları başarıyla kaydedildi",
   "js.admin.user_already_admin": "Bu kullanıcı zaten bir yönetici",
   "js.admin.user_id_numbers_only": "Discord Kullanıcı Kimliği yalnızca sayı içermelidir",
-  "js.channel.cannot_delete_last": "Son kanal satırı silinemez.",
   "js.channel.id_placeholder": "Kanal Kimliği",
   "js.channel.name_placeholder": "Kanal Adı",
   "js.common.error": "Hata",

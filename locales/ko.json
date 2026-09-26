@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "관리자 사용자가 성공적으로 저장되었습니다",
   "js.admin.user_already_admin": "이 사용자는 이미 관리자입니다",
   "js.admin.user_id_numbers_only": "Discord 사용자 ID는 숫자만 포함해야 합니다",
-  "js.channel.cannot_delete_last": "마지막 채널 행은 삭제할 수 없습니다.",
   "js.channel.id_placeholder": "채널 ID",
   "js.channel.name_placeholder": "채널 이름",
   "js.common.error": "오류",

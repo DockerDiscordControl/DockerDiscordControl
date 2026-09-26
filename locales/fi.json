@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Ylläpitäjäkäyttäjät tallennettu",
   "js.admin.user_already_admin": "Tämä käyttäjä on jo ylläpitäjä",
   "js.admin.user_id_numbers_only": "Discord-käyttäjä-ID saa sisältää vain numeroita",
-  "js.channel.cannot_delete_last": "Viimeistä kanavariviä ei voi poistaa.",
   "js.channel.id_placeholder": "Kanava-ID",
   "js.channel.name_placeholder": "Kanavan nimi",
   "js.common.error": "Virhe",

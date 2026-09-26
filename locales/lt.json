@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Administratorių naudotojai sėkmingai išsaugoti",
   "js.admin.user_already_admin": "Šis naudotojas jau yra administratorius",
   "js.admin.user_id_numbers_only": "Discord naudotojo ID turi būti tik skaičiai",
-  "js.channel.cannot_delete_last": "Negalima ištrinti paskutinės kanalo eilutės.",
   "js.channel.id_placeholder": "Kanalo ID",
   "js.channel.name_placeholder": "Kanalo pavadinimas",
   "js.common.error": "Klaida",

@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Skrbniški uporabniki uspešno shranjeni",
   "js.admin.user_already_admin": "Ta uporabnik je že skrbnik",
   "js.admin.user_id_numbers_only": "Discord uporabniški ID mora vsebovati samo številke",
-  "js.channel.cannot_delete_last": "Zadnje vrstice kanala ni mogoče izbrisati.",
   "js.channel.id_placeholder": "ID kanala",
   "js.channel.name_placeholder": "Ime kanala",
   "js.common.error": "Napaka",

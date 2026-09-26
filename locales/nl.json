@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Beheerdersgebruikers succesvol opgeslagen",
   "js.admin.user_already_admin": "Deze gebruiker is al een beheerder",
   "js.admin.user_id_numbers_only": "Discord-gebruikers-ID mag alleen cijfers bevatten",
-  "js.channel.cannot_delete_last": "Kan de laatste kanaalrij niet verwijderen.",
   "js.channel.id_placeholder": "Kanaal-ID",
   "js.channel.name_placeholder": "Kanaalnaam",
   "js.common.error": "Fout",

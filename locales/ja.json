@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "管理者ユーザーが正常に保存されました",
   "js.admin.user_already_admin": "このユーザーは既に管理者です",
   "js.admin.user_id_numbers_only": "Discord ユーザーIDは数字のみで構成される必要があります",
-  "js.channel.cannot_delete_last": "最後のチャンネル行は削除できません。",
   "js.channel.id_placeholder": "チャンネルID",
   "js.channel.name_placeholder": "チャンネル名",
   "js.common.error": "エラー",

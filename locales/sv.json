@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Administratörsanvändare sparade",
   "js.admin.user_already_admin": "Denna användare är redan administratör",
   "js.admin.user_id_numbers_only": "Discord användar-ID får bara innehålla siffror",
-  "js.channel.cannot_delete_last": "Kan inte ta bort den sista kanalraden.",
   "js.channel.id_placeholder": "Kanal-ID",
   "js.channel.name_placeholder": "Kanalnamn",
   "js.common.error": "Fel",

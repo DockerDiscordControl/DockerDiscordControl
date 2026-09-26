@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Usuarios administradores guardados correctamente",
   "js.admin.user_already_admin": "Este usuario ya es administrador",
   "js.admin.user_id_numbers_only": "El ID de usuario de Discord debe contener solo números",
-  "js.channel.cannot_delete_last": "No se puede eliminar la última fila de canal.",
   "js.channel.id_placeholder": "ID del canal",
   "js.channel.name_placeholder": "Nombre del canal",
   "js.common.error": "Error",

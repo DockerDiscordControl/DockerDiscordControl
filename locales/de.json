@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Admin-Benutzer erfolgreich gespeichert",
   "js.admin.user_already_admin": "Dieser Benutzer ist bereits ein Admin",
   "js.admin.user_id_numbers_only": "Die Discord Benutzer-ID darf nur Zahlen enthalten",
-  "js.channel.cannot_delete_last": "Die letzte Kanalzeile kann nicht gelöscht werden.",
   "js.channel.id_placeholder": "Kanal-ID",
   "js.channel.name_placeholder": "Kanalname",
   "js.common.error": "Fehler",

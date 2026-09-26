@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "Администраторски корисници успешно сачувани",
   "js.admin.user_already_admin": "Овај корисник је већ администратор",
   "js.admin.user_id_numbers_only": "Discord кориснички ID мора садржати само бројеве",
-  "js.channel.cannot_delete_last": "Не може се обрисати последњи ред канала.",
   "js.channel.id_placeholder": "ID канала",
   "js.channel.name_placeholder": "Име канала",
   "js.common.error": "Грешка",

@@ -675,7 +675,6 @@
   "js.admin.saved_successfully": "บันทึกผู้ใช้ผู้ดูแลระบบสำเร็จ",
   "js.admin.user_already_admin": "ผู้ใช้นี้เป็นผู้ดูแลระบบอยู่แล้ว",
   "js.admin.user_id_numbers_only": "Discord User ID ต้องมีเฉพาะตัวเลข",
-  "js.channel.cannot_delete_last": "ไม่สามารถลบแถวช่องสุดท้าย",
   "js.channel.id_placeholder": "ID ช่อง",
   "js.channel.name_placeholder": "ชื่อช่อง",
   "js.common.error": "ข้อผิดพลาด",
