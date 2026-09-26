@@ -136,6 +136,25 @@ class DonationView(DDCView):
             logger.error(f"Error in broadcast_clicked: {e}", exc_info=True)
 
 
+# One donation broadcast per person per five minutes (operator decision
+# 2026-09-26) - in memory, which a restart clears; the brake is against a
+# flood, not an accounting rule.
+BROADCAST_EVERY_SECONDS = 300
+_last_broadcast = {}
+
+
+def _broadcast_slot(user_id, now=None) -> bool:
+    """True, and the slot taken, when this person may broadcast now."""
+    import time as _time
+
+    moment = _time.monotonic() if now is None else now
+    last = _last_broadcast.get(user_id)
+    if last is not None and moment - last < BROADCAST_EVERY_SECONDS:
+        return False
+    _last_broadcast[user_id] = moment
+    return True
+
+
 class DonationBroadcastModal(DDCModal):
     """Modal for donation broadcast details."""
 
@@ -226,7 +245,11 @@ class DonationBroadcastModal(DDCModal):
 
         try:
             # Get values from modal
-            donor_name = self.name_input.value or interaction.user.name
+            # Text, not markdown: the name goes into an embed in every DDC
+            # channel, and "[Claim your reward](https://evil.example)" rendered
+            # as a masked link in the admins' control channels (audit 2026-09-26).
+            donor_name = discord.utils.escape_markdown(
+                (self.name_input.value or interaction.user.name).strip())
             raw_amount = self.amount_input.value.strip() if self.amount_input.value else ""
             logger.info(f"Processed values: donor_name={donor_name}, raw_amount={raw_amount}")
 
@@ -446,14 +469,20 @@ class DonationBroadcastModal(DDCModal):
             # different things, and conflating them defeated this guard once already:
             # donation_amount_euros is assigned only INSIDE the booking block above,
             # so it stays None whenever booking is skipped - which let an unbooked
-            # donation broadcast through. The user's own input decides instead. With
-            # an amount a confirmed booking is required; without one there is nothing
-            # to book and the "X supports DDC" message may go out. `amount` is also
-            # what the message below branches on, so guard and message agree.
-            broadcast_allowed = donation_booked or not amount
+            # donation broadcast through. The user's own input decides instead:
+            # an amount AND a confirmed booking. Since 2026-09-26 an amountless
+            # "X supports DDC" no longer goes out (operator decision) - anybody
+            # could send it into every DDC channel every ten seconds. And one person
+            # broadcasts at most once per BROADCAST_EVERY_SECONDS, spam switch or not.
+            broadcast_allowed = donation_booked and bool(amount)
+            too_soon = should_share_publicly and broadcast_allowed and not _broadcast_slot(interaction.user.id)
+            if too_soon:
+                broadcast_allowed = False
             if should_share_publicly and not broadcast_allowed:
                 logger.warning(
-                    "Donation broadcast suppressed: the ledger did not confirm the booking"
+                    "Donation broadcast suppressed: "
+                    + ("the same person broadcast less than five minutes ago" if too_soon
+                       else "no booked amount")
                 )
 
             if should_share_publicly and broadcast_allowed:
@@ -499,7 +528,13 @@ class DonationBroadcastModal(DDCModal):
                         logger.error(f"Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
             # Respond to user
-            if should_share_publicly and not broadcast_allowed:
+            if should_share_publicly and too_soon:
+                response_text = _("✅ **Donation recorded** - thank you!") + "\n\n"
+                response_text += _("No broadcast this time: one per person every five minutes.")
+            elif should_share_publicly and not amount:
+                response_text = _("✅ Thank you!") + "\n\n"
+                response_text += _("A broadcast needs an amount - nothing was sent to the channels.")
+            elif should_share_publicly and not broadcast_allowed:
                 response_text = _("⚠️ **Donation could not be recorded**") + "\n\n"
                 response_text += _("Nothing was sent to any channel. Please try again later.")
             elif should_share_publicly:

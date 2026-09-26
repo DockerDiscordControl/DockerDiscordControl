@@ -178,6 +178,10 @@ def cleanup_after_test():
 
     A fixture leaves the world as it found it, so the reset happens here, once,
     for every test.
+
+    The donation broadcast brake (one per person per five minutes, 2026-09-26)
+    is the same kind of module state: donation tests share a user id, and the
+    first broadcast in a run silenced every later one.
     """
     yield
     try:
@@ -186,6 +190,9 @@ def cleanup_after_test():
         reset_group_service()
     except ImportError:
         pass
+    donation_ui = sys.modules.get("cogs.donation_ui")
+    if donation_ui is not None and hasattr(donation_ui, "_last_broadcast"):
+        donation_ui._last_broadcast.clear()
 
 
 # Performance testing fixtures

@@ -106,7 +106,10 @@ def test_with_donations_on_the_panel_is_still_built(monkeypatch):
     """Counter-check: the everyday case must not start refusing."""
     monkeypatch.setattr("services.donation.donation_utils.is_donations_disabled",
                         lambda: False)
+    monkeypatch.setattr("cogs.slash_commands.load_config",
+                        lambda: {"channel_permissions": {"55": {}}})
     ctx = _Ctx()
+    ctx.channel_id = 55  # /donate answers only in DDC's own channels (2026-09-26)
 
     _run_donate(ctx)
 

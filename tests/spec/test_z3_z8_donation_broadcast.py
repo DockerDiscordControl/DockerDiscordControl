@@ -153,6 +153,9 @@ def _mech_service_stub():
 @pytest.fixture
 def env():
     """Patches exactly the dependencies that callback fetches from outside."""
+    import cogs.donation_ui as donation_ui
+
+    donation_ui._last_broadcast.clear()  # the per-person brake of 2026-09-26
     config, channels = _channels((100, True), (200, False))
     with patch("cogs.donation_ui.load_config", return_value=config), \
          patch("services.mech.mech_service.get_mech_service",
@@ -220,29 +223,22 @@ async def test_broadcast_respects_unsubscribed_channels(env):
     )
 
 
-async def test_without_amount_the_support_message_goes_out(env):
-    """Without a stated amount there is nothing to book - the message may still go out.
+async def test_without_amount_nothing_goes_out(env):
+    """Without a stated amount nothing is booked - and, since 2026-09-26, nothing is sent.
 
-    This is the PERMITTED side of the block from the tests above. Without this
-    case one could tighten the block to "always block" and everything would
-    stay green - an intended behaviour would have silently disappeared.
-
-    Also covers :4870: without an amount the code runs into the ``else`` branch
-    at :4844, in which ``new_state`` is never assigned, and still accesses it
-    at :4870. The ``NameError`` falls through both ``except`` blocks;
-    the user would be stuck on "Processing...", because :4964 is never reached.
+    This used to be the PERMITTED side of the block: "X supports DDC" went out
+    without an amount. The operator decided on 2026-09-26 that a broadcast
+    needs an amount (tests/spec/test_donate_is_no_megaphone.py has the reason).
+    The ``new_state`` part below still stands: without an amount the code runs
+    into the branch in which ``new_state`` is never assigned, and the user must
+    still get a final response instead of "Processing..." forever.
     """
     inter = _interaction()
     inter.client.get_channel = lambda kid: env.get(int(kid))
 
     await _modal(amount="").callback(inter)
 
-    sent = _sent(env)
-    assert sent[100] == 1, (
-        "The support message without an amount did not go out - the block "
-        "took an intended case along with it"
-    )
-    assert sent[200] == 0, "Unsubscribed channel still got a message"
+    assert _sent(env) == {100: 0, 200: 0}, "an amountless broadcast still went out"
     assert inter.edit_original_response.await_count == 1, (
         "The user got no final response and would keep seeing 'Processing...'"
     )

@@ -536,6 +536,14 @@ class SlashCommandsMixin:
         if not await self._check_spam_protection(ctx, "donate"):
             return
 
+        # ONLY IN DDC's OWN CHANNELS (operator decision 2026-09-26). It worked in
+        # every channel of the guild and put a public panel with a Broadcast
+        # button there, for anybody to press.
+        if str(ctx.channel_id) not in (load_config().get('channel_permissions') or {}):
+            await ctx.followup.send(_("💝 /donate works in DDC's own channels."),
+                                    ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+            return
+
         try:
             # Donations enabled - show normal donation UI
             # Check MechService availability

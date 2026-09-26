@@ -1849,5 +1849,10 @@
   "🔧 `{container}` is in maintenance until {time}.": "🔧 `{container}` is in maintenance until {time}.",
   "🔧 How long should the watchdog leave `{container}` alone? No notices, no restarts; the pause ends by itself.": "🔧 How long should the watchdog leave `{container}` alone? No notices, no restarts; the pause ends by itself.",
   "Only admins without a container assignment can add new admins in status channels. Use this command in a control channel or ask such an admin.": "Only admins without a container assignment can add new admins in status channels. Use this command in a control channel or ask such an admin.",
-  "⏳ An action on {name} is still running - wait until it is done.": "⏳ An action on {name} is still running - wait until it is done."
+  "⏳ An action on {name} is still running - wait until it is done.": "⏳ An action on {name} is still running - wait until it is done.",
+  "💝 /donate works in DDC's own channels.": "💝 /donate works in DDC's own channels.",
+  "✅ **Donation recorded** - thank you!": "✅ **Donation recorded** - thank you!",
+  "No broadcast this time: one per person every five minutes.": "No broadcast this time: one per person every five minutes.",
+  "✅ Thank you!": "✅ Thank you!",
+  "A broadcast needs an amount - nothing was sent to the channels.": "A broadcast needs an amount - nothing was sent to the channels."
 }

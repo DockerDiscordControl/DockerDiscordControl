@@ -1849,5 +1849,10 @@
   "🔧 `{container}` is in maintenance until {time}.": "🔧 `{container}` ist bis {time} in Wartung.",
   "🔧 How long should the watchdog leave `{container}` alone? No notices, no restarts; the pause ends by itself.": "🔧 Wie lange soll der Watchdog `{container}` in Ruhe lassen? Keine Meldungen, keine Neustarts; die Pause endet von selbst.",
   "Only admins without a container assignment can add new admins in status channels. Use this command in a control channel or ask such an admin.": "Nur Admins ohne Container-Zuweisung können in Status-Kanälen neue Admins hinzufügen. Nutze den Befehl in einem Control-Kanal oder frage einen solchen Admin.",
-  "⏳ An action on {name} is still running - wait until it is done.": "⏳ Eine Aktion auf {name} läuft noch - bitte warten, bis sie fertig ist."
+  "⏳ An action on {name} is still running - wait until it is done.": "⏳ Eine Aktion auf {name} läuft noch - bitte warten, bis sie fertig ist.",
+  "💝 /donate works in DDC's own channels.": "💝 /donate funktioniert in den eigenen Kanälen von DDC.",
+  "✅ **Donation recorded** - thank you!": "✅ **Spende erfasst** - danke!",
+  "No broadcast this time: one per person every five minutes.": "Diesmal keine Ankündigung: eine pro Person alle fünf Minuten.",
+  "✅ Thank you!": "✅ Danke!",
+  "A broadcast needs an amount - nothing was sent to the channels.": "Eine Ankündigung braucht einen Betrag - es wurde nichts an die Kanäle gesendet."
 }
