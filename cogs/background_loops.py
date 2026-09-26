@@ -235,7 +235,8 @@ class BackgroundLoopsMixin:
                                                                     get_auto_action_config_service)
         from services.automation.automation_service import get_automation_service
         from services.automation.container_watch import (RESTART_LOOP, RESOURCE_KINDS, ContainerState,
-                                                         ContainerWatcher, ResourceWatcher)
+                                                         ContainerWatcher, ResourceWatcher,
+                                                         running_for_the_watchdog)
         from services.config.channel_roles import control_channel_ids
 
         rules = [r for r in get_auto_action_config_service().get_rules()
@@ -247,7 +248,7 @@ class BackgroundLoopsMixin:
         if any('image_update' in r.trigger.states for r in rules):
             self._maybe_check_image_updates(list(results), control_id)
         watchers = self.__dict__.setdefault('_container_watchers', {})
-        snapshot = {name: ContainerState(result.is_running, getattr(result, 'health', None),
+        snapshot = {name: ContainerState(running_for_the_watchdog(result), getattr(result, 'health', None),
                                          getattr(result, 'restart_count', None))
                     for name, result in results.items()
                     if result.success and not getattr(result, 'not_found', False)}

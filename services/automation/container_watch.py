@@ -38,6 +38,23 @@ class ContainerState:
     restart_count: Optional[int] = None   # RestartCount, None when unknown
 
 
+# Docker statuses in which the container's process exists: State.Running is true.
+_UP = ("running", "paused", "restarting")
+
+
+def running_for_the_watchdog(result) -> bool:
+    """Whether a container counts as up for the watchdog.
+
+    NOT result.is_running, which is status == "running". A paused container and
+    one Docker's own restart policy is bringing back have status "paused" and
+    "restarting" - and until 2026-09-26 the watchdog reported both as "stopped
+    (it was running)", so a restart rule restarted a container somebody had
+    paused on purpose (measured live). Operator decision the same day: paused
+    counts as running here. The panel shows what it always showed.
+    """
+    return bool(getattr(result, "is_running", False)) or getattr(result, "status", None) in _UP
+
+
 @dataclass(frozen=True)
 class WatchEvent:
     container: str
