@@ -40,7 +40,12 @@ from typing import Optional, Tuple
 logger = logging.getLogger("ddc.docker_proxy")
 
 _NAME = r"[a-zA-Z0-9_.-]+"
-_PREFIX = r"^/(v[0-9]+\.[0-9]+/)?"
+# An API version, if any, of 1.24 or later. BELOW 1.24 DOCKER'S START READS A
+# HOSTCONFIG FROM THE BODY and applies it - privileges and mounts included - so
+# `POST /v1.23/containers/X/start` could do what `containers/create` does. Docker
+# before 25 still serves those versions by default. Until 2026-09-26 any v<N>.<M>
+# passed here; the body lock in handle() closes the same hole a second time.
+_PREFIX = r"^/(v(?:1\.(?:2[4-9]|[3-9][0-9]|[1-9][0-9]{2,})|[2-9][0-9]*\.[0-9]+)/)?"
 
 # The whole policy. Method, then the path without its query string.
 ALLOWLIST = (
@@ -217,6 +222,13 @@ class _Handler(socketserver.BaseRequestHandler):
                 length = int(digits)
         if length > MAX_BODY_BYTES:
             _refuse(conn, "413 Payload Too Large", "request body too large")
+            return
+        # NO ALLOWED REQUEST HAS A BODY. docker-py posts start/stop/restart with
+        # Content-Length: 0. A body on start is a HostConfig to an old daemon
+        # (see _PREFIX), so until 2026-09-26 up to 64 KB of one went through.
+        if length > 0:
+            logger.warning(f"docker proxy: DENIED {method} {target.split('?', 1)[0]} (request body)")
+            _refuse(conn, "403 Forbidden", "request bodies are not allowed")
             return
         try:
             while len(body) < length:

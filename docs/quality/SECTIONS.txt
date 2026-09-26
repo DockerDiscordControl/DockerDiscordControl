@@ -406,7 +406,7 @@ app/blueprints/two_factor_routes.py:1-375
 app/web/tls.py:1-497
 app/web/two_factor.py:1-8
 services/docker_proxy/__init__.py:1-2
-services/docker_proxy/allowlist_proxy.py:1-288
+services/docker_proxy/allowlist_proxy.py:1-300
 services/web/two_factor_service.py:1-331
 
 ## Section 40  (720 lines, 1 piece)
