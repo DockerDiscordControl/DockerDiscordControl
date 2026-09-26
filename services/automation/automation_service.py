@@ -351,7 +351,14 @@ class AutomationService:
             
         search_text = search_text.lower() # Case insensitive (Question 7)
         
-        # 1. Regex Match (Question 3: Security via Threading + Timeout)
+        # 1. Ignore keywords veto EVERYTHING, the regex included. They used to be
+        # read after the regex, so a regex hit returned before the operator's
+        # brake was ever looked at (audit 2026-09-26, F6).
+        for ignore in rule.trigger.ignore_keywords:
+            if ignore.lower() in search_text:
+                return False, f"Ignored keyword: {ignore}"
+
+        # 2. Regex Match (Question 3: Security via Threading + Timeout)
         if rule.trigger.regex_pattern:
             try:
                 # The real budget is enforced inside _safe_regex_search by killing the worker
@@ -378,11 +385,6 @@ class AutomationService:
             except Exception as e:
                 logger.error(f"Regex error in rule '{rule.name}': {e}")
                 # Don't fail the whole rule if keywords exist, try them next
-
-        # 2. Negative Lookahead (Ignore Keywords) - Check first
-        for ignore in rule.trigger.ignore_keywords:
-            if ignore.lower() in search_text:
-                return False, f"Ignored keyword: {ignore}"
 
         # 3. Required Keywords - ALL must match (AND logic)
         if rule.trigger.required_keywords:
