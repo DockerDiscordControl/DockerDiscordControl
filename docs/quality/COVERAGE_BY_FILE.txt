@@ -123,7 +123,7 @@ cogs/message_updates.py	728	v3rev2:1-791
 cogs/overview_embeds.py	655	v3rev2:1-964
 cogs/slash_commands.py	851	NONE
 cogs/stack_restart.py	320	v3rev:1-196
-cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
+cogs/status_handlers.py	1117	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1267	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
@@ -142,7 +142,7 @@ services/config/__init__.py	16	passE:read-in-full
 services/config/channel_config_service.py	585	passE:E28+bothscans:126-300
 services/config/channel_roles.py	38	NONE
 services/config/config_cache_service.py	177	passE:E29:read-in-full
-services/config/config_form_parser_service.py	625	pass1:s12:1-483  [23 of 625 lines never in a package] v3rev2:1-625
+services/config/config_form_parser_service.py	628	pass1:s12:1-483  [23 of 625 lines never in a package] v3rev2:1-625
 services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
 services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 lines never in a package]
 services/config/config_service.py	1259	passE:E26+bothscans:252-352,354-512,793-910

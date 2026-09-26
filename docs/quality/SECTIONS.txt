@@ -90,7 +90,7 @@ services/config/channel_config_service.py:1-585
 # when automation_service.py grew with the group resolution.
 services/automation/own_actions.py:1-70
 services/config/config_cache_service.py:1-177
-services/config/config_form_parser_service.py:1-625
+services/config/config_form_parser_service.py:1-628
 services/config/config_loader_service.py:1-481
 services/config/config_migration_service.py:1-466
 # group_service.py left for section 37 on 2026-09-24: a group gained

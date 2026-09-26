@@ -709,8 +709,8 @@ class StatusHandlersMixin:
         - current_config: The full bot configuration
         """
         lang = current_config.get('language', 'de')
-        # Get timezone from config (format_datetime_with_timezone will handle fallbacks)
-        timezone_str = current_config.get('timezone_str', 'Europe/Berlin')
+        # The panel's zone; 'timezone_str' was a stale hidden form field (2026-09-26).
+        timezone_str = current_config.get('timezone') or 'Europe/Berlin'
         # SERVICE FIRST: Use ServerConfigService instead of direct config access
         server_config_service = get_server_config_service()
         all_servers_config = server_config_service.get_all_servers()

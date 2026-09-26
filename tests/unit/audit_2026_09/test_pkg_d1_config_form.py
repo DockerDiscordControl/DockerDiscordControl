@@ -221,7 +221,9 @@ class TestCatchAllFilter:
         assert saved.get("advanced_settings") != "junk"
         assert saved["language"] == "de"
         assert saved["timezone"] == "Europe/Vienna"
-        assert saved["timezone_str"] == "Europe/Vienna"  # read by cogs/status_handlers.py
+        # Not stored since 2026-09-26: the task form's hidden field carries the zone the
+        # page was loaded with, and cogs/status_handlers.py reads "timezone" now.
+        assert "timezone_str" not in saved
         assert saved["guild_id"] == "123456789012345678"
         assert saved["ui_language"] == "de"
 

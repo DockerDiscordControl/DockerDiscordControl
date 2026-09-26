@@ -329,13 +329,16 @@ class ConfigFormParserService:
     # Request-only values that are never settings. Earlier versions stored them in config.json
     # through the generic loop (the new password in cleartext, the decrypted bot token, the task
     # editor fields), so they are also dropped from the loaded config before saving.
-    # 'timezone_str' is deliberately not listed: cogs/status_handlers.py reads it from the config.
+    # 'timezone_str' is the task form's hidden field (tasks/form.html sits inside the
+    # settings form), rendered with the zone the page was LOADED with. It was kept
+    # because cogs/status_handlers.py read it; since 2026-09-26 that reads 'timezone',
+    # and storing the field only put a stale zone beside the real one.
     _NEVER_PERSIST_KEYS = frozenset({
         'new_web_ui_password', 'confirm_web_ui_password', 'password', 'confirm_password',
         'bot_token_decrypted_for_usage', 'csrf_token', 'csrf-token',
         # Task editor (tasks/form.html, tasks/list.html) - saved via the tasks API, not here
         'container', 'action', 'cycle', 'time', 'year', 'month', 'day', 'weekday',
-        'cron_string', 'task_id', 'is_active',
+        'cron_string', 'task_id', 'is_active', 'timezone_str',
         # Request options / markers
         'config_split_enabled', 'channel_tables_submitted',
     })
