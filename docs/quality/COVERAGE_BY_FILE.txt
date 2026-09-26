@@ -125,7 +125,7 @@ cogs/overview_embeds.py	655	v3rev2:1-964
 cogs/slash_commands.py	862	NONE
 cogs/stack_restart.py	325	v3rev:1-196
 cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
-cogs/status_info_integration.py	1267	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
+cogs/status_info_integration.py	1285	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	104	passE:E32:read-in-full
@@ -261,7 +261,7 @@ services/web/two_factor_service.py	331	v3rev:1-224
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150
 utils/atomic_io.py	104	pass1:s35:1-70
-utils/common_helpers.py	501	pass1:s35:1-475  [26 of 501 lines never in a package]
+utils/common_helpers.py	520	pass1:s35:1-475  [26 of 501 lines never in a package]
 utils/config_cache.py	307	pass1:s35:1-307
 utils/config_paths.py	47	pass1:s35:1-47
 utils/container_image.py	67	passE:written-2026-09-22:E53

@@ -900,6 +900,24 @@ class StatusInfoButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle info button click - show ephemeral info embed."""
+        # The same "info" brake as the control panel's info button. This one sits
+        # in the PUBLIC status channels and had none (spam audit 2026-09-26).
+        from services.infrastructure.spam_protection_service import get_spam_protection_service
+        spam_service = get_spam_protection_service()
+        if spam_service.is_enabled():
+            try:
+                if spam_service.is_on_cooldown(interaction.user.id, "info"):
+                    remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "info")
+                    await interaction.response.send_message(
+                        _("⏰ Please wait {remaining:.1f} seconds before using info button again.").format(
+                            remaining=remaining_time
+                        ),
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
+                    )
+                    return
+                spam_service.add_user_cooldown(interaction.user.id, "info")
+            except (RuntimeError, AttributeError, KeyError) as e:
+                logger.error(f"Spam protection error for status info button: {e}", exc_info=True)
         try:
             await interaction.response.defer(ephemeral=True)
 

@@ -63,7 +63,7 @@ cogs/enhanced_info_modal_simple.py:1-694
 cogs/status_handlers.py:1-1115
 
 ## Section 09  (1267 lines, 1 piece)
-cogs/status_info_integration.py:1-1267
+cogs/status_info_integration.py:1-1285
 
 ## Section 10  (1592 lines, 7 pieces)
 cogs/translation_manager.py:1-149
@@ -348,7 +348,7 @@ app/web_ui.py:1-36
 utils/__init__.py:1-7
 utils/app_commands_helper.py:1-150
 utils/atomic_io.py:1-104
-utils/common_helpers.py:1-501
+utils/common_helpers.py:1-520
 utils/config_paths.py:1-47
 
 ## Section 36  (1881 lines, 6 pieces)

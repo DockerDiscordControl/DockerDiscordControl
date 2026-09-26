@@ -181,7 +181,8 @@ def cleanup_after_test():
 
     The donation broadcast brake (one per person per five minutes, 2026-09-26)
     is the same kind of module state: donation tests share a user id, and the
-    first broadcast in a run silenced every later one.
+    first broadcast in a run silenced every later one. The WAN IP cache
+    (2026-09-26) likewise answered one test with another test's address.
     """
     yield
     try:
@@ -193,6 +194,9 @@ def cleanup_after_test():
     donation_ui = sys.modules.get("cogs.donation_ui")
     if donation_ui is not None and hasattr(donation_ui, "_last_broadcast"):
         donation_ui._last_broadcast.clear()
+    helpers = sys.modules.get("utils.common_helpers")
+    if helpers is not None and hasattr(helpers, "_wan_ip_cache"):
+        helpers._wan_ip_cache.clear()
 
 
 # Performance testing fixtures

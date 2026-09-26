@@ -13,6 +13,7 @@ Eliminates redundant code between different modules.
 
 from typing import Dict, Any, List, Optional, Union, Tuple
 import asyncio
+import time
 from utils.logging_utils import get_module_logger
 from utils.time_utils import get_datetime_imports, format_duration
 
@@ -280,13 +281,31 @@ def is_valid_ip(ip: str) -> bool:
     except socket.error:
         return False
 
+# The WAN IP rarely changes, and every info button press used to ask three
+# outside services for it afresh (spam audit 2026-09-26). A hit is kept ten
+# minutes, a miss one minute - so a failing service is not hammered either.
+WAN_IP_KEEP_SECONDS = 600
+WAN_IP_MISS_KEEP_SECONDS = 60
+_wan_ip_cache: Dict[str, Any] = {}
+
+
 async def get_wan_ip_async() -> Optional[str]:
     """
-    Async version of WAN IP detection using aiohttp.
+    Async version of WAN IP detection using aiohttp, cached (see above).
 
     Returns:
         WAN IP address as string or None if detection fails
     """
+    now = time.monotonic()
+    if "until" in _wan_ip_cache and now < _wan_ip_cache["until"]:
+        return _wan_ip_cache["ip"]
+    ip = await _lookup_wan_ip()
+    _wan_ip_cache.update(ip=ip, until=now + (WAN_IP_KEEP_SECONDS if ip else WAN_IP_MISS_KEEP_SECONDS))
+    return ip
+
+
+async def _lookup_wan_ip() -> Optional[str]:
+    """Ask the outside services, one after the other, for the WAN IP."""
     import aiohttp
 
     services = [
