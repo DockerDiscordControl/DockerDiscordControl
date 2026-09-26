@@ -206,8 +206,15 @@ def init_limiter(app):
         if request.path.startswith('/static/'):
             return None
 
-        # Exclude status endpoints from rate limiting (they need frequent access)
-        if request.path.startswith('/api/donation/status') or request.path.startswith('/health'):
+        # Exclude status endpoints from rate limiting (they need frequent access).
+        # /health only while it carries no credentials: the container probe sends
+        # none, but a caller with Basic auth gets the detailed answer only for the
+        # right password - until 2026-09-26 that made /health an unbraked way to
+        # test passwords. With an Authorization header it falls through to the
+        # auth limit below, like every other route.
+        if request.path.startswith('/api/donation/status'):
+            return None
+        if request.path.startswith('/health') and 'Authorization' not in request.headers:
             return None
 
         client_ip = request.remote_addr
