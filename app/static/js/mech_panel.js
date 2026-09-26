@@ -909,23 +909,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         
         
-        function showNotification(message, type = 'info') {
-            // Create a simple notification (you can style this better)
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
-            alertDiv.style.zIndex = '9999';
-            alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.body.appendChild(alertDiv);
-            
-            // Auto-remove after 3 seconds
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 3000);
-        }
-        
+                
         
         // Additional animations for different donation types
         const additionalStyles = `

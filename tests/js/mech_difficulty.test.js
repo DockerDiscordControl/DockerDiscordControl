@@ -62,6 +62,9 @@ function harness({ overrideOn = true, sliderValue = '1.0' } = {}) {
       });
     },
     t: (key) => key,
+    // The page's, from config-ui.js (the file under test no longer declares
+    // its own console-only one - tests/js/notifications.test.js).
+    showNotification() {},
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);

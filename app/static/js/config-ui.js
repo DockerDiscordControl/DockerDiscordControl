@@ -510,6 +510,16 @@ function saveContainerInfo() {
     showToast(t('config.container_info_updated'), 'success');
 }
 
+// THE ONE showNotification of the settings page. Until 2026-09-26 three
+// scripts each declared a global one, the last loaded won, and that was
+// advanced_settings_modal.js with a body of console.log - so every message of
+// the channel-translation editor and the auto-action dialog, errors included,
+// reached the browser console and nobody else. The callers pass Bootstrap's
+// 'danger' as well as 'error'; both are an error here.
+function showNotification(message, type = 'info') {
+    showToast(message, type === 'danger' ? 'error' : type);
+}
+
 // Toast notification function
 function showToast(message, type = 'info') {
     const toastClass = type === 'success' ? 'text-success' : type === 'error' ? 'text-danger' : 'text-info';

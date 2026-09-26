@@ -425,15 +425,6 @@ async function saveMechDifficulty(difficultyMultiplier) {
     }
 }
 
-function showNotification(message, type = 'info') {
-    // Simple notification function - could be enhanced with toasts
-    const alertClass = type === 'success' ? 'alert-success' :
-                      type === 'error' ? 'alert-danger' : 'alert-info';
-
-    // You could implement proper toast notifications here
-    console.log(`[${type.toUpperCase()}] ${message}`);
-}
-
 // ======= Manual Difficulty Override Functions =======
 
 async function saveMechOverrideToggle() {
