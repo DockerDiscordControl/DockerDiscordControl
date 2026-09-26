@@ -2042,27 +2042,29 @@
                 }
                 const diagnostics = apiResponse.diagnostics;
                 
-                // Build diagnostic report HTML
+                // Build diagnostic report HTML. Every value from the server is
+                // escaped: container names, mappings and the report's own
+                // sentences are text, and this is innerHTML (audit 2026-09-26).
                 let html = '';
                 
                 // Container Info
                 html += `<div class="mb-3">
                     <h6>System Information</h6>
-                    <strong>Container:</strong> ${diagnostics.container_name || 'Unknown'}<br>
-                    <strong>Platform:</strong> ${diagnostics.host_info.platform} ${diagnostics.host_info.is_unraid ? '(Unraid)' : ''}<br>
+                    <strong>Container:</strong> ${ddcEscapeHtml(diagnostics.container_name || 'Unknown')}<br>
+                    <strong>Platform:</strong> ${ddcEscapeHtml(diagnostics.host_info.platform)} ${diagnostics.host_info.is_unraid ? '(Unraid)' : ''}<br>
                     <strong>Docker Environment:</strong> ${diagnostics.host_info.is_docker ? 'Yes' : 'No'}<br>
                     <strong>Docker Socket:</strong> <span class="badge ${diagnostics.host_info.docker_socket_available ? 'bg-success' : 'bg-danger'}">${diagnostics.host_info.docker_socket_available ? 'AVAILABLE' : 'NOT AVAILABLE'}</span><br>
-                    <strong>Python Version:</strong> ${diagnostics.host_info.python_version || 'Unknown'}<br>
-                    <strong>Container Uptime:</strong> ${diagnostics.host_info.container_uptime || 'Unknown'}
+                    <strong>Python Version:</strong> ${ddcEscapeHtml(diagnostics.host_info.python_version || 'Unknown')}<br>
+                    <strong>Container Uptime:</strong> ${ddcEscapeHtml(diagnostics.host_info.container_uptime || 'Unknown')}
                 </div>`;
                 
                 // Resource Usage
                 html += `<div class="mb-3">
                     <h6>Resource Usage</h6>
-                    <strong>System Memory:</strong> ${diagnostics.host_info.memory_usage || 'Unknown'}<br>
-                    <strong>DDC Container Memory:</strong> ${diagnostics.host_info.ddc_memory_usage || 'Unknown'}<br>
-                    <strong>DDC Image Size:</strong> ${diagnostics.host_info.ddc_image_size || 'Unknown'}<br>
-                    <strong>Disk (/app):</strong> ${diagnostics.host_info.disk_usage || 'Unknown'}
+                    <strong>System Memory:</strong> ${ddcEscapeHtml(diagnostics.host_info.memory_usage || 'Unknown')}<br>
+                    <strong>DDC Container Memory:</strong> ${ddcEscapeHtml(diagnostics.host_info.ddc_memory_usage || 'Unknown')}<br>
+                    <strong>DDC Image Size:</strong> ${ddcEscapeHtml(diagnostics.host_info.ddc_image_size || 'Unknown')}<br>
+                    <strong>Disk (/app):</strong> ${ddcEscapeHtml(diagnostics.host_info.disk_usage || 'Unknown')}
                 </div>`;
                 
                 // No Process Status section: DDC is ONE process (bot plus a
@@ -2084,11 +2086,11 @@
                 if (Object.keys(portCheck.port_mappings).length > 0) {
                     html += '<div class="mb-3"><strong>Port Mappings:</strong><ul>';
                     for (const [internal, external] of Object.entries(portCheck.port_mappings)) {
-                        html += `<li>Internal ${internal} → External `;
+                        html += `<li>Internal ${ddcEscapeHtml(internal)} → External `;
                         if (Array.isArray(external)) {
-                            html += external.map(e => typeof e === 'object' ? `${e.host}:${e.port}` : e).join(', ');
+                            html += ddcEscapeHtml(external.map(e => typeof e === 'object' ? e.host + ':' + e.port : e).join(', '));
                         } else {
-                            html += external;
+                            html += ddcEscapeHtml(external);
                         }
                         html += '</li>';
                     }
@@ -2101,7 +2103,7 @@
                 if (portCheck.issues && portCheck.issues.length > 0) {
                     html += '<div class="mb-3"><h6 class="text-warning">⚠️ Issues Found:</h6><ul class="text-warning">';
                     portCheck.issues.forEach(issue => {
-                        html += `<li>${issue}</li>`;
+                        html += `<li>${ddcEscapeHtml(issue)}</li>`;
                     });
                     html += '</ul></div>';
                 }
@@ -2110,7 +2112,7 @@
                 if (portCheck.solutions && portCheck.solutions.length > 0) {
                     html += '<div class="mb-3"><h6 class="text-info">💡 Suggested Solutions:</h6><ul class="text-info">';
                     portCheck.solutions.forEach(solution => {
-                        html += `<li>${solution}</li>`;
+                        html += `<li>${ddcEscapeHtml(solution)}</li>`;
                     });
                     html += '</ul></div>';
                 }
@@ -2119,7 +2121,7 @@
                 if (diagnostics.recommendations && diagnostics.recommendations.length > 0) {
                     html += '<div class="mb-3"><h6 class="text-success">✅ General Recommendations:</h6><ul class="text-light">';
                     diagnostics.recommendations.forEach(rec => {
-                        html += `<li>${rec}</li>`;
+                        html += `<li>${ddcEscapeHtml(rec)}</li>`;
                     });
                     html += '</ul></div>';
                 }
