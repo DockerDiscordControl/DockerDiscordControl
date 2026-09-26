@@ -48,7 +48,9 @@ def _make_message(*, author=None, guild=True, content="hello", embeds=(), attach
         author = MagicMock()
         author.display_name = "Alice"
         author.display_avatar.url = "https://cdn.example/avatar.png"
+        author.bot = False  # a person - other bots are ignored since 2026-09-26
     msg.author = author
+    msg.webhook_id = None
     msg.guild = MagicMock() if guild else None
     if guild:
         msg.guild.id = 4242

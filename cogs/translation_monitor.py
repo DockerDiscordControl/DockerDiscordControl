@@ -35,6 +35,13 @@ class TranslationMonitor(commands.Cog):
         if message.author == self.bot.user:
             return
 
+        # 1b. And every OTHER bot and webhook (operator decision 2026-09-26). A
+        # second translation bot, or a webhook relay pointed back at a source
+        # channel, answered each DDC translation with its own - which DDC then
+        # translated again, burning the provider budget in a loop.
+        if message.author.bot or message.webhook_id:
+            return
+
         # 2. Ignore DM messages
         if not message.guild:
             return
