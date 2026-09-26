@@ -284,7 +284,9 @@ Discord bot tokens are encrypted using:
 2. **Set strong Flask secret key** (64 characters minimum)
 3. **Change default admin password** immediately
 4. **Rotate tokens** if compromised
-5. **Use read-only Docker socket** mounting
+5. **Start the container without `--user`** (use `PUID`/`PGID`): only then does the
+   Docker allowlist proxy run. A `:ro` socket mount protects the socket file, not
+   the API behind it - it is not a security control
 
 ## Backup Configuration
 
@@ -361,7 +363,7 @@ Before going live, verify:
 - [ ] Discord bot token configured (Web UI or environment)
 - [ ] All desired containers added and set to Active
 - [ ] Channel permissions configured correctly
-- [ ] Docker socket mounted read-only (`:ro`)
+- [ ] Container started without `--user` (the Docker allowlist proxy runs; see `/health`)
 - [ ] Config directory persisted with volume mount
 - [ ] Container runs as non-root user (1000:1000)
 - [ ] Web UI accessible only from trusted network

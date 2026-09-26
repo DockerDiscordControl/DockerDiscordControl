@@ -1,10 +1,10 @@
 # DockerDiscordControl - Security Guide
 
-DockerDiscordControl v2.0 provides robust security features for managing Docker containers via Discord. This guide covers security best practices, configuration, and monitoring.
+DockerDiscordControl v3.0 provides robust security features for managing Docker containers via Discord. This guide covers security best practices, configuration, and monitoring.
 
 ## ⚠️ Critical Security Warning
 
-**Docker Socket Access:** DDC requires access to `/var/run/docker.sock`, which grants extensive control over your Docker environment. This represents significant risk if compromised.
+**Docker Socket Access:** DDC's container needs `/var/run/docker.sock`, which grants extensive control over your Docker environment. Since v3.0 only an allowlist proxy inside the container opens it, and DDC's own code can ask for ten things through it (see [SECURITY.md](SECURITY.md)). Whoever controls the host's Docker still controls the host.
 
 **Deploy only in trusted environments with proper security controls.**
 
@@ -145,17 +145,20 @@ its own address and escape the login and setup rate limits.
 **Current configuration (docker-compose.yml):**
 ```yaml
 volumes:
-  - /var/run/docker.sock:/var/run/docker.sock:ro  # Read-only mount
+  - /var/run/docker.sock:/var/run/docker.sock:ro
 ```
 
-**Verify socket permissions:**
-```bash
-# Check socket access
-docker exec ddc ls -la /var/run/docker.sock
+`:ro` makes the socket FILE unmodifiable; it does nothing to the API reached
+through it. What limits DDC is the allowlist proxy: `ddcproxy` is the only user
+in the socket's group, and DDC (`ddc`) reaches Docker through the proxy's own
+socket.
 
-# Verify non-root user
-docker exec ddc id
-# Should show: uid=1000(ddc) gid=1000(ddc) groups=1000(ddc),281(docker)
+**Verify:**
+```bash
+docker exec ddc id ddc
+# ddc must NOT be in the group that owns /var/run/docker.sock
+curl -s http://<host>:9374/health
+# reports whether the proxy and Docker are reachable
 ```
 
 ### Container Isolation
@@ -175,7 +178,7 @@ deploy:
 **Security features:**
 - Non-root user execution (UID 1000)
 - Alpine Linux base (minimal attack surface)
-- Read-only Docker socket
+- Docker API allowlist proxy (start, stop, restart, read-only queries)
 - Resource limits prevent DoS
 - Isolated network namespace
 
@@ -320,7 +323,7 @@ docker logs ddc 2>&1 | grep -i "error\|failed"
 - Non-root user execution (UID 1000)
 - Alpine Linux 3.22.2 base
 - Resource limits (CPU, memory)
-- Read-only Docker socket mount
+- Docker API allowlist proxy in front of the socket
 
 ✅ **Infrastructure:**
 - Secure logging (no sensitive data)
@@ -340,8 +343,9 @@ docker logs ddc 2>&1 | grep -i "error\|failed"
 - No lockout on failed attempts (yet)
 
 ⚠️ **Web UI Exposure:**
-- HTTP by default (HTTPS requires reverse proxy)
-- No built-in certificate management
+- HTTP by default; HTTPS through a reverse proxy (`DDC_TLS_MODE=proxy`) or a
+  self-signed certificate (`DDC_TLS_MODE=self-signed`)
+- Two-factor authentication is offered, and needs HTTPS
 - Firewall rules recommended
 
 ## Common Security Pitfalls
@@ -352,7 +356,7 @@ docker logs ddc 2>&1 | grep -i "error\|failed"
 3. Store secrets in version control
 4. Grant excessive Discord permissions
 5. Ignore security logs
-6. Run with overly permissive Docker socket
+6. Start the container with `--user` or put DDC into the socket's group - both go around the allowlist proxy
 7. Skip regular updates
 
 ### ✅ Do:

@@ -6,8 +6,11 @@
 
 | Version | Support Status | Release Date | Notes |
 |---------|---------------|--------------|-------|
-| v2.0.0 | Current | 2025-11-18 | Production release with multi-language support |
-| < v2.0.0 | Unsupported | - | Development versions (archived in v2.0 branch) |
+| v2.4.1 | Current | 2026-09-22 | Last v2 release |
+| < v2.4.1 | Unsupported | - | Upgrade to the current release |
+
+v3.0.0 replaces v2.4.1 when it is released. Going back from v3.0 to v2.4.1 is
+not supported (see the v3.0 release notes).
 
 ### Version 2.0.0 Features
 
@@ -52,8 +55,8 @@ docker-compose up -d
 
 ### Support Policy
 
-- **v2.0.0**: Full support with bug fixes, security updates, and features
-- **Development versions**: No support - upgrade to v2.0.0 required
+- **The current release**: bug fixes, security updates, and features
+- **Older releases**: no support - upgrade to the current release
 
 ### Getting Support
 

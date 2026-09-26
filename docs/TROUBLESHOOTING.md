@@ -156,23 +156,25 @@ docker exec ddc ls -la /app/config/
      - /var/run/docker.sock:/var/run/docker.sock:ro
    ```
 
-2. **Check socket permissions:**
-   ```bash
-   # View socket permissions
-   ls -la /var/run/docker.sock
-
-   # Should be accessible by docker group (GID 281 or similar)
-   ```
+2. **Leave the socket's group alone:**
+   Since v3.0 DDC does not open the socket itself. A second user inside the
+   container runs the allowlist proxy and is the only one in the socket's
+   group; DDC reaches Docker through that proxy. Do **not** set `PGID` to the
+   socket's group and do not start the container with `--user` - either puts
+   DDC back on the raw socket, and `--user` runs no proxy at all
+   ([SECURITY.md](SECURITY.md), "Door A").
 
 3. **Verify allowed actions are configured:**
    - Web UI → Container Management → Edit Container
    - Check "Allowed Actions" includes: start, stop, restart
 
-4. **Check Docker socket accessibility:**
+4. **Check that DDC reaches Docker through the proxy:**
    ```bash
-   docker exec ddc docker ps
-   # Should list containers - if error, socket not accessible
+   docker exec -u ddc ddc python3 -c "import docker; print(len(docker.from_env().containers.list()))"
+   # Prints a number - if it fails, open http://<host>:9374/health:
+   # it says whether the proxy or Docker itself is unreachable
    ```
+   (The image has no `docker` command line tool.)
 
 ### 6. Permission Errors on Different Systems
 

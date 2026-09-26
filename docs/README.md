@@ -71,7 +71,7 @@ New to DDC? Start here:
 ### Security Features
 - Token encryption (Fernet + PBKDF2)
 - Non-root container execution
-- Read-only Docker socket mounting
+- Docker API allowlist proxy in front of the socket
 - Strong password hashing (PBKDF2-SHA256)
 - Session management
 

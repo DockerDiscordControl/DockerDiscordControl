@@ -229,7 +229,7 @@ If the container is killed due to OOM:
 3. **No pip/setuptools** - Build-only dependencies removed from venv
 4. **Compiled bytecode optimization** - PYTHONOPTIMIZE=1
 5. **Alpine Linux** - Minimal base distribution
-6. **Single-purpose processes** - supervisord manages bot + web UI efficiently
+6. **One process** - the bot and the web UI (a waitress thread) share one Python process
 
 ## Future Optimizations
 
