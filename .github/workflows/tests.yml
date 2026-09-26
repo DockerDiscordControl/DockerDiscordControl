@@ -16,6 +16,9 @@ on:
       - main
       - v2.0
       - develop
+      # The v3.0 work branches: otherwise the first CI run of v3 code would be
+      # the pull request to main, and merging to main publishes the image.
+      - 'roadmap-v3-*'
     paths:
       - '**.py'
       - 'tests/**'
@@ -71,7 +74,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # What the image installs (Dockerfile), not requirements.txt: that one has
+          # no upper bounds, so CI passed on versions the image never shipped.
+          pip install -r requirements.prod.txt
           pip install -r requirements-test.txt
 
       - name: Run unit tests with coverage
@@ -134,7 +139,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements.prod.txt
           pip install -r requirements-test.txt
 
       - name: Run integration tests

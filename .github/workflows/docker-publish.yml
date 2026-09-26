@@ -38,7 +38,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # What the image installs (Dockerfile), not requirements.txt: that one has
+          # no upper bounds, so CI passed on versions the image never shipped.
+          pip install -r requirements.prod.txt
           pip install -r requirements-test.txt
 
       - name: Run the test suite group by group
