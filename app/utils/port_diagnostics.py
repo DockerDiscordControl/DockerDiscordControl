@@ -499,8 +499,19 @@ class PortDiagnostics:
         A fixed "http://" was wrong for every installation with TLS, and the
         address is the one line of a report a reader types by hand.
         """
-        mode = (os.environ.get("DDC_TLS_MODE") or "off").strip().lower()
-        return "https" if mode in ("proxy", "self-signed") else "http"
+        return "https" if self._tls_mode() == "self-signed" else "http"
+
+    @staticmethod
+    def _tls_mode() -> str:
+        return (os.environ.get("DDC_TLS_MODE") or "off").strip().lower()
+
+    # BEHIND A PROXY THE HOST PORT IS NOT AN ADDRESS FOR A BROWSER. It speaks
+    # plain HTTP to the reverse proxy and refuses anybody else (app/web/tls.py).
+    # Until 2026-09-26 proxy mode was treated like self-signed here and the
+    # report offered https://<host>:<port>, which fails in the handshake. The
+    # address that works is the proxy's, which DDC cannot know.
+    BEHIND_A_PROXY = ("DDC_TLS_MODE=proxy: open the panel through your reverse proxy over "
+                      "HTTPS - the host port only answers the proxy")
 
     def _recommendations(self, port_check: Dict) -> List[str]:
         """What to tell the operator, built from what was just measured.
@@ -543,7 +554,10 @@ class PortDiagnostics:
 
         scheme = self._the_scheme()
         where = "[UNRAID-IP]" if unraid else "localhost"
-        told = [f"Web UI: {scheme}://{where}:{port}" for port in seen]
+        if self._tls_mode() == "proxy":
+            told = [self.BEHIND_A_PROXY]
+        else:
+            told = [f"Web UI: {scheme}://{where}:{port}" for port in seen]
         told.append(
             f"Host port {' and '.join(seen)} is mapped to container port "
             f"{self.EXPECTED_WEB_PORT}; check the host firewall if the panel "
@@ -586,7 +600,9 @@ class PortDiagnostics:
         scheme = "https" if os.environ.get("DDC_TLS_MODE", "").strip().lower() == "self-signed" \
             else "http"
 
-        if report['port_check']['external_ports']:
+        if self._tls_mode() == "proxy":
+            logger.info(self.BEHIND_A_PROXY)
+        elif report['port_check']['external_ports']:
             for port_info in report['port_check']['external_ports']:
                 if isinstance(port_info, dict):
                     host = port_info['host']

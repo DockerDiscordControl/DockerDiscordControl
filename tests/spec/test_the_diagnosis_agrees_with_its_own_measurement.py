@@ -162,3 +162,17 @@ def test_the_report_still_carries_what_it_always_did(diagnostics):
                            "port_check", "recommendations"}, sorted(report)
     assert report["port_check"]["port_mappings"] == HIS_CONTAINER
     assert report["recommendations"], "the recommendations are gone rather than corrected"
+
+
+def test_behind_a_proxy_it_names_no_host_port_address(diagnostics):
+    """AUDIT 2026-09-26: DDC_TLS_MODE=proxy was treated like self-signed and
+    the report said "https://[UNRAID-IP]:9374" - but that port speaks plain
+    HTTP to the proxy only, and refuses a browser that reaches it directly
+    (app/web/tls.py). The address a reader would type is the proxy's, which
+    DDC cannot know, so it says where to go instead of inventing one.
+
+    COUNTER-CHECK (2026-09-26): red before the fix - {'https'} was offered."""
+    report = diagnostics(HIS_CONTAINER, tls="proxy").get_diagnostic_report()
+
+    assert _schemes_offered(report) == set(), _said(report)
+    assert "reverse proxy" in _said(report), _said(report)
