@@ -770,7 +770,8 @@ function renderAdminContainers(userId, assigned) {
         const disabled = scoped ? '' : 'disabled';
         return `<label class="me-3 text-nowrap">
             <input type="checkbox" ${checked} ${disabled}
-                   onchange="toggleAdminContainer('${safeId}', '${escapeHtmlConfigUI(name)}', this.checked)">
+                   data-admin="${safeId}" data-name="${escapeHtmlConfigUI(name)}"
+                   onchange="toggleAdminContainerFrom(this)">
             ${escapeHtmlConfigUI(adminAssignmentLabel(name))}
         </label>`;
     }).join('');
@@ -800,6 +801,16 @@ function setAdminUnscoped(userId, unscoped) {
         adminContainers[userId] = availableContainers.slice();
     }
     renderAdminUsers();
+}
+
+// THE NAME TRAVELS IN A data- ATTRIBUTE, NOT IN THE HANDLER'S SOURCE. Until
+// 2026-09-26 it was pasted into onchange="toggleAdminContainer('...', '<name>')"
+// after HTML escaping - and the parser decodes &#039; back to ' before the
+// JavaScript runs. A group called "Bob's" made the box a syntax error, and a
+// crafted name ran script. An attribute value is data; the parser hands it
+// over as the text it was (tests/js/admin_assignment_names.test.js).
+function toggleAdminContainerFrom(box) {
+    toggleAdminContainer(box.dataset.admin, box.dataset.name, box.checked);
 }
 
 function toggleAdminContainer(userId, name, checked) {
