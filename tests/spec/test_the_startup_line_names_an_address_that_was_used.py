@@ -59,7 +59,19 @@ def diagnostics(tmp_path, monkeypatch):
         monkeypatch.delenv(leftover, raising=False)
     from app.utils.port_diagnostics import PortDiagnostics
 
-    return PortDiagnostics(), tmp_path
+    service = PortDiagnostics()
+    # THE GUESSING IS SILENCED BY DEFAULT, because this file is about what the
+    # LEARNED addresses contribute and the guessing is what happens after them.
+    #
+    # Two cases here asserted "nothing is offered" and were green only because
+    # the guessing happened to fail on the machines they ran on. On a GitHub
+    # runner it succeeds - the first CI run this branch ever had, 2026-09-26,
+    # returned 10.1.0.1 for both - so they were passing for a reason that has
+    # nothing to do with their rule. The two cases that are ABOUT the guessing
+    # set their own stubs below and override this.
+    monkeypatch.setattr(service, "_try_traceroute_ip", lambda: None)
+    monkeypatch.setattr(service, "_try_docker_host_gateway", lambda: None)
+    return service, tmp_path
 
 
 def _learned(directory, *names):

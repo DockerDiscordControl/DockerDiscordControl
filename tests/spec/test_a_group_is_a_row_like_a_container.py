@@ -148,7 +148,12 @@ def test_the_rules_hold_in_node():
                             capture_output=True, text=True, timeout=60)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok   - ") == 8, result.stdout
+    # Twelve since the four search cases were added. It stood at 8 for long
+    # enough that only CI could see it - this line skips wherever node is
+    # missing, which is the image the suite runs in. The number is read
+    # against the file by
+    # tests/spec/test_no_js_case_file_is_only_run_by_hand.py.
+    assert result.stdout.count("ok   - ") == 12, result.stdout
 
 
 # --- the two texts the rows need ------------------------------------------

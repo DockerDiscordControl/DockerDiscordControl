@@ -115,3 +115,88 @@ def test_all_of_them_pass():
                           f"{failures[0][:80] if failures else result.stderr[:80]}")
 
     assert broken == [], "\n  ".join(["JavaScript cases are failing:"] + broken)
+
+
+# --- the number each starter holds its file to -----------------------------
+#
+# ADDED 2026-09-26, after the first CI run this branch ever had. Beside the
+# central run above, each case file also has a starter of its own that asserts
+# how many cases reported ok:
+#
+#     assert result.stdout.count("ok   - ") == 8, result.stdout
+#
+# That number is typed. group_rows.test.js had grown to twelve - four cases
+# about searching were added - and its starter still said eight. Nothing could
+# see it: the starter skips wherever node is missing, which is the image the
+# suite runs in, and CI did not run on this branch until b4926ec1 the same day.
+#
+# So the number is read against the file. Two shapes exist and both are
+# covered: the case object is called `cases` in seventeen files and `tests` in
+# auto_actions_rule_form. A nineteenth written differently goes red below
+# rather than slipping past unchecked.
+THE_CASE_OBJECT = re.compile(r"const\s+(?:cases|tests)\s*=\s*\{")
+A_CASE = re.compile(r"^\s{2}(?:async\s+)?(['\"])(?P<name>.+?)\1\s*\(\s*\)\s*\{", re.M)
+A_TYPED_COUNT = re.compile(r'stdout\.count\((["\'])ok\s+-?\s*\1\)\s*==\s*(?P<n>\d+)')
+
+
+def _cases_defined_in(case_file):
+    """The names of the cases a file defines, or None for a shape unread."""
+    text = case_file.read_text(encoding="utf-8")
+    opened = THE_CASE_OBJECT.search(text)
+    if not opened:
+        return None
+    depth, i = 0, text.index("{", opened.start())
+    while True:
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                break
+        i += 1
+    return [m.group("name") for m in A_CASE.finditer(text[opened.start():i])]
+
+
+def test_every_typed_count_matches_its_file():
+    """THE SECOND FINDING: eight typed, twelve defined, invisible for a day."""
+    texts = _spec_text()
+    wrong = []
+    for case in _case_files():
+        defined = _cases_defined_in(case)
+        if defined is None:
+            continue                      # named by the shape case below
+        for path, text in texts.items():
+            if case.name not in text:
+                continue
+            typed = A_TYPED_COUNT.search(text)
+            if typed and int(typed.group("n")) != len(defined):
+                wrong.append(f"{path.name} counts {typed.group('n')}, "
+                             f"{case.name} defines {len(defined)}")
+
+    assert wrong == [], "a typed count no longer matches its file:\n  " + "\n  ".join(wrong)
+
+
+def test_every_case_file_is_written_in_a_shape_this_can_read():
+    """A guard that silently skips what it cannot parse guards nothing."""
+    unreadable = [case.name for case in _case_files() if _cases_defined_in(case) is None]
+
+    assert unreadable == [], (
+        f"these define their cases in an unread shape, so their counts are "
+        f"unguarded: {unreadable}")
+
+
+def test_the_counting_really_counts(tmp_path):
+    """The counter-check: the two cases above pass on a parser that finds
+    nothing, and on one that calls every shape unreadable."""
+    assert sum(len(_cases_defined_in(c) or []) for c in _case_files()) >= 100
+
+    odd = tmp_path / "odd.test.js"
+    odd.write_text("const somethingElse = { 'a case'() {} };\n", encoding="utf-8")
+
+    assert _cases_defined_in(odd) is None
+
+    fine = tmp_path / "fine.test.js"
+    fine.write_text("const cases = {\n  'one'() {},\n  async 'two'() {},\n};\n",
+                    encoding="utf-8")
+
+    assert _cases_defined_in(fine) == ["one", "two"]
