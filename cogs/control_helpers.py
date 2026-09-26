@@ -24,6 +24,29 @@ app_commands = get_app_commands()
 # Logger with central utility
 logger = get_module_logger('control_helpers')
 
+# THE MESSAGES DDC BUILDS A CHANNEL FROM: the overview of a status channel and
+# the admin overview of a control channel. A channel is "set up" when one of
+# them is tracked - and only then.
+BUILT_MESSAGE_KINDS = ('overview', 'admin_overview')
+
+# The message roles kept across a restart. 'overview' and 'admin_overview' are
+# deleted by id before a fresh one is posted, so a long-lived one does not end
+# up duplicated. 'donation' is deleted at startup instead: /donate's panel is
+# meant to live about fifteen minutes and delete itself, and a restart inside
+# that window leaves it standing with a button that does nothing.
+TRACKED_MESSAGE_KINDS = BUILT_MESSAGE_KINDS + ('donation',)
+
+
+def channel_was_built(tracked) -> bool:
+    """Whether DDC set this channel up, judged by what it tracks there.
+
+    NOT "whether anything is tracked". Since /donate remembers its panel in
+    the same map (2026-09-23), a channel can hold a donation id and nothing
+    DDC built - and until 2026-09-26 that counted as set up, so a channel
+    whose first post had failed was never retried.
+    """
+    return any(kind in (tracked or {}) for kind in BUILT_MESSAGE_KINDS)
+
 def get_guild_id() -> Union[List[int], None]:
     """Loads the guild ID from the configuration."""
     guild_id = get_cached_guild_id()  # Performance optimization: use cache

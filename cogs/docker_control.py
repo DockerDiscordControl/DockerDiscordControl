@@ -68,12 +68,9 @@ from .ddc_ui import NOTICE_STAYS_FOR, DDCModal, DDCView
 # Configure logger for the cog using utility (INFO for release)
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
-# The message roles kept across a restart. 'overview' and 'admin_overview' are
-# deleted by id before a fresh one is posted, so a long-lived one does not end
-# up duplicated. 'donation' is deleted at startup instead: /donate's panel is
-# meant to live about fifteen minutes and delete itself, and a restart inside
-# that window leaves it standing with a button that does nothing.
-TRACKED_MESSAGE_KINDS = ('overview', 'admin_overview', 'donation')
+# The message roles kept across a restart - defined beside the question which
+# of them make a channel "built" (cogs/control_helpers.py).
+from .control_helpers import TRACKED_MESSAGE_KINDS  # noqa: E402
 
 
 def _restored_tracked_message_ids(state_data) -> Dict[int, Dict[str, int]]:

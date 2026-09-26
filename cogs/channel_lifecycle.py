@@ -23,6 +23,8 @@ from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
 from utils.logging_utils import setup_logger
 
+from .control_helpers import channel_was_built
+
 # Same logger name as the cog: log lines and log-based tests read as before the move.
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
@@ -47,7 +49,11 @@ class ChannelLifecycleMixin:
                 new_channel_permissions = config.get('channel_permissions', {})
 
                 new_channel_ids = {int(cid) for cid in new_channel_permissions if cid.isdigit()}
-                current_channel_ids = set(self.channel_server_message_ids.keys())
+                # Built channels only: a channel holding just a /donate panel's
+                # id was not set up by DDC (channel_was_built).
+                current_channel_ids = {channel_id for channel_id, tracked
+                                       in self.channel_server_message_ids.items()
+                                       if channel_was_built(tracked)}
 
                 added = new_channel_ids - current_channel_ids
                 removed = current_channel_ids - new_channel_ids
@@ -60,7 +66,7 @@ class ChannelLifecycleMixin:
                 switched = []
                 for channel_id in new_channel_ids & current_channel_ids:
                     tracked = self.channel_server_message_ids.get(channel_id) or {}
-                    if not tracked:
+                    if not channel_was_built(tracked):
                         continue
                     commands = (new_channel_permissions.get(str(channel_id), {})
                                 .get('commands', {}))
@@ -187,8 +193,10 @@ class ChannelLifecycleMixin:
             # tries again. Leave it out of the map instead, so the next
             # hot-reload treats it as a channel to add.
             tracked = self.channel_server_message_ids.get(channel_id) or {}
-            if not tracked:
-                self.channel_server_message_ids.pop(channel_id, None)
+            if not channel_was_built(tracked):
+                # A /donate panel's id stays: the restart clean-up needs it.
+                if not tracked:
+                    self.channel_server_message_ids.pop(channel_id, None)
                 logger.error(f"Channel {channel.name} ({channel_id}): nothing could be posted, "
                              f"so it is not tracked - the next channel save will try again")
                 return
@@ -323,8 +331,11 @@ class ChannelLifecycleMixin:
                 if channel.id not in self.channel_server_message_ids:
                     self.channel_server_message_ids[channel.id] = {}
                 else:
-                    # Clear all previous tracking except for overview
-                    self.channel_server_message_ids[channel.id].clear()
+                    # Drop the previous tracking, except a /donate panel's id,
+                    # which the restart clean-up still needs.
+                    previous = self.channel_server_message_ids[channel.id]
+                    for kind in [k for k in previous if k != 'donation']:
+                        del previous[kind]
 
                 self.channel_server_message_ids[channel.id]["overview"] = message.id
                 self._persist_tracked_message_ids()  # FIX C: survive restart -> no duplicate

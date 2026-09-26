@@ -25,6 +25,7 @@ from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
 from utils.logging_utils import setup_logger
 
+from .control_helpers import TRACKED_MESSAGE_KINDS
 from .loop_safety import survives_one_bad_cycle
 from .translation_manager import _
 
@@ -195,8 +196,15 @@ class MessageUpdatesMixin:
                 # Individual container messages are now private per architecture change
                 logger.debug(f"Skipping individual server message for '{display_name}' - only overview messages are supported")
 
+                # A kept role that is not edited here - the /donate panel. It is
+                # tracked so the restart clean-up can delete it; until
+                # 2026-09-26 this loop took it for a leftover and dropped it
+                # within a minute (cogs/control_helpers.py TRACKED_MESSAGE_KINDS).
+                if display_name in TRACKED_MESSAGE_KINDS:
+                    continue
+
                 # Clean up the phantom entry from tracking
-                if display_name not in ["overview", "admin_overview"]:
+                if display_name not in TRACKED_MESSAGE_KINDS:
                     logger.warning(f"Removing phantom individual server entry '{display_name}' from channel {channel_id} tracking")
                     del server_messages_in_channel[display_name]
                     if display_name in self.last_message_update_time.get(channel_id, {}):
