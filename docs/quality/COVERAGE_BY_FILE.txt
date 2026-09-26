@@ -239,7 +239,7 @@ services/scheduling/task_writeback.py	119	NONE
 services/status/__init__.py	13	pass1:s27:1-13
 services/status/status_cache_service.py	225	pass1:s27:1-225
 services/translation/__init__.py	12	pass1:s27:1-12
-services/translation/translation_config_service.py	693	pass1:s27:1-607  [33 of 640 lines never in a package]
+services/translation/translation_config_service.py	705	pass1:s27:1-607  [33 of 640 lines never in a package]
 services/translation/translation_service.py	819	pass1:s28:1-741  [21 of 762 lines never in a package]
 services/web/__init__.py	12	pass1:s28:1-12
 services/web/configuration_page_service.py	555	pass1:s28:1-554

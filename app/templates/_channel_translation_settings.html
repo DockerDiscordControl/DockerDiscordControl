@@ -68,6 +68,11 @@
                             <option value="https://api.deepl.com/v2/translate">{{ _t('web.lang.deepl_pro') }}</option>
                         </select>
                     </div>
+                    <div class="col-md-4 d-flex flex-column" id="ctMsRegionGroup" style="display: none;">
+                        <label class="form-label text-light" for="ctMsRegion">{{ _t('web.lang.microsoft_region_label') }}</label>
+                        <input type="text" class="form-control mt-auto" id="ctMsRegion" data-saves-itself="true"
+                               placeholder="global / westeurope" maxlength="30">
+                    </div>
                     <div class="col-12">
                         <div id="ctApiKeyStatus" class="alert alert-info mb-0 py-2">
                             <i class="bi bi-info-circle"></i> {{ _t('web.common.loading') }}

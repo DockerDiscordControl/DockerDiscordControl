@@ -165,6 +165,10 @@ class TranslationSettings:
     api_key_encrypted: Optional[str] = None
     deepl_api_url: str = "https://api-free.deepl.com/v2/translate"
     google_project_id: Optional[str] = None
+    # The Azure region of a Microsoft Translator resource. Nothing passed one
+    # until 2026-09-26, so every request said "global" and a regional key got
+    # 401 (translation audit #6).
+    microsoft_region: str = "global"
     rate_limit_per_minute: int = 60
     max_text_length: int = 5000
     show_original_link: bool = True
@@ -181,6 +185,12 @@ class TranslationSettings:
         deepl_url = data.get('deepl_api_url', 'https://api-free.deepl.com/v2/translate')
         if not deepl_url.startswith(('https://api-free.deepl.com/', 'https://api.deepl.com/')):
             deepl_url = 'https://api-free.deepl.com/v2/translate'
+
+        # A region is a plain Azure name (westeurope, eastus2); it goes into an
+        # HTTP header, so nothing else is let through.
+        region = str(data.get('microsoft_region') or 'global').strip().lower()
+        if not re.fullmatch(r'[a-z0-9]{2,30}', region):
+            region = 'global'
 
         # Clamp numeric values to valid ranges
         rate_limit = data.get('rate_limit_per_minute', 60)
@@ -202,6 +212,7 @@ class TranslationSettings:
             api_key_encrypted=data.get('api_key_encrypted'),
             deepl_api_url=deepl_url,
             google_project_id=data.get('google_project_id'),
+            microsoft_region=region,
             rate_limit_per_minute=rate_limit,
             max_text_length=max_text,
             show_original_link=data.get('show_original_link', True),
@@ -216,6 +227,7 @@ class TranslationSettings:
             "api_key_encrypted": self.api_key_encrypted,
             "deepl_api_url": self.deepl_api_url,
             "google_project_id": self.google_project_id,
+            "microsoft_region": self.microsoft_region,
             "rate_limit_per_minute": self.rate_limit_per_minute,
             "max_text_length": self.max_text_length,
             "show_original_link": self.show_original_link,

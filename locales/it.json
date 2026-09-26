@@ -1858,5 +1858,6 @@
   "js.aas.webhook_without_id": "Any webhook",
   "js.aas.webhook_without_id_hint": "Webhook-only without a webhook ID: any webhook in the channel triggers this rule. Put the webhook's ID in 'Allowed User IDs (Whitelist)' - it can only be saved active again with one.",
   "js.ct.auto_disabled": "Stopped after 5 errors",
-  "js.ct.auto_disabled_hint": "The bot stopped this pair after five failed translations in a row. Check its languages and the provider key, then save the pair or switch it off and on to try again."
+  "js.ct.auto_disabled_hint": "The bot stopped this pair after five failed translations in a row. Check its languages and the provider key, then save the pair or switch it off and on to try again.",
+  "web.lang.microsoft_region_label": "Azure region (Microsoft)"
 }

@@ -453,7 +453,7 @@ class TranslationService:
         if settings.provider == 'google':
             return GoogleTranslateProvider(api_key)
         elif settings.provider == 'microsoft':
-            return MicrosoftTranslatorProvider(api_key)
+            return MicrosoftTranslatorProvider(api_key, settings.microsoft_region)
         else:
             return DeepLProvider(api_key, settings.deepl_api_url)
 

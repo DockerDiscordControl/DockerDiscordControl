@@ -358,6 +358,8 @@ async function loadCTSettings() {
             apiKeyField.placeholder = 'Enter your API key...';
         }
         document.getElementById('ctDeeplUrl').value = s.deepl_api_url || 'https://api-free.deepl.com/v2/translate';
+        const msRegion = document.getElementById('ctMsRegion');
+        if (msRegion) msRegion.value = s.microsoft_region || 'global';
         document.getElementById('ctRateLimit').value = s.rate_limit_per_minute || 60;
         document.getElementById('ctMaxTextLength').value = s.max_text_length || 5000;
         document.getElementById('ctShowOriginalLink').checked = s.show_original_link !== false;
@@ -410,6 +412,7 @@ async function saveCTSettings() {
     const settingsData = {
         provider: document.getElementById('ctProvider').value,
         deepl_api_url: document.getElementById('ctDeeplUrl').value,
+        microsoft_region: document.getElementById('ctMsRegion')?.value.trim() || 'global',
         rate_limit_per_minute: parseInt(document.getElementById('ctRateLimit').value) || 60,
         max_text_length: parseInt(document.getElementById('ctMaxTextLength').value) || 5000,
         enabled: document.getElementById('ctGlobalToggle').checked,
@@ -457,6 +460,11 @@ function updateDeeplTierVisibility() {
     const deeplGroup = document.getElementById('ctDeeplUrlGroup');
     if (provider && deeplGroup) {
         deeplGroup.style.display = provider.value === 'deepl' ? '' : 'none';
+    }
+    // The Azure region matters only for Microsoft.
+    const regionGroup = document.getElementById('ctMsRegionGroup');
+    if (provider && regionGroup) {
+        regionGroup.style.display = provider.value === 'microsoft' ? '' : 'none';
     }
 }
 

@@ -1858,5 +1858,6 @@
   "js.aas.webhook_without_id": "Jeder Webhook",
   "js.aas.webhook_without_id_hint": "Nur Webhooks, aber ohne Webhook-ID: Jeder Webhook im Kanal löst diese Regel aus. Trage die ID des Webhooks unter 'Erlaubte Benutzer-IDs' ein - aktiv speichern lässt sie sich nur noch damit.",
   "js.ct.auto_disabled": "Nach 5 Fehlern gestoppt",
-  "js.ct.auto_disabled_hint": "Der Bot hat dieses Paar nach fünf fehlgeschlagenen Übersetzungen in Folge gestoppt. Prüfe die Sprachen und den Anbieter-Schlüssel und speichere das Paar dann erneut oder schalte es aus und wieder ein."
+  "js.ct.auto_disabled_hint": "Der Bot hat dieses Paar nach fünf fehlgeschlagenen Übersetzungen in Folge gestoppt. Prüfe die Sprachen und den Anbieter-Schlüssel und speichere das Paar dann erneut oder schalte es aus und wieder ein.",
+  "web.lang.microsoft_region_label": "Azure-Region (Microsoft)"
 }
