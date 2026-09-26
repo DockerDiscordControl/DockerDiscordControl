@@ -623,12 +623,15 @@ class AutomationService:
                         if r.enabled and r.trigger.type == TRIGGER_CONTAINER_STATE),
                        key=lambda r: r.priority, reverse=True)
         executed = []
-        # The global cooldown is checked ONCE for this poll: its job is to stop a
-        # chatty channel from firing a rule every second, and the events of one
-        # poll are different containers, each with its own cooldown. Checked per
-        # event, a host reboot reported one container and lost the rest - the
-        # watcher has already written the new state, so they never come again.
-        global_cooldown = settings.get('global_cooldown_seconds', 30)
+        # NO GLOBAL COOLDOWN FOR WATCHDOG EVENTS. Its job is to stop a chatty
+        # Discord channel from firing rules every second; a watchdog event
+        # happens once per state change, and the watcher has already stored the
+        # new state - an event held back is an event lost. It was checked once
+        # per poll until 2026-09-26, which still lost every event of a poll that
+        # came within 30 s of one that acted (every poll, at the default
+        # interval), and every event after a first one that was refused. The
+        # per-rule-and-container cooldown still applies to each of them.
+        global_cooldown = 0
         for event in events:
             for rule in rules:
                 if event.kind not in rule.trigger.states:
@@ -640,7 +643,6 @@ class AutomationService:
                 if await self._execute_container_rule(rule, event, settings, bot,
                                                       control_channel_id, global_cooldown):
                     executed.append(rule.name)
-                    global_cooldown = 0  # the poll got through; the rest of it is not held back
         return executed
 
     @staticmethod

@@ -13,12 +13,11 @@ The global cooldown exists so that a chatty Discord channel cannot fire a
 rule every second. The events of ONE poll are not that: each is a different
 container's state change, and the per-container and per-rule cooldowns still
 apply. So it is checked once for the batch - if it passes, every event of
-that poll is handled; if it does not, the poll is skipped as a whole.
+that poll is handled. (Until 2026-09-26: "if it does not, the poll is skipped
+as a whole" - which lost events for good; see the revised case below.)
 
 COUNTER-CHECK (2026-09-22): red before - only the first container was
-reported; and a batch that arrives INSIDE the global cooldown is still
-skipped entirely (second test), which goes red if the cooldown is simply
-dropped for watchdog events.
+reported.
 """
 
 from types import SimpleNamespace
@@ -67,15 +66,54 @@ async def test_all_four_containers_of_one_poll_are_reported(service):
 
 
 @pytest.mark.asyncio
-async def test_a_second_poll_inside_the_global_cooldown_is_skipped(service):
+async def test_a_second_poll_inside_the_global_cooldown_is_still_reported(service):
+    """REVISED 2026-09-26 (audit F3, the operator asked for all of it fixed). This case used
+    to pin the opposite - a poll inside the 30 s global cooldown skipped as a
+    whole. With a poll every 30 s and the cooldown written after each action,
+    that was EVERY poll after one that acted, and the watcher has already
+    stored the new state: the database dies, the app that depends on it dies
+    on the next poll, and the app's alarm is gone for good. The global
+    cooldown is for chatty Discord channels; a watchdog event happens once per
+    state change and has its per-rule-and-container cooldown.
+
+    COUNTER-CHECK (2026-09-26): red before the fix - executed == [].
+    """
     await service.process_container_events(_events("web"), bot=object(), control_channel_id=7)
     service._send_feedback.reset_mock()
 
     executed = await service.process_container_events(_events("db", "cache"),
                                                       bot=object(), control_channel_id=7)
 
-    assert executed == [], "the global cooldown no longer holds between polls"
-    service._send_feedback.assert_not_awaited()
+    assert len(executed) == 2, "an event inside the global cooldown was lost"
+
+
+@pytest.mark.asyncio
+async def test_a_refused_first_event_does_not_hold_back_the_rest(service):
+    """Audit F4: the first event of a poll hits a protected container, so its
+    action is refused - and the global cooldown it had already taken kept
+    every later event of the same poll out.
+
+    COUNTER-CHECK (2026-09-26): red before the fix - only the refusal."""
+    service.config_service.get_global_settings.return_value = {
+        "enabled": True, "global_cooldown_seconds": 30, "protected_containers": ["web"]}
+    service.config_service.get_rules.return_value = [
+        AutoActionRule.from_dict({**RULE, "action": {"type": "RESTART"}})]
+    from services.automation import automation_service as mod
+
+    acted = []
+
+    async def _act(name, verb):
+        acted.append(name)
+        return True
+
+    import pytest as _pytest
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(mod, "docker_action", _act)
+        patch.setattr(service, "_trigger_status_refresh", AsyncMock())
+        await service.process_container_events(_events("web", "db"), bot=object(),
+                                               control_channel_id=7)
+
+    assert acted == ["db"], acted
 
 
 @pytest.mark.asyncio
