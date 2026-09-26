@@ -386,6 +386,12 @@ never inside the model.
 
 ### 5.5 Downgrade to v2.4.1 **(revised, new)**
 
+**Operator decision 2026-09-26: a downgrade is not offered.** The audit that
+day found that v2.4.1 rewrites `tasks.json` without `target_is_group`, so a
+group task turns into a task on a container of the group's name for good. The
+release notes say "not supported" instead of "safe". What follows is the
+original reasoning about the 2FA state, which still holds as far as it goes.
+
 The mech snapshot is safe: `services/mech/progress_service.py:139-156` is not
 touched by any step here, and `tests/unit/audit_2026_09/test_r2_g5_mech.py`
 pins it to v2.3.1.

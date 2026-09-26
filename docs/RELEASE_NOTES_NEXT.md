@@ -27,8 +27,11 @@ NOT protect.
   that have no such day - "monthly on the 31st" meant seven runs a year, and only a debug line
   said so. It now falls on the last day of a short month, the way a yearly task on 29 February
   has always fallen back to the 28th. If you were relying on the skip, use a cron expression.
-- **Going back to v2.4.1 is safe.** Measured with both images: 2FA state, the TLS certificate
-  and the new container-state rules survive a downgrade and a second upgrade.
+- **Going back to v2.4.1 is not supported.** v2.4.1 does not know container groups: the first
+  scheduled task it runs rewrites `tasks.json` without the group marker, and every task aimed at
+  a group then acts on a container of that name - after upgrading again, too. It also does not
+  enforce the second factor. Keep a copy of your `config/` folder before upgrading if you want a
+  way back.
 
 ## The boundary
 

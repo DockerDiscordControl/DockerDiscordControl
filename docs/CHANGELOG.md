@@ -83,11 +83,12 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   it monthly - and said so only in a debug line. It now falls on the last day of a short month,
   the way a yearly task on 29 February has always fallen back to the 28th. If you were relying
   on the skip, use a cron expression instead.
-- **Going back to v2.4.1 is safe:** measured with `scripts/check_upgrade_downgrade.sh` - 2FA and
-  the TLS certificate survive a downgrade and a second upgrade. Re-measured on 2026-09-23 against
-  the image that carries the form login, together with the script's own counter-check
-  (`DDC_CHECK_SIMULATE_LOSS=1`), which fails step 4 as it should - a check that cannot fail
-  proves nothing.
+- **Going back to v2.4.1 is not supported.** v2.4.1 rewrites `tasks.json` after every task it
+  runs and drops the group marker it does not know, so a task aimed at a group would act on a
+  container of that name from then on, even after upgrading again; and v2.4.1 does not enforce
+  the second factor. `scripts/check_upgrade_downgrade.sh` still shows that the 2FA state and the
+  TLS certificate survive such a round trip, but it covers nothing else. Keep a copy of `config/`
+  before upgrading if you want a way back.
 
 ### 🔒 Security
 
@@ -126,9 +127,9 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   the new image (the proxy refuses that on purpose), so "restart on update" is refused as a rule.
 - The status cache now keeps each container's health, restart count, and CPU and memory as numbers
   (from the answers DDC already fetched - no extra Docker call).
-- **Going back to v2.4.1 with container-state rules** keeps them: measured with both images,
-  v2.4.1 never fires them, adding another rule there leaves them untouched, and saving or toggling
-  one there is refused by its validation - so after upgrading again they work as before.
+- Container-state rules survive a round trip through v2.4.1 (measured with both images: v2.4.1
+  never fires them and refuses to save them). That is not a promise of a supported downgrade -
+  see "Going back to v2.4.1" above.
 
 ### ✨ Container groups
 
