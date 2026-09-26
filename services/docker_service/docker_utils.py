@@ -647,11 +647,16 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
         # 🔧 PERFORMANCE: Use Advanced Settings timeout (DDC_FAST_ACTION_TIMEOUT) + container-specific optimization
         async with get_docker_client_async(operation='action', container_name=docker_container_name) as client:
             container = await asyncio.to_thread(client.containers.get, docker_container_name)
-            action_func = valid_actions[action]
-            await asyncio.to_thread(action_func, container)
-            # So the watchdog does not report DDC's own stop as an alarm
-            from services.automation.own_actions import note_own_action
+            # Noted before the call, taken back only when Docker refused - the
+            # same rule as DockerActionService.execute_docker_action, and why.
+            from services.automation.own_actions import forget, note_own_action
             note_own_action(docker_container_name, action)
+            action_func = valid_actions[action]
+            try:
+                await asyncio.to_thread(action_func, container)
+            except docker.errors.APIError:
+                forget(docker_container_name)
+                raise
             logger.info(f"Docker action '{action}' on container '{docker_container_name}' successful via SDK")
             return True
     except docker.errors.NotFound:

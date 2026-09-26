@@ -117,7 +117,7 @@ services/discord/embed_helper_service.py:1-209
 services/discord/status_overview_service.py:1-366
 services/docker_service/self_restart.py:1-122
 services/docker_service/__init__.py:1-28
-services/docker_service/docker_action_service.py:1-308
+services/docker_service/docker_action_service.py:1-318
 # group_actions.py joined on 2026-09-24 (new: one walk over a group's
 # containers, shared by the action service and the scheduled tasks).
 services/docker_service/group_actions.py:1-142
@@ -128,7 +128,7 @@ services/docker_service/docker_client_pool.py:1-738
 services/docker_service/reachability.py:1-87
 
 ## Section 16  (1660 lines, 5 pieces)
-services/docker_service/docker_utils.py:1-1163
+services/docker_service/docker_utils.py:1-1168
 services/docker_service/server_order.py:1-111
 services/docker_service/status_cache_runtime.py:1-101
 services/docker_status/__init__.py:1-34

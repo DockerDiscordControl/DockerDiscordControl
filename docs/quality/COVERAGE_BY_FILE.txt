@@ -123,7 +123,7 @@ cogs/message_updates.py	728	v3rev2:1-791
 cogs/overview_embeds.py	655	v3rev2:1-964
 cogs/slash_commands.py	851	NONE
 cogs/stack_restart.py	320	v3rev:1-196
-cogs/status_handlers.py	1117	passE:E15,E16:80-200,560-700 v3rev2:1-1400
+cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1267	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1233	NONE
 cogs/translation_manager.py	149	passE:E30:read-in-full
@@ -160,9 +160,9 @@ services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	300	v3rev:1-272
 services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	105	v3rev:1-105
-services/docker_service/docker_action_service.py	308	pass1:s14:plan pass2:s14:1-276
+services/docker_service/docker_action_service.py	318	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
-services/docker_service/docker_utils.py	1163	pass1:s16:1-1404  [28 of 1432 lines never in a package]
+services/docker_service/docker_utils.py	1168	pass1:s16:1-1404  [28 of 1432 lines never in a package]
 services/docker_service/group_actions.py	142	NONE
 services/docker_service/reachability.py	87	v3rev:1-87
 services/docker_service/self_restart.py	122	pass2:s34:1-117  [self-restart, added 2026-09-24]
