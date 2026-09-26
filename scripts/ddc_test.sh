@@ -42,6 +42,8 @@ MEMORY="${DDC_TEST_MEMORY:-1g}"
 PIDS="${DDC_TEST_PIDS:-256}"
 CPUS="${DDC_TEST_CPUS:-2}"
 TIMEOUT="${DDC_TEST_TIMEOUT:-600}"
+# How long to wait for another run to finish before giving up (see step 0 below).
+LOCK_WAIT="${DDC_TEST_LOCK_WAIT:-3600}"
 ADDOPTS="${DDC_TEST_ADDOPTS:--q -rfE --tb=short}"
 # Extra ssh options, e.g. DDC_TEST_SSH_OPTS="-i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes".
 # Needed when DDC_TEST_HOST is a raw IP: ~/.ssh/config rules usually match a Host alias, so
@@ -109,6 +111,17 @@ if [ "$1" = "--each" ]; then
     PER_FILE="${DDC_TEST_PER_FILE_TIMEOUT:-180}"
     REMOTE_SCRIPT=$(cat <<REMOTE
 set -u
+# 0. ONE RUN AT A TIME, ACROSS SESSIONS. Step 1 below removes every ddctest-*
+#    container it finds - which, with two sessions testing on the same host,
+#    was the OTHER session's running container (2026-09-26: two Claude sessions
+#    killed each other's groups for an afternoon, and exit 137 was reported as
+#    "OOM"). The lock makes a second caller wait instead. It lives as long as
+#    this remote shell, so a dropped ssh session releases it.
+exec 9>/tmp/ddc_test.lock
+if ! flock -w ${LOCK_WAIT} 9; then
+    echo "[ddc_test] another test run holds /tmp/ddc_test.lock for over ${LOCK_WAIT}s - giving up" >&2
+    exit 3
+fi
 for old in \$(docker ps -aq --filter "name=ddctest-"); do
     docker rm -f "\$old" >/dev/null 2>&1
 done
@@ -149,6 +162,17 @@ fi
 NAME="ddctest-$(date +%s)-$$"
 REMOTE_SCRIPT=$(cat <<REMOTE
 set -u
+# 0. ONE RUN AT A TIME, ACROSS SESSIONS. Step 1 below removes every ddctest-*
+#    container it finds - which, with two sessions testing on the same host,
+#    was the OTHER session's running container (2026-09-26: two Claude sessions
+#    killed each other's groups for an afternoon, and exit 137 was reported as
+#    "OOM"). The lock makes a second caller wait instead. It lives as long as
+#    this remote shell, so a dropped ssh session releases it.
+exec 9>/tmp/ddc_test.lock
+if ! flock -w ${LOCK_WAIT} 9; then
+    echo "[ddc_test] another test run holds /tmp/ddc_test.lock for over ${LOCK_WAIT}s - giving up" >&2
+    exit 3
+fi
 # 1. never run two test containers at once; clean up anything left behind
 for old in \$(docker ps -aq --filter "name=ddctest-"); do
     echo "[ddc_test] removing leftover test container \$(docker inspect -f '{{.Name}}' "\$old")" >&2
