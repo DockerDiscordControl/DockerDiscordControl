@@ -143,6 +143,13 @@ def _fingerprint(der: bytes) -> str:
 
 
 KNOWN_NAMES_FILE = "known_names.json"
+# HOW MANY ADDRESSES THE PANEL LEARNS BY ITSELF. Learning happens before any
+# login, from whoever reaches the port, and each new name reissues the
+# certificate. Until 2026-09-26 nothing capped it: a stream of made-up SNI
+# names cost a key generation each, grew the certificate without end and
+# changed its fingerprint every time. Names given in DDC_TLS_HOSTNAMES do not
+# count against this.
+MAX_LEARNED_NAMES = 16
 # A hostname label: letters, digits and hyphens, and something has to be there.
 _HOSTNAME = re.compile(r"^(?=.{1,253}$)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
                        r"(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$", re.I)
@@ -194,6 +201,10 @@ def remember_name(directory, name: str) -> bool:
     directory = Path(directory)
     current = known_names(directory)
     if name in current:
+        return False
+    if len(current) >= MAX_LEARNED_NAMES:
+        logger.debug(f"Not learning {name}: {MAX_LEARNED_NAMES} addresses are known already "
+                     f"(name more in DDC_TLS_HOSTNAMES)")
         return False
     try:
         directory.mkdir(parents=True, exist_ok=True)
