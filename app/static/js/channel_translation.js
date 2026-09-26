@@ -326,6 +326,10 @@ async function toggleGlobalCT() {
         });
         if (result.success) {
             ctShowAlert(enabled ? t('ct.translation_enabled') : t('ct.translation_disabled'), 'success');
+        } else {
+            // A refused save used to say nothing, and the switch stayed flipped.
+            ctShowAlert(t('ct.error_toggling') + ': ' + (result.error || ''), 'danger');
+            document.getElementById('ctGlobalToggle').checked = !enabled;
         }
     } catch (e) {
         ctShowAlert(t('ct.error_toggling') + ': ' + e.message, 'danger');

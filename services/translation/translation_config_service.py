@@ -386,7 +386,15 @@ class TranslationConfigService:
                 # Preserve api_key_encrypted — it's managed by save_api_key()
                 preserved_key = existing_settings.get('api_key_encrypted')
 
-                new_settings = TranslationSettings.from_dict(settings_data)
+                # A MERGE, NOT A REPLACEMENT. The global switch posts five fields,
+                # and until 2026-09-26 every field it did not name fell back to its
+                # default here - switching translation on or off quietly turned
+                # "show original link" and "provider footer" back on and dropped
+                # api_key_env / google_project_id (audit). What a request does not
+                # name keeps the value it had.
+                merged = {k: v for k, v in existing_settings.items() if k != 'api_key_encrypted'}
+                merged.update(settings_data)
+                new_settings = TranslationSettings.from_dict(merged)
                 new_dict = new_settings.to_dict()
 
                 # Restore the encrypted key (never overwrite from frontend data)
