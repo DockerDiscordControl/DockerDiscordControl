@@ -241,7 +241,10 @@ function renderRuleItem(rule) {
     const statusText = rule.enabled ? t('status.active') : t('status.disabled');
     const checkedAttr = rule.enabled ? 'checked' : '';
 
-    const safeId = escapeHtml(rule.id);
+    // The id goes into handlers as a JS string and into an id attribute - two
+    // contexts, two escapes (escape.js explains why one is not enough).
+    const idArg = ddcJsArg(rule.id);
+    const idAttr = ddcEscapeHtml(rule.id);
     const safePriority = escapeHtml(String(rule.priority));
     const safeContainers = rule.action.containers.map(c => escapeHtml(c)).join(', ');
     const safeTriggerCount = escapeHtml(String(rule.metadata?.trigger_count || 0));
@@ -257,10 +260,10 @@ function renderRuleItem(rule) {
     <div class="list-group-item d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
             <div class="form-check form-switch mb-0" onclick="event.stopPropagation()">
-                <input class="form-check-input" type="checkbox" id="toggle_${safeId}" ${checkedAttr}
-                       onchange="toggleRuleEnabled('${safeId}', this.checked)">
+                <input class="form-check-input" type="checkbox" id="toggle_${idAttr}" ${checkedAttr}
+                       onchange="toggleRuleEnabled(${idArg}, this.checked)">
             </div>
-            <div class="cursor-pointer" onclick="openRuleEditor('${safeId}')" style="cursor: pointer;">
+            <div class="cursor-pointer" onclick="openRuleEditor(${idArg})" style="cursor: pointer;">
                 <div class="d-flex align-items-center gap-2">
                     <h6 class="mb-0">${escapeHtml(rule.name)}</h6>
                     <span class="badge ${badgeClass} rounded-pill">${statusText}</span>
@@ -276,7 +279,7 @@ function renderRuleItem(rule) {
                 </small>
             </div>
         </div>
-        <div class="text-end text-muted small" onclick="openRuleEditor('${safeId}')" style="cursor: pointer;">
+        <div class="text-end text-muted small" onclick="openRuleEditor(${idArg})" style="cursor: pointer;">
             <div><i class="bi bi-lightning-charge"></i> ${safeTriggerCount}</div>
             <i class="bi bi-chevron-right"></i>
         </div>

@@ -129,7 +129,7 @@ function renderCTPairs() {
     }
 
     container.innerHTML = filtered.map(pair => {
-        const safeId = ctEscapeHtml(pair.id);
+        const idArg = ddcJsArg(pair.id);  // a JS string in a handler - see escape.js
         const safeSrcLang = ctEscapeHtml(pair.source_language || '');
         const safeTgtLang = ctEscapeHtml(pair.target_language || '');
         const langBadge = pair.source_language
@@ -142,7 +142,7 @@ function renderCTPairs() {
             : '';
 
         return `
-            <div class="list-group-item list-group-item-action bg-dark text-light ${enabledClass}" style="cursor:pointer;" onclick="openCTPairEditor('${safeId}')">
+            <div class="list-group-item list-group-item-action bg-dark text-light ${enabledClass}" style="cursor:pointer;" onclick="openCTPairEditor(${idArg})">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <strong>${ctEscapeHtml(pair.name)}</strong>
@@ -153,7 +153,7 @@ function renderCTPairs() {
                         <small class="text-muted">${count} ${t('ct.translations_count')}</small>
                         <div class="form-check form-switch mb-0" onclick="event.stopPropagation();">
                             <input class="form-check-input" type="checkbox" ${pair.enabled ? 'checked' : ''}
-                                onchange="toggleCTPair('${safeId}')">
+                                onchange="toggleCTPair(${idArg})">
                         </div>
                     </div>
                 </div>

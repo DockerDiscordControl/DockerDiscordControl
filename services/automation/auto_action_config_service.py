@@ -735,8 +735,9 @@ class AutoActionConfigService:
             rule_data['name'] = sanitize_string(rule_data.get('name', ''), MAX_RULE_NAME_LENGTH)
 
             # Ensure ID is generated if missing
-            if 'id' not in rule_data or not rule_data['id']:
-                rule_data['id'] = str(uuid.uuid4())
+            # The server names every new rule: the id came from the request, and
+            # the panel writes it into click handlers (audit 2026-09-26).
+            rule_data['id'] = str(uuid.uuid4())
 
             rule_data['metadata'] = {
                 "created_at": datetime.utcnow().isoformat(),

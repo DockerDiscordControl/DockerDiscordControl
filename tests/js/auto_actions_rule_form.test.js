@@ -113,6 +113,9 @@ function makeEnv() {
   // runs by hand and nobody ran it. The sandbox mirrors the page.
   const js = (name) => fs.readFileSync(
     path.join(__dirname, '..', '..', 'app', 'static', 'js', name), 'utf8');
+  // escape.js first, as _scripts.html loads it: the rule list escapes ids
+  // with ddcJsArg since 2026-09-26.
+  vm.runInContext(js('escape.js'), ctx);
   vm.runInContext(js('rule_targets.js'), ctx);
   vm.runInContext(js('auto_actions.js'), ctx);
   ctx.loadAASRules = () => {};

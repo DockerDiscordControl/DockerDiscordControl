@@ -27,6 +27,17 @@ function ddcEscapeHtml(text) {
         .replace(/'/g, '&#39;');
 }
 
+// A value as ONE JavaScript string argument inside an on...="" attribute.
+// HTML escaping alone cannot do this: the browser decodes &#39; back to a quote
+// BEFORE the handler runs, so onclick="open('${ddcEscapeHtml(id)}')" still
+// ends the string at a quote in the id (translation audit 2026-09-26, #9).
+// JSON.stringify makes a string literal the handler reads back exactly, and
+// the HTML escape keeps that literal inside the attribute.
+function ddcJsArg(value) {
+    return ddcEscapeHtml(JSON.stringify(String(value === null || value === undefined ? '' : value)));
+}
+
 if (typeof window !== 'undefined') {
     window.ddcEscapeHtml = ddcEscapeHtml;
+    window.ddcJsArg = ddcJsArg;
 }

@@ -538,8 +538,10 @@ class TranslationConfigService:
         is_valid, error_msg, warnings = validate_pair_data(pair_data)
         if not is_valid:
             return ConfigResult(success=False, error=f"Validation failed: {error_msg}")
-        if 'id' not in pair_data or not pair_data['id']:
-            pair_data['id'] = str(uuid.uuid4())
+        # The server names every new pair. The id came from the request, and the
+        # panel writes it into click handlers - an id of x');alert(1);// ran as
+        # script there (translation audit 2026-09-26, #9).
+        pair_data['id'] = str(uuid.uuid4())
         pair_data['metadata'] = {
             "created_at": datetime.utcnow().isoformat(),
             "translation_count": 0,
