@@ -186,19 +186,24 @@ def test_every_requested_key_has_a_panel_field(tmp_path):
 def test_every_requested_key_survives_saving(tmp_path):
     """THE FINDING, third stage - and the one nobody sees without measuring.
 
-    The save block is a FIXED enumeration. Whatever is missing there drops out
-    of the configuration on the first save, even if default and field exist.
-    Without this assertion a fix would be green and still be ineffective after
-    the first click on "Save".
+    Whatever the save does not write drops out of the configuration on the
+    first click on Save, even if a default exists.
+
+    RE-AIMED 2026-09-26: the save used to be a FIXED enumeration and this cut
+    it out of the script and looked for the name. It reads the dialog's own
+    fields now, so what makes a key survive is that it HAS a field - which is
+    what is asked here, with the reading itself asserted below so that having
+    a field cannot start proving nothing.
     """
     found = set(_requested_keys()) - WITHOUT_PANEL_FIELD_DECIDED
-    block = _save_block()
+    markup = MARKUP.read_text(encoding="utf-8")
 
-    lost = sorted(k for k in found if f"button_{k}" not in block)
+    lost = sorted(k for k in found if f'id="button_{k}"' not in markup)
 
     assert not lost, (
-        "These keys are missing from the panel's save block "
-        "(_spam_protection_modal.html). A value set in the panel is "
-        "never saved; since 1b77428 the default applies afterwards (before, the "
-        f"5-second fallback rule): {lost}"
+        "These keys have no field in the spam dialog, so nothing saves a "
+        f"value for them and the service default applies: {lost}"
     )
+    assert "readCooldowns(" in SCRIPT.read_text(encoding="utf-8"), (
+        "the save no longer reads the dialog's fields, so having one proves "
+        "nothing")

@@ -53,6 +53,28 @@ document.getElementById('spamProtectionModal').addEventListener('shown.bs.modal'
         });
 });
 
+// Every cooldown field in the dialog, by the prefix its id carries - the same
+// fields the load fills, so the two halves cannot drift apart.
+function readCooldowns(prefix) {
+    const found = {};
+    // Inside the dialog, not the page: the panel is one long document and an
+    // id that happened to start the same way elsewhere would be saved as a
+    // cooldown. Nothing does today - all 27 are in here - which is exactly
+    // when to fence it.
+    const dialog = document.getElementById('spamProtectionModal');
+    if (!dialog) {
+        return found;
+    }
+    dialog.querySelectorAll(`[id^="${prefix}"]`).forEach(field => {
+        const name = field.id.slice(prefix.length);
+        const value = parseInt(field.value, 10);
+        if (name && !Number.isNaN(value)) {
+            found[name] = value;
+        }
+    });
+    return found;
+}
+
 function saveSpamProtection() {
     if (!spamSettingsLoaded) {
         // The form is showing its own start values, not the server's. Saving
@@ -72,45 +94,23 @@ function saveSpamProtection() {
             max_commands_per_minute: parseInt(document.getElementById('maxCommandsPerMinute').value),
             max_buttons_per_minute: parseInt(document.getElementById('maxButtonsPerMinute').value)
         },
-        command_cooldowns: {
-            control: parseInt(document.getElementById('cooldown_control').value),
-            serverstatus: parseInt(document.getElementById('cooldown_serverstatus').value),
-            info: parseInt(document.getElementById('cooldown_info').value),
-            help: parseInt(document.getElementById('cooldown_help').value),
-            ping: parseInt(document.getElementById('cooldown_ping').value),
-            donate: parseInt(document.getElementById('cooldown_donate').value),
-            language: parseInt(document.getElementById('cooldown_language').value),
-            forceupdate: parseInt(document.getElementById('cooldown_forceupdate').value)
-        },
-        button_cooldowns: {
-            // The admin overview's five. This list is hard-coded while the read
-            // loop above is dynamic, so a slider missing HERE is rendered and
-            // then dropped on save - it would look adjustable and reset itself.
-            admin_overview_admin: parseInt(document.getElementById('button_admin_overview_admin')?.value || 5),
-            admin_overview_restart_all: parseInt(document.getElementById('button_admin_overview_restart_all')?.value || 30),
-            admin_overview_stop_all: parseInt(document.getElementById('button_admin_overview_stop_all')?.value || 30),
-            admin_overview_restart_stack: parseInt(document.getElementById('button_admin_overview_restart_stack')?.value || 20),
-            admin_overview_donate: parseInt(document.getElementById('button_admin_overview_donate')?.value || 10),
-            start: parseInt(document.getElementById('button_start').value),
-            stop: parseInt(document.getElementById('button_stop').value),
-            restart: parseInt(document.getElementById('button_restart').value),
-            info: parseInt(document.getElementById('button_info').value),
-            logs: parseInt(document.getElementById('button_logs').value),
-            live_refresh: parseInt(document.getElementById('button_live_refresh').value),
-            mech_donate: parseInt(document.getElementById('button_mech_donate').value),
-            mech_history: parseInt(document.getElementById('button_mech_history').value),
-            mech_details: parseInt(document.getElementById('button_mech_details').value),
-            mech_display: parseInt(document.getElementById('button_mech_display').value),
-            mech_story: parseInt(document.getElementById('button_mech_story').value),
-            mech_music: parseInt(document.getElementById('button_mech_music').value),
-            admin: parseInt(document.getElementById('button_admin').value),
-            help: parseInt(document.getElementById('button_help').value),
-            tasks: parseInt(document.getElementById('button_tasks').value),
-            task_delete: parseInt(document.getElementById('button_task_delete').value),
-            edit_info: parseInt(document.getElementById('button_edit_info').value),
-            protected_info: parseInt(document.getElementById('button_protected_info').value),
-            protected_info_edit: parseInt(document.getElementById('button_protected_info_edit').value)
-        }
+        // READ FROM THE DIALOG, NOT FROM A LIST. These were twenty-four
+        // names typed out here while the LOAD above is a loop over whatever
+        // the server sent - and five of them have no field in the markup:
+        // admin_overview_admin, _restart_all, _stop_all, _restart_stack and
+        // _donate. The save reached for those with `?.value || 5` and wrote a
+        // number out of this source file, so the operator could not see them,
+        // could not change them, and every Save pinned them into his
+        // configuration (2026-09-26). The comment that stood here had warned
+        // about the same shape pointing the other way - "a slider missing HERE
+        // is rendered and then dropped on save" - which is what a list does:
+        // it goes stale exactly like the thing it guards.
+        //
+        // Nothing is lost by not sending one: spam_protection_service merges
+        // the saved settings over its own defaults, so a cooldown the dialog
+        // does not show keeps the default it always had.
+        command_cooldowns: readCooldowns('cooldown_'),
+        button_cooldowns: readCooldowns('button_')
     };
 
     fetch('/api/spam-protection', {

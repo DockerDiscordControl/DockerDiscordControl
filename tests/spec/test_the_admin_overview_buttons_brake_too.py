@@ -129,18 +129,33 @@ def test_the_name_reaches_a_slider_of_its_own(tmp_path, name):
 
 
 @pytest.mark.parametrize("name", sorted(set(BUTTONS.values())))
-def test_the_panel_can_save_that_slider(name):
-    """The modal's READ loop is dynamic; its SAVE list is hard-coded.
+def test_the_panel_writes_no_value_nobody_can_change(name):
+    """RE-AIMED 2026-09-26, and it is worth saying what happened.
 
-    A slider the panel renders but drops on save would look adjustable and
-    reset itself on the next save.
+    This used to assert that the name was IN the modal's save list, which was
+    a hard-coded enumeration while the read loop was a loop. It was half a
+    fix: no slider was ever added to the markup, so the save reached for a
+    field that is not there with ``?.value || 5`` and wrote a number out of
+    the source file - a cooldown the operator could not see, could not
+    change, and that every press of Save pinned into his configuration.
+
+    THE SAVE READS THE DIALOG NOW, so it writes what is shown and invents
+    nothing. For these five the service default governs, which is the same
+    number the literal was writing - so nothing changes for the operator
+    except that his configuration stops carrying a value with no control.
+
+    THE OTHER HALF IS STILL OPEN, and it is his to take: five sliders means
+    five labels, and a label means forty catalogues. That text would have to
+    be written, not translated, which is not something to invent. Until then
+    the brake works at its default, which the case above asserts.
     """
-    # The modal's script moved to app/static on 2026-09-23; the markup stayed.
-    modal = Path(__file__).resolve().parents[2] / "app/static/js/spam_protection_modal.js"
-    markup = modal.read_text(encoding="utf-8")
+    script = (Path(__file__).resolve().parents[2]
+              / "app/static/js/spam_protection_modal.js").read_text(encoding="utf-8")
+    code = "\n".join(line.split("//")[0] for line in script.splitlines())
 
-    assert f"button_{name}" in markup, (
-        f"{name} is not in the modal's save list, so a change to it is lost")
+    assert f"button_{name}" not in code, (
+        f"the save writes {name} although the panel shows no field for it")
+    assert "readCooldowns(" in code, "the save no longer reads the dialog at all"
 
 
 @pytest.mark.asyncio

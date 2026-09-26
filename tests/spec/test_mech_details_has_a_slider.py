@@ -130,11 +130,18 @@ def test_mech_details_has_a_panel_field():
 
 
 def test_mech_details_survives_saving():
-    """THE FINDING, slider third stage: the save block is a FIXED
-    enumeration; whatever is missing there drops out on the first save."""
-    text = TEMPLATE.read_text(encoding="utf-8")
-    start = text.index("button_cooldowns: {")
-    assert "button_mech_details" in text[start:text.index("}", start)]
+    """THE FINDING, slider third stage: whatever the save does not write
+    drops out of the configuration on the first click on Save.
+
+    RE-AIMED 2026-09-26. It used to cut the save's enumeration out of the
+    script and look for the name in it. There is no enumeration any more -
+    the save reads the dialog's own fields - so what makes a slider survive
+    is now exactly that it HAS a field, which is what this asks.
+    """
+    assert 'id="button_mech_details"' in MARKUP.read_text(encoding="utf-8"), \
+        "mech_details has no field, so nothing saves it"
+    assert "readCooldowns(" in SCRIPT.read_text(encoding="utf-8"), \
+        "the save no longer reads the dialog's fields"
 
 
 @pytest.mark.asyncio

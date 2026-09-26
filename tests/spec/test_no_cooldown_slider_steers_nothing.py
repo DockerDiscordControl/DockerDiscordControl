@@ -119,19 +119,19 @@ def _fields_in_the_panel():
     return set(re.findall(r'id="button_([a-z_]+)"', MARKUP.read_text(encoding="utf-8")))
 
 
-def _keys_in_the_save_script():
-    """(every key the script writes, the ones that REQUIRE a field).
+def _keys_the_save_names_itself():
+    """Every cooldown the save reaches for by a name written in the script.
 
-    Two shapes, and the difference matters. ``getElementById(x).value``
-    throws when the field is absent. ``getElementById(x)?.value || 5`` is
-    written on purpose for the admin overview's five, which are saved from a
-    default because the hard-coded list here would otherwise drop a slider
-    the read loop above had just rendered.
+    THERE ARE NONE SINCE 2026-09-26, and that is the point. The save used to
+    write a COMPLETE object from an enumeration of twenty-four names, so a
+    field in the markup and not in the list reset itself on every save, and a
+    name in the list with no field was written from a literal - which five of
+    them were. It reads the dialog now, so the two halves cannot disagree at
+    all. This helper is what proves the enumeration has not come back.
     """
     block = SCRIPT.read_text(encoding="utf-8")
-    every = set(re.findall(r"getElementById\('button_([a-z_]+)'\)", block))
-    optional = set(re.findall(r"getElementById\('button_([a-z_]+)'\)\?\.", block))
-    return every, every - optional
+    code = "\n".join(re.sub(r"//.*$", "", line) for line in block.splitlines())
+    return set(re.findall(r"getElementById\('button_([a-z_]+)'\)", code))
 
 
 def test_no_slider_belongs_to_a_button_that_is_gone():
@@ -182,22 +182,26 @@ def test_a_comment_about_a_removed_button_does_not_revive_it():
     assert found == [], "the sabotage snippet was meant to hold no calls at all"
 
 
-def test_the_panel_and_its_save_script_offer_the_same_fields():
-    """The other way this goes wrong. The script writes a COMPLETE object from
-    a fixed enumeration, so a field left in the markup but dropped from the
-    script silently resets on every save, and a key read with a plain
-    ``.value`` whose field is gone makes the save throw.
+def test_the_panel_and_its_save_cannot_disagree():
+    """The other way this goes wrong, and it is settled structurally now.
 
-    The admin overview's five are read with ``?.value || default`` exactly so
-    they can be saved WITHOUT a field, so they are held to the first rule
-    only - which is what a first version of this case got wrong."""
-    in_markup, (in_script, needs_a_field) = _fields_in_the_panel(), _keys_in_the_save_script()
+    The script used to write a COMPLETE object from a fixed enumeration, so a
+    field left in the markup but dropped from the list silently reset on every
+    save, and a name in the list with no field was written from a literal -
+    which the admin overview's five were, with ``?.value || 5``. Both halves
+    of that were a list going stale like the thing it guarded.
 
-    assert in_markup - in_script == set(), (
-        f"in the panel, never saved: {sorted(in_markup - in_script)}")
-    assert needs_a_field - in_markup == set(), (
-        "the save reads .value of a field that is not there: "
-        f"{sorted(needs_a_field - in_markup)}")
+    The save reads the dialog's own fields now, so "the same fields" is no
+    longer something to check: it is how the save is built. What is checked is
+    that the enumeration has not come back.
+    """
+    named = _keys_the_save_names_itself()
+
+    assert named == set(), (
+        f"the save enumerates cooldowns again, so it can drift: {sorted(named)}")
+    assert "readCooldowns(" in SCRIPT.read_text(encoding="utf-8"), \
+        "the save no longer reads the dialog either - it writes nothing"
+    assert len(_fields_in_the_panel()) >= 15, sorted(_fields_in_the_panel())
 
 
 def test_the_defaults_hold_no_slider_the_panel_dropped():
