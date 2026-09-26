@@ -763,8 +763,8 @@ class AutomationService:
             logger.warning(f"AAS: Blocked {action_type} on protected container '{container}' (watchdog)")
             self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED",
                                               "Protected container")
-            if bot and channels and not rule.action.silent:
-                await self._notify(bot, channels,
+            if not rule.action.silent:
+                await self._alert(bot, channels, event,
                                           f"🚨 {event.reason} — *{rule.name}* (protected: no `{action_type}`)")
             return False
 
@@ -798,11 +798,11 @@ class AutomationService:
                 # A notice that reached nobody is a FAILED notify: it used to be
                 # recorded SUCCESS and spend the cooldown (audit 2026-09-26).
                 result = True
-                if bot and channels and not rule.action.silent:
-                    result = await self._notify(bot, channels, f"🚨 {event.reason} — *{rule.name}*")
+                if not rule.action.silent:
+                    result = await self._alert(bot, channels, event, f"🚨 {event.reason} — *{rule.name}*")
             else:
-                if bot and channels and not rule.action.silent:
-                    await self._notify(bot, channels,
+                if not rule.action.silent:
+                    await self._alert(bot, channels, event,
                                               f"🚨 {event.reason} → `{action_type}` — *{rule.name}*")
                 if delayed:
                     await asyncio.sleep(rule.action.delay_seconds)
@@ -814,8 +814,8 @@ class AutomationService:
                         self.state_service.release_execution_lock(rule.id, container, success=False)
                         self.state_service.record_trigger(rule.id, rule.name, container, action_type,
                                                           "SKIPPED", f"{event.kind}: recovered during the delay")
-                        if bot and channels and not rule.action.silent:
-                            await self._notify(bot, channels,
+                        if not rule.action.silent:
+                            await self._alert(bot, channels, event,
                                                       f"✅ **{container}** recovered - no `{action_type}` "
                                                       f"— *{rule.name}*")
                         return False
@@ -823,8 +823,8 @@ class AutomationService:
                 result = await docker_action(container, verb)
                 if result:
                     await self._trigger_status_refresh(bot, container)
-                elif bot and channels and not rule.action.silent:
-                    await self._notify(bot, channels,
+                elif not rule.action.silent:
+                    await self._alert(bot, channels, event,
                                               f"⚠️ `{action_type}` **{container}** failed — *{rule.name}*")
         except BaseException:
             # The lock was taken above; an error or a cancellation must not leave
@@ -928,6 +928,26 @@ class AutomationService:
         except Exception as e:
             logger.warning(f"Failed to send AAS feedback: {e}")
         return False
+
+    async def _alert(self, bot, channels, event, message) -> bool:
+        """A watchdog notice: Discord, and the alarm webhook when one is set.
+
+        THE WEBHOOK IS THE WAY OUT OF DISCORD (operator, 2026-09-26): with the
+        token revoked, Discord down or the bot kicked, every notice went
+        nowhere. "fallback" sends it only when Discord did not take the notice
+        - including when there is no bot to ask at all; "always" sends it too.
+        True when the notice reached somebody.
+        """
+        delivered = bool(bot and channels) and await self._notify(bot, channels, message)
+        from services.automation.alert_webhook import send, settings_of
+
+        url, mode = settings_of(self.config_service.get_global_settings())
+        if url and (mode == "always" or not delivered):
+            plain = message.replace("**", "").replace("*", "").replace("`", "")
+            sent = await asyncio.to_thread(send, url, f"DDC: {event.container} - {event.kind}",
+                                           plain, event.container, event.kind)
+            delivered = delivered or sent
+        return delivered
 
     async def _notify(self, bot, channels, message) -> bool:
         """Send to the first of ``channels`` that takes it. True when one did."""

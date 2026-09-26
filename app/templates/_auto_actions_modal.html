@@ -106,6 +106,20 @@
                                     <label class="form-label">{{ _t('web.aas.protected_containers_label') }}</label>
                                     <div class="form-text">{{ _t('web.aas.protected_containers_hint') }}</div>
                                     <input type="text" class="form-control mt-auto" id="aasProtectedContainers" value="ddc,portainer">
+                                </div>
+                                {# The watchdog's way out of Discord (operator, 2026-09-26):
+                                   services/automation/alert_webhook.py #}
+                                <div class="col-md-8 d-flex flex-column">
+                                    <label class="form-label" for="aasAlertWebhookUrl">{{ _t('web.aas.alert_webhook_label') }}</label>
+                                    <div class="form-text">{{ _t('web.aas.alert_webhook_hint') }}</div>
+                                    <input type="url" class="form-control mt-auto" id="aasAlertWebhookUrl" placeholder="https://ntfy.sh/my-topic">
+                                </div>
+                                <div class="col-md-4 d-flex flex-column">
+                                    <label class="form-label" for="aasAlertWebhookMode">{{ _t('web.aas.alert_webhook_mode') }}</label>
+                                    <select class="form-select mt-auto" id="aasAlertWebhookMode">
+                                        <option value="fallback">{{ _t('web.aas.alert_webhook_fallback') }}</option>
+                                        <option value="always">{{ _t('web.aas.alert_webhook_always') }}</option>
+                                    </select>
 
                                 </div>
                                 <div class="col-12 mt-4">

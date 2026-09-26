@@ -72,11 +72,11 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-417
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-873
+services/automation/auto_action_config_service.py:1-881
 
 ## Section 11  (1856 lines, 4 pieces)
 services/automation/auto_action_state_service.py:1-379
-services/automation/automation_service.py:1-959
+services/automation/automation_service.py:1-979
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
 # config_cache_service.py left for section 12; both are small. own_actions.py
 # followed it on 2026-09-26: automation_service.py grew by the group check of
@@ -460,9 +460,11 @@ services/automation/container_watch.py:1-224
 app/blueprints/backup_routes.py:1-128
 services/config/backup_service.py:1-206
 
-## Section 47  (249 lines, 2 pieces)
+## Section 47  (353 lines, 3 pieces)
 # Watchdog maintenance (operator, 2026-09-26): the pause store and the
 # Discord button that sets it; the panel's three routes live with the other
 # automation routes.
 cogs/watchdog_maintenance.py:1-154
 services/automation/maintenance.py:1-95
+# The alarm webhook joined on 2026-09-26: the watchdog's way out of Discord.
+services/automation/alert_webhook.py:1-104

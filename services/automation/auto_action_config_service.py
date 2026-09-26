@@ -827,6 +827,14 @@ class AutoActionConfigService:
             config = self._load_config_file()
         except ConfigUnreadable as e:
             return ConfigResult(success=False, error=f"{UNREADABLE_MESSAGE}: {e}")
+        # The alarm webhook (services/automation/alert_webhook.py) is checked here:
+        # a URL DDC cannot post to would only show up the day it was needed.
+        from services.automation.alert_webhook import MODES, valid_url
+
+        if not valid_url(str(settings.get('alert_webhook_url') or '')):
+            return ConfigResult(success=False, error="The alarm webhook must be an http(s) URL")
+        if settings.get('alert_webhook_mode', 'fallback') not in MODES:
+            return ConfigResult(success=False, error=f"Alarm webhook mode must be one of: {', '.join(MODES)}")
         # Merge with existing settings to prevent data loss
         current = config.get('global_settings', {})
         current.update(settings)

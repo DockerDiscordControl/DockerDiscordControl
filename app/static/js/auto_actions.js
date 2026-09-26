@@ -876,6 +876,9 @@ async function loadAASGlobalSettings() {
         document.getElementById('aasGlobalCooldown').value = settings.global_cooldown_seconds;
         document.getElementById('aasProtectedContainers').value =
             (settings.protected_containers || []).join(',');
+        document.getElementById('aasAlertWebhookUrl').value = settings.alert_webhook_url || '';
+        document.getElementById('aasAlertWebhookMode').value =
+            settings.alert_webhook_mode === 'always' ? 'always' : 'fallback';
         aasSettingsLoaded = true;
 
         // Populate audit channel dropdown
@@ -911,7 +914,9 @@ async function saveAASGlobalSettings() {
         enabled: document.getElementById('aasGlobalToggle').checked,
         global_cooldown_seconds: parseInt(document.getElementById('aasGlobalCooldown').value),
         audit_channel_id: document.getElementById('aasAuditChannelSelect').value || null,
-        protected_containers: splitCsv(document.getElementById('aasProtectedContainers').value)
+        protected_containers: splitCsv(document.getElementById('aasProtectedContainers').value),
+        alert_webhook_url: document.getElementById('aasAlertWebhookUrl').value.trim(),
+        alert_webhook_mode: document.getElementById('aasAlertWebhookMode').value
     };
     
     try {
