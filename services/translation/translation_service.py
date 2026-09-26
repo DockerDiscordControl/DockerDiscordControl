@@ -97,6 +97,19 @@ def _safe_truncate(text: str, max_length: int) -> str:
     return text[:max_length]
 
 
+# A cut text says so. Both cuts - the length setting before the provider, the
+# embed limit before the post - used to leave a text that simply stopped
+# mid-sentence, and the reader could not know more existed (audit 2026-09-26, #11).
+CUT_MARK = "…"
+
+
+def _cut_marked(text: str, max_length: int) -> str:
+    """Like _safe_truncate, but a cut text ends in CUT_MARK and stays within max_length."""
+    if len(text) <= max_length:
+        return text
+    return text[:max_length - len(CUT_MARK)].rstrip() + CUT_MARK
+
+
 # The panel offers ONE list (DeepL's codes) for all three providers. "The first
 # two letters" was right for most of it and wrong exactly where the list is
 # richer (translation audit 2026-09-26, #7): Microsoft has no "zh", PT-PT turned
@@ -555,6 +568,7 @@ class TranslationService:
                     continue
 
                 # Unicode-safe truncation
+                was_cut = len(text) > settings.max_text_length
                 text = _safe_truncate(text, settings.max_text_length)
 
                 # Rate limit
@@ -566,6 +580,8 @@ class TranslationService:
                 result = await self._translate_with_retry(
                     provider, text, pair.target_language, pair.source_language, session
                 )
+                if was_cut and result.success and result.translated_text:
+                    result.translated_text = result.translated_text.rstrip() + CUT_MARK
             else:
                 # Attachment-only message — no text to translate, forward as-is
                 result = TranslationResult(
@@ -645,7 +661,7 @@ class TranslationService:
                 return False
 
             # Build compact embed
-            translated_text = _safe_truncate(result.translated_text, DISCORD_EMBED_DESC_LIMIT) if result.translated_text else ""
+            translated_text = _cut_marked(result.translated_text, DISCORD_EMBED_DESC_LIMIT) if result.translated_text else ""
             embed = discord.Embed(
                 description=translated_text or None,
                 color=0x3498db
