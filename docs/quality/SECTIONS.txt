@@ -473,4 +473,4 @@ services/automation/alert_webhook.py:1-104
 ## Section 48  (795 lines, 1 piece)
 # From section 28 on 2026-09-26 (see there). Reviewed in both passes as part
 # of section 28; the coverage ledger keeps its s28 labels.
-services/translation/translation_service.py:1-795
+services/translation/translation_service.py:1-813

@@ -97,17 +97,35 @@ def _safe_truncate(text: str, max_length: int) -> str:
     return text[:max_length]
 
 
-def _normalize_language_code(code: str, provider: str) -> str:
-    """Normalize language code for the target provider."""
+# The panel offers ONE list (DeepL's codes) for all three providers. "The first
+# two letters" was right for most of it and wrong exactly where the list is
+# richer (translation audit 2026-09-26, #7): Microsoft has no "zh", PT-PT turned
+# into Brazilian "pt", and Google calls Norwegian "no".
+_PROVIDER_CODES = {
+    'google': {'PT-PT': 'pt-PT', 'ZH': 'zh-CN', 'NB': 'no'},
+    'microsoft': {'PT-PT': 'pt-pt', 'ZH': 'zh-Hans'},
+}
+
+
+def _normalize_language_code(code: str, provider: str, source: bool = False) -> str:
+    """Normalize language code for the target provider.
+
+    ``source``: DeepL takes EN-GB, PT-PT and the like only as a TARGET; as a
+    source it wants the base code, and answered 400 to every message of a pair
+    "from English (British)" until the pair auto-disabled.
+    """
     if not code:
         return code
     code = code.strip()
     if provider == 'deepl':
         # DeepL uses uppercase: EN-GB, DE, FR
-        return code.upper()
-    else:
-        # Google and Microsoft use lowercase 2-letter: en, de, fr
-        return code.lower()[:2]
+        code = code.upper()
+        return code.split('-')[0] if source else code
+    special = _PROVIDER_CODES.get(provider, {}).get(code.upper())
+    if special:
+        return special
+    # Google and Microsoft use lowercase 2-letter: en, de, fr
+    return code.lower()[:2]
 
 
 # --- Provider Interface ---
@@ -148,7 +166,7 @@ class DeepLProvider(TranslationProvider):
             "target_lang": _normalize_language_code(target_lang, 'deepl'),
         }
         if source_lang:
-            payload["source_lang"] = _normalize_language_code(source_lang, 'deepl')
+            payload["source_lang"] = _normalize_language_code(source_lang, 'deepl', source=True)
 
         headers = {
             "Authorization": f"DeepL-Auth-Key {self.api_key}",
@@ -226,7 +244,7 @@ class GoogleTranslateProvider(TranslationProvider):
             "format": "text",
         }
         if source_lang:
-            form_data["source"] = _normalize_language_code(source_lang, 'google')
+            form_data["source"] = _normalize_language_code(source_lang, 'google', source=True)
 
         try:
             owns_session = session is None
@@ -292,7 +310,7 @@ class MicrosoftTranslatorProvider(TranslationProvider):
             "to": _normalize_language_code(target_lang, 'microsoft'),
         }
         if source_lang:
-            params["from"] = _normalize_language_code(source_lang, 'microsoft')
+            params["from"] = _normalize_language_code(source_lang, 'microsoft', source=True)
 
         headers = {
             "Ocp-Apim-Subscription-Key": self.api_key,
