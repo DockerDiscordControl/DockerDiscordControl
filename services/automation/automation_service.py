@@ -325,8 +325,10 @@ class AutomationService:
                 
             # Source Check (User ID) - if whitelist is set, must match
             if rule.trigger.allowed_user_ids and str(ctx.user_id) not in rule.trigger.allowed_user_ids:
-                # Also check allowed usernames (less secure but requested)
-                if not (rule.trigger.allowed_usernames and ctx.username in rule.trigger.allowed_usernames):
+                # Also check allowed usernames (less secure but requested) - never
+                # for a webhook, which picks its display name per message.
+                if not (rule.trigger.allowed_usernames and not ctx.is_webhook
+                        and ctx.username in rule.trigger.allowed_usernames):
                     continue
             
             # Webhook Check

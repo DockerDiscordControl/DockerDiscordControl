@@ -1854,5 +1854,7 @@
   "✅ **Donation recorded** - thank you!": "✅ **Spende erfasst** - danke!",
   "No broadcast this time: one per person every five minutes.": "Diesmal keine Ankündigung: eine pro Person alle fünf Minuten.",
   "✅ Thank you!": "✅ Danke!",
-  "A broadcast needs an amount - nothing was sent to the channels.": "Eine Ankündigung braucht einen Betrag - es wurde nichts an die Kanäle gesendet."
+  "A broadcast needs an amount - nothing was sent to the channels.": "Eine Ankündigung braucht einen Betrag - es wurde nichts an die Kanäle gesendet.",
+  "js.aas.webhook_without_id": "Jeder Webhook",
+  "js.aas.webhook_without_id_hint": "Nur Webhooks, aber ohne Webhook-ID: Jeder Webhook im Kanal löst diese Regel aus. Trage die ID des Webhooks unter 'Erlaubte Benutzer-IDs' ein - aktiv speichern lässt sie sich nur noch damit."
 }

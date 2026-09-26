@@ -235,6 +235,24 @@ const tests = {
     assert.deepStrictEqual(body.trigger.channel_ids, ['123']);
     assert.deepStrictEqual(body.action.containers, ['web']);
   },
+
+  // Since 2026-09-26 an active webhook-only rule needs the webhook's ID; rules
+  // saved before that keep running, and the list marks them so the operator
+  // sees which ones any webhook of the channel can trigger.
+  'an old webhook rule without an ID is marked in the list'() {
+    const env = makeEnv();
+    const rule = (ids, isWebhook) => ({
+      id: 'r1', name: 'Hook', enabled: true, priority: 10,
+      trigger: { keywords: ['x'], source_filter: { allowed_user_ids: ids, is_webhook: isWebhook } },
+      action: { type: 'NOTIFY', containers: [] }, metadata: {},
+    });
+    assert.ok(env.ctx.renderRuleItem(rule([], true)).includes('aas.webhook_without_id'),
+      'a webhook-only rule without an ID carries no warning');
+    assert.ok(!env.ctx.renderRuleItem(rule(['223456789012345678'], true)).includes('aas.webhook_without_id'),
+      'a rule that names its webhook is marked anyway');
+    assert.ok(!env.ctx.renderRuleItem(rule([], null)).includes('aas.webhook_without_id'),
+      'a rule that is not webhook-only is marked');
+  },
 };
 
 (async () => {

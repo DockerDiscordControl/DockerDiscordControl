@@ -245,6 +245,13 @@ function renderRuleItem(rule) {
     const safePriority = escapeHtml(String(rule.priority));
     const safeContainers = rule.action.containers.map(c => escapeHtml(c)).join(', ');
     const safeTriggerCount = escapeHtml(String(rule.metadata?.trigger_count || 0));
+    // An active webhook-only rule needs the webhook's ID since 2026-09-26; one
+    // saved before that still runs, and any webhook of the channel triggers it.
+    const filter = rule.trigger.source_filter || {};
+    const webhookWithoutId = filter.is_webhook === true && !(filter.allowed_user_ids || []).length;
+    const webhookWarning = webhookWithoutId
+        ? `<span class="badge bg-warning text-dark" title="${escapeHtml(t('aas.webhook_without_id_hint'))}"><i class="bi bi-exclamation-triangle"></i> ${escapeHtml(t('aas.webhook_without_id'))}</span>`
+        : '';
 
     return `
     <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -258,6 +265,7 @@ function renderRuleItem(rule) {
                     <h6 class="mb-0">${escapeHtml(rule.name)}</h6>
                     <span class="badge ${badgeClass} rounded-pill">${statusText}</span>
                     <span class="badge bg-light text-dark border">Priority: ${safePriority}</span>
+                    ${webhookWarning}
                 </div>
                 <small class="text-muted">
                     ${rule.trigger.type === 'container_state'

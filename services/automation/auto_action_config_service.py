@@ -302,6 +302,14 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         valid, msg = validate_discord_snowflake(uid, "User ID")
         if not valid:
             errors.append(msg)
+    # "Only webhooks" is no source filter on its own: ANY webhook of the channel
+    # passes it, under any name it likes (audit 2026-09-26). An active rule must
+    # name the webhook - a webhook message carries its ID as the author ID.
+    # Switching an old rule OFF stays possible, so it can be fixed at leisure.
+    if (source_filter.get('is_webhook') is True and not source_filter.get('allowed_user_ids')
+            and rule_data.get('enabled', True)):
+        errors.append("A webhook-only rule needs the webhook's ID in 'Allowed User IDs' - "
+                      "otherwise any webhook in the channel triggers it")
 
     # --- Action Validation ---
     action = rule_data.get('action', {})
