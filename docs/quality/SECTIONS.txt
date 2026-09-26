@@ -74,10 +74,9 @@ services/admin/admin_service.py:1-417
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-859
 
-## Section 11  (1959 lines, 5 pieces)
+## Section 11  (1856 lines, 4 pieces)
 services/automation/auto_action_state_service.py:1-379
-services/automation/automation_service.py:1-823
-services/automation/container_watch.py:1-197
+services/automation/automation_service.py:1-876
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
 # config_cache_service.py left for section 12; both are small. own_actions.py
 # followed it on 2026-09-26: automation_service.py grew by the group check of
@@ -447,3 +446,10 @@ app/blueprints/system_routes.py:1-104
 # did in a section of web wiring.
 app/utils/shared_data.py:1-105
 app/utils/port_diagnostics.py:1-824
+
+## Section 45  (197 lines, 1 piece)
+# The watchdog's watchers. automation_service.py grew again on 2026-09-26 -
+# delayed watchdog actions run beside the status loop and look again after
+# the wait - and put section 11 at 2,053; container_watch.py is the piece of
+# it that stands on its own.
+services/automation/container_watch.py:1-197

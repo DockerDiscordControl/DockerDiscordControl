@@ -707,6 +707,27 @@ class AutomationService:
         if not channel_id:
             logger.warning(f"AAS: watchdog rule '{rule.name}' has no channel to report to "
                            f"(no notification channel and no control channel): {event.reason}")
+        if action_type != 'NOTIFY' and rule.action.delay_seconds > 0:
+            # A DELAYED ACTION RUNS BESIDE THE STATUS LOOP, NOT INSIDE IT. It was
+            # awaited here until 2026-09-26, and this is called from the status
+            # loop: for up to an hour (the delay's maximum) no status update, no
+            # watchdog, and the notes of DDC's own stops ran out meanwhile. And
+            # nothing looked again after the wait, so a container that had
+            # recovered in the meantime was restarted anyway.
+            task = asyncio.create_task(self._act_on_container(
+                rule, event, action_type, container, bot, channel_id, delayed=True))
+            delayed = self.__dict__.setdefault('_delayed_actions', set())
+            delayed.add(task)
+            task.add_done_callback(delayed.discard)
+            return True
+        return await self._act_on_container(rule, event, action_type, container, bot, channel_id)
+
+    async def _act_on_container(self, rule: AutoActionRule, event, action_type: str, container: str,
+                                bot, channel_id, delayed: bool = False) -> bool:
+        """The action of one container-state rule, its notice and its record.
+
+        The lock was taken by the caller; every way out of here settles it.
+        """
         try:
             if action_type == 'NOTIFY':
                 # silent, like every other branch: the rule's own setting decides
@@ -717,13 +738,24 @@ class AutomationService:
                 if bot and channel_id and not rule.action.silent:
                     await self._send_feedback(bot, channel_id,
                                               f"🚨 {event.reason} → `{action_type}` — *{rule.name}*")
-                if rule.action.delay_seconds > 0:
+                if delayed:
                     await asyncio.sleep(rule.action.delay_seconds)
+                    if not await self._condition_still_holds(event, container):
+                        logger.info(f"AAS: '{container}' recovered during the {rule.action.delay_seconds}s "
+                                    f"delay of '{rule.name}' - {action_type} not carried out")
+                        self.state_service.release_execution_lock(rule.id, container, success=False)
+                        self.state_service.record_trigger(rule.id, rule.name, container, action_type,
+                                                          "SKIPPED", f"{event.kind}: recovered during the delay")
+                        if bot and channel_id and not rule.action.silent:
+                            await self._send_feedback(bot, channel_id,
+                                                      f"✅ **{container}** recovered - no `{action_type}` "
+                                                      f"— *{rule.name}*")
+                        return False
                 verb = 'restart' if action_type in ('RESTART', 'RECREATE') else action_type.lower()
                 result = await docker_action(container, verb)
                 if result:
                     await self._trigger_status_refresh(bot, container)
-                elif bot and channel_id:
+                elif bot and channel_id and not rule.action.silent:
                     await self._send_feedback(bot, channel_id,
                                               f"⚠️ `{action_type}` **{container}** failed — *{rule.name}*")
         except BaseException:
@@ -739,6 +771,27 @@ class AutomationService:
         else:
             self.state_service.release_rule_cooldown(rule.id)
         return bool(result)
+
+    async def _condition_still_holds(self, event, container: str) -> bool:
+        """After a delay: is the container still in the state that fired the rule?
+
+        Only stopped and unhealthy can be read back in one look; for the others,
+        and whenever Docker cannot be asked, the answer is yes - acting as the
+        rule says is what happened before this check existed.
+        """
+        if event.kind not in ('stopped', 'unhealthy'):
+            return True
+        try:
+            info = await get_docker_info(container)
+        except Exception as e:  # noqa: BLE001 - a failed look must not cancel the action
+            logger.warning(f"AAS: Could not look at '{container}' after the delay: {e}")
+            return True
+        if not info:
+            return True
+        state = info.get('State', {}) or {}
+        if event.kind == 'stopped':
+            return not state.get('Running', False)
+        return bool(state.get('Running')) and (state.get('Health') or {}).get('Status') == 'unhealthy'
 
     @staticmethod
     def _only_if_running_notice(rule_name: str, containers: List[str]) -> str:
