@@ -101,6 +101,16 @@ socket.
 
 ## Door B: the web panel
 
+- **First start without a password is open (by design).** Until a password is
+  set, the login `admin` / `setup` is accepted and `/setup` - which writes the
+  password - needs no login at all [app/auth.py `verify_password`,
+  app/blueprints/main_routes.py `setup_page`/`setup_save`, gated only by
+  `setup_is_closed()`]. Whoever reaches the port first in that window sets the
+  password. It closes for good once a password hash exists. To never have the
+  window, set `DDC_ADMIN_PASSWORD` before the first start (it is applied only
+  when no password is set yet, so it does not reset a forgotten one later); or
+  complete setup right after the first start and keep the port off untrusted
+  networks until then.
 - **Password:** PBKDF2-SHA256 with 600,000 iterations. Login and setup attempts
   are rate-limited per client address. A configuration that cannot be READ looks
   exactly like a fresh install (no password hash), so both the first-run login
