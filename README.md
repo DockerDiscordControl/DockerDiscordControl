@@ -10,6 +10,32 @@ Control your Docker containers directly from Discord! This application provides 
 
 ## 🆕 Latest Updates
 
+### ✅ **v3.0.0 (2026-09-27) - Security, Watchdog & Groups**
+
+The biggest DDC release so far. DDC can now only reach the Docker endpoints it needs, watches
+your containers and tells you when one dies, works with container groups, and has a web panel
+you can protect with two-factor authentication.
+
+**Updating on Unraid: just update.** Settings, containers, channels, tasks, auto-action rules,
+translation pairs, the mech, the bot token and your password carry over (checked by replaying an
+update from v2.4.1 on Unraid). You may have to log in once more - the panel has a login page now.
+Behind a reverse proxy, set `DDC_TRUSTED_PROXIES`. Going back to v2.4.1 is not supported.
+
+- **Allowlist proxy in front of the Docker socket:** only list, inspect, logs, stats, start, stop
+  and restart get through; `create`, `exec` and everything else are refused.
+- **Container watchdog:** react when a container stops, turns unhealthy, restarts repeatedly,
+  stays above a CPU or memory threshold, or has a newer image - with maintenance pauses and
+  alarms to ntfy, Gotify or any webhook when Discord is down.
+- **Container groups** in scheduled tasks, auto-action rules and the Discord admin list.
+- **Two-factor authentication and HTTPS** for the web panel (offered, never forced).
+- **Backup & restore** of the whole configuration as one file, with a preview.
+- **Channel translation** of followed announcement channels, explained in the panel.
+- **The mech's energy is a battery**, a reworked panel with five tabs, and all 40 languages complete.
+
+Every part of DDC was reviewed end to end; 7,771 tests pass. Everything in detail:
+[docs/CHANGELOG.md](https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/docs/CHANGELOG.md) · security model: [docs/SECURITY.md](https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/docs/SECURITY.md) ·
+Unraid: [docs/UNRAID.md](https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/docs/UNRAID.md)
+
 ### ✅ **v2.4.1 (2026-09-22) - Security Patch**
 
 GitHub's code scanner flagged ten places after v2.4.0. Four were real and are fixed, six were
