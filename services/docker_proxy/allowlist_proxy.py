@@ -35,7 +35,10 @@ import re
 import socket
 import socketserver
 import sys
+import threading
+import time
 from typing import Optional, Tuple
+from urllib.parse import parse_qsl
 
 logger = logging.getLogger("ddc.docker_proxy")
 
@@ -47,46 +50,97 @@ _NAME = r"[a-zA-Z0-9_.-]+"
 # passed here; the body lock in handle() closes the same hole a second time.
 _PREFIX = r"^/(v(?:1\.(?:2[4-9]|[3-9][0-9]|[1-9][0-9]{2,})|[2-9][0-9]*\.[0-9]+)/)?"
 
-# The whole policy. Method, then the path without its query string.
+# The whole policy: method, path, and the query parameters each path may carry.
+#
+# THE PARAMETERS ARE PART OF IT (adversarial review, 2026-09-27). Until then only
+# the path was checked and the query went through as it came: "start?checkpoint="
+# is a restore from a checkpoint on an experimental daemon, "stop?signal=" changes
+# what a stop is. Each endpoint now takes exactly what docker-py 7.1 sends for
+# DDC's calls - read from docker/api/container.py, not guessed - and nothing else.
+_LIST = frozenset({"all", "limit", "size", "trunc_cmd", "filters", "since", "before"})
+_LOGS = frozenset({"stdout", "stderr", "timestamps", "follow", "tail", "since", "until"})
+_STATS = frozenset({"stream", "one-shot"})
+_NONE = frozenset()
 ALLOWLIST = (
-    ("GET", re.compile(_PREFIX + r"_ping\Z")),
-    ("HEAD", re.compile(_PREFIX + r"_ping\Z")),
+    ("GET", re.compile(_PREFIX + r"_ping\Z"), _NONE),
+    ("HEAD", re.compile(_PREFIX + r"_ping\Z"), _NONE),
     # docker-py 7.1.0 negotiates the API version with GET /version (unprefixed)
     # on every client built without version=. The first draft of this list
     # forgot it, and no client could be built at all.
-    ("GET", re.compile(_PREFIX + r"version\Z")),
-    ("GET", re.compile(_PREFIX + r"containers/json\Z")),
-    ("GET", re.compile(_PREFIX + r"containers/" + _NAME + r"/(json|logs|stats)\Z")),
-    ("POST", re.compile(_PREFIX + r"containers/" + _NAME + r"/(start|stop|restart)\Z")),
+    ("GET", re.compile(_PREFIX + r"version\Z"), _NONE),
+    ("GET", re.compile(_PREFIX + r"containers/json\Z"), _LIST),
+    ("GET", re.compile(_PREFIX + r"containers/" + _NAME + r"/json\Z"), frozenset({"size"})),
+    ("GET", re.compile(_PREFIX + r"containers/" + _NAME + r"/logs\Z"), _LOGS),
+    ("GET", re.compile(_PREFIX + r"containers/" + _NAME + r"/stats\Z"), _STATS),
+    ("POST", re.compile(_PREFIX + r"containers/" + _NAME + r"/start\Z"), _NONE),
+    ("POST", re.compile(_PREFIX + r"containers/" + _NAME + r"/(stop|restart)\Z"), frozenset({"t"})),
     # Reserved, read-only: image inspect for the image-update notice (V3 §8 item 4).
     # No "@": a digest-pinned reference cannot change, so the image-update check
     # skips it before it reads the image, and docker-py would percent-encode the
     # "@" anyway - which this proxy refuses. Permitting it only widened the
     # surface for something nobody can ask for.
-    ("GET", re.compile(_PREFIX + r"images/[a-zA-Z0-9_./:-]+/json\Z")),
+    ("GET", re.compile(_PREFIX + r"images/[a-zA-Z0-9_./:-]+/json\Z"), _NONE),
 )
 
 MAX_HEAD_BYTES = 64 * 1024
 MAX_BODY_BYTES = 64 * 1024
 IDLE_TIMEOUT_SECONDS = 120
+# A head has this long to arrive in full - the idle timeout counts per recv(),
+# so a client trickling a byte a minute could hold a thread for ever.
+HEAD_DEADLINE_SECONDS = 30
+# Concurrent connections. DDC opens a handful; every one used to get a thread,
+# without limit. Beyond this a connection is answered 503 at once.
+MAX_CONNECTIONS = 64
+# A stop or restart is answered by dockerd only when the container is down, and
+# DDC passes a container's own StopTimeout as t. Waiting IDLE_TIMEOUT_SECONDS
+# turned every stop longer than two minutes into a 502 while it was still
+# running (review 2026-09-27). The wait is t plus this margin; without t, the
+# daemon uses the container's own timeout, which this proxy cannot see.
+STOP_MARGIN_SECONDS = 60
+STOP_WITHOUT_T_SECONDS = 3600
 
 
 def is_allowed(method: str, target: str) -> bool:
     """True if the request line may pass. Everything not listed is refused."""
-    path = target.split("?", 1)[0]
+    path, _, query = target.partition("?")
     # Nothing DDC sends needs these, and each is a way to make a path mean
     # something else to the daemon than to this check.
     if not path.startswith("/") or "%" in path or "//" in path or "\\" in path:
         return False
     if any(segment in (".", "..") for segment in path.split("/")):
         return False
-    return any(method == allowed and rule.match(path) for allowed, rule in ALLOWLIST)
+    # ";" is a separator to older Go and to nothing since Go 1.17 - a query two
+    # parsers split differently. "#" never belongs in a request target.
+    if ";" in query or "#" in target:
+        return False
+    try:
+        names = {name for name, _ in parse_qsl(query, keep_blank_values=True, strict_parsing=bool(query))}
+    except ValueError:
+        return False
+    return any(method == allowed and rule.match(path) and names <= parameters
+               for allowed, rule, parameters in ALLOWLIST)
+
+
+def _upstream_wait(method: str, target: str) -> float:
+    """How long to wait for the daemon's answer: a stop may take as long as its t."""
+    path, _, query = target.partition("?")
+    if method != "POST" or not re.search(r"/(stop|restart)\Z", path):
+        return IDLE_TIMEOUT_SECONDS
+    t = dict(parse_qsl(query)).get("t", "")
+    if t.isascii() and t.isdigit():
+        return max(IDLE_TIMEOUT_SECONDS, min(int(t), 86400) + STOP_MARGIN_SECONDS)
+    return STOP_WITHOUT_T_SECONDS
 
 
 def _read_head(conn: socket.socket) -> Tuple[bytes, bytes]:
     """Read up to the end of the request head; return (head, body bytes already read)."""
     data = b""
+    deadline = time.monotonic() + HEAD_DEADLINE_SECONDS
     while b"\r\n\r\n" not in data:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise ValueError("request head did not arrive in time")
+        conn.settimeout(min(IDLE_TIMEOUT_SECONDS, left))
         chunk = conn.recv(8192)
         if not chunk:
             raise ConnectionError("client closed before the request head was complete")
@@ -183,6 +237,16 @@ class _Handler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
         conn: socket.socket = self.request
         conn.settimeout(IDLE_TIMEOUT_SECONDS)
+        if not self.server.slots.acquire(blocking=False):
+            logger.warning("docker proxy: DENIED a connection - too many open at once")
+            _refuse(conn, "503 Service Unavailable", "too many connections")
+            return
+        try:
+            self._handle(conn)
+        finally:
+            self.server.slots.release()
+
+    def _handle(self, conn: socket.socket) -> None:
         try:
             head, body = _read_head(conn)
         except (ValueError, ConnectionError, OSError) as error:
@@ -248,7 +312,7 @@ class _Handler(socketserver.BaseRequestHandler):
         request += "Connection: close\r\n\r\n"
 
         upstream = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        upstream.settimeout(IDLE_TIMEOUT_SECONDS)
+        upstream.settimeout(_upstream_wait(method, target))
         relayed = False
         try:
             upstream.connect(self.upstream_path)
@@ -272,6 +336,10 @@ class _Handler(socketserver.BaseRequestHandler):
 
 class _Server(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
     daemon_threads = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.slots = threading.BoundedSemaphore(MAX_CONNECTIONS)
 
 
 def serve(listen_path: str, upstream_path: str, mode: int = 0o660) -> _Server:
