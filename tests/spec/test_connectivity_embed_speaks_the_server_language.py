@@ -11,13 +11,17 @@ server language (status_handlers.py, docker_control.py), so a French, Spanish or
 Japanese server saw this error in German.
 
 THE FIX: the English texts are source strings of the translation catalog; the
-German ones moved into ``locales/de.json``; the other locales carry the English
+German ones moved into ``locales/de.json``; the other locales carried the English
 text, as the catalog key-parity contract requires. German servers keep
-German, everyone else gets English - and no German is left in the code.
+German, and no German is left in the code. Since 2026-09-27 every catalogue
+translates these titles, so a French server reads French - never German.
 
 HOW IT IS CHECKED: the real service, three languages, all three contexts. The
 German expectation comes from the former hard-wired text, not from the catalog.
 """
+
+import json
+from pathlib import Path
 
 import pytest
 
@@ -51,10 +55,15 @@ def _embed(language, context):
 def test_a_french_server_does_not_get_german(context):
     """THE FINDING."""
     result = _embed("fr", context)
-    assert result.title == ENGLISH_TITLES[context], (
+    # Since 2026-09-27 fr.json translates these titles, so a French server gets
+    # French. What this case was always about stays: never the German variant.
+    french = json.loads((Path(__file__).resolve().parents[2] / "locales" / "fr.json")
+                        .read_text(encoding="utf-8"))
+    assert result.title != GERMAN_TITLES[context], (
         f"A French server gets {result.title!r} - the German variant was the default "
         "for every language other than English."
     )
+    assert result.title == french.get(ENGLISH_TITLES[context], ENGLISH_TITLES[context])
     assert "socket gone" in result.description
 
 
