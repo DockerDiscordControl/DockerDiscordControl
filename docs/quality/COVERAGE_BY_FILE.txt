@@ -119,7 +119,7 @@ cogs/docker_control.py	1252	passE:read-in-full-2026-09-21:loops,embeds,modals,in
 cogs/donation_ui.py	693	NONE
 cogs/enhanced_info_modal_simple.py	704	passE:E27+bothscans:519-700
 cogs/group_control.py	361	NONE
-cogs/help_embed.py	96	NONE
+cogs/help_embed.py	95	NONE
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	728	v3rev2:1-791
 cogs/overview_embeds.py	655	v3rev2:1-964
@@ -136,7 +136,7 @@ services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	429	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/alert_webhook.py	104	NONE
-services/automation/auto_action_config_service.py	890	passE:bothscans+E25 v3rev:1-813
+services/automation/auto_action_config_service.py	891	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	379	passE:bothscans+E25
 services/automation/automation_service.py	983	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	224	v3rev:1-157
@@ -199,11 +199,11 @@ services/infrastructure/action_logger.py	137	pass1:s18:plan pass2:s18:1-86  [17 
 services/infrastructure/container_info_service.py	332	pass1:s18:plan pass2:s18:1-282  [44 of 326 lines never in a package]
 services/infrastructure/container_status_service.py	887	pass1:s19:1-816  [14 of 830 lines never in a package]
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239
-services/infrastructure/dynamic_cooldown_manager.py	193	pass1:s19:1-179  [14 of 193 lines never in a package]
+services/infrastructure/dynamic_cooldown_manager.py	191	pass1:s19:1-179  [12 of 191 lines never in a package]
 services/infrastructure/event_manager.py	119	pass1:s19:1-118
 services/infrastructure/game_query_service.py	553	pass1:s19:1-525  [28 of 553 lines never in a package]
 services/infrastructure/game_query_support_service.py	341	pass1:s20:1-282  [59 of 341 lines never in a package]
-services/infrastructure/spam_protection_service.py	611	pass1:s20:1-504  [49 of 553 lines never in a package]
+services/infrastructure/spam_protection_service.py	609	pass1:s20:1-504  [49 of 553 lines never in a package]
 services/infrastructure/update_notifier.py	247	pass1:s20:1-213  [22 of 235 lines never in a package]
 services/mech/__init__.py	30	pass1:s20:1-30
 services/mech/animation_cache_service.py	1823	pass1:s21:1-1813  [33 of 1846 lines never in a package]

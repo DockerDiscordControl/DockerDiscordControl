@@ -17,6 +17,11 @@ HOW THIS TEST CAN FAIL:
 
 COUNTER-CHECK (2026-09-27): red before - the ❓ help named only /ss and
 /control, and neither help knew 🔧, 🗂️ or ✕.
+
+LATER THE SAME DAY: the 🗂️ line went out again. The stack button is not drawn
+on an overview since 2026-09-24 (cogs/admin_overview.py, `every_button`), so
+the help explained a button nobody sees. It must not come back while the
+button stays hidden.
 """
 
 import ast
@@ -89,8 +94,13 @@ def test_every_registered_command_is_named(monkeypatch):
 
 def test_the_newer_buttons_are_explained(monkeypatch):
     text = _text(_slash_help(monkeypatch))
-    for mark in ("🔧", "🗂️", "✕", "⏰", "📋", "📝"):
+    for mark in ("🔧", "✕", "⏰", "📋", "📝"):
         assert mark in text, f"{mark} is not explained"
+
+
+def test_a_hidden_button_is_not_explained(monkeypatch):
+    text = _text(_slash_help(monkeypatch))
+    assert "🗂️" not in text, "the help explains the stack button, which is not drawn"
 
 
 def test_discord_accepts_it(monkeypatch):

@@ -61,9 +61,8 @@ Licensed under the MIT License
 
                     <div class="step-description">
                         <h4><span class="step-number">4. </span>Enable Required Privileged Intents</h4>
-                        <p class="warning-text"><i class="bi bi-exclamation-triangle-fill"></i> <strong>CRITICAL STEP:</strong> You MUST enable all three "Privileged Gateway Intents":</p>
+                        <p class="warning-text"><i class="bi bi-exclamation-triangle-fill"></i> <strong>CRITICAL STEP:</strong> You MUST enable these two "Privileged Gateway Intents" (DDC does not use the Presence Intent; it can stay off):</p>
                         <ul>
-                            <li>Presence Intent</li>
                             <li>Server Members Intent</li>
                             <li>Message Content Intent</li>
                         </ul>
@@ -71,7 +70,7 @@ Licensed under the MIT License
                         <div class="text-center mt-3 mb-3">
                             <div class="border border-info rounded p-3 text-info">
                                 <i class="bi bi-info-circle-fill me-2"></i>
-                                <strong>Where to find them:</strong> In the Discord Developer Portal, go to the Bot tab. Scroll down to "Privileged Gateway Intents" section and ensure all three toggles are turned ON (they should appear blue when enabled).
+                                <strong>Where to find them:</strong> In the Discord Developer Portal, go to the Bot tab. Scroll down to "Privileged Gateway Intents" section and ensure the Server Members and Message Content toggles are turned ON (they should appear blue when enabled).
                             </div>
                             <div class="mt-2">
                                 <a href="https://discord.com/developers/docs/topics/gateway#privileged-intents" target="_blank" class="btn btn-sm btn-outline-info">

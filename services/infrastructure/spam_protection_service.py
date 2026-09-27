@@ -514,8 +514,6 @@ class SpamProtectionService:
                 "donate": 5,
                 "donatebroadcast": 60,
                 "command": 5,
-                "language": 30,
-                "forceupdate": 60,
                 "start": 10,
                 "stop": 10,
                 "restart": 15

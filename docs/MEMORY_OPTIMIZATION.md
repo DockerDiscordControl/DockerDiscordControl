@@ -25,11 +25,11 @@ Our Dockerfile uses multi-stage builds to minimize the final image:
 
 ```dockerfile
 # Stage 1: Builder (includes build tools)
-FROM alpine:3.22.2 AS builder
+FROM alpine:3.24 AS builder
 # ... build dependencies ...
 
 # Stage 2: Runtime (minimal runtime only)
-FROM alpine:3.22.2
+FROM alpine:3.24
 # ... only runtime packages ...
 ```
 
@@ -211,7 +211,7 @@ If the container is killed due to OOM:
 ## Technical Details
 
 ### Image Size
-- **Base image:** Alpine 3.22.2 (~7MB)
+- **Base image:** Alpine 3.24 (~7MB)
 - **Final image:** ~180MB
 - **With all dependencies:** ~200MB total
 

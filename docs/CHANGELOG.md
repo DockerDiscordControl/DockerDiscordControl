@@ -18,6 +18,11 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   non-default value is reported once in the log.
 - **Started with `--user`?** Then no proxy can run; DDC falls back to the raw socket and warns.
   Start without `--user` and use `PUID`/`PGID`.
+- **Settings that did nothing are gone.** The auto-action "Audit Log Channel" was saved but no
+  code ever posted to it; the spam protection's cooldowns for `/language` and `/forceupdate`
+  belonged to commands DDC does not have. An old value stays in the file until the next save and
+  is ignored. The bot setup page now asks for the two privileged intents DDC uses (Server
+  Members, Message Content); the Presence Intent can stay off.
 - **The panel offers two-factor authentication** (a dialog with "Later", then a notice while it
   is off). Setting it up needs HTTPS: `DDC_TLS_MODE=proxy` or `self-signed`. **While it is on, the
   panel answers only over HTTPS** - the session marker is the passed second factor, and it must
@@ -38,29 +43,19 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   permissions table eighteen, so reaching Stop, Restart or a channel permission used to take the
   name off screen and you ticked a box for a row you could no longer identify.
 
-- **The settings sit behind four tabs.** Discord, Containers, Automation, System. Thirteen card
-  sections used to scroll past between the mech panel and the log; the container table is one
-  click away now instead of five screens down. One Save button for all four tabs, and it stays
+- **The settings sit behind five tabs.** Discord, Containers, Automation, System, Logs. Thirteen
+  card sections used to scroll past between the mech panel and the log; the container table is one
+  click away now instead of five screens down. One Save button for all tabs, and it stays
   visible - the tabs only hide fields, they never take them out of the form, so a save still
   writes every setting on every tab. The floating navigation opens the right tab before it
   scrolls, and the tab you were on survives a reload.
 
-- **The container table can be searched, and its headers stay put.** With 26 containers the
+- **The container table can be searched, and its headers stay on screen.** With 26 containers the
   column headers scrolled off the top by row fifteen, so you were ticking boxes in unlabelled
   columns and counting across to tell Stop from Restart; and finding one container meant reading
-  26 names. There is a search box above the table now, and the header stays visible while the rows
-  scroll under it. The search uses the same matching rule as the one in the groups section, so the
-  two cannot disagree about what counts as a match.
-
-- **Your container groups now work in the container table too.** A group could already be the
-  target of a scheduled task and of an auto-action rule; the table where each container's Active
-  flag and its four allowed actions are set knew nothing about them. With 26 containers, giving a
-  group of seven the same permissions meant 35 tick boxes one at a time. There is now a bar above
-  the table: pick a group, tick the permissions, Apply - every container of that group on the page
-  is switched active with exactly those permissions, and "Switch group off" reverses it. A
-  container the group names but the table does not show is named in the message instead of being
-  skipped quietly. Nothing is saved until you press Save, as before. These are your own groups,
-  not Compose stacks.
+  26 names. There is a search box above the table now, and the table shows seven rows to a page,
+  so the column names never leave the screen. The search uses the same matching rule as the one
+  in the groups section, so the two cannot disagree about what counts as a match.
 
 - **Changing the panel's timezone now asks about your existing tasks.** A task carries the
   timezone it was made in, so switching the panel never moved it: "daily 10:00" went on firing
@@ -97,7 +92,8 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
     spam switch says. The donor name is shown as text, never as markdown.
   - **An admin assigned to some containers acts only on those.** `/addadmin` in a status channel
     needs an admin without an assignment; Restart All, Stop All, a stack restart and maintenance
-    leave the other containers alone and say which ones they skipped.
+    leave the other containers alone. A stack restart and maintenance name the ones they left
+    out; Restart All and Stop All count only the admin's own containers.
   - **A "webhook only" auto-action rule must name the webhook's ID** under Allowed User IDs. An
     active rule without one is refused on save; old ones keep running, carry an "Any webhook"
     badge in the list and can still be switched off. Allowed usernames never vouch for a webhook.
@@ -224,17 +220,15 @@ So a group is now what you say it is.
 - **An auto-action rule can use a group twice over**: as the containers it watches ("for every
   container of this group: if it stops, restart it") and as the containers it acts on ("if the
   database dies, restart the whole group"). Both are picked from the rule editor.
-- **One button in Discord for both**: the Admin Overview's group button offers your groups and
-  any Compose stacks DDC finds. It is an icon now, not a labelled button, and it only appears
-  when there is something to offer.
+- **Groups in Discord sit where containers are**: the Admin Overview's admin list offers your
+  groups next to the containers, with the same buttons behind either. The separate group/stack
+  button (🗂️) is no longer drawn; a message posted before carries it and it still works there.
 
 ### ✨ Compose stacks
 
 - **Sort by stack:** the server list in the web panel shows each container's Compose stack, and a
   "Sort by stack" button puts the containers of one stack next to each other (where the stack's
   first container stands). Save to keep the order - no more moving them row by row.
-- **Restart a stack from Discord:** the button above offers them next to your own groups - with
-  the same rules as "Restart All" (only containers that allow restart, stopped ones are skipped).
 - The Admin Overview shows the stack's name above its containers.
 
 ### ⚡ The mech's energy is a battery
@@ -377,7 +371,7 @@ came out of the cog split. Thirteen findings.
   - `/help` under the spam brake posted a public "." into the channel (the same dot had been
     taken out of `/donate` on 2026-09-23);
   - `/help` and the ❓ button were two separately written helps, both out of date - the ❓ one
-    named two of seven commands and neither knew the container admin panel, 🔧, 🗂️ or ✕. One
+    named two of seven commands and neither knew the container admin panel, 🔧 or ✕. One
     help serves both now, and a test fails when a registered command is missing from it;
   - a private panel whose ✕ would stand alone on a row (after a select, or after five buttons)
     closes itself after a minute instead; and the container picker's timer no longer deletes the

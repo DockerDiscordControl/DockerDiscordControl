@@ -48,8 +48,6 @@ class DynamicCooldownManager:
             # 'donate': 'donate',  # Disabled - using custom spam protection
             # 'donatebroadcast': 'donatebroadcast',  # Disabled - using custom spam protection
             'ddc': 'ddc',           # Command group
-            'language': 'language',
-            'forceupdate': 'forceupdate',
             'start': 'start',
             'stop': 'stop',
             'restart': 'restart'

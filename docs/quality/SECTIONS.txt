@@ -72,7 +72,7 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-429
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-890
+services/automation/auto_action_config_service.py:1-891
 
 ## Section 11  (1856 lines, 4 pieces)
 services/automation/auto_action_state_service.py:1-379
@@ -161,7 +161,7 @@ services/infrastructure/container_info_service.py:1-332
 ## Section 19  (2021 lines, 5 pieces)
 services/infrastructure/container_status_service.py:1-887
 services/infrastructure/docker_connectivity_service.py:1-269
-services/infrastructure/dynamic_cooldown_manager.py:1-193
+services/infrastructure/dynamic_cooldown_manager.py:1-191
 services/infrastructure/event_manager.py:1-119
 
 ## Section 19b  (553 lines, 1 piece)
@@ -171,7 +171,7 @@ services/infrastructure/game_query_service.py:1-553
 
 ## Section 20  (1577 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-341
-services/infrastructure/spam_protection_service.py:1-611
+services/infrastructure/spam_protection_service.py:1-609
 services/infrastructure/update_notifier.py:1-247
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-388
@@ -396,7 +396,7 @@ cogs/ddc_ui.py:1-261
 cogs/group_control.py:1-361
 # help_embed.py joined on 2026-09-27 (new: the one help for /help and the ❓
 # button, which had been two drifting copies in control_ui and slash_commands).
-cogs/help_embed.py:1-96
+cogs/help_embed.py:1-95
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).

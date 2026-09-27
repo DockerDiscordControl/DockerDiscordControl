@@ -891,24 +891,6 @@ async function loadAASGlobalSettings() {
         document.getElementById('aasAlertWebhookMode').value =
             settings.alert_webhook_mode === 'always' ? 'always' : 'fallback';
         aasSettingsLoaded = true;
-
-        // Populate audit channel dropdown
-        const auditSelect = document.getElementById('aasAuditChannelSelect');
-        let auditOptions = '<option value="">(None)</option>';
-
-        // Use allChannels from page load
-        if (allChannels.length === 0) {
-            loadChannelsForAAS();
-        }
-
-        if (allChannels.length > 0) {
-            allChannels.forEach(ch => {
-                auditOptions += `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.name)} (${escapeHtml(ch.id)})</option>`;
-            });
-        }
-
-        auditSelect.innerHTML = auditOptions;
-        auditSelect.value = settings.audit_channel_id || '';
     } catch (error) {
         console.error('Error loading settings:', error);
     }
@@ -924,7 +906,6 @@ async function saveAASGlobalSettings() {
     const settings = {
         enabled: document.getElementById('aasGlobalToggle').checked,
         global_cooldown_seconds: parseInt(document.getElementById('aasGlobalCooldown').value),
-        audit_channel_id: document.getElementById('aasAuditChannelSelect').value || null,
         protected_containers: splitCsv(document.getElementById('aasProtectedContainers').value),
         alert_webhook_url: document.getElementById('aasAlertWebhookUrl').value.trim(),
         alert_webhook_mode: document.getElementById('aasAlertWebhookMode').value

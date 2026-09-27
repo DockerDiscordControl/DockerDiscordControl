@@ -66,7 +66,6 @@ def help_fields():
          f"🛠️ {_('Pick a container or group and open its admin panel')}\n"
          f"🔄 {_('Restart all containers')}\n"
          f"⏹️ {_('Stop all containers')}\n"
-         f"🗂️ {_('Restart one Compose stack')}\n"
          f"💖 {_('Support DDC')}"),
         (_("Container admin panel"),
          f"▶️ ⏹️ 🔄 {_('Start, stop or restart it')}\n"

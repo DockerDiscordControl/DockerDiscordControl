@@ -35,7 +35,7 @@ def main() -> int:
     aside = path.with_name(f"{path.name}.removed-{time.strftime('%Y%m%d-%H%M%S')}")
     path.rename(aside)
     print(f"Two-factor authentication is now OFF. The old state is kept as {aside}")
-    print("Log in with the panel password and set it up again under Security -> 2FA.")
+    print("Log in with the panel password and set it up again: System tab -> Web UI Authentication -> Two-Factor Authentication.")
     return 0
 
 

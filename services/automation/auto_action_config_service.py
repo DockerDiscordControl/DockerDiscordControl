@@ -622,10 +622,7 @@ class AutoActionConfigService:
                 "global_settings": {
                     "enabled": True,
                     "global_cooldown_seconds": 30,
-                    "audit_channel_id": None,
-                    "audit_level": "actions_only",
-                    "protected_containers": ["ddc", "portainer"],
-                    "log_all_checks": False
+                    "protected_containers": ["ddc", "portainer"]
                 },
                 "auto_actions": []
             }
@@ -847,6 +844,10 @@ class AutoActionConfigService:
         # Merge with existing settings to prevent data loss
         current = config.get('global_settings', {})
         current.update(settings)
+        # Written by older versions and never read by anything: an audit channel
+        # the panel offered but no code posted to, and two switches without a reader.
+        for dead in ('audit_channel_id', 'audit_level', 'log_all_checks'):
+            current.pop(dead, None)
         config['global_settings'] = current
         
         if self._save_config_file(config):

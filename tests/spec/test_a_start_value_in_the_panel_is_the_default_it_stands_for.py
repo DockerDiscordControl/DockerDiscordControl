@@ -156,8 +156,10 @@ def test_the_sweep_still_finds_the_fields():
 
     # 44 until 2026-09-25, when three cooldown sliders whose buttons no
     # longer exist were removed from the panel
-    # (tests/spec/test_no_cooldown_slider_steers_nothing.py).
-    assert len(found) >= 41, f"only {len(found)} start values found - pattern blind?"
+    # (tests/spec/test_no_cooldown_slider_steers_nothing.py); 39 since
+    # 2026-09-27, when the /language and /forceupdate fields went - DDC has
+    # neither command.
+    assert len(found) >= 39, f"only {len(found)} start values found - pattern blind?"
     by_template = {}
     for template, _value in found.values():
         by_template[template] = by_template.get(template, 0) + 1
