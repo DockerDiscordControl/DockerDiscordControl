@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Atlikta - nepavyko atnaujinti tik šio skydelio. Naują skydelį atidarykite su /control.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker priėmė komandą, tačiau po {seconds} sekundžių būsena dar nebuvo pasikeitusi. Galbūt tai vis dar vykdoma.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Per daug neteisingų slaptažodžių - bandykite dar kartą po {minutes} min.",
-  "web.lang.unsaved_translation_settings": "Neišsaugoti pakeitimai - išsaugokite vertimo nustatymus, kad jie išliktų."
+  "web.lang.unsaved_translation_settings": "Neišsaugoti pakeitimai - išsaugokite vertimo nustatymus, kad jie išliktų.",
+  "web.security.raw_socket_open": "SAUGUMAS: DDC gali tiesiogiai atidaryti Docker lizdą, todėl allowlist tarpinis serveris nieko neriboja. Patikrinkite lizdą pagrindiniame kompiuteryje: jo grupė negali būti jūsų PGID ar 2375, o jo teisės turėtų būti 660 (ne 666)."
 }

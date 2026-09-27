@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Selesai - hanya panel ini yang tidak dapat diperbarui. Gunakan /control untuk panel baru.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker menerima perintah, tetapi status belum berubah setelah {seconds} detik. Mungkin masih berjalan.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Terlalu banyak kata sandi salah - coba lagi dalam {minutes} menit.",
-  "web.lang.unsaved_translation_settings": "Ada perubahan yang belum disimpan - simpan pengaturan terjemahan agar tidak hilang."
+  "web.lang.unsaved_translation_settings": "Ada perubahan yang belum disimpan - simpan pengaturan terjemahan agar tidak hilang.",
+  "web.security.raw_socket_open": "KEAMANAN: DDC dapat membuka soket Docker secara langsung, sehingga proxy allowlist tidak membatasi apa pun. Periksa soket di host: grupnya tidak boleh PGID Anda atau 2375, dan mode-nya sebaiknya 660 (bukan 666)."
 }

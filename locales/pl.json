@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Gotowe - nie udało się tylko zaktualizować tego panelu. Użyj /control, aby otrzymać nowy.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker przyjął polecenie, ale po {seconds} sekundach status nadal się nie zmienił. Możliwe, że operacja wciąż trwa.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Zbyt wiele błędnych haseł - spróbuj ponownie za {minutes} min.",
-  "web.lang.unsaved_translation_settings": "Niezapisane zmiany - zapisz ustawienia tłumaczenia, aby je zachować."
+  "web.lang.unsaved_translation_settings": "Niezapisane zmiany - zapisz ustawienia tłumaczenia, aby je zachować.",
+  "web.security.raw_socket_open": "BEZPIECZEŃSTWO: DDC może otworzyć gniazdo Dockera bezpośrednio, więc proxy allowlist niczego nie ogranicza. Sprawdź gniazdo na hoście: jego grupa nie może być Twoim PGID ani 2375, a jego uprawnienia powinny wynosić 660 (nie 666)."
 }

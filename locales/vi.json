@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Xong - chỉ bảng này không cập nhật được. Dùng /control để nhận bảng mới.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker đã nhận lệnh, nhưng sau {seconds} giây trạng thái vẫn chưa thay đổi. Có thể thao tác vẫn đang chạy.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Nhập sai mật khẩu quá nhiều lần - thử lại sau {minutes} phút.",
-  "web.lang.unsaved_translation_settings": "Thay đổi chưa lưu - hãy lưu cài đặt dịch thuật để giữ lại."
+  "web.lang.unsaved_translation_settings": "Thay đổi chưa lưu - hãy lưu cài đặt dịch thuật để giữ lại.",
+  "web.security.raw_socket_open": "BẢO MẬT: DDC có thể mở trực tiếp socket Docker, nên proxy allowlist không hạn chế được gì. Hãy kiểm tra socket trên máy chủ: nhóm của nó không được là PGID của bạn hoặc 2375, và quyền của nó nên là 660 (không phải 666)."
 }

@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "انجام شد - فقط این پنل به‌روزرسانی نشد. برای پنل جدید از /control استفاده کنید.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker دستور را پذیرفت، اما وضعیت پس از {seconds} ثانیه تغییر نکرده بود. ممکن است هنوز در حال انجام باشد.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 تعداد رمزهای عبور نادرست بیش از حد است - {minutes} دقیقه دیگر دوباره امتحان کنید.",
-  "web.lang.unsaved_translation_settings": "تغییرات ذخیره‌نشده - برای حفظ آن‌ها، تنظیمات ترجمه را ذخیره کنید."
+  "web.lang.unsaved_translation_settings": "تغییرات ذخیره‌نشده - برای حفظ آن‌ها، تنظیمات ترجمه را ذخیره کنید.",
+  "web.security.raw_socket_open": "امنیت: DDC می‌تواند سوکت Docker را مستقیماً باز کند، بنابراین پراکسی فهرست مجاز (allowlist proxy) هیچ محدودیتی اعمال نمی‌کند. سوکت را روی میزبان بررسی کنید: گروه آن نباید PGID شما یا 2375 باشد و مجوز آن باید 660 باشد (نه 666)."
 }

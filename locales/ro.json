@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Gata - doar acest panou nu a putut fi actualizat. Folosiți /control pentru unul nou.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker a acceptat comanda, dar starea nu se schimbase după {seconds} secunde. Este posibil să fie încă în curs.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Prea multe parole greșite - încercați din nou peste {minutes} minute.",
-  "web.lang.unsaved_translation_settings": "Modificări nesalvate - salvați setările de traducere pentru a le păstra."
+  "web.lang.unsaved_translation_settings": "Modificări nesalvate - salvați setările de traducere pentru a le păstra.",
+  "web.security.raw_socket_open": "SECURITATE: DDC poate deschide direct socketul Docker, așa că proxy-ul allowlist nu restricționează nimic. Verificați socketul pe gazdă: grupul său nu trebuie să fie PGID-ul dumneavoastră sau 2375, iar permisiunile sale ar trebui să fie 660 (nu 666)."
 }

@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "בוצע - רק הלוח הזה לא עודכן. השתמש ב-/control כדי לקבל לוח חדש.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker קיבל את הפקודה, אך הסטטוס לא השתנה לאחר {seconds} שניות. ייתכן שהפעולה עדיין מתבצעת.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 יותר מדי סיסמאות שגויות - נסה שוב בעוד {minutes} דקות.",
-  "web.lang.unsaved_translation_settings": "שינויים שלא נשמרו - שמור את הגדרות התרגום כדי לשמור עליהם."
+  "web.lang.unsaved_translation_settings": "שינויים שלא נשמרו - שמור את הגדרות התרגום כדי לשמור עליהם.",
+  "web.security.raw_socket_open": "אבטחה: DDC יכול לפתוח את ה-socket של Docker ישירות, ולכן ה-allowlist proxy אינו מגביל דבר. בדוק את ה-socket במארח: הקבוצה שלו אסור שתהיה ה-PGID שלך או 2375, וההרשאות שלו צריכות להיות 660 (לא 666)."
 }

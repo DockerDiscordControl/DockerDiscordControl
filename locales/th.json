@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "เสร็จแล้ว - มีเพียงแผงนี้ที่อัปเดตไม่ได้ ใช้ /control เพื่อรับแผงใหม่",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker รับคำสั่งแล้ว แต่สถานะยังไม่เปลี่ยนหลังผ่านไป {seconds} วินาที อาจยังดำเนินการอยู่",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 ใส่รหัสผ่านผิดหลายครั้งเกินไป - ลองใหม่ในอีก {minutes} นาที",
-  "web.lang.unsaved_translation_settings": "มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก - บันทึกการตั้งค่าการแปลเพื่อเก็บไว้"
+  "web.lang.unsaved_translation_settings": "มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก - บันทึกการตั้งค่าการแปลเพื่อเก็บไว้",
+  "web.security.raw_socket_open": "ความปลอดภัย: DDC สามารถเปิดซ็อกเก็ต Docker ได้โดยตรง ดังนั้น allowlist proxy จึงไม่ได้จำกัดอะไรเลย ตรวจสอบซ็อกเก็ตบนโฮสต์: กลุ่มของซ็อกเก็ตต้องไม่ใช่ PGID ของคุณหรือ 2375 และโหมดควรเป็น 660 (ไม่ใช่ 666)"
 }

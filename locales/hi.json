@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "हो गया - केवल यह पैनल अपडेट नहीं हो सका। नया पैनल पाने के लिए /control का उपयोग करें।",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker ने कमांड स्वीकार कर ली, लेकिन {seconds} सेकंड बाद भी स्थिति नहीं बदली थी। हो सकता है यह अभी भी चल रहा हो।",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 बहुत अधिक गलत पासवर्ड - {minutes} मिनट बाद पुनः प्रयास करें।",
-  "web.lang.unsaved_translation_settings": "सहेजे न गए बदलाव - इन्हें बनाए रखने के लिए अनुवाद सेटिंग्स सहेजें।"
+  "web.lang.unsaved_translation_settings": "सहेजे न गए बदलाव - इन्हें बनाए रखने के लिए अनुवाद सेटिंग्स सहेजें।",
+  "web.security.raw_socket_open": "सुरक्षा: DDC सीधे Docker सॉकेट खोल सकता है, इसलिए allowlist प्रॉक्सी कुछ भी प्रतिबंधित नहीं करता। होस्ट पर सॉकेट जाँचें: इसका समूह आपका PGID या 2375 नहीं होना चाहिए, और इसका मोड 660 होना चाहिए (666 नहीं)।"
 }

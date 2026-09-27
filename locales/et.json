@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Tehtud - ainult seda paneeli ei õnnestunud värskendada. Uue saamiseks kasuta /control.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker võttis käsu vastu, kuid olek polnud {seconds} sekundi pärast muutunud. See võib veel käimas olla.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Liiga palju valesid paroole - proovi uuesti {minutes} minuti pärast.",
-  "web.lang.unsaved_translation_settings": "Salvestamata muudatused - salvesta tõlke seaded, et neid alles hoida."
+  "web.lang.unsaved_translation_settings": "Salvestamata muudatused - salvesta tõlke seaded, et neid alles hoida.",
+  "web.security.raw_socket_open": "TURVALISUS: DDC saab Dockeri sokli otse avada, seega allowlist-puhverserver ei piira midagi. Kontrolli soklit hostis: selle grupp ei tohi olla sinu PGID ega 2375 ning selle õigused peaksid olema 660 (mitte 666)."
 }

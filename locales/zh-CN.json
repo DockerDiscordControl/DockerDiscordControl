@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "已完成 - 只是这个面板未能更新。使用 /control 获取新面板。",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker 已接受命令，但 {seconds} 秒后状态仍未改变。可能仍在处理中。",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 密码错误次数过多 - 请在 {minutes} 分钟后重试。",
-  "web.lang.unsaved_translation_settings": "有未保存的更改 - 请保存翻译设置以保留这些更改。"
+  "web.lang.unsaved_translation_settings": "有未保存的更改 - 请保存翻译设置以保留这些更改。",
+  "web.security.raw_socket_open": "安全警告：DDC 可以直接打开 Docker 套接字，因此 allowlist 代理形同虚设。请在主机上检查该套接字：其所属组不得是你的 PGID 或 2375，权限应为 660（而不是 666）。"
 }

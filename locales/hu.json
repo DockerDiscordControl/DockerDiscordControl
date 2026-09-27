@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Kész - csak ezt a panelt nem sikerült frissíteni. Újat a /control paranccsal kérhetsz.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "A Docker elfogadta a parancsot, de az állapot {seconds} másodperc után sem változott. Lehet, hogy még folyamatban van.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Túl sok hibás jelszó - próbáld újra {minutes} perc múlva.",
-  "web.lang.unsaved_translation_settings": "Nem mentett módosítások - mentsd a fordítási beállításokat, hogy megmaradjanak."
+  "web.lang.unsaved_translation_settings": "Nem mentett módosítások - mentsd a fordítási beállításokat, hogy megmaradjanak.",
+  "web.security.raw_socket_open": "BIZTONSÁG: A DDC közvetlenül meg tudja nyitni a Docker socketet, így az allowlist proxy semmit sem korlátoz. Ellenőrizd a socketet a hoszton: a csoportja nem lehet a PGID-d vagy 2375, a jogosultsága pedig 660 legyen (ne 666)."
 }

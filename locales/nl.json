@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Klaar - alleen dit paneel kon niet worden bijgewerkt. Gebruik /control voor een nieuw paneel.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker heeft de opdracht geaccepteerd, maar na {seconds} seconden was de status nog niet veranderd. Mogelijk is Docker er nog mee bezig.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Te veel onjuiste wachtwoorden - probeer het over {minutes} minuten opnieuw.",
-  "web.lang.unsaved_translation_settings": "Niet-opgeslagen wijzigingen - sla de vertaalinstellingen op om ze te behouden."
+  "web.lang.unsaved_translation_settings": "Niet-opgeslagen wijzigingen - sla de vertaalinstellingen op om ze te behouden.",
+  "web.security.raw_socket_open": "BEVEILIGING: DDC kan de Docker-socket rechtstreeks openen, dus de allowlist-proxy beperkt niets. Controleer de socket op de host: de groep mag niet je PGID of 2375 zijn, en de modus moet 660 zijn (niet 666)."
 }

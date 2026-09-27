@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "完了しました。ただし、このパネルだけは更新できませんでした。新しいパネルは /control で表示できます。",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker はコマンドを受け付けましたが、{seconds} 秒経ってもステータスが変わりませんでした。まだ処理中の可能性があります。",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 パスワードの誤りが多すぎます。{minutes} 分後にもう一度お試しください。",
-  "web.lang.unsaved_translation_settings": "未保存の変更があります。保持するには翻訳設定を保存してください。"
+  "web.lang.unsaved_translation_settings": "未保存の変更があります。保持するには翻訳設定を保存してください。",
+  "web.security.raw_socket_open": "セキュリティ: DDC は Docker ソケットを直接開けるため、allowlist プロキシは何も制限していません。ホスト上のソケットを確認してください: グループが PGID や 2375 であってはならず、モードは 660 (666 ではなく) にしてください。"
 }

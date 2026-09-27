@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Hecho - solo este panel no se pudo actualizar. Use /control para obtener uno nuevo.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker aceptó el comando, pero el estado no había cambiado tras {seconds} segundos. Puede que todavía esté en curso.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Demasiadas contraseñas incorrectas - inténtelo de nuevo en {minutes} minutos.",
-  "web.lang.unsaved_translation_settings": "Cambios sin guardar - guarde la configuración de traducción para conservarlos."
+  "web.lang.unsaved_translation_settings": "Cambios sin guardar - guarde la configuración de traducción para conservarlos.",
+  "web.security.raw_socket_open": "SEGURIDAD: DDC puede abrir el socket de Docker directamente, por lo que el proxy de lista de permitidos no restringe nada. Revise el socket en el host: su grupo no debe ser su PGID ni 2375, y sus permisos deberían ser 660 (no 666)."
 }

@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Gatavs - neizdevās atjaunināt tikai šo paneli. Jaunu paneli atveriet ar /control.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker pieņēma komandu, taču pēc {seconds} sekundēm statuss vēl nebija mainījies. Iespējams, tas joprojām notiek.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Pārāk daudz nepareizu paroļu - mēģiniet vēlreiz pēc {minutes} minūtēm.",
-  "web.lang.unsaved_translation_settings": "Nesaglabātas izmaiņas - saglabājiet tulkošanas iestatījumus, lai tās paturētu."
+  "web.lang.unsaved_translation_settings": "Nesaglabātas izmaiņas - saglabājiet tulkošanas iestatījumus, lai tās paturētu.",
+  "web.security.raw_socket_open": "DROŠĪBA: DDC var tieši atvērt Docker ligzdu, tāpēc allowlist starpniekserveris neko neierobežo. Pārbaudiet ligzdu resursdatorā: tās grupa nedrīkst būt jūsu PGID vai 2375, un tās režīmam jābūt 660 (nevis 666)."
 }

@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Готово - само този панел не можа да бъде обновен. Използвай /control за нов.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker прие командата, но състоянието не се промени след {seconds} секунди. Възможно е все още да се изпълнява.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Твърде много грешни пароли - опитай отново след {minutes} минути.",
-  "web.lang.unsaved_translation_settings": "Незапазени промени - запази настройките за превод, за да не ги загубиш."
+  "web.lang.unsaved_translation_settings": "Незапазени промени - запази настройките за превод, за да не ги загубиш.",
+  "web.security.raw_socket_open": "СИГУРНОСТ: DDC може да отвори Docker сокета директно, така че allowlist проксито не ограничава нищо. Провери сокета на хоста: групата му не трябва да е твоят PGID или 2375, а правата му трябва да са 660 (не 666)."
 }

@@ -1,0 +1,8 @@
+{# The allowlist proxy binds nothing when DDC can open the raw Docker socket itself
+   (PGID equal to the socket's group, a socket of mode 666, a socket group that is the
+   proxy user's own). Operator decision 2026-09-27: warn loudly, do not refuse to start. #}
+{% if raw_docker_socket_open %}
+<div class="alert alert-danger my-3" role="alert" data-raw-socket="open">
+  <i class="bi bi-exclamation-octagon me-1"></i>{{ _t('web.security.raw_socket_open') }}
+</div>
+{% endif %}

@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Valmis - vain tätä paneelia ei voitu päivittää. Saat uuden komennolla /control.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker hyväksyi komennon, mutta tila ei ollut muuttunut {seconds} sekunnin jälkeen. Se voi olla vielä käynnissä.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Liian monta väärää salasanaa - yritä uudelleen {minutes} minuutin kuluttua.",
-  "web.lang.unsaved_translation_settings": "Tallentamattomia muutoksia - tallenna käännösasetukset, jotta ne säilyvät."
+  "web.lang.unsaved_translation_settings": "Tallentamattomia muutoksia - tallenna käännösasetukset, jotta ne säilyvät.",
+  "web.security.raw_socket_open": "TIETOTURVA: DDC voi avata Docker-socketin suoraan, joten allowlist-välityspalvelin ei rajoita mitään. Tarkista socket isännällä: sen ryhmä ei saa olla PGID:si eikä 2375, ja sen oikeuksien pitäisi olla 660 (ei 666)."
 }

@@ -27,8 +27,33 @@ logger = logging.getLogger("ddc.web.security")
 _IDLE_EXEMPT_PATHS = ("/static/", "/health", "/logout", "/login")
 
 
+PROXY_SOCKET = "/run/ddc-proxy/docker.sock"
+RAW_DOCKER_SOCKET = "/var/run/docker.sock"
+
+
+def raw_docker_socket_open() -> bool:
+    """True when DDC goes through the allowlist proxy AND could open the raw socket itself.
+
+    Then the proxy binds nothing: a PGID equal to the socket's group, a socket
+    of mode 666 on the host, or a socket group that is the proxy user's own
+    (review 2026-09-27). The operator chose a loud warning over refusing to
+    start, so the entrypoint logs it and the panel shows it for as long as it
+    holds. Asked of the operating system, for the process that serves the page.
+    """
+    via_proxy = os.environ.get("DOCKER_HOST", "") == f"unix://{PROXY_SOCKET}"
+    return (via_proxy and os.path.exists(RAW_DOCKER_SOCKET)
+            and os.access(RAW_DOCKER_SOCKET, os.R_OK | os.W_OK))
+
+
 def install_security_handlers(app: Flask) -> None:
     """Register before/after request handlers for security headers."""
+
+    @app.context_processor
+    def raw_socket_notice():
+        from app.auth import session_user
+
+        # Only for somebody logged in - it tells how this installation is weak.
+        return {"raw_docker_socket_open": session_user() is not None and raw_docker_socket_open()}
 
     # Version shown in the page footer (_base.html). DDC_VERSION is set by the Dockerfile;
     # without it (dev checkout) the footer shows no version.

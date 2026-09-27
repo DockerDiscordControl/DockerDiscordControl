@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Gotovo - samo ovu ploču nije bilo moguće ažurirati. Upotrijebi /control za novu.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker je prihvatio naredbu, ali se status nakon {seconds} sekundi još nije promijenio. Možda je još u tijeku.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Previše pogrešnih lozinki - pokušaj ponovno za {minutes} minuta.",
-  "web.lang.unsaved_translation_settings": "Nespremljene promjene - spremi postavke prijevoda da ih zadržiš."
+  "web.lang.unsaved_translation_settings": "Nespremljene promjene - spremi postavke prijevoda da ih zadržiš.",
+  "web.security.raw_socket_open": "SIGURNOST: DDC može izravno otvoriti Docker socket, pa allowlist proxy ništa ne ograničava. Provjeri socket na hostu: njegova grupa ne smije biti tvoj PGID ni 2375, a njegove ovlasti trebaju biti 660 (ne 666)."
 }

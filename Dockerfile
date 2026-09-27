@@ -183,6 +183,8 @@ COPY scripts/entrypoint.sh /app/entrypoint.sh
 COPY scripts/reset_password.py /app/scripts/reset_password.py
 # Break-glass for a lost second factor (docs: docker exec -it -u ddc <container> python3 scripts/disable_2fa.py)
 COPY scripts/disable_2fa.py /app/scripts/disable_2fa.py
+# Link-safe ownership repair the entrypoint runs as root on the data directories.
+COPY scripts/fix_ownership.py /app/scripts/fix_ownership.py
 # The Docker allowlist proxy, a root-owned copy outside every path ddc can write.
 COPY services/docker_proxy/allowlist_proxy.py /opt/ddc-proxy/allowlist_proxy.py
 

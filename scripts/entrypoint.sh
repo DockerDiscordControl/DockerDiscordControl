@@ -366,13 +366,25 @@ setup_docker_socket_access() {
 
     # Handle root group (GID 0) specially
     if [ "$sock_gid" = "0" ]; then
-        log_warn "Docker socket owned by root group (GID 0)"
-        log_warn "User will need root group membership or socket mode 666"
-        # Check if socket is world-readable
-        if [ -r "$docker_sock" ] 2>/dev/null; then
-            log_info "Docker socket appears to be world-accessible"
+        # THE PROXY USER JOINS THE ROOT GROUP here, and only it (review
+        # 2026-09-27). Returning without that left ddcproxy locked out of a
+        # root:root 660 socket - every Docker call answered 502 - while a PGID of
+        # 0 still gave ddc the raw socket. ddcproxy runs nothing but the proxy,
+        # and nothing in the image is writable for group root.
+        log_warn "Docker socket owned by root group (GID 0) - adding $PROXY_USER to it"
+        if ! addgroup "$PROXY_USER" root 2>/dev/null; then
+            log_warn "Could not add $PROXY_USER to group root - Docker operations may fail"
         fi
         return 0
+    fi
+
+    # A socket whose group IS the proxy user's group would be open to ddc, which
+    # joins that group to reach the proxy (review 2026-09-27). Warn loudly - the
+    # operator decided against refusing to start; the panel shows it as well.
+    if [ "$sock_gid" = "$(id -g "$PROXY_USER" 2>/dev/null)" ]; then
+        log_warn "SECURITY: the Docker socket's group ($sock_gid) is the proxy user's own group -"
+        log_warn "$APP_USER can open the socket directly, past the allowlist proxy."
+        log_warn "Give the socket another group on the host (e.g. the usual 'docker' group)."
     fi
 
     # Find existing group with socket's GID or create one
@@ -448,7 +460,7 @@ start_docker_proxy() {
 
     # Run as the proxy user from the root-owned copy, and restart it if it ever
     # exits. No root process stays behind: the loop itself runs as the proxy user.
-    su-exec "$PROXY_USER" sh -c "while true; do python3 '$PROXY_SCRIPT' --listen '$PROXY_SOCKET' --upstream '$DOCKER_SOCKET'; echo '[DDC] docker proxy exited - restarting in 2s' >&2; sleep 2; done" &
+    su-exec "$PROXY_USER" sh -c "while true; do python3 -I '$PROXY_SCRIPT' --listen '$PROXY_SOCKET' --upstream '$DOCKER_SOCKET'; echo '[DDC] docker proxy exited - restarting in 2s' >&2; sleep 2; done" &
 
     local waited=0
     while [ ! -S "$PROXY_SOCKET" ] && [ "$waited" -lt 50 ]; do
@@ -557,8 +569,12 @@ fix_permissions() {
 
     for dir in $DATA_DIRS; do
         if [ -d "$dir" ] && [ -n "$(find_unusable_entries "$dir" "$target_uid" "$target_gid" -print -quit)" ]; then
-            find_unusable_entries "$dir" "$target_uid" "$target_gid" \
-                -exec chown "$target_uid:$target_gid" {} \; -exec chmod u+rwX {} \;
+            # NOT find's exec actions for the owner and mode: find checked "not a
+            # link" when it listed an entry, and they then followed whatever the path had
+            # become - a swap in that moment made root hand the link's target to
+            # the app user's uid (review 2026-09-27). The helper walks by directory
+            # descriptors and changes each entry through its own O_NOFOLLOW handle.
+            python3 -I /app/scripts/fix_ownership.py "$dir" "$target_uid" "$target_gid" >/dev/null 2>&1
             offender=$(find_unusable_entries "$dir" "$target_uid" "$target_gid" -print -quit)
             if [ -z "$offender" ]; then
                 log_info "Fixed unusable entries in $dir"

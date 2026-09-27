@@ -33,21 +33,27 @@ Docker socket's group and runs a small allowlist proxy
 `ddc`, is not in the socket's group, and reaches Docker only through the proxy
 (`DOCKER_HOST=unix:///run/ddc-proxy/docker.sock`).
 
-The proxy passes these requests, matched on method and path with the query
-string stripped, and answers everything else with 403:
+The proxy passes these requests - method, path and the query parameters each
+may carry, exactly what docker-py sends for DDC's calls - and answers
+everything else with 403. API versions below 1.24 are refused (an older
+`start` would apply a HostConfig from the body), and so is every request with
+a body, a streamed body or a protocol upgrade:
 
 ```
 GET   /_ping                     (and HEAD)
 GET   /version                   docker-py negotiates the API version with it
-GET   /containers/json
-GET   /containers/{id}/json
-GET   /containers/{id}/logs
-GET   /containers/{id}/stats
-POST  /containers/{id}/start
-POST  /containers/{id}/stop
-POST  /containers/{id}/restart
+GET   /containers/json           all, limit, size, trunc_cmd, filters, since, before
+GET   /containers/{id}/json      size
+GET   /containers/{id}/logs      stdout, stderr, timestamps, follow, tail, since, until
+GET   /containers/{id}/stats     stream, one-shot
+POST  /containers/{id}/start     -
+POST  /containers/{id}/stop      t
+POST  /containers/{id}/restart   t
 GET   /images/{name}/json        reserved, read-only (image-update notice)
 ```
+
+A stop or restart is waited for as long as its `t` asks, plus a minute; the
+connections are bounded and a request head must arrive within 30 seconds.
 
 `POST /containers/create`, `exec`, `kill`, `archive`, `/info`, `/events` and
 every image, volume or network change are unreachable by construction
@@ -63,13 +69,17 @@ Docker client DDC builds goes through one factory that follows `DOCKER_HOST`
 - `GET /containers/{id}/logs` returns whatever the container logs, and
   secrets in logs are common.
 
-Anyone who gets through door B or door C can read both for every configured
-container. The proxy does not change that.
+Anyone who gets through door B or door C can read both for **every container
+on the host** - the proxy checks the endpoint, not which container it names -
+and can start, stop and restart any of them. The proxy does not change that.
 
 **What keeps DDC out of its own start.** The code under `/app`, the entrypoint
 and the proxy copy in `/opt/ddc-proxy` belong to root and are read-only for
-`ddc`; only `config/`, `logs/`, `cached_displays/` and `cached_animations/`
-belong to `ddc`. Otherwise code running as `ddc` could rewrite the entrypoint
+`ddc`; only `config/`, `logs/`, `cached_displays/`, `cached_animations/` and
+`assets/` belong to `ddc`. The proxy runs isolated (`python3 -I`), so no
+`PYTHONPATH` entry can hand it a module, and the ownership repair at start walks
+the data directories without ever following a link
+(`scripts/fix_ownership.py`). Otherwise code running as `ddc` could rewrite the entrypoint
 that root runs at the next start. `scripts/check_image_boundary.sh` attempts
 all of this as `ddc` in a running container and fails if any attempt succeeds.
 
@@ -78,9 +88,12 @@ all of this as `ddc` in a running container and fails if any attempt succeeds.
 the API behind it at all - it is no protection and is not relied on.
 
 **Limits of the one-container design.** If the host's socket is world-writable
-(mode 666), or `PGID` equals the socket's group, `ddc` can open the socket
-directly and the proxy does not bind DDC. The entrypoint says so loudly at
-start. A container started with `--user` has no root phase, so no proxy runs;
+(mode 666), `PGID` equals the socket's group, or the socket's group is the
+proxy user's own (2375), `ddc` can open the socket directly and the proxy does
+not bind DDC. The entrypoint says so loudly at start, and the panel shows a red
+notice for as long as it holds (operator decision: warn, do not refuse to
+start). A socket in the root group (GID 0) is handled: the proxy user joins
+that group, `ddc` does not. A container started with `--user` has no root phase, so no proxy runs;
 the entrypoint then warns that DDC uses the raw socket. That is the ONLY case
 in which it does: once the root phase has started a proxy, a proxy that is
 missing later leaves DDC without container control rather than on the raw

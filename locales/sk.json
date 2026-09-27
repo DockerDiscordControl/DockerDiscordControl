@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Hotovo - len tento panel sa nepodarilo aktualizovať. Nový získate príkazom /control.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker príkaz prijal, ale stav sa ani po {seconds} sekundách nezmenil. Možno ešte prebieha.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Príliš veľa nesprávnych hesiel - skúste to znova o {minutes} minút.",
-  "web.lang.unsaved_translation_settings": "Neuložené zmeny - uložte nastavenia prekladu, aby sa zachovali."
+  "web.lang.unsaved_translation_settings": "Neuložené zmeny - uložte nastavenia prekladu, aby sa zachovali.",
+  "web.security.raw_socket_open": "BEZPEČNOSŤ: DDC môže otvoriť Docker socket priamo, takže allowlist proxy nič neobmedzuje. Skontrolujte socket na hostiteľovi: jeho skupina nesmie byť váš PGID ani 2375 a jeho oprávnenia by mali byť 660 (nie 666)."
 }

@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Ferdig - bare dette panelet kunne ikke oppdateres. Bruk /control for å få et nytt.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker godtok kommandoen, men statusen hadde ikke endret seg etter {seconds} sekunder. Den kan fortsatt holde på.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 For mange feil passord - prøv igjen om {minutes} minutter.",
-  "web.lang.unsaved_translation_settings": "Ulagrede endringer - lagre oversettelsesinnstillingene for å beholde dem."
+  "web.lang.unsaved_translation_settings": "Ulagrede endringer - lagre oversettelsesinnstillingene for å beholde dem.",
+  "web.security.raw_socket_open": "SIKKERHET: DDC kan åpne Docker-socketen direkte, så allowlist-proxyen begrenser ingenting. Sjekk socketen på verten: gruppen må ikke være din PGID eller 2375, og modusen bør være 660 (ikke 666)."
 }

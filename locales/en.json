@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Done - only this panel could not be updated. Use /control for a fresh one.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Too many wrong passwords - try again in {minutes} minutes.",
-  "web.lang.unsaved_translation_settings": "Unsaved changes - save the translation settings to keep them."
+  "web.lang.unsaved_translation_settings": "Unsaved changes - save the translation settings to keep them.",
+  "web.security.raw_socket_open": "SECURITY: DDC can open the Docker socket directly, so the allowlist proxy restricts nothing. Check the socket on the host: its group must not be your PGID or 2375, and its mode should be 660 (not 666)."
 }

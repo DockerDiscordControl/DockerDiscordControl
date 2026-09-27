@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "تم - لكن تعذّر تحديث هذه اللوحة فقط. استخدم /control للحصول على لوحة جديدة.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "قبل Docker الأمر، لكن الحالة لم تتغير بعد {seconds} ثانية. قد تكون العملية لا تزال جارية.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 محاولات كثيرة بكلمة مرور خاطئة - حاول مرة أخرى بعد {minutes} دقيقة.",
-  "web.lang.unsaved_translation_settings": "تغييرات غير محفوظة - احفظ إعدادات الترجمة للاحتفاظ بها."
+  "web.lang.unsaved_translation_settings": "تغييرات غير محفوظة - احفظ إعدادات الترجمة للاحتفاظ بها.",
+  "web.security.raw_socket_open": "أمان: يمكن لـ DDC فتح مقبس Docker مباشرةً، لذا لا يقيّد وكيل القائمة المسموح بها (allowlist proxy) أي شيء. افحص المقبس على المضيف: يجب ألا تكون مجموعته هي PGID الخاص بك أو 2375، ويجب أن تكون صلاحياته 660 (وليس 666)."
 }

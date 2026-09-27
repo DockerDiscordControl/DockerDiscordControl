@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "已完成 - 只是這個面板無法更新。使用 /control 取得新面板。",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker 已接受指令，但 {seconds} 秒後狀態仍未改變。可能仍在處理中。",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 密碼錯誤次數過多 - 請在 {minutes} 分鐘後再試。",
-  "web.lang.unsaved_translation_settings": "有未儲存的變更 - 請儲存翻譯設定以保留變更。"
+  "web.lang.unsaved_translation_settings": "有未儲存的變更 - 請儲存翻譯設定以保留變更。",
+  "web.security.raw_socket_open": "安全性警告：DDC 可以直接開啟 Docker socket，因此 allowlist 代理形同虛設。請在主機上檢查該 socket：其所屬群組不得是您的 PGID 或 2375，權限應為 660（而非 666）。"
 }

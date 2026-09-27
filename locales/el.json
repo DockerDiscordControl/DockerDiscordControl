@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Έγινε - μόνο αυτός ο πίνακας δεν ήταν δυνατό να ενημερωθεί. Χρησιμοποίησε το /control για έναν νέο.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Το Docker δέχτηκε την εντολή, αλλά η κατάσταση δεν είχε αλλάξει μετά από {seconds} δευτερόλεπτα. Ίσως βρίσκεται ακόμη σε εξέλιξη.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Πάρα πολλοί λανθασμένοι κωδικοί - δοκίμασε ξανά σε {minutes} λεπτά.",
-  "web.lang.unsaved_translation_settings": "Μη αποθηκευμένες αλλαγές - αποθήκευσε τις ρυθμίσεις μετάφρασης για να τις διατηρήσεις."
+  "web.lang.unsaved_translation_settings": "Μη αποθηκευμένες αλλαγές - αποθήκευσε τις ρυθμίσεις μετάφρασης για να τις διατηρήσεις.",
+  "web.security.raw_socket_open": "ΑΣΦΑΛΕΙΑ: Το DDC μπορεί να ανοίξει απευθείας το socket του Docker, οπότε ο allowlist proxy δεν περιορίζει τίποτα. Έλεγξε το socket στον host: η ομάδα του δεν πρέπει να είναι το PGID σου ή 2375, και τα δικαιώματά του πρέπει να είναι 660 (όχι 666)."
 }

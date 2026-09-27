@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Tamamlandı - yalnızca bu panel güncellenemedi. Yenisi için /control kullanın.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker komutu kabul etti, ancak {seconds} saniye sonra durum hâlâ değişmemişti. İşlem hâlâ sürüyor olabilir.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Çok fazla yanlış şifre - {minutes} dakika sonra tekrar deneyin.",
-  "web.lang.unsaved_translation_settings": "Kaydedilmemiş değişiklikler - korumak için çeviri ayarlarını kaydedin."
+  "web.lang.unsaved_translation_settings": "Kaydedilmemiş değişiklikler - korumak için çeviri ayarlarını kaydedin.",
+  "web.security.raw_socket_open": "GÜVENLİK: DDC, Docker soketini doğrudan açabiliyor; bu nedenle allowlist proxy hiçbir şeyi kısıtlamıyor. Ana makinedeki soketi kontrol edin: grubu PGID'niz veya 2375 olmamalı ve modu 660 olmalıdır (666 değil)."
 }

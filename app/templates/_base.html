@@ -145,6 +145,7 @@ Licensed under the MIT License
     {% include 'base.html' %} {# Navbar #}
     
     <div class="container">
+        {% include '_raw_socket_notice.html' %}
         {% include '_two_factor_notice.html' %}
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

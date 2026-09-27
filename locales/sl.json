@@ -1623,5 +1623,6 @@
   "Done - only this panel could not be updated. Use /control for a fresh one.": "Končano - le te plošče ni bilo mogoče posodobiti. Za novo uporabite /control.",
   "Docker accepted the command, but the status had not changed after {seconds} seconds. It may still be working.": "Docker je sprejel ukaz, vendar se stanje po {seconds} sekundah še ni spremenilo. Morda se še izvaja.",
   "🔒 Too many wrong passwords - try again in {minutes} minutes.": "🔒 Preveč napačnih gesel - poskusite znova čez {minutes} min.",
-  "web.lang.unsaved_translation_settings": "Neshranjene spremembe - shranite nastavitve prevodov, da jih ohranite."
+  "web.lang.unsaved_translation_settings": "Neshranjene spremembe - shranite nastavitve prevodov, da jih ohranite.",
+  "web.security.raw_socket_open": "VARNOST: DDC lahko neposredno odpre Docker vtičnico, zato allowlist proxy ničesar ne omejuje. Preverite vtičnico na gostitelju: njena skupina ne sme biti vaš PGID ali 2375, njen način pa bi moral biti 660 (ne 666)."
 }
