@@ -108,6 +108,14 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
 
 ### 🔒 Security
 
+- **The Docker proxy, read adversarially (2026-09-27):** 460,000 mutated requests against a
+  Go/gorilla stand-in daemon reached no forbidden route. Fixed around it: a stop or restart
+  longer than 120 s is waited for (it came back as 502 while the container was still stopping);
+  each endpoint takes only the query parameters docker-py sends for DDC (`start?checkpoint=`,
+  `stop?signal=` are refused); connections are bounded; the proxy runs as `python3 -I`; the
+  ownership repair at start never follows a link (`scripts/fix_ownership.py`); a socket in the
+  root group works; a socket in the proxy's own group (2375), a PGID equal to the socket's
+  group or a socket of mode 666 get a loud warning in the log and a red notice in the panel.
 - **The protected-info password is braked per hour as well** (ten tries per person per hour on
   top of three a minute): three a minute still allowed about 4,300 guesses a day per account.
 - **Allowlist proxy in front of the Docker socket.** Inside the one container, a separate user
