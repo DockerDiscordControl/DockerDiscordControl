@@ -143,6 +143,16 @@ class AutoActionStateService:
         """The key of one rule's cooldown on one container."""
         return f"{rule_id}::{container}"
 
+    def _last_container_run(self, rule_id: str, container: str) -> float:
+        """When this rule last acted on this container.
+
+        v2.4.1 and earlier keyed the cooldown by the container alone, for every rule.
+        Such an entry, carried over by an update, still counts until it runs out -
+        otherwise a rule that fired just before the update could fire again at once.
+        """
+        return max(self.container_cooldowns.get(self.cooldown_key(rule_id, container), 0) or 0,
+                   self.container_cooldowns.get(container, 0) or 0)
+
     @staticmethod
     def _minutes_left(cooldown_sec: float, elapsed: float) -> str:
         # Rounded UP: "0m remaining" was printed for the last 59 seconds.
@@ -177,7 +187,7 @@ class AutoActionStateService:
 
             # 3. Container Cooldown (using rule specific time)
             # Default scope: a 24h cooldown applies to each container affected by this rule.
-            last_run = self.container_cooldowns.get(self.cooldown_key(rule_id, container), 0)
+            last_run = self._last_container_run(rule_id, container)
 
             if (now - last_run) < cooldown_sec:
                 return True, (f"Container '{container}' cooldown active "
@@ -244,7 +254,7 @@ class AutoActionStateService:
 
             # 2b. Container Cooldown Check - all targets before setting anything
             for container in containers:
-                last_run = self.container_cooldowns.get(self.cooldown_key(rule_id, container), 0)
+                last_run = self._last_container_run(rule_id, container)
                 if (now - last_run) < cooldown_sec:
                     return False, (f"Container '{container}' cooldown active "
                                    f"({self._minutes_left(cooldown_sec, now - last_run)} remaining)"), container

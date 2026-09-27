@@ -294,16 +294,16 @@ def load_snapshot(mech_id: str) -> Snapshot:
                 persist_snapshot(snap)
             logger.info(f"Migrated snapshot {p.name}: decay anchor moved into goal_started_at")
         elif snap.goal_started_at != anchor_before:
-            # _ensure_decay_anchor() repaired a missing or naive anchor (the v2.3.1 admin reset
-            # wrote naive timestamps) - but only in memory. This used to reach disk because
-            # get_state() persisted after every read; once that write became conditional the
-            # repair stopped being permanent and the old timestamp stayed in the file forever.
-            # The migration belongs here, next to the other two, so it holds for EVERY caller
-            # and not just the one that happens to write afterwards. An already valid anchor is
-            # left untouched, so this does not reintroduce the write-on-every-read.
+            # A repaired naive/missing anchor (v2.3.1's reset) is made permanent for every caller
             with LOCK:
                 persist_snapshot(snap)
             logger.info(f"Migrated snapshot {p.name}: decay anchor is now timezone-aware")
+        if snap.level >= 11 and snap.power_decay_per_day != decay_per_day(snap.level):
+            # v2.4.1 read this rate from the table, never stored it: OMEGA kept level 10's
+            snap.power_decay_per_day = decay_per_day(snap.level)
+            with LOCK:
+                persist_snapshot(snap)
+            logger.info(f"Migrated snapshot {p.name}: final level decays at its table rate")
         return snap
 
     # First-time snapshot → initialize goal for level 1
