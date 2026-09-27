@@ -117,4 +117,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
-          cache-to: type=gha,mode=max 
+          cache-to: type=gha,mode=max
+          # The runtime stage is always built fresh. With the layer cache its
+          # `apk upgrade` did not run again: v3.0.0 shipped expat 2.8.4-r0
+          # (CVE-2026-93990, Docker Scout) while Alpine already had 2.8.5-r0,
+          # and the image built on the host without cache had the fix. The
+          # builder stage stays cached - nothing of it ships but site-packages.
+          no-cache-filters: runtime 

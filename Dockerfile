@@ -77,7 +77,9 @@ for pth_file in runtime.glob('*.pth'):
 PY
 
 # Production stage - minimal runtime
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+# Named so the CI can build it without cache: see no-cache-filters in
+# .github/workflows/docker-publish.yml - the apk upgrade below must really run.
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS runtime
 
 WORKDIR /app
 
@@ -205,7 +207,7 @@ RUN mkdir -p /app/config /app/logs /app/scripts && \
 # DOCKER_HOST: the allowlist proxy the entrypoint starts (v3.0). Set for the whole
 # image, not only exported by the entrypoint, so docker exec sessions and
 # diagnostics take the same way as DDC instead of the raw socket.
-ENV DDC_VERSION="3.0.0" \
+ENV DDC_VERSION="3.0.1" \
     DOCKER_HOST="unix:///run/ddc-proxy/docker.sock" \
     PYTHONPATH="/app:/opt/runtime/site-packages" \
     PYTHONDONTWRITEBYTECODE=1 \

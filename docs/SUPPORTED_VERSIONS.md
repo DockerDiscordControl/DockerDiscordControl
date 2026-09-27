@@ -6,11 +6,11 @@
 
 | Version | Support Status | Release Date | Notes |
 |---------|---------------|--------------|-------|
-| v2.4.1 | Current | 2026-09-22 | Last v2 release |
-| < v2.4.1 | Unsupported | - | Upgrade to the current release |
+| v3.0.1 | Current | 2026-09-27 | Security patch for v3.0.0 |
+| v3.0.0 | Update to v3.0.1 | 2026-09-27 | Open redirect after login, fixed in v3.0.1 |
+| < v3.0.0 | Unsupported | - | Upgrade to the current release |
 
-v3.0.0 replaces v2.4.1 when it is released. Going back from v3.0 to v2.4.1 is
-not supported (see the v3.0 release notes).
+Going back from v3.0 to v2.4.1 is not supported (see the v3.0 release notes).
 
 ### Version 2.0.0 Features
 

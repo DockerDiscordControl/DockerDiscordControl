@@ -4,6 +4,28 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v3.0.1 - 2026-09-27
+
+GitHub's code scanner (CodeQL) read the v3.0 code for the first time when it reached `main` and
+reported 25 places. Two were real and are fixed; the other 23 were checked by hand, each with a
+written reason on GitHub (names checked before a path is built, logged field NAMES and IP ranges
+instead of secrets, fixed error texts, test code). From v3.0.0 it is a plain image update.
+
+### 🔒 Security
+
+- **A login link can no longer send the browser to another host.** The login and the second
+  factor redirect to a `next` parameter. Their check ("starts with / but not //, no backslash")
+  let `/<TAB>/evil.example` through; Werkzeug writes the tab into the `Location` header unchanged,
+  and a browser removes tabs and line breaks from a URL, so it followed `//evil.example` right
+  after the password was typed. One shared rule (`app/web/next_url.py`) now refuses control
+  characters, space, DEL and backslash and lets the URL parser confirm there is no scheme or host.
+- **The group list no longer answers a read error with the raw error text**, which could name
+  the file's path on the host. The details go to the log; the browser gets a plain sentence.
+- **The image carries the current Alpine fixes.** Docker Scout found expat 2.8.4-r0
+  (CVE-2026-93990, High) in the v3.0.0 image although Alpine already shipped 2.8.5-r0: the CI
+  served the runtime stage from its layer cache, so its `apk upgrade` did not run again. The
+  runtime stage is now built without cache on every publish; the builder stage stays cached.
+
 ## v3.0.0 - 2026-09-27
 
 DDC's code can no longer reach anything but the Docker endpoints it needs. What this does and
