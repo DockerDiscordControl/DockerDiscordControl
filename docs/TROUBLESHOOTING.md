@@ -71,7 +71,9 @@ docker exec ddc ls -la /app/config/
    environment:
      DDC_ADMIN_PASSWORD: "your-new-password"
    ```
-   Then restart: `docker-compose restart`
+   Then recreate the container: `docker compose up -d` (a plain `restart` keeps the old
+   environment). The variable acts once per value: only a value different from the last one
+   applied resets the password, so a password changed in the Web UI survives later restarts.
 
 3. **Check Web UI is accessible:**
    ```bash

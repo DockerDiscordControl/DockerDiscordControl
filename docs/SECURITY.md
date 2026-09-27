@@ -107,10 +107,20 @@ socket.
   app/blueprints/main_routes.py `setup_page`/`setup_save`, gated only by
   `setup_is_closed()`]. Whoever reaches the port first in that window sets the
   password. It closes for good once a password hash exists. To never have the
-  window, set `DDC_ADMIN_PASSWORD` before the first start (it is applied only
-  when no password is set yet, so it does not reset a forgotten one later); or
+  window, set `DDC_ADMIN_PASSWORD` before the first start; or
   complete setup right after the first start and keep the port off untrusted
   networks until then.
+- **`DDC_ADMIN_PASSWORD` acts once per value.** It sets the password at the
+  first start and again whenever its value changes; the same value never
+  overrides a password changed in the panel [app/utils/web_helpers.py
+  `set_initial_password_from_env`, marker `web_ui_env_password_applied` in
+  config.json]. Acting at every start would bring a leaked password back with
+  the next reboot. The reset opens no new door: whoever can change the
+  container's environment already controls the host. The marker is a salted
+  PBKDF2 hash like the password hash itself. What stays: the variable is plain
+  text in the container's environment, readable by anyone with Docker access
+  (`docker inspect`) - after a change in the panel it is only out of date.
+  A reset ends every session; two-factor authentication stays on.
 - **Password:** PBKDF2-SHA256 with 600,000 iterations. Login and setup attempts
   are rate-limited per client address. A configuration that cannot be READ looks
   exactly like a fresh install (no password hash), so both the first-run login

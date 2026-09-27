@@ -485,6 +485,9 @@ class TestSetInitialPasswordFromEnv:
             lambda new_password, **kwargs: calls.append(new_password),
             raising=False,
         )
+        # The marker of the once-per-value rule is a second write; kept off the disk here.
+        monkeypatch.setattr("services.config.config_service.update_config_fields",
+                            lambda updates: True)
         return calls
 
     def test_env_var_sets_hash_when_unset(self, monkeypatch):
@@ -507,14 +510,19 @@ class TestSetInitialPasswordFromEnv:
         monkeypatch.setenv("DDC_ADMIN_PASSWORD", "supersecret")
         calls = self._patch_change_password(monkeypatch)
 
-        # Existing hash that is NOT 'admin' -> should skip
+        # Existing hash that is NOT 'admin' and no marker (an installation from before
+        # the once-per-value rule) -> not applied, only remembered
         existing = generate_password_hash("not-admin", method="pbkdf2:sha256:600000")
         monkeypatch.setattr(
             "services.config.config_service.load_config",
             lambda: {"web_ui_password_hash": existing},
         )
+        remembered = []
+        monkeypatch.setattr("services.config.config_service.update_config_fields",
+                            lambda updates: remembered.append(updates) or True)  # replaces the helper's
         wh.set_initial_password_from_env()
         assert calls == []
+        assert list(remembered[0]) == ["web_ui_env_password_applied"]
 
     def test_env_var_resets_when_default_admin(self, monkeypatch):
         """If existing hash matches 'admin', env var should overwrite."""

@@ -18,6 +18,11 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   non-default value is reported once in the log.
 - **Started with `--user`?** Then no proxy can run; DDC falls back to the raw socket and warns.
   Start without `--user` and use `PUID`/`PGID`.
+- **`DDC_ADMIN_PASSWORD` can reset a forgotten password.** Give the variable a new value and
+  restart (on Unraid: edit the template, Apply) - the new password applies and every session
+  ends. It acts once per value: the same value never overrides a password changed in the panel,
+  so an old password does not come back with the next reboot. On the first start after the
+  update DDC only remembers the value that is there; your current password stays.
 - **Settings that did nothing are gone.** The auto-action "Audit Log Channel" was saved but no
   code ever posted to it; the spam protection's cooldowns for `/language` and `/forceupdate`
   belonged to commands DDC does not have. An old value stays in the file until the next save and

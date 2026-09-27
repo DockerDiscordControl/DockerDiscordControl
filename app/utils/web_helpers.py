@@ -867,6 +867,12 @@ def stop_mech_decay_background(logger):
         logger.error(f"Error during mech decay thread cleanup: {e}", exc_info=True)
 
 
+def _env_password_marker(value: str) -> str:
+    """The stored form of a DDC_ADMIN_PASSWORD value: salted, 600,000 rounds - the
+    password hash's own scheme, so the marker is no shortcut to the password."""
+    return generate_password_hash(value, method="pbkdf2:sha256:600000")
+
+
 def set_initial_password_from_env():
     # This function is called at module level, so current_app might not be available.
     # Using a dedicated logger or print for errors here.
@@ -884,21 +890,36 @@ def set_initial_password_from_env():
         init_pass_logger.debug("DDC_ADMIN_PASSWORD not set, skipping initial password setup.")
         return
     try:
-        # Attempt to import config_loader dynamically, as it might also be refactored
+        # DDC_ADMIN_PASSWORD ACTS ONCE PER VALUE (operator, 2026-09-27). It used to act
+        # only while no password was set, so a forgotten password could not be reset
+        # through it. Making it win at every start was the other extreme: a password
+        # changed in the panel - say, because the old one leaked - would silently come
+        # back with the next update or reboot. So DDC keeps a salted hash of the value
+        # it last applied (ENV_PASSWORD_MARKER_KEY) and applies the variable only when
+        # it holds something else:
+        #   * no password yet (or the old default "admin")  -> applied (first start);
+        #   * a marker, and the variable changed            -> applied (the reset);
+        #   * a marker, and the variable is the same        -> nothing; the panel wins;
+        #   * no marker but a password of its own           -> an installation from
+        #     before this rule: the value is only remembered, never applied - applying
+        #     it now would undo a password changed in the panel.
+        # The password's usual consequences follow from the new hash: every session
+        # ends, and a passed second factor is asked for again (2FA stays on).
         from services.config.config_service import (
-            load_config, change_web_ui_password, MIN_WEB_UI_PASSWORD_LENGTH,
+            load_config, change_web_ui_password, update_config_fields,
+            MIN_WEB_UI_PASSWORD_LENGTH, ENV_PASSWORD_MARKER_KEY,
         )
 
-        from utils.config_paths import get_config_dir
-        config_path_check = get_config_dir() / "config.json"
-        init_pass_logger.info(f"Attempting to load config from: {config_path_check} for initial password set.")
-
-        config = load_config() # Assumes load_config knows its path or is configured
+        config = load_config()
+        if config.get('config_read_errors'):
+            # An unreadable config looks like one without a password; writing a
+            # password over it would destroy what could not be read.
+            init_pass_logger.error("DDC_ADMIN_PASSWORD not applied: the configuration could not "
+                                   "be read. Fix config/ first (the app runs as user 'ddc').")
+            return
         current_hash = config.get('web_ui_password_hash')
+        marker = config.get(ENV_PASSWORD_MARKER_KEY)
 
-        # Check if password is the default "admin" or not set
-        # The original check was: check_password_hash(current_hash, 'admin')
-        # This requires a hash to be present. A safer check is if it's None or if it matches 'admin'.
         is_default_or_unset = False
         if current_hash is None:
             is_default_or_unset = True
@@ -911,8 +932,18 @@ def set_initial_password_from_env():
                 init_pass_logger.warning(f"Data error checking password hash (possibly malformed): {e_hash_check}. Assuming it needs to be reset if env var is present.")
                 is_default_or_unset = True # Opt to reset if unsure
 
-        if is_default_or_unset:
-            init_pass_logger.info("Setting initial Web UI password from DDC_ADMIN_PASSWORD env var...")
+        variable_changed = False
+        if marker:
+            try:
+                variable_changed = not check_password_hash(marker, env_password)
+            except (ValueError, TypeError):
+                variable_changed = True  # an unreadable marker cannot vouch for anything
+
+        if is_default_or_unset or variable_changed:
+            init_pass_logger.info(
+                "Setting the Web UI password from DDC_ADMIN_PASSWORD "
+                + ("(the variable changed since it was last applied)..." if variable_changed and not is_default_or_unset
+                   else "(no password set yet)..."))
             # Hashes the password, re-encrypts an encrypted bot token with the new key and
             # persists. A plain save_config(load_config()) would leave the token encrypted with
             # the old key and write derived values (the decrypted token) back to config.json.
@@ -925,8 +956,23 @@ def set_initial_password_from_env():
                     f"{MIN_WEB_UI_PASSWORD_LENGTH} characters.")
             change_web_ui_password(env_password, enforce_min_length=False)
             init_pass_logger.info("Web UI password hash has been updated from environment variable.")
+            # A second write. Should it fail, the next start sees an old marker (and
+            # applies the same value again - harmless) or none (and only remembers it).
+            if not update_config_fields({ENV_PASSWORD_MARKER_KEY: _env_password_marker(env_password)}):
+                init_pass_logger.warning("DDC_ADMIN_PASSWORD applied but not remembered (config.json "
+                                         "not written); the next start applies it once more.")
+        elif not marker:
+            if not update_config_fields({ENV_PASSWORD_MARKER_KEY: _env_password_marker(env_password)}):
+                init_pass_logger.warning("DDC_ADMIN_PASSWORD could not be remembered (config.json "
+                                         "not written); the next start tries again.")
+                return
+            init_pass_logger.info(
+                "DDC_ADMIN_PASSWORD is remembered but not applied: a password is already set. "
+                "To reset the password through the variable, give it a new value and restart.")
         else:
-            init_pass_logger.debug("Web UI password already set to a non-default value. Skipping update from env var.")
+            init_pass_logger.info(
+                "DDC_ADMIN_PASSWORD unchanged since it was last applied - the current password "
+                "stays. To reset the password through the variable, give it a new value and restart.")
 
     except ImportError as e_imp:
         # Import errors (config service unavailable)

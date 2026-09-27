@@ -98,7 +98,7 @@ services/config/config_migration_service.py:1-466
 # neighbours sit, is at 1,920 and had no room either.
 
 ## Section 13  (1912 lines, 6 pieces)
-services/config/config_service.py:1-1259
+services/config/config_service.py:1-1266
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-233
@@ -324,7 +324,7 @@ app/utils/container_info_web_handler.py:1-325
 app/bot/startup_steps/sequence.py:1-65
 app/bot/startup_steps/cooldowns.py:1-29
 app/bot/startup_steps/diagnostics.py:1-26
-app/utils/web_helpers.py:1-942
+app/utils/web_helpers.py:1-988
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-68

@@ -233,6 +233,8 @@ class TestAdminPasswordBootstrap:
         )
         self.save_config = MagicMock()
         monkeypatch.setattr("services.config.config_service.save_config", self.save_config)
+        monkeypatch.setattr("services.config.config_service.update_config_fields",
+                            MagicMock(return_value=True))
 
     def test_env_password_goes_through_change_helper(self, monkeypatch):
         import app.utils.web_helpers as wh

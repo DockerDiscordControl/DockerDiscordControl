@@ -53,6 +53,13 @@ _PBKDF2_ITERATIONS = 600000
 _PASSWORD_HASH_METHOD = "pbkdf2:sha256:600000"
 # Same minimum length the first-run setup flow enforces (main_routes /setup)
 MIN_WEB_UI_PASSWORD_LENGTH = 12
+# A salted hash of the DDC_ADMIN_PASSWORD value last applied (or seen) at a start.
+# The variable resets the password only when its value differs from this one, so a
+# password changed in the panel survives restarts - see set_initial_password_from_env().
+# Same scheme as the password hash: this field is no easier to attack than that one.
+# save_config() keeps it like the password hash: losing it would make the next start
+# treat the variable as never seen (safe, but a reset by variable would stop working).
+ENV_PASSWORD_MARKER_KEY = "web_ui_env_password_applied"
 
 # Keys that get_config() adds at runtime. They must never be written back to
 # config.json - the decrypted token would otherwise end up on disk in plaintext.
@@ -415,8 +422,8 @@ class ConfigService:
                 # setup mode, where admin/setup is accepted on every route (app/auth.py).
                 # channel_permissions too: a save silent about channels must not
                 # erase the copy. Preserved, never invented - see the spec test.
-                _critical_fields = ('bot_token', 'guild_id', 'encrypted_bot_token',
-                                    'web_ui_password_hash', 'channel_permissions')
+                _critical_fields = ('bot_token', 'guild_id', 'encrypted_bot_token', 'web_ui_password_hash',
+                                    'channel_permissions', ENV_PASSWORD_MARKER_KEY)
                 existing = {}
                 if self.main_config_file.exists():
                     try:

@@ -117,10 +117,15 @@ The container automatically:
      first-time setup where you choose the real password (at least 12 characters).
    **Until a password is set, anyone who can reach port 9374 can do this first-time setup.** Set
    the password right after the first start and keep the port off untrusted networks until then.
-   `DDC_ADMIN_PASSWORD` only applies while no password is set; it does not reset a forgotten one
-   (for that: `docker exec -it -u ddc dockerdiscordcontrol python3 scripts/reset_password.py`).
+   `DDC_ADMIN_PASSWORD` acts once per value: it sets the password at the first start, and again
+   only when you give it a **new** value. A password you change in the panel therefore stays, even
+   if the old value is still in the template. **Forgot the password?** Put a new value into
+   `DDC_ADMIN_PASSWORD` and click Apply - the container restarts with that password and every
+   open session ends. (Entering the same value again does nothing. Two-factor authentication stays
+   on; without the phone see `scripts/disable_2fa.py`. The other way is
+   `docker exec -it -u ddc dockerdiscordcontrol python3 scripts/reset_password.py`.)
 3. **Access Web UI** at `http://[UNRAID-IP]:9374`
-4. **Login**: Username `admin`, password = your `DDC_ADMIN_PASSWORD` or the one set in first-time setup
+4. **Login**: Username `admin`, password = your `DDC_ADMIN_PASSWORD`, the one set in first-time setup, or the one you last set in the panel
 5. **Configure Discord bot** in the Settings tab
 6. **Set up Discord channels** in Channel Configuration
 

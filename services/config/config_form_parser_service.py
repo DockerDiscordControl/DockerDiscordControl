@@ -320,7 +320,7 @@ class ConfigFormParserService:
     # change_web_ui_password(), and the structured values are built by the parsers above
     # and must not be replaced by a posted string.
     _PROTECTED_KEYS = frozenset({
-        'web_ui_password_hash', 'web_ui_user',
+        'web_ui_password_hash', 'web_ui_user', 'web_ui_env_password_applied',
         'encrypted_bot_token', 'bot_token_encrypted',
         'secret_key', 'SECRET_KEY', 'FLASK_SECRET_KEY',
         'servers', 'channel_permissions', 'default_channel_permissions', 'heartbeat', 'advanced_settings',
