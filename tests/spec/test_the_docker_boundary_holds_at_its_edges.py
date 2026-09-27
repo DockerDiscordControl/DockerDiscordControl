@@ -98,7 +98,8 @@ def test_a_second_name_for_a_file_is_left_alone(helper, tmp_path):
 
 
 def test_the_entrypoint_repairs_through_the_helper_only():
-    assert "python3 -I /app/scripts/fix_ownership.py" in ENTRYPOINT
+    assert 'FIX_OWNERSHIP="/app/scripts/fix_ownership.py"' in ENTRYPOINT
+    assert 'python3 -I "$FIX_OWNERSHIP"' in ENTRYPOINT
     assert "-exec chown" not in ENTRYPOINT, "a chown that follows links is back"
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     assert "COPY scripts/fix_ownership.py /app/scripts/fix_ownership.py" in dockerfile

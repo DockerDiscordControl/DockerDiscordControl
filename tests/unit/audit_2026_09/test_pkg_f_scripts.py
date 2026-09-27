@@ -153,7 +153,11 @@ class TestF8EntrypointPermissions:
         # the harness cannot touch the real /app either.
         assert 'chown "$target_uid:$target_gid" /app ' not in body
         harness = tmp_path / "harness.sh"
-        harness.write_text(body + f'\nDATA_DIRS="{data}"\nfix_permissions {os.getuid()} {primary}\n')
+        # The repair runs through the link-safe helper since 2026-09-27; the image
+        # has it at /app/scripts, a checkout at scripts/.
+        helper = ROOT / "scripts" / "fix_ownership.py"
+        harness.write_text(body + f'\nDATA_DIRS="{data}"\nFIX_OWNERSHIP="{helper}"\n'
+                           f'fix_permissions {os.getuid()} {primary}\n')
 
         result = subprocess.run([sh, str(harness)], capture_output=True, text=True, timeout=60)
         assert "needs fix" in result.stdout, result.stdout + result.stderr

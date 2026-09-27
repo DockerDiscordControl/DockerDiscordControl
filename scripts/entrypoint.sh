@@ -37,6 +37,9 @@ PROXY_SCRIPT="/opt/ddc-proxy/allowlist_proxy.py"
 PROXY_DIR="/run/ddc-proxy"
 PROXY_SOCKET="$PROXY_DIR/docker.sock"
 DOCKER_SOCKET="/var/run/docker.sock"
+# Link-safe ownership repair (scripts/fix_ownership.py); a plain assignment,
+# never read from the environment - root runs it.
+FIX_OWNERSHIP="/app/scripts/fix_ownership.py"
 
 # ============================================================================ #
 # LOGGING FUNCTIONS
@@ -574,7 +577,7 @@ fix_permissions() {
             # become - a swap in that moment made root hand the link's target to
             # the app user's uid (review 2026-09-27). The helper walks by directory
             # descriptors and changes each entry through its own O_NOFOLLOW handle.
-            python3 -I /app/scripts/fix_ownership.py "$dir" "$target_uid" "$target_gid" >/dev/null 2>&1
+            python3 -I "$FIX_OWNERSHIP" "$dir" "$target_uid" "$target_gid" >/dev/null 2>&1
             offender=$(find_unusable_entries "$dir" "$target_uid" "$target_gid" -print -quit)
             if [ -z "$offender" ]; then
                 log_info "Fixed unusable entries in $dir"
