@@ -108,6 +108,8 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
 
 ### 🔒 Security
 
+- **The protected-info password is braked per hour as well** (ten tries per person per hour on
+  top of three a minute): three a minute still allowed about 4,300 guesses a day per account.
 - **Allowlist proxy in front of the Docker socket.** Inside the one container, a separate user
   `ddcproxy` holds the socket and passes only ping, version, container list/inspect/logs/stats,
   start/stop/restart and a reserved read-only image inspect. `create`, `exec`, `/info` and
@@ -179,6 +181,9 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
 - **Maintenance per container** (operator request 2026-09-26): a pause of 1 minute to a week,
   kept in `config/watchdog_maintenance.json`; events of a paused container reach no rule. Panel:
   Auto-Actions -> Maintenance. Discord: 🔧 on each container's admin panel (admin list only).
+  Since 2026-09-27 the 🔧 shows only where the watchdog looks (auto-actions on and an enabled
+  container-state rule listening to the container) or while a pause runs; a group's panel has one
+  too and pauses every member the admin may control, naming the ones left out.
 - **Alarm webhook:** Auto-Actions -> Settings. ntfy, Gotify or a generic JSON POST, recognised by
   the URL; "only when Discord fails" (also when there is no bot) or "always".
 - Container-state rules survive a round trip through v2.4.1 (measured with both images: v2.4.1
@@ -356,6 +361,32 @@ came out of the cog split. Thirteen findings.
   already overtaken.
 
 ### 🐛 Fixed (behaviour you may have seen before v3.0)
+
+- **Discord, 2026-09-27:**
+  - three action messages put the button label into a sentence ("could not be processed
+    (Restart)", "was sent the (Restart)"); the action now heads the message, "**Valheim** ·
+    Restart", with the sentence below it;
+  - `/help` under the spam brake posted a public "." into the channel (the same dot had been
+    taken out of `/donate` on 2026-09-23);
+  - `/help` and the ❓ button were two separately written helps, both out of date - the ❓ one
+    named two of seven commands and neither knew the container admin panel, 🔧, 🗂️ or ✕. One
+    help serves both now, and a test fails when a registered command is missing from it;
+  - a private panel whose ✕ would stand alone on a row (after a select, or after five buttons)
+    closes itself after a minute instead; and the container picker's timer no longer deletes the
+    admin panel the same message has turned into;
+  - the info dialogs no longer strip `@`, `#` and backticks from the info text and the protected
+    content ("#1", "@ 20:00", a stored "P@ss#1"); nothing pings since the bot sends with
+    AllowedMentions.none(). Tags are still removed.
+- **Panel, 2026-09-27:** the channel translation has its nav dot; the last short card of a tab
+  (channel translation, Auto-Actions) now lights its dot, and the gap between two cards keeps the
+  one above lit; the DeepL tier and the Azure region hide for the other providers (d-flex had
+  beaten the inline style); a changed translation setting says it is unsaved, and leaving the
+  page asks first.
+- **Translations, 2026-09-27:** all 39 languages carry the texts that were still English (about
+  8,600), German says "du" throughout, and every catalogue was read in full against the English
+  - Malay (an Indonesian-to-Malay replace had broken it: "kandungana" 147 times for container)
+  and Serbian (Latin script in a Cyrillic catalogue) were repaired. 240 sentences no code uses
+  any more were removed from every catalogue, and a test keeps them from piling up again.
 
 - **Channel translation, read end to end (2026-09-26):**
   - two-way pairs (A->B and B->A) and chains (A->B->C) translated nothing, silently;

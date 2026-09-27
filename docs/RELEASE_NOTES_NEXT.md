@@ -84,7 +84,11 @@ NOT protect.
   `docker stats`) or of the whole host - your choice per rule.
 - **Maintenance for one container.** Pause the watchdog for a container while you work on it -
   no notices, no automatic restarts, the pause ends by itself. In the panel (Auto-Actions ->
-  Maintenance) and in Discord (🔧 on each container's admin panel).
+  Maintenance) and in Discord (🔧 on each container's admin panel, and on a group's panel for
+  all its containers). The 🔧 shows only where a watchdog rule actually watches.
+- **Every language, complete.** All 39 translations carry the texts that were still English,
+  each catalogue read in full; German says "du" throughout. `/help` and the ❓ button show one
+  up-to-date help.
 - **Alarms beyond Discord.** An optional alarm webhook - ntfy, Gotify or any JSON webhook -
   carries watchdog alarms when Discord cannot be reached, or always.
 - **Backup & restore.** System tab: download the complete configuration as one file, or restore
