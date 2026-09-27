@@ -23,6 +23,14 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
   ends. It acts once per value: the same value never overrides a password changed in the panel,
   so an old password does not come back with the next reboot. On the first start after the
   update DDC only remembers the value that is there; your current password stays.
+- **The update from v2.4.1 keeps two things it used to drop** (found by a replayed Unraid update,
+  2026-09-27). A mech at level 11 kept losing power, because v2.4.1 never stored the final level's
+  decay rate and v3.0 now reads the stored one; the snapshot gets the table's rate (0) on load. And
+  an auto-action cooldown running at the moment of the update was forgotten, because v2.4.1 kept it
+  under the container name alone; that entry now counts until it runs out.
+- **The Status Watchdog explains itself.** The panel now says why the warning has to come from an
+  outside service, and that alerts are set up THERE (Healthchecks.io or Uptime Kuma) - without that
+  step the service notices the outage and tells no one.
 - **Settings that did nothing are gone.** The auto-action "Audit Log Channel" was saved but no
   code ever posted to it; the spam protection's cooldowns for `/language` and `/forceupdate`
   belonged to commands DDC does not have. An old value stays in the file until the next save and
