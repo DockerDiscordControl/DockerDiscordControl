@@ -75,13 +75,13 @@
 
     // Update active section indicator
     function updateActiveSection() {
-        const sections = [
-            'donationSection', 'discord-settings', 'channel-settings',
-            'permissions-table', 'server-selection',
-            'task-scheduler', 'task-list', 'aas-section',
-            'language-settings', 'auth-settings',
-            'heartbeat-section', 'log-section'
-        ];
+        // THE BAR'S OWN DOTS, not a second list. This was a list of twelve ids
+        // typed out here, and the channel-translation dot added on 2026-09-27
+        // was not in it: it never lit up (operator: "it is not highlighted
+        // like the others"). A dot now lights up because it is in the bar.
+        const sections = Array.from(nav.querySelectorAll('.nav-dot'))
+            .map(dot => (dot.getAttribute('href') || '').replace(/^#/, ''))
+            .filter(id => id && id !== 'top');
 
         const scrollPos = window.scrollY + 150;
         let activeId = null;
