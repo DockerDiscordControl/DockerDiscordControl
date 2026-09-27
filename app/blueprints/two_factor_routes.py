@@ -79,10 +79,9 @@ def _wants_json() -> bool:
 
 
 def _safe_next(target: str) -> str:
-    # Only a path on this host - never an open redirect.
-    if target and target.startswith("/") and not target.startswith("//") and "\\" not in target:
-        return target
-    return "/"
+    # Only a path on this host - never an open redirect (app/web/next_url.py).
+    from app.web.next_url import safe_next
+    return safe_next(target)
 
 
 # Answered in the clear even with 2FA on: the container healthcheck and what a

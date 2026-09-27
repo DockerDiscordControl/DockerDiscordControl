@@ -271,7 +271,7 @@ app/blueprints/automation_routes.py:1-322
 # lines and brought a new blueprint, which put that section over the 2,000
 # lines a section may hold. log_routes.py came along so both halves have
 # room; all three are app/blueprints.
-app/blueprints/login_routes.py:1-123
+app/blueprints/login_routes.py:1-119
 app/blueprints/log_routes.py:1-242
 
 ## Section 32  (1929 lines, 3 pieces)
@@ -284,7 +284,7 @@ app/blueprints/action_log_routes.py:1-91
 # groups) and moved on the same day: section 32 reached 2,019 lines when
 # tasks_bp.py grew with the timezone answer. It is the smallest piece
 # there, so moving it costs the least reading context.
-app/blueprints/group_routes.py:1-169
+app/blueprints/group_routes.py:1-170
 app/blueprints/translation_routes.py:1-370
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
@@ -407,9 +407,10 @@ utils/config_cache.py:1-307
 # socket, the TLS modes and the second factor of the web panel. Their own section because they
 # are the security boundary of v3.0 and must be reviewed as one piece, not as
 # a tail of a busier section.
-app/blueprints/two_factor_routes.py:1-403
+app/blueprints/two_factor_routes.py:1-402
 app/web/tls.py:1-530
 app/web/two_factor.py:1-8
+app/web/next_url.py:1-39
 services/docker_proxy/__init__.py:1-2
 services/docker_proxy/allowlist_proxy.py:1-368
 services/web/two_factor_service.py:1-331

@@ -41,13 +41,9 @@ login_bp = Blueprint("login", __name__)
 
 
 def _safe_next(target: str) -> str:
-    """Only a path on this host - never an open redirect.
-
-    The same rule the second factor applies to its own next parameter.
-    """
-    if target and target.startswith("/") and not target.startswith("//") and "\\" not in target:
-        return target
-    return "/"
+    """Only a path on this host - never an open redirect (app/web/next_url.py)."""
+    from app.web.next_url import safe_next
+    return safe_next(target)
 
 
 @login_bp.route("/login", methods=["GET"])

@@ -48,8 +48,9 @@ def list_groups():
     except OSError as e:
         # Not an empty list: the page would show "no groups" for a file that
         # could not be read, and the operator would build them a second time.
+        # The details (they can name host paths) go to the log, not to the browser.
         logger.error(f"Groups could not be listed: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "The groups could not be read - see the DDC log."}), 500
 
 
 def containers_on_the_host():
