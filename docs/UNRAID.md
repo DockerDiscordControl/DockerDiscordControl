@@ -40,7 +40,7 @@ openssl rand -base64 32
 ```
 Repository: dockerdiscordcontrol/dockerdiscordcontrol:latest
 Network: bridge
-WebUI: http://[IP]:9374
+WebUI: http://[IP]:9374   (https://... with DDC_TLS_MODE=self-signed)
 ```
 
 ### **Volume Mappings**
@@ -78,6 +78,34 @@ The container automatically:
 1. Creates a user with the specified PUID/PGID
 2. Fixes volume permissions on startup
 3. Drops privileges to the unprivileged user
+
+## 🆕 What v3.0 changes on Unraid
+
+- **The Docker socket is still mounted read/write, but DDC never talks to it directly.** A
+  small allowlist proxy inside the container, running as its own user `ddcproxy`, holds the
+  socket and passes only what DDC needs: list, inspect, logs and stats of containers, start,
+  stop, restart, and a read-only image inspect. Creating containers, `exec`, pulling images and
+  everything else is refused. Details: [SECURITY.md](SECURITY.md).
+- **Do not start the container with `--user`** (Extra Parameters). Without the root start phase
+  no proxy can run; DDC then falls back to the raw socket and says so in the log. Use
+  `PUID`/`PGID` instead.
+- **`PGID` must not be the Docker socket's group** (on Unraid usually `281`, see
+  `ls -ln /var/run/docker.sock`). With that group DDC could open the socket past the proxy; the
+  log warns if it can.
+- **HTTPS (`DDC_TLS_MODE`, advanced view of the template):**
+  - `off` (default): plain HTTP, as before.
+  - `self-signed`: DDC serves HTTPS itself on the same port - open `https://[UNRAID-IP]:9374`.
+    The browser warns once; compare the certificate fingerprint with the line starting 🔒 in
+    the container log. The certificate lives in `config/tls/`.
+  - `proxy`: behind a reverse proxy (Nginx Proxy Manager, SWAG, Traefik). Also set
+    `DDC_TRUSTED_PROXIES` to your proxy's address or network (e.g. `172.18.0.0/16`) - only those
+    may set `X-Forwarded-For`/`-Proto`.
+- **Two-factor login** is offered in the panel (System tab) and strongly recommended, never
+  forced. It needs HTTPS. Lost phone and recovery codes:
+  `docker exec -it -u ddc dockerdiscordcontrol python3 scripts/disable_2fa.py`.
+- **Backup & restore** of the whole configuration: System tab.
+- **Going back to v2.4.1 is not supported.** Keep a copy of
+  `/mnt/user/appdata/dockerdiscordcontrol/config` before updating if you want a way back.
 
 ## 🚀 First-Time Setup
 
