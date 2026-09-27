@@ -58,6 +58,10 @@ logger = get_module_logger('ddc_ui')
 # changed later; a name can.
 NOTICE_STAYS_FOR = 15     # a refusal or an error: long enough to read
 PROGRESS_STAYS_FOR = 1    # "Refreshing..." - the real answer replaces it at once
+# A private panel whose ✕ would stand alone on a row closes itself instead
+# (operator, 2026-09-27: "the close button should never stand alone on a row").
+AUTO_CLOSE_SECONDS = 60
+CLOSE_CUSTOM_ID = "ddc_close_panel"
 
 
 async def _answer(interaction: discord.Interaction) -> None:
@@ -118,7 +122,7 @@ class CloseButton(discord.ui.Button):
         # emoji form at all, which is exactly why it stays text. It is a
         # symbol rather than a word, so it needs no catalogue key.
         super().__init__(style=discord.ButtonStyle.secondary, label="\u2715",
-                         row=row, custom_id="ddc_close_panel")
+                         row=row, custom_id=CLOSE_CUSTOM_ID)
 
     async def callback(self, interaction: discord.Interaction) -> None:
         # ANSWER FIRST. Discord gives three seconds, and deleting a message is
@@ -167,6 +171,14 @@ class DDCView(discord.ui.View):
         message = getattr(self, "message", None)
         if message is None or not is_private_panel_message(message):
             return
+        # A MESSAGE THAT HAS MOVED ON. The container picker becomes the
+        # container's admin panel by editing the same message; py-cord then
+        # files the new view under that message id. This view's timer runs on
+        # regardless, and deleted whatever the message showed by then.
+        synced = getattr(getattr(getattr(message, "_state", None), "_view_store", None),
+                         "_synced_message_views", None)
+        if isinstance(synced, dict) and synced.get(message.id, self) is not self:
+            return
 
         try:
             await message.delete()
@@ -190,6 +202,15 @@ class DDCModal(discord.ui.Modal):
                      type(self).__name__, type(error).__name__, error,
                      exc_info=error)
         await _answer(interaction)
+
+
+def _alone_on_its_row(view) -> bool:
+    """Whether the close button is the only component on its rendered row."""
+    for row in view.to_components():
+        ids = [component.get("custom_id") for component in row.get("components", [])]
+        if CLOSE_CUSTOM_ID in ids:
+            return len(ids) == 1
+    return False
 
 
 class PrivateView(DDCView):
@@ -229,5 +250,12 @@ class PrivateView(DDCView):
             # that adds its own close button keeps the one it chose.
             if not any(isinstance(item, CloseButton) for item in self.children):
                 self.add_item(CloseButton())
+                # NEVER ALONE ON A ROW (operator, 2026-09-27). A select takes a
+                # whole row, and a sixth button starts a new one; there the ✕
+                # goes, and the panel closes itself after a minute instead.
+                # Read from the layout Discord will get, not guessed.
+                if _alone_on_its_row(self):
+                    self.remove_item(self.children[-1])
+                    self.timeout = AUTO_CLOSE_SECONDS
 
         cls.__init__ = __init__
