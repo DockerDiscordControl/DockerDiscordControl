@@ -433,11 +433,10 @@ class SlashCommandsMixin:
             return
 
         # Check spam protection after deferring
+        # The brake has already told the caller, privately. A "." sent here as
+        # well went into the channel for everybody (fixed for /donate on
+        # 2026-09-23, left behind here until 2026-09-27).
         if not await self._check_spam_protection(ctx, "help"):
-            try:
-                await ctx.followup.send(".", delete_after=0.1)
-            except Exception:
-                pass
             return
         """Displays help information about available commands."""
         # The one help, shared with the ❓ button (cogs/help_embed.py).

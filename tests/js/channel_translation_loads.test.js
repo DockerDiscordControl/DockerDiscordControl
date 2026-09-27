@@ -38,6 +38,8 @@ async function page() {
     },
   };
   sandbox.window = sandbox;
+  // Since 2026-09-27 the section asks before the page is left with unsaved settings.
+  sandbox.addEventListener = () => {};
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'app', 'static', 'js',
     'channel_translation.js'), 'utf8'), sandbox);

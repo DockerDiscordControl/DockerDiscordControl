@@ -182,8 +182,9 @@ class SimplifiedContainerInfoModal(DDCModal):
                     )
                     return
 
-            # Sanitize inputs
-            custom_text = re.sub(r'[`@#]', '', custom_text)
+            # Only tags are taken out. @, # and ` were stripped too, against pings;
+            # since the bot sends with AllowedMentions.none() nothing pings, and the
+            # stripping only damaged real text: "#1", "@ 20:00", a `command` (2026-09-27).
             custom_text = re.sub(r'<[^>]*>', '', custom_text)
             custom_ip = re.sub(r'[`@#<>]', '', custom_ip)
 
@@ -422,8 +423,8 @@ class ProtectedInfoModal(DDCModal):
                 )
                 return
 
-            # Sanitize inputs
-            protected_content = re.sub(r'[`@#]', '', protected_content)
+            # Only tags are taken out - see the info text above; a password kept
+            # here as content ("P@ss#1") used to lose its @ and # (2026-09-27).
             protected_content = re.sub(r'<[^>]*>', '', protected_content)
 
             # Load existing container info and update protected fields
@@ -523,21 +524,28 @@ class ProtectedInfoModal(DDCModal):
 # at all - every wrong try only went into the action log (review B12). The window
 # is rolling; a correct password clears the record so nobody is locked out by their
 # own typos. Per person, not per container: the limit follows the guesser.
+#
+# AND TEN PER HOUR (audit 2026-09-26, F7): three a minute still allowed about
+# 4,300 guesses a day per account. The minute brake stays, so a typo does not
+# cost an hour; the hour brake is what stops guessing all day.
 _PASSWORD_ATTEMPTS: dict = {}
 MAX_PASSWORD_ATTEMPTS = 3
 PASSWORD_ATTEMPT_WINDOW_SECONDS = 60
+MAX_PASSWORD_ATTEMPTS_PER_HOUR = 10
+PASSWORD_HOUR_SECONDS = 3600
 
 
 def _password_attempt_allowed(user_id) -> tuple:
     """(allowed, seconds to wait). Records this attempt when it is allowed."""
     now = time.time()
-    recent = [t for t in _PASSWORD_ATTEMPTS.get(user_id, [])
-              if now - t < PASSWORD_ATTEMPT_WINDOW_SECONDS]
-    if len(recent) >= MAX_PASSWORD_ATTEMPTS:
-        _PASSWORD_ATTEMPTS[user_id] = recent
-        return False, PASSWORD_ATTEMPT_WINDOW_SECONDS - (now - recent[0])
-    recent.append(now)
-    _PASSWORD_ATTEMPTS[user_id] = recent
+    hour = [t for t in _PASSWORD_ATTEMPTS.get(user_id, []) if now - t < PASSWORD_HOUR_SECONDS]
+    minute = [t for t in hour if now - t < PASSWORD_ATTEMPT_WINDOW_SECONDS]
+    _PASSWORD_ATTEMPTS[user_id] = hour
+    if len(minute) >= MAX_PASSWORD_ATTEMPTS:
+        return False, PASSWORD_ATTEMPT_WINDOW_SECONDS - (now - minute[0])
+    if len(hour) >= MAX_PASSWORD_ATTEMPTS_PER_HOUR:
+        return False, PASSWORD_HOUR_SECONDS - (now - hour[0])
+    hour.append(now)
     return True, 0.0
 
 
@@ -578,11 +586,13 @@ class PasswordValidationModal(DDCModal):
         try:
             allowed, wait_seconds = _password_attempt_allowed(interaction.user.id)
             if not allowed:
-                await interaction.response.send_message(
-                    _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
-                        remaining=wait_seconds),
-                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
-                )
+                # Past a minute the wait is the hour brake: minutes, not "3540.0 seconds".
+                text = (_("🔒 Too many wrong passwords - try again in {minutes} minutes.").format(
+                            minutes=max(1, round(wait_seconds / 60)))
+                        if wait_seconds > PASSWORD_ATTEMPT_WINDOW_SECONDS else
+                        _("⏰ Please wait {remaining:.1f} more seconds before using this button again.").format(
+                            remaining=wait_seconds))
+                await interaction.response.send_message(text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
             # Ask now, not when the button was built (review E27). self.container_info

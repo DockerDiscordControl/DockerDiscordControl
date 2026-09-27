@@ -152,12 +152,11 @@ def not_confirmed_embed(display_name: str, action: str) -> discord.Embed:
     """
     embed = discord.Embed(
         title=_("⏱️ Not confirmed yet"),
-        description=_("**{server_name}** was sent the {action_process_text} and Docker "
-                      "accepted it, but the status had not changed after {seconds} "
-                      "seconds. It may still be working.").format(
-            server_name=display_name,
-            action_process_text=f"({_(action.capitalize())})",
-            seconds=sum(RETRY_DELAYS)),
+        # The action heads the text; "was sent the (Restart)" put a translated
+        # button label into a sentence no language could build (2026-09-27).
+        description=f"**{display_name}** · {_(action.capitalize())}\n" + _(
+            "Docker accepted the command, but the status had not changed after {seconds} "
+            "seconds. It may still be working.").format(seconds=sum(RETRY_DELAYS)),
         color=discord.Color.gold())
     embed.set_footer(text="https://ddc.bot")
     return embed

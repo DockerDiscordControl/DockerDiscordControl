@@ -56,9 +56,11 @@ CONTROL_UI = PROJECT / "cogs" / "control_ui.py"
 DROPPED = ("Please wait ~15 seconds", "Updating container status...", "Processing...")
 
 # What a press that Docker accepted but nothing confirmed now says.
+# Since 2026-09-27 the action heads the embed ("**Valheim** · Restart") and the
+# sentence below it names no action: "was sent the (Restart)" was no sentence.
 ADDED = ("⏱️ Not confirmed yet",
-         "**{server_name}** was sent the {action_process_text} and Docker accepted it, "
-         "but the status had not changed after {seconds} seconds. It may still be working.")
+         "Docker accepted the command, but the status had not changed after {seconds} "
+         "seconds. It may still be working.")
 
 
 def _catalogues():

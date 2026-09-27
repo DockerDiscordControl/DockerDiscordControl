@@ -137,11 +137,12 @@ class TestInfoModalSanitising:
         await modal.callback(_interaction())
         return modal.info_service.save_container_info.call_args.args[1]
 
-    async def test_markup_characters_are_stripped_from_text(self):
-        saved = await self._saved(_info_modal(text="ping @everyone `code` #tag"))
-        assert "@" not in saved.custom_text
-        assert "`" not in saved.custom_text
-        assert "#" not in saved.custom_text
+    async def test_markup_characters_are_kept_in_text(self):
+        """REVERSED 2026-09-27. @, # and ` were stripped against pings; since the
+        bot sends with AllowedMentions.none() nothing pings, and the stripping
+        only damaged real text - "#1", "@ 20:00", "`connect play.example.com`"."""
+        saved = await self._saved(_info_modal(text="join #1 @ 20:00 `connect play.example.com`"))
+        assert saved.custom_text == "join #1 @ 20:00 `connect play.example.com`"
 
     async def test_html_tags_are_stripped_from_text(self):
         saved = await self._saved(_info_modal(text="hello <script>alert(1)</script> world"))
@@ -255,13 +256,14 @@ class TestProtectedInfoModal:
         assert saved.custom_ip == ""
         assert saved.enabled is False
 
-    async def test_protected_content_is_sanitised(self):
-        modal = _protected_modal(content="key `x` <b>@here</b>")
+    async def test_protected_content_loses_tags_only(self):
+        """Changed 2026-09-27: tags still go; ` and @ stay (nothing pings since
+        AllowedMentions.none(), and a stored "P@ss#1" lost its @ and #)."""
+        modal = _protected_modal(content="key `x` <b>P@ss#1</b>")
         await modal.callback(_interaction())
         saved = modal.info_service.save_container_info.call_args.args[1]
-        assert "`" not in saved.protected_content
         assert "<" not in saved.protected_content and ">" not in saved.protected_content
-        assert "@" not in saved.protected_content
+        assert saved.protected_content == "key `x` P@ss#1"
 
 
 # ---------------------------------------------------------------------------

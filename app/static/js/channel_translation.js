@@ -379,6 +379,8 @@ async function loadCTSettings() {
     } catch (e) {
         console.error('Failed to load CT settings:', e);
     }
+    // What the fields show now is what is stored.
+    ctMarkDirty(false);
 }
 
 async function saveCTSettings() {
@@ -535,9 +537,38 @@ async function testCTConnection() {
 async function initChannelTranslation() {
     if (ctInitialized || !document.getElementById('ctSection')) return;
     ctInitialized = true;
+    ctWatchSettings();
     await loadCTLanguages();
     await loadCTPairs();
     await loadCTSettings();
+}
+
+// UNSAVED, SAID OUT LOUD (translation audit 2026-09-26, #10). These fields save
+// only through the section's own button. They are rightly data-saves-itself, so
+// the page's "unsaved changes" banner leaves them alone - and nothing else said
+// anything: leaving the page lost a changed key or limit silently.
+const CT_SETTING_FIELDS = ['ctProvider', 'ctApiKey', 'ctDeeplUrl', 'ctMsRegion', 'ctRateLimit',
+                           'ctMaxTextLength', 'ctShowOriginalLink', 'ctShowProviderFooter'];
+let ctSettingsDirty = false;
+
+function ctMarkDirty(dirty) {
+    ctSettingsDirty = dirty;
+    const hint = document.getElementById('ctUnsavedHint');
+    if (hint) hint.classList.toggle('d-none', !dirty);
+}
+
+function ctWatchSettings() {
+    CT_SETTING_FIELDS.forEach(id => {
+        const field = document.getElementById(id);
+        if (!field) return;
+        field.addEventListener('input', () => ctMarkDirty(true));
+        field.addEventListener('change', () => ctMarkDirty(true));
+    });
+    window.addEventListener('beforeunload', event => {
+        if (!ctSettingsDirty) return;
+        event.preventDefault();
+        event.returnValue = '';  // older browsers need a value to ask
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initChannelTranslation);

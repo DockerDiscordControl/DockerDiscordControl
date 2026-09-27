@@ -263,13 +263,15 @@ class ActionButton(Button):
 
         super().__init__(style=style, label=label, custom_id=custom_id, row=row, emoji=emoji)
 
+    def _headline(self) -> str:
+        return f"**{self.display_name}** · {_(self.action.capitalize())}\n"
+
     def _failed_embed(self) -> discord.Embed:
         """What a press that could not be completed says."""
         embed = discord.Embed(
             title=_("❌ Server Action Failed"),
-            description=_("Server **{server_name}** could not be processed {action_process_text}.").format(
-                server_name=self.display_name,
-                action_process_text=f"({_(self.action.capitalize())})"),
+            # The action heads the text; "processed (Restart)" was no sentence (2026-09-27).
+            description=self._headline() + _("The action could not be carried out."),
             color=discord.Color.red())
         embed.set_footer(text="https://ddc.bot")
         return embed
@@ -293,10 +295,8 @@ class ActionButton(Button):
         if action_done:
             embed = discord.Embed(
                 title=_("⚠️ Status could not be refreshed"),
-                description=_("**{server_name}** was {action_process_text} - only this "
-                              "panel could not be updated. Use /control for a fresh one.").format(
-                    server_name=self.display_name,
-                    action_process_text=f"({_(self.action.capitalize())})"),
+                description=self._headline() + _("Done - only this panel could not be updated. "
+                                                 "Use /control for a fresh one."),
                 color=0xffa500)
             embed.set_footer(text="https://ddc.bot")
         else:

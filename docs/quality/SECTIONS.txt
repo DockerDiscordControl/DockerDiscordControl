@@ -14,7 +14,7 @@ cogs/admin_overview.py:1-1002
 cogs/stack_restart.py:1-325
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-351
-cogs/action_effect.py:1-163
+cogs/action_effect.py:1-162
 
 ## Section 02  (1457 lines, 1 piece)
 # Cut moved up from 1991 to 1801 on 2026-09-21, to the class boundary at
@@ -47,7 +47,7 @@ cogs/loop_safety.py:1-103
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:827-844
 cogs/overview_embeds.py:1-655
-cogs/slash_commands.py:1-832
+cogs/slash_commands.py:1-831
 
 ## Section 06  (1807 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
@@ -57,7 +57,7 @@ cogs/background_loops.py:1-807
 cogs/donation_ui.py:1-693
 
 ## Section 07  (694 lines, 1 piece)
-cogs/enhanced_info_modal_simple.py:1-694
+cogs/enhanced_info_modal_simple.py:1-704
 
 ## Section 08  (1115 lines, 1 piece)
 cogs/status_handlers.py:1-1115

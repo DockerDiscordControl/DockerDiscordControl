@@ -82,6 +82,9 @@
                         <button type="button" class="btn btn-primary btn-sm" onclick="saveCTSettings()">
                             <i class="bi bi-save"></i> {{ _t('web.lang.save_translation_settings') }}
                         </button>
+                        <span id="ctUnsavedHint" class="small text-warning d-none">
+                            <i class="bi bi-exclamation-circle"></i> {{ _t('web.lang.unsaved_translation_settings') }}
+                        </span>
                         <a class="text-decoration-none text-light small" data-bs-toggle="collapse" href="#ctAdvancedSettings" role="button">
                             <i class="bi bi-gear"></i> {{ _t('web.lang.advanced_settings') }} <i class="bi bi-chevron-down"></i>
                         </a>
