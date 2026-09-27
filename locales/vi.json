@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nMẹo: Dùng định dạng như: 10.50 hoặc 5 ($ sẽ được thêm tự động)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Vui lòng chờ {remaining:.1f} giây trước khi sử dụng nút '{action}' lần nữa.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Vui lòng chờ {remaining:.1f} giây trước khi sử dụng nút thông tin lần nữa.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Nhấn nút ⏰ bên dưới bảng điều khiển container để thêm/xóa tác vụ đã lên lịch.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Nhấn nút ⏰ bên dưới bảng điều khiển container để thêm tác vụ đã lên lịch.",
   "Run monthly on a specific day": "Chạy hàng tháng vào ngày cụ thể",
   "Run once on a specific date": "Chạy một lần vào ngày cụ thể",
   "Run weekly on a specific day": "Chạy hàng tuần vào ngày cụ thể",

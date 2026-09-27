@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nTips: Bruk format som: 10.50 eller 5 ($ legges til automatisk)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Vennligst vent {remaining:.1f} sekunder før du bruker '{action}'-knappen igjen.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Vennligst vent {remaining:.1f} sekunder før du bruker info-knappen igjen.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Klikk på ⏰-knappen under containerkontrollpanelene for å legge til/slette planlagte oppgaver.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Klikk på ⏰-knappen under containerkontrollpanelene for å legge til planlagte oppgaver.",
   "Run monthly on a specific day": "Kjør månedlig på spesifikk dag",
   "Run once on a specific date": "Kjør én gang på bestemt dato",
   "Run weekly on a specific day": "Kjør ukentlig på spesifikk dag",

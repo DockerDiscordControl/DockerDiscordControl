@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\n팁: 10.50 또는 5와 같은 형식을 사용하세요 ($는 자동으로 추가됩니다)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ '{action}' 버튼을 다시 사용하기 전에 {remaining:.1f}초 기다려 주세요.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ 정보 버튼을 다시 사용하기 전에 {remaining:.1f}초 기다려 주세요.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "컨테이너 제어판 아래의 ⏰ 버튼을 클릭하여 예약 작업을 추가/삭제하세요.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "컨테이너 제어판 아래의 ⏰ 버튼을 클릭하여 예약 작업을 추가하세요.",
   "Run monthly on a specific day": "매월 특정 날에 실행",
   "Run once on a specific date": "특정 날짜에 1회 실행",
   "Run weekly on a specific day": "매주 특정 요일에 실행",

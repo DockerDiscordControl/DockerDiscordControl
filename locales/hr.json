@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nSavjet: koristite format poput 10.50 ili 5 ($ će se dodati automatski)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Molimo pričekaj {remaining:.1f} sekundi prije ponovnog korištenja gumba '{action}'.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Molimo pričekaj {remaining:.1f} sekundi prije ponovnog korištenja info gumba.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Kliknite gumb ⏰ ispod upravljačkih ploča kontejnera za dodavanje/brisanje planiranih zadataka.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Kliknite gumb ⏰ ispod upravljačkih ploča kontejnera za dodavanje planiranih zadataka.",
   "Run monthly on a specific day": "Pokreni mjesečno na određeni dan",
   "Run once on a specific date": "Pokreni jednom na određeni datum",
   "Run weekly on a specific day": "Pokreni tjedno na određeni dan",

@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nטיפ: השתמש בפורמט כמו 10.50 או 5 (ה-$ יתווסף אוטומטית)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ אנא המתן {remaining:.1f} שניות לפני שימוש בכפתור '{action}' שוב.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ אנא המתן {remaining:.1f} שניות לפני שימוש בכפתור מידע שוב.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "לחץ על כפתור ⏰ מתחת ללוחות הבקרה של הקונטיינרים כדי להוסיף/למחוק משימות מתוזמנות.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "לחץ על כפתור ⏰ מתחת ללוחות הבקרה של הקונטיינרים כדי להוסיף משימות מתוזמנות.",
   "Run monthly on a specific day": "הפעל חודשית ביום ספציפי",
   "Run once on a specific date": "הפעל פעם אחת בתאריך ספציפי",
   "Run weekly on a specific day": "הפעל שבועית ביום ספציפי",

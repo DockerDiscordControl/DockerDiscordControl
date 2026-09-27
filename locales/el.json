@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nΣυμβουλή: Χρησιμοποίησε μορφή όπως: 10.50 ή 5 (το $ προστίθεται αυτόματα)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Περίμενε {remaining:.1f} δευτερόλεπτα πριν χρησιμοποιήσεις το κουμπί '{action}' ξανά.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Περίμενε {remaining:.1f} δευτερόλεπτα πριν χρησιμοποιήσεις το κουμπί πληροφοριών ξανά.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Κάνε κλικ στο κουμπί ⏰ κάτω από τους πίνακες ελέγχου των containers για προσθήκη/διαγραφή προγραμματισμένων εργασιών.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Κάνε κλικ στο κουμπί ⏰ κάτω από τους πίνακες ελέγχου των containers για προσθήκη προγραμματισμένων εργασιών.",
   "Run monthly on a specific day": "Εκτέλεση μηνιαία σε συγκεκριμένη ημέρα",
   "Run once on a specific date": "Εκτέλεση μία φορά σε συγκεκριμένη ημερομηνία",
   "Run weekly on a specific day": "Εκτέλεση εβδομαδιαία σε συγκεκριμένη ημέρα",

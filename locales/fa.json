@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nنکته: از قالبی مانند: 10.50 یا 5 استفاده کنید ($ به‌طور خودکار اضافه می‌شود)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ لطفاً {remaining:.1f} ثانیه قبل از استفاده مجدد از دکمه '{action}' صبر کنید.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ لطفاً {remaining:.1f} ثانیه قبل از استفاده مجدد از دکمه اطلاعات صبر کنید.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "برای افزودن/حذف وظایف زمان‌بندی‌شده، روی دکمه ⏰ زیر پنل‌های کنترل کانتینر کلیک کنید.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "برای افزودن وظایف زمان‌بندی‌شده، روی دکمه ⏰ زیر پنل‌های کنترل کانتینر کلیک کنید.",
   "Run monthly on a specific day": "اجرای ماهانه در روز مشخص",
   "Run once on a specific date": "اجرای یک‌بار در تاریخ مشخص",
   "Run weekly on a specific day": "اجرای هفتگی در روز مشخص",

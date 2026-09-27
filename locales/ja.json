@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nヒント: 10.50 や 5 のような形式で入力してください（$ は自動的に追加されます）",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ '{action}'ボタンを再度使用するまで、あと{remaining:.1f}秒お待ちください。",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ 情報ボタンを再度使用するまで、あと{remaining:.1f}秒お待ちください。",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "コンテナのコントロールパネルの下にある⏰ボタンをクリックして、スケジュールタスクを追加/削除します。",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "コンテナのコントロールパネルの下にある⏰ボタンをクリックして、スケジュールタスクを追加します。",
   "Run monthly on a specific day": "毎月特定の日に実行",
   "Run once on a specific date": "特定の日に一度だけ実行",
   "Run weekly on a specific day": "毎週特定の曜日に実行",

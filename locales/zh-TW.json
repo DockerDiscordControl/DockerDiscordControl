@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\n提示：請使用如下格式：10.50 或 5（$ 會自動加上）",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ 請等待 {remaining:.1f} 秒後再使用「{action}」按鈕。",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ 請等待 {remaining:.1f} 秒後再使用資訊按鈕。",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "點擊容器控制面板下方的 ⏰ 按鈕即可新增/刪除排程任務。",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "點擊容器控制面板下方的 ⏰ 按鈕即可新增排程任務。",
   "Run monthly on a specific day": "每月在指定日期執行",
   "Run once on a specific date": "在指定日期執行一次",
   "Run weekly on a specific day": "每週在指定日期執行",

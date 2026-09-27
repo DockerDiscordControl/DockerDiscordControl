@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nVihje: kasuta vormingut nagu: 10.50 või 5 ($ lisatakse automaatselt)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Palun oota {remaining:.1f} sekundit enne '{action}' nupu uuesti kasutamist.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Palun oota {remaining:.1f} sekundit enne infonupu uuesti kasutamist.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Ajastatud ülesannete lisamiseks/kustutamiseks klõpsa konteineri juhtpaneelide all olevat ⏰ nuppu.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Ajastatud ülesannete lisamiseks klõpsa konteineri juhtpaneelide all olevat ⏰ nuppu.",
   "Run monthly on a specific day": "Käivita igakuiselt kindlal päeval",
   "Run once on a specific date": "Käivita ühekordselt kindlal kuupäeval",
   "Run weekly on a specific day": "Käivita iganädalaselt kindlal päeval",

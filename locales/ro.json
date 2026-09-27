@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nSfat: Folosiți un format precum: 10.50 sau 5 ($ va fi adăugat automat)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Așteptați {remaining:.1f} secunde înainte de a folosi din nou butonul '{action}'.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Așteptați {remaining:.1f} secunde înainte de a folosi din nou butonul info.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Apăsați butonul ⏰ de sub panourile de control ale containerelor pentru a adăuga/șterge sarcini programate.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Apăsați butonul ⏰ de sub panourile de control ale containerelor pentru a adăuga sarcini programate.",
   "Run monthly on a specific day": "Rulează lunar într-o zi specifică",
   "Run once on a specific date": "Rulează o dată la o dată specifică",
   "Run weekly on a specific day": "Rulează săptămânal într-o zi specifică",

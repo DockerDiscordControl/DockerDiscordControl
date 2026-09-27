@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nنصيحة: استخدم تنسيقًا مثل: 10.50 أو 5 (ستتم إضافة $ تلقائيًا)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ يرجى الانتظار {remaining:.1f} ثانية قبل استخدام زر '{action}' مرة أخرى.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ يرجى الانتظار {remaining:.1f} ثانية قبل استخدام زر المعلومات مرة أخرى.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "انقر على زر ⏰ أسفل لوحات تحكم الحاويات لإضافة/حذف المهام المجدولة.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "انقر على زر ⏰ أسفل لوحات تحكم الحاويات لإضافة المهام المجدولة.",
   "Run monthly on a specific day": "تشغيل شهرياً في يوم محدد",
   "Run once on a specific date": "تشغيل مرة واحدة في تاريخ محدد",
   "Run weekly on a specific day": "تشغيل أسبوعياً في يوم محدد",

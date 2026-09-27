@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nTip: gebruik een formaat zoals: 10.50 of 5 ($ wordt automatisch toegevoegd)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Wacht {remaining:.1f} seconden voordat je de '{action}'-knop opnieuw gebruikt.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Wacht {remaining:.1f} seconden voordat je de infoknop opnieuw gebruikt.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Klik op de ⏰-knop onder de containerbedieningspanelen om geplande taken toe te voegen/te verwijderen.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Klik op de ⏰-knop onder de containerbedieningspanelen om geplande taken toe te voegen.",
   "Run monthly on a specific day": "Maandelijks uitvoeren op specifieke dag",
   "Run once on a specific date": "Eenmalig uitvoeren op specifieke datum",
   "Run weekly on a specific day": "Wekelijks uitvoeren op specifieke dag",

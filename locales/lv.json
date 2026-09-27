@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nPadoms: izmantojiet formātu, piemēram: 10.50 vai 5 ($ tiks pievienots automātiski)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Lūdzu, uzgaidiet {remaining:.1f} sekundes pirms pogas '{action}' atkārtotas izmantošanas.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Lūdzu, uzgaidiet {remaining:.1f} sekundes pirms info pogas atkārtotas izmantošanas.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Noklikšķiniet uz ⏰ pogas zem konteineru vadības paneļiem, lai pievienotu/dzēstu ieplānotus uzdevumus.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Noklikšķiniet uz ⏰ pogas zem konteineru vadības paneļiem, lai pievienotu ieplānotus uzdevumus.",
   "Run monthly on a specific day": "Izpildīt katru mēnesi noteiktā dienā",
   "Run once on a specific date": "Izpildīt vienreiz noteiktā datumā",
   "Run weekly on a specific day": "Izpildīt katru nedēļu noteiktā dienā",

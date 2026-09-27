@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nTip: Použijte formát jako: 10.50 nebo 5 ($ se přidá automaticky)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Počkejte prosím {remaining:.1f} sekund, než znovu použijete tlačítko '{action}'.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Počkejte prosím {remaining:.1f} sekund, než znovu použijete tlačítko info.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Kliknutím na tlačítko ⏰ pod ovládacími panely kontejnerů přidáte nebo smažete naplánované úlohy.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Kliknutím na tlačítko ⏰ pod ovládacími panely kontejnerů přidáte naplánované úlohy.",
   "Run monthly on a specific day": "Spouštět měsíčně v konkrétní den",
   "Run once on a specific date": "Spustit jednou v konkrétní datum",
   "Run weekly on a specific day": "Spouštět týdně v konkrétní den",

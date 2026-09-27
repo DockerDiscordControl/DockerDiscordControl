@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nVinkki: Käytä muotoa kuten: 10.50 tai 5 ($ lisätään automaattisesti)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Odota {remaining:.1f} sekuntia ennen '{action}'-painikkeen käyttämistä uudelleen.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Odota {remaining:.1f} sekuntia ennen tietopainikkeen käyttämistä uudelleen.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Napsauta ⏰-painiketta säilöjen ohjauspaneelien alla lisätäksesi/poistaaksesi ajastettuja tehtäviä.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Napsauta ⏰-painiketta säilöjen ohjauspaneelien alla lisätäksesi ajastettuja tehtäviä.",
   "Run monthly on a specific day": "Suorita kuukausittain tiettynä päivänä",
   "Run once on a specific date": "Suorita kerran tiettynä päivämääränä",
   "Run weekly on a specific day": "Suorita viikoittain tiettynä päivänä",

@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nसुझाव: 10.50 या 5 जैसे प्रारूप का उपयोग करें ($ अपने आप जोड़ दिया जाएगा)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ कृपया '{action}' बटन फिर से उपयोग करने से पहले {remaining:.1f} सेकंड प्रतीक्षा करें।",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ कृपया जानकारी बटन फिर से उपयोग करने से पहले {remaining:.1f} सेकंड प्रतीक्षा करें।",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "निर्धारित कार्य जोड़ने/हटाने के लिए कंटेनर कंट्रोल पैनल के नीचे ⏰ बटन पर क्लिक करें।",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "निर्धारित कार्य जोड़ने के लिए कंटेनर कंट्रोल पैनल के नीचे ⏰ बटन पर क्लिक करें।",
   "Run monthly on a specific day": "विशिष्ट दिन पर मासिक चलाएँ",
   "Run once on a specific date": "विशिष्ट तारीख पर एक बार चलाएँ",
   "Run weekly on a specific day": "विशिष्ट दिन पर साप्ताहिक चलाएँ",

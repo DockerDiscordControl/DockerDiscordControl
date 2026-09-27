@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nTipp: használj ilyen formátumot: 10.50 vagy 5 (a $ automatikusan hozzáadódik)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Kérjük, várj {remaining:.1f} másodpercet, mielőtt újra használod a(z) '{action}' gombot.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Kérjük, várj {remaining:.1f} másodpercet, mielőtt újra használod az infó gombot.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Kattints a ⏰ gombra a konténer vezérlőpanelek alatt ütemezett feladatok hozzáadásához/törléséhez.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Kattints a ⏰ gombra a konténer vezérlőpanelek alatt ütemezett feladatok hozzáadásához.",
   "Run monthly on a specific day": "Futtatás havonta meghatározott napon",
   "Run once on a specific date": "Futtatás egyszer meghatározott dátumon",
   "Run weekly on a specific day": "Futtatás hetente meghatározott napon",

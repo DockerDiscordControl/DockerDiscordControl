@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nİpucu: Şu biçimi kullanın: 10.50 veya 5 ($ otomatik olarak eklenir)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ '{action}' düğmesini tekrar kullanmadan önce lütfen {remaining:.1f} saniye bekleyin.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Bilgi düğmesini tekrar kullanmadan önce lütfen {remaining:.1f} saniye bekleyin.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Zamanlanmış görev eklemek/silmek için konteyner kontrol panellerinin altındaki ⏰ düğmesine tıklayın.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Zamanlanmış görev eklemek için konteyner kontrol panellerinin altındaki ⏰ düğmesine tıklayın.",
   "Run monthly on a specific day": "Her ay belirli bir günde çalıştır",
   "Run once on a specific date": "Belirli bir tarihte bir kez çalıştır",
   "Run weekly on a specific day": "Her hafta belirli bir günde çalıştır",

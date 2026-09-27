@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nPetua: Gunakan format seperti: 10.50 atau 5 ($ akan ditambah secara automatik)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Sila tunggu {remaining:.1f} saat sebelum menggunakan butang '{action}' lagi.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Sila tunggu {remaining:.1f} saat sebelum menggunakan butang info lagi.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Klik butang ⏰ di bawah panel kawalan bekas untuk menambah/memadam tugasan terjadual.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Klik butang ⏰ di bawah panel kawalan bekas untuk menambah tugasan terjadual.",
   "Run monthly on a specific day": "Jalankan bulanan pada hari tertentu",
   "Run once on a specific date": "Jalankan sekali pada tarikh tertentu",
   "Run weekly on a specific day": "Jalankan mingguan pada hari tertentu",

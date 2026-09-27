@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nPatarimas: naudokite formatą, pvz., 10.50 arba 5 ($ bus pridėtas automatiškai)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Palaukite {remaining:.1f} sekundžių prieš naudodami '{action}' mygtuką vėl.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Palaukite {remaining:.1f} sekundžių prieš naudodami informacijos mygtuką vėl.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Spustelėkite ⏰ mygtuką po konteinerių valdymo pultais, kad pridėtumėte/ištrintumėte suplanuotas užduotis.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Spustelėkite ⏰ mygtuką po konteinerių valdymo pultais, kad pridėtumėte suplanuotas užduotis.",
   "Run monthly on a specific day": "Vykdyti kas mėnesį nurodytą dieną",
   "Run once on a specific date": "Vykdyti vieną kartą nurodytą datą",
   "Run weekly on a specific day": "Vykdyti kas savaitę nurodytą dieną",

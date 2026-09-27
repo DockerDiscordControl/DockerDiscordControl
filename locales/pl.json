@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nWskazówka: użyj formatu, np.: 10.50 lub 5 ($ zostanie dodany automatycznie)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Poczekaj {remaining:.1f} sekund przed ponownym użyciem przycisku '{action}'.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Poczekaj {remaining:.1f} sekund przed ponownym użyciem przycisku info.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Kliknij przycisk ⏰ pod panelami sterowania kontenerów, aby dodać/usunąć zaplanowane zadania.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Kliknij przycisk ⏰ pod panelami sterowania kontenerów, aby dodać zaplanowane zadania.",
   "Run monthly on a specific day": "Uruchamiaj miesięcznie w określonym dniu",
   "Run once on a specific date": "Uruchom raz w określonej dacie",
   "Run weekly on a specific day": "Uruchamiaj tygodniowo w określonym dniu",

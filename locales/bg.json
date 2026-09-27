@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nСъвет: Използвай формат като: 10.50 или 5 ($ ще бъде добавен автоматично)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ Моля, изчакай {remaining:.1f} секунди, преди да използваш бутона '{action}' отново.",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ Моля, изчакай {remaining:.1f} секунди, преди да използваш бутона за информация отново.",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Натисни бутона ⏰ под контролните панели на контейнерите, за да добавиш/изтриеш планирани задачи.",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "Натисни бутона ⏰ под контролните панели на контейнерите, за да добавиш планирани задачи.",
   "Run monthly on a specific day": "Изпълняване месечно на определен ден",
   "Run once on a specific date": "Изпълняване еднократно на определена дата",
   "Run weekly on a specific day": "Изпълняване седмично на определен ден",

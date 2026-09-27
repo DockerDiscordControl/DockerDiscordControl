@@ -1858,7 +1858,7 @@
   "\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)": "\n\nเคล็ดลับ: ใช้รูปแบบเช่น 10.50 หรือ 5 (ระบบจะเพิ่ม $ ให้อัตโนมัติ)",
   "⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.": "⏰ กรุณารอ {remaining:.1f} วินาทีก่อนใช้ปุ่ม '{action}' อีกครั้ง",
   "⏰ Please wait {remaining:.1f} seconds before using the info button again.": "⏰ กรุณารอ {remaining:.1f} วินาทีก่อนใช้ปุ่มข้อมูลอีกครั้ง",
-  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "คลิกปุ่ม ⏰ ใต้แผงควบคุมของ Container เพื่อเพิ่ม/ลบงานที่กำหนดเวลา",
+  "Click the ⏰ button under a container's control panel to add scheduled tasks.": "คลิกปุ่ม ⏰ ใต้แผงควบคุมของ Container เพื่อเพิ่มงานที่กำหนดเวลา",
   "Run monthly on a specific day": "รันรายเดือนในวันที่กำหนด",
   "Run once on a specific date": "รันครั้งเดียวในวันที่กำหนด",
   "Run weekly on a specific day": "รันรายสัปดาห์ในวันที่กำหนด",
