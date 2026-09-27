@@ -25,6 +25,9 @@ on:
       # The catalogues have their own tests (placeholders, shape); a commit that
       # touches only a translation ran none of them in CI until 2026-09-27.
       - 'locales/**'
+      # The panel's scripts and templates are tested too (tests/js, the page specs).
+      - 'app/static/**'
+      - 'app/templates/**'
       - 'pytest.ini'
       - '.github/workflows/tests.yml'
 
@@ -36,6 +39,8 @@ on:
       - '**.py'
       - 'tests/**'
       - 'locales/**'
+      - 'app/static/**'
+      - 'app/templates/**'
 
   workflow_dispatch:  # Allow manual trigger
 
@@ -74,6 +79,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+
+      # The panel's JavaScript is tested in node (tests/js), each file through a
+      # spec wrapper that SKIPS when node is missing. Without this step all of
+      # them skipped here, silently, and ran only on the developer's Mac
+      # (found 2026-09-27).
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install dependencies
         run: |
