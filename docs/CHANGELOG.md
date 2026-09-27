@@ -4,7 +4,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
-## v3.0 - unreleased (work in progress on branch roadmap-v3-phase1)
+## v3.0.0 - 2026-09-27
 
 DDC's code can no longer reach anything but the Docker endpoints it needs. What this does and
 does not protect is in `docs/SECURITY.md`. Read "What changes for you" before upgrading.
