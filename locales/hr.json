@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Pokreni godišnje na određeni datum",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Značajka zapisa uživo trenutno je onemogućena od strane administratora.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Neuspjelo spremanje informacija o kontejneru za **{name}**. Provjeri dozvole na konfiguracijskom direktoriju.",
-  "Shows detailed mech stats and the donation system": "Prikazuje detaljne statistike Mecha i sustav donacija"
+  "Shows detailed mech stats and the donation system": "Prikazuje detaljne statistike Mecha i sustav donacija",
+  "Container admin panel": "Administratorska ploča kontejnera",
+  "Action pending (start, stop or restart)": "Radnja na čekanju (pokretanje, zaustavljanje ili ponovno pokretanje)",
+  "Pick a container or group and open its admin panel": "Odaberi kontejner ili grupu i otvori njegovu administratorsku ploču",
+  "Restart one Compose stack": "Ponovno pokreni jedan Compose stack",
+  "Support DDC": "Podrži DDC",
+  "Start, stop or restart it": "Pokreni, zaustavi ili ponovno pokreni",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Njegove informacije, s 📝 tekstom informacija, ⏰ planiranim zadacima i 📋 zapisima",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Održavanje (watchdog): bez upozorenja i bez ponovnih pokretanja dok radiš na njemu - prikazuje se kad ga nadzire pravilo watchdoga",
+  "Closes the panel; a panel without it closes itself after a minute": "Zatvara ploču; ploča bez ovog gumba zatvara se sama nakon minute"
 }

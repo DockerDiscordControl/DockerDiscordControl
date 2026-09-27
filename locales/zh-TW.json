@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "每年在指定日期執行",
   "❌ Live Logs are currently disabled by the administrator.": "❌ 即時日誌功能目前已被管理員停用。",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ 儲存 **{name}** 的容器資訊失敗。請檢查設定目錄的權限。",
-  "Shows detailed mech stats and the donation system": "顯示詳細的 Mech 統計資料與捐款系統"
+  "Shows detailed mech stats and the donation system": "顯示詳細的 Mech 統計資料與捐款系統",
+  "Container admin panel": "容器管理面板",
+  "Action pending (start, stop or restart)": "操作處理中（啟動、停止或重新啟動）",
+  "Pick a container or group and open its admin panel": "選擇一個容器或群組並開啟其管理面板",
+  "Restart one Compose stack": "重新啟動一個 Compose 堆疊",
+  "Support DDC": "支持 DDC",
+  "Start, stop or restart it": "啟動、停止或重新啟動",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "其資訊，含 📝 資訊文字、⏰ 排程任務和 📋 日誌",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "看門狗維護：你處理它期間不傳送警報、不重新啟動 - 當有看門狗規則監看它時顯示",
+  "Closes the panel; a panel without it closes itself after a minute": "關閉面板；沒有此按鈕的面板會在一分鐘後自動關閉"
 }

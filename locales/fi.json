@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Suorita vuosittain tiettynä päivämääränä",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Reaaliaikaiset lokit -ominaisuus on tällä hetkellä ylläpitäjän poistama käytöstä.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Säilön tietojen tallentaminen epäonnistui: **{name}**. Tarkista asetuskansion oikeudet.",
-  "Shows detailed mech stats and the donation system": "Näyttää Mechin yksityiskohtaiset tilastot ja lahjoitusjärjestelmän"
+  "Shows detailed mech stats and the donation system": "Näyttää Mechin yksityiskohtaiset tilastot ja lahjoitusjärjestelmän",
+  "Container admin panel": "Säilön ylläpitopaneeli",
+  "Action pending (start, stop or restart)": "Toiminto odottaa (käynnistys, pysäytys tai uudelleenkäynnistys)",
+  "Pick a container or group and open its admin panel": "Valitse säilö tai ryhmä ja avaa sen ylläpitopaneeli",
+  "Restart one Compose stack": "Käynnistä yksi Compose-pino uudelleen",
+  "Support DDC": "Tue DDC:tä",
+  "Start, stop or restart it": "Käynnistä, pysäytä tai käynnistä uudelleen",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Sen tiedot: 📝 tietoteksti, ⏰ ajastetut tehtävät ja 📋 lokit",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Vahtikoiran huoltotila: ei hälytyksiä eikä uudelleenkäynnistyksiä, kun työskentelet sen parissa - näkyy, kun vahtikoiran sääntö valvoo sitä",
+  "Closes the panel; a panel without it closes itself after a minute": "Sulkee paneelin; paneeli, jossa tätä painiketta ei ole, sulkeutuu itsestään minuutin kuluttua"
 }

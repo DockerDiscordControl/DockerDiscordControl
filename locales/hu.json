@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Futtatás évente meghatározott dátumon",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Az élő naplók funkciót jelenleg az adminisztrátor letiltotta.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Nem sikerült a konténer infó mentése a(z) **{name}** számára. Ellenőrizd a konfigurációs könyvtár jogosultságait.",
-  "Shows detailed mech stats and the donation system": "Részletes Mech statisztikákat és az adományozási rendszert mutatja"
+  "Shows detailed mech stats and the donation system": "Részletes Mech statisztikákat és az adományozási rendszert mutatja",
+  "Container admin panel": "Konténer admin panel",
+  "Action pending (start, stop or restart)": "Művelet függőben (indítás, leállítás vagy újraindítás)",
+  "Pick a container or group and open its admin panel": "Válassz egy konténert vagy csoportot, és nyisd meg az admin paneljét",
+  "Restart one Compose stack": "Egy Compose stack újraindítása",
+  "Support DDC": "Támogasd a DDC-t",
+  "Start, stop or restart it": "Indítás, leállítás vagy újraindítás",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Az infói: 📝 infó szöveg, ⏰ ütemezett feladatok és 📋 naplók",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Watchdog-karbantartás: se riasztás, se újraindítás, amíg dolgozol rajta - akkor látszik, ha egy watchdog-szabály figyeli",
+  "Closes the panel; a panel without it closes itself after a minute": "Bezárja a panelt; a gomb nélküli panel egy perc után magától bezárul"
 }

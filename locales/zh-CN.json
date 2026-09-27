@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "每年在指定日期运行",
   "❌ Live Logs are currently disabled by the administrator.": "❌ 实时日志功能当前已被管理员禁用。",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ 保存 **{name}** 的容器信息失败。请检查配置目录的权限。",
-  "Shows detailed mech stats and the donation system": "显示详细的机甲统计和捐赠系统"
+  "Shows detailed mech stats and the donation system": "显示详细的机甲统计和捐赠系统",
+  "Container admin panel": "容器管理面板",
+  "Action pending (start, stop or restart)": "操作进行中（启动、停止或重启）",
+  "Pick a container or group and open its admin panel": "选择一个容器或组并打开其管理面板",
+  "Restart one Compose stack": "重启一个 Compose 堆栈",
+  "Support DDC": "支持 DDC",
+  "Start, stop or restart it": "启动、停止或重启",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "其信息，含 📝 信息文本、⏰ 计划任务和 📋 日志",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "看门狗维护：你处理它期间不发警报、不重启 - 当有看门狗规则监视它时显示",
+  "Closes the panel; a panel without it closes itself after a minute": "关闭面板；没有此按钮的面板会在一分钟后自动关闭"
 }

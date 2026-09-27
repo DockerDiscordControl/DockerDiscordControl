@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "הפעל שנתית בתאריך ספציפי",
   "❌ Live Logs are currently disabled by the administrator.": "❌ תכונת יומנים חיים מושבתת כרגע על ידי המנהל.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ נכשל בשמירת מידע על קונטיינר עבור **{name}**. בדוק הרשאות בספריית ההגדרות.",
-  "Shows detailed mech stats and the donation system": "מציג נתוני מק מפורטים ואת מערכת התרומות"
+  "Shows detailed mech stats and the donation system": "מציג נתוני מק מפורטים ואת מערכת התרומות",
+  "Container admin panel": "לוח ניהול הקונטיינר",
+  "Action pending (start, stop or restart)": "פעולה ממתינה (הפעלה, עצירה או הפעלה מחדש)",
+  "Pick a container or group and open its admin panel": "בחר קונטיינר או קבוצה ופתח את לוח הניהול שלו",
+  "Restart one Compose stack": "הפעל מחדש סטאק Compose אחד",
+  "Support DDC": "תמוך ב-DDC",
+  "Start, stop or restart it": "הפעל, עצור או הפעל מחדש",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "המידע שלו, עם 📝 טקסט מידע, ⏰ משימות מתוזמנות ו-📋 יומנים",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "תחזוקת כלב השמירה: ללא התראות וללא הפעלות מחדש בזמן שאתה עובד עליו - מוצג כאשר כלל של כלב השמירה משגיח עליו",
+  "Closes the panel; a panel without it closes itself after a minute": "סוגר את הלוח; לוח ללא כפתור זה נסגר מעצמו אחרי דקה"
 }

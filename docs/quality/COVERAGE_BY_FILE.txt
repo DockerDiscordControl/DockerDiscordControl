@@ -113,16 +113,17 @@ cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	807	v3rev:1-652
 cogs/channel_lifecycle.py	631	v3rev2:1-646
 cogs/control_helpers.py	351	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
-cogs/control_ui.py	2707	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
+cogs/control_ui.py	2693	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
 cogs/ddc_ui.py	261	passE:written-2026-09-21
 cogs/docker_control.py	1252	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	693	NONE
 cogs/enhanced_info_modal_simple.py	694	passE:E27+bothscans:519-700
 cogs/group_control.py	361	NONE
+cogs/help_embed.py	96	NONE
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	728	v3rev2:1-791
 cogs/overview_embeds.py	655	v3rev2:1-964
-cogs/slash_commands.py	865	NONE
+cogs/slash_commands.py	832	NONE
 cogs/stack_restart.py	325	v3rev:1-196
 cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1285	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261

@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "매년 특정 날짜에 실행",
   "❌ Live Logs are currently disabled by the administrator.": "❌ 실시간 로그 기능이 현재 관리자에 의해 비활성화되어 있습니다.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ **{name}**의 컨테이너 정보 저장에 실패했습니다. 설정 디렉토리의 권한을 확인하세요.",
-  "Shows detailed mech stats and the donation system": "상세한 Mech 통계와 기부 시스템을 표시합니다"
+  "Shows detailed mech stats and the donation system": "상세한 Mech 통계와 기부 시스템을 표시합니다",
+  "Container admin panel": "컨테이너 관리자 패널",
+  "Action pending (start, stop or restart)": "작업 대기 중 (시작, 중지 또는 재시작)",
+  "Pick a container or group and open its admin panel": "컨테이너나 그룹을 선택해 관리자 패널을 엽니다",
+  "Restart one Compose stack": "Compose 스택 하나 재시작",
+  "Support DDC": "DDC 지원",
+  "Start, stop or restart it": "시작, 중지 또는 재시작",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "정보: 📝 정보 텍스트, ⏰ 예약 작업, 📋 로그",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "워치독 유지보수: 작업하는 동안 알림도 재시작도 없음 - 워치독 규칙이 감시할 때 표시됨",
+  "Closes the panel; a panel without it closes itself after a minute": "패널을 닫습니다. 이 버튼이 없는 패널은 1분 후 자동으로 닫힙니다"
 }

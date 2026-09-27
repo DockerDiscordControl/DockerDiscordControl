@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Spouštět ročně v konkrétní datum",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Funkce živých protokolů je momentálně deaktivována správcem.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Nepodařilo se uložit informace o kontejneru pro **{name}**. Zkontrolujte oprávnění konfiguračního adresáře.",
-  "Shows detailed mech stats and the donation system": "Zobrazí podrobné statistiky Mecha a systém příspěvků"
+  "Shows detailed mech stats and the donation system": "Zobrazí podrobné statistiky Mecha a systém příspěvků",
+  "Container admin panel": "Panel správce kontejneru",
+  "Action pending (start, stop or restart)": "Akce probíhá (spuštění, zastavení nebo restart)",
+  "Pick a container or group and open its admin panel": "Vyberte kontejner nebo skupinu a otevřete jejich panel správce",
+  "Restart one Compose stack": "Restartovat jeden stack Compose",
+  "Support DDC": "Podpořte DDC",
+  "Start, stop or restart it": "Spustit, zastavit nebo restartovat",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Jeho informace s 📝 textem informací, ⏰ naplánovanými úkoly a 📋 protokoly",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Údržba watchdogu: žádná upozornění a žádné restarty, zatímco na něm pracujete - zobrazí se, když ho hlídá pravidlo watchdogu",
+  "Closes the panel; a panel without it closes itself after a minute": "Zavře panel; panel bez tohoto tlačítka se po minutě zavře sám"
 }

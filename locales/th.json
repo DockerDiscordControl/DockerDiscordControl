@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "รันรายปีในวันที่กำหนด",
   "❌ Live Logs are currently disabled by the administrator.": "❌ ฟีเจอร์บันทึกสดถูกปิดใช้งานโดยผู้ดูแลระบบในขณะนี้",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ ไม่สามารถบันทึกข้อมูล Container สำหรับ **{name}** ตรวจสอบสิทธิ์ในไดเรกทอรี config",
-  "Shows detailed mech stats and the donation system": "แสดงสถิติ Mech โดยละเอียดและระบบการบริจาค"
+  "Shows detailed mech stats and the donation system": "แสดงสถิติ Mech โดยละเอียดและระบบการบริจาค",
+  "Container admin panel": "แผงผู้ดูแลระบบของ Container",
+  "Action pending (start, stop or restart)": "การดำเนินการรออยู่ (เริ่ม หยุด หรือรีสตาร์ท)",
+  "Pick a container or group and open its admin panel": "เลือก Container หรือกลุ่ม แล้วเปิดแผงผู้ดูแลระบบของมัน",
+  "Restart one Compose stack": "รีสตาร์ท Compose Stack หนึ่งรายการ",
+  "Support DDC": "สนับสนุน DDC",
+  "Start, stop or restart it": "เริ่ม หยุด หรือรีสตาร์ท",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "ข้อมูลของ Container พร้อม 📝 ข้อความข้อมูล ⏰ งานที่กำหนดเวลา และ 📋 บันทึก",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "การบำรุงรักษา Watchdog: ไม่มีการแจ้งเตือนและไม่มีการรีสตาร์ทระหว่างที่คุณทำงานกับมัน - แสดงเมื่อมีกฎ Watchdog เฝ้าดูอยู่",
+  "Closes the panel; a panel without it closes itself after a minute": "ปิดแผง แผงที่ไม่มีปุ่มนี้จะปิดเองหลังจากหนึ่งนาที"
 }

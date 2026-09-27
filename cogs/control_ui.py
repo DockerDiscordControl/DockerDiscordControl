@@ -33,7 +33,7 @@ from .translation_manager import _
 from services.donation.donation_utils import is_donations_disabled
 from .ddc_ui import NOTICE_STAYS_FOR, DDCView, PrivateView
 from .group_control import (controllable_entries, group_config_for, group_entries,
-                            group_help_field, is_group_target, admin_control_view,
+                            is_group_target, admin_control_view,
                             admin_panel_embed, running_state_for)
 
 logger = get_module_logger('control_ui')
@@ -1861,23 +1861,9 @@ class HelpButton(Button):
 
             # Call the help command implementation directly
 
-            embed = discord.Embed(title=_("DDC Help & Information"), color=discord.Color.blue())
-
-            embed.add_field(name=f"**{_('Commands')}**", value=f"`/ss` - {_('(Re)generates the Server Overview panel in status channels')}\n`/control` - {_('(Re)generates the Admin Overview in control channels')}" + "\n\u200b", inline=False)
-
-            embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
-
-            embed.add_field(name=f"**{_('Buttons')}**", value=f"**{_('Mech')}** - {_('Shows detailed mech stats and the donation system')}\nℹ️ **{_('Info')}** - {_('Shows container details (if configured)')}\n🛠️ **{_('Admin')}** - {_('Opens admin control panel')}\n❓ **{_('Help')}** - {_('Shows this help message')}" + "\n\u200b", inline=False)
-
-            embed.add_field(name=f"**{_('Container Controls')}**", value=f"▶️ **{_('Start')}** - {_('Starts the container')}\n⏹️ **{_('Stop')}** - {_('Stops the container')}\n🔄 **{_('Restart')}** - {_('Restarts the container')}" + "\n\u200b", inline=False)
-
-            # The group section, written in one place for both helps.
-            _group = group_help_field()
-            embed.add_field(name=_group[0], value=_group[1], inline=False)
-
-            embed.add_field(name=f"**{_('Admin Panel')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}\n🔄 {_('Restart all containers')}\n⏹️ {_('Stop all containers')}", inline=False)
-
-            embed.set_footer(text="https://ddc.bot")
+            # The one help, shared with /help (cogs/help_embed.py).
+            from .help_embed import help_embed
+            embed = help_embed()
 
             # Send as ephemeral response (interaction was deferred above)
             await interaction.followup.send(embed=embed, ephemeral=True)

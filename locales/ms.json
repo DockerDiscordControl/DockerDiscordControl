@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Jalankan tahunan pada tarikh tertentu",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Ciri Log Langsung kini dinyahaktifkan oleh pentadbir.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Gagal menyimpan info bekas untuk **{name}**. Semak kebenaran pada direktori konfigurasi.",
-  "Shows detailed mech stats and the donation system": "Memaparkan statistik Mech terperinci dan sistem derma"
+  "Shows detailed mech stats and the donation system": "Memaparkan statistik Mech terperinci dan sistem derma",
+  "Container admin panel": "Panel admin bekas",
+  "Action pending (start, stop or restart)": "Tindakan belum selesai (mula, henti atau mula semula)",
+  "Pick a container or group and open its admin panel": "Pilih bekas atau kumpulan dan buka panel adminnya",
+  "Restart one Compose stack": "Mulakan semula satu stack Compose",
+  "Support DDC": "Sokong DDC",
+  "Start, stop or restart it": "Mula, henti atau mulakan semula",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Infonya, dengan 📝 teks info, ⏰ tugasan terjadual dan 📋 log",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Penyelenggaraan watchdog: tiada amaran dan tiada mula semula semasa Anda mengusahakannya - dipaparkan apabila peraturan watchdog memantaunya",
+  "Closes the panel; a panel without it closes itself after a minute": "Menutup panel; panel tanpa butang ini tertutup sendiri selepas seminit"
 }

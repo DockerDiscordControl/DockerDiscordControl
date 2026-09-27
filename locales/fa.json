@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "اجرای سالانه در تاریخ مشخص",
   "❌ Live Logs are currently disabled by the administrator.": "❌ ویژگی لاگ زنده در حال حاضر توسط مدیر غیرفعال شده است.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ ذخیره اطلاعات کانتینر برای **{name}** ناموفق بود. مجوزهای دایرکتوری پیکربندی را بررسی کنید.",
-  "Shows detailed mech stats and the donation system": "آمار دقیق مک و سیستم کمک مالی را نمایش می‌دهد"
+  "Shows detailed mech stats and the donation system": "آمار دقیق مک و سیستم کمک مالی را نمایش می‌دهد",
+  "Container admin panel": "پنل مدیریت کانتینر",
+  "Action pending (start, stop or restart)": "اقدام در انتظار (شروع، توقف یا راه‌اندازی مجدد)",
+  "Pick a container or group and open its admin panel": "یک کانتینر یا گروه را انتخاب کنید و پنل مدیریت آن را باز کنید",
+  "Restart one Compose stack": "راه‌اندازی مجدد یک استک Compose",
+  "Support DDC": "حمایت از DDC",
+  "Start, stop or restart it": "شروع، توقف یا راه‌اندازی مجدد آن",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "اطلاعات آن، با 📝 متن اطلاعات، ⏰ وظایف زمان‌بندی شده و 📋 لاگ‌ها",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "نگهداری نگهبان: بدون هشدار و بدون راه‌اندازی مجدد تا زمانی که روی آن کار می‌کنید - وقتی یک قانون نگهبان آن را زیر نظر دارد نمایش داده می‌شود",
+  "Closes the panel; a panel without it closes itself after a minute": "پنل را می‌بندد؛ پنلی که این دکمه را ندارد پس از یک دقیقه خودش بسته می‌شود"
 }

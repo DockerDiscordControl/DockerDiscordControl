@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "تشغيل سنوياً في تاريخ محدد",
   "❌ Live Logs are currently disabled by the administrator.": "❌ ميزة السجلات المباشرة معطّلة حالياً من قبل المشرف.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ فشل حفظ معلومات الحاوية لـ **{name}**. تحقق من صلاحيات مجلد الإعدادات.",
-  "Shows detailed mech stats and the donation system": "يعرض إحصائيات الـ Mech التفصيلية ونظام التبرعات"
+  "Shows detailed mech stats and the donation system": "يعرض إحصائيات الـ Mech التفصيلية ونظام التبرعات",
+  "Container admin panel": "لوحة إدارة الحاوية",
+  "Action pending (start, stop or restart)": "إجراء قيد الانتظار (بدء أو إيقاف أو إعادة تشغيل)",
+  "Pick a container or group and open its admin panel": "اختر حاوية أو مجموعة وافتح لوحة إدارتها",
+  "Restart one Compose stack": "إعادة تشغيل مكدّس Compose واحد",
+  "Support DDC": "ادعم DDC",
+  "Start, stop or restart it": "بدء تشغيلها أو إيقافها أو إعادة تشغيلها",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "معلوماتها، مع 📝 نص المعلومات و⏰ المهام المجدولة و📋 السجلات",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "صيانة المراقب: لا تنبيهات ولا إعادة تشغيل أثناء عملك عليها - يظهر عندما تراقبها قاعدة للمراقب",
+  "Closes the panel; a panel without it closes itself after a minute": "يغلق اللوحة؛ اللوحة التي لا تحتوي عليه تُغلق نفسها بعد دقيقة"
 }

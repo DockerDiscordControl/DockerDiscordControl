@@ -16,7 +16,8 @@ THERE ARE TWO HELPS, and they are not copies: `/help` (cogs/slash_commands.py)
 documents the channel commands, the info system and the task scheduling; the
 ❓ button (cogs/control_ui.py) documents the overview it sits under. They have
 drifted - only one of them explained 🟡 at all - and merging them is a decision
-for the operator, not a side effect of this change. So both get the group
+for the operator, not a side effect of this change. (The operator took it on
+2026-09-27: one help, cogs/help_embed.py, behind both.) So both get the group
 section, and the one that never explained 🟡 gets that too.
 
 THE SECTION ITSELF IS WRITTEN ONCE (cogs/group_control.py group_help_field):
@@ -37,7 +38,10 @@ from pathlib import Path
 import pytest
 
 PROJECT = Path(__file__).resolve().parents[2]
-HELPS = ("cogs/control_ui.py", "cogs/slash_commands.py")
+# Since 2026-09-27 both helps are built in one place, cogs/help_embed.py
+# (tests/spec/test_the_help_describes_the_bot_as_it_is.py checks that /help and
+# the ❓ button show the same embed). So the one builder is what is read here.
+HELPS = ("cogs/help_embed.py",)
 
 # The texts the group section is built from. Each is a catalogue key, so each
 # is a sentence somebody can translate.
@@ -102,7 +106,8 @@ def test_both_helps_explain_the_pending_lamp(relative):
     """One of them never did, and it is the lamp that now means two things."""
     literals = _literals(relative)
 
-    assert "Action pending (starting/stopping)" in literals, (
+    # Reworded 2026-09-27: the lamp also shows for a restart.
+    assert "Action pending (start, stop or restart)" in literals, (
         f"{relative} shows 🟡 in the overview and never says what it is")
 
 

@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Kjør årlig på bestemt dato",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Direkteloggfunksjonen er for øyeblikket deaktivert av administrator.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Kunne ikke lagre container-info for **{name}**. Sjekk tillatelser på konfigurasjonskatalogen.",
-  "Shows detailed mech stats and the donation system": "Viser detaljert Mech-statistikk og donasjonssystemet"
+  "Shows detailed mech stats and the donation system": "Viser detaljert Mech-statistikk og donasjonssystemet",
+  "Container admin panel": "Container-adminpanel",
+  "Action pending (start, stop or restart)": "Handling venter (start, stopp eller omstart)",
+  "Pick a container or group and open its admin panel": "Velg en container eller gruppe og åpne adminpanelet",
+  "Restart one Compose stack": "Start én Compose-stack på nytt",
+  "Support DDC": "Støtt DDC",
+  "Start, stop or restart it": "Start, stopp eller start den på nytt",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Infoen, med 📝 infotekst, ⏰ planlagte oppgaver og 📋 logger",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Vakthund-vedlikehold: ingen varsler og ingen omstarter mens du jobber med den - vises når en vakthundregel overvåker den",
+  "Closes the panel; a panel without it closes itself after a minute": "Lukker panelet; et panel uten denne knappen lukker seg selv etter ett minutt"
 }

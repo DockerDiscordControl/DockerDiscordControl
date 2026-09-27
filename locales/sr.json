@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Покрени годишње на одређени датум",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Функција дневника уживо је тренутно онемогућена од стране администратора.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Чување информација о контејнеру за **{name}** није успело. Проверите дозволе на конфигурационом директоријуму.",
-  "Shows detailed mech stats and the donation system": "Приказује детаљну статистику Меха и систем донација"
+  "Shows detailed mech stats and the donation system": "Приказује детаљну статистику Меха и систем донација",
+  "Container admin panel": "Администраторска табла контејнера",
+  "Action pending (start, stop or restart)": "Радња на чекању (покретање, заустављање или рестартовање)",
+  "Pick a container or group and open its admin panel": "Изаберите контејнер или групу и отворите његову администраторску таблу",
+  "Restart one Compose stack": "Рестартујте један Compose стек",
+  "Support DDC": "Подржите DDC",
+  "Start, stop or restart it": "Покрените, зауставите или рестартујте",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Његове информације, са 📝 текстом информација, ⏰ заказаним задацима и 📋 дневницима",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Одржавање надзорника: без упозорења и без рестартовања док радите на њему - приказује се када га прати правило надзорника",
+  "Closes the panel; a panel without it closes itself after a minute": "Затвара таблу; табла без овог дугмета се сама затвара после једног минута"
 }

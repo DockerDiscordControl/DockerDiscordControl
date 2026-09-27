@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Her yıl belirli bir tarihte çalıştır",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Canlı Günlükler özelliği şu anda yönetici tarafından devre dışı bırakılmış.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ **{name}** için konteyner bilgisi kaydedilemedi. Yapılandırma dizini izinlerini kontrol edin.",
-  "Shows detailed mech stats and the donation system": "Ayrıntılı Mech istatistiklerini ve bağış sistemini gösterir"
+  "Shows detailed mech stats and the donation system": "Ayrıntılı Mech istatistiklerini ve bağış sistemini gösterir",
+  "Container admin panel": "Konteyner yönetici paneli",
+  "Action pending (start, stop or restart)": "İşlem beklemede (başlatma, durdurma veya yeniden başlatma)",
+  "Pick a container or group and open its admin panel": "Bir konteyner veya grup seçip yönetici panelini açın",
+  "Restart one Compose stack": "Tek bir Compose stack'ini yeniden başlat",
+  "Support DDC": "DDC'yi destekleyin",
+  "Start, stop or restart it": "Başlat, durdur veya yeniden başlat",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Bilgileri: 📝 bilgi metni, ⏰ zamanlanmış görevler ve 📋 günlükler",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Watchdog bakımı: siz üzerinde çalışırken uyarı ve yeniden başlatma yok - bir watchdog kuralı onu izlediğinde gösterilir",
+  "Closes the panel; a panel without it closes itself after a minute": "Paneli kapatır; bu düğmenin olmadığı bir panel bir dakika sonra kendiliğinden kapanır"
 }

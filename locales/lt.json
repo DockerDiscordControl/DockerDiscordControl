@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Vykdyti kasmet nurodytą datą",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Tiesioginių žurnalų funkcija šiuo metu išjungta administratoriaus.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Nepavyko išsaugoti konteinerio informacijos konteineriui **{name}**. Patikrinkite konfigūracijos katalogo teises.",
-  "Shows detailed mech stats and the donation system": "Rodo išsamią Mech statistiką ir aukojimo sistemą"
+  "Shows detailed mech stats and the donation system": "Rodo išsamią Mech statistiką ir aukojimo sistemą",
+  "Container admin panel": "Konteinerio administravimo skydelis",
+  "Action pending (start, stop or restart)": "Veiksmas laukia (paleidimas, stabdymas arba perkrovimas)",
+  "Pick a container or group and open its admin panel": "Pasirinkite konteinerį arba grupę ir atidarykite jo administravimo skydelį",
+  "Restart one Compose stack": "Perkrauti vieną Compose steką",
+  "Support DDC": "Paremkite DDC",
+  "Start, stop or restart it": "Paleisti, sustabdyti arba perkrauti",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Jo informacija su 📝 informacijos tekstu, ⏰ suplanuotomis užduotimis ir 📋 žurnalais",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Sargo priežiūra: jokių įspėjimų ir perkrovimų, kol su juo dirbate - rodoma, kai jį stebi sargo taisyklė",
+  "Closes the panel; a panel without it closes itself after a minute": "Uždaro skydelį; skydelis be šio mygtuko užsidaro pats po minutės"
 }

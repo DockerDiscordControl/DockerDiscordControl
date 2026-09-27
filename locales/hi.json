@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "विशिष्ट तारीख पर वार्षिक चलाएँ",
   "❌ Live Logs are currently disabled by the administrator.": "❌ लाइव लॉग सुविधा वर्तमान में व्यवस्थापक द्वारा अक्षम है।",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ **{name}** के लिए कंटेनर जानकारी सहेजने में विफल। कॉन्फ़िग डायरेक्टरी की अनुमतियाँ जाँचें।",
-  "Shows detailed mech stats and the donation system": "विस्तृत Mech आँकड़े और दान प्रणाली दिखाता है"
+  "Shows detailed mech stats and the donation system": "विस्तृत Mech आँकड़े और दान प्रणाली दिखाता है",
+  "Container admin panel": "कंटेनर व्यवस्थापक पैनल",
+  "Action pending (start, stop or restart)": "कार्रवाई लंबित (शुरू, बंद या रीस्टार्ट)",
+  "Pick a container or group and open its admin panel": "कोई कंटेनर या समूह चुनें और उसका व्यवस्थापक पैनल खोलें",
+  "Restart one Compose stack": "एक Compose स्टैक रीस्टार्ट करें",
+  "Support DDC": "DDC का समर्थन करें",
+  "Start, stop or restart it": "इसे शुरू, बंद या रीस्टार्ट करें",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "इसकी जानकारी, 📝 जानकारी टेक्स्ट, ⏰ शेड्यूल किए गए कार्य और 📋 लॉग के साथ",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "वॉचडॉग रखरखाव: जब तक आप इस पर काम करें, न अलर्ट, न रीस्टार्ट - तब दिखता है जब कोई वॉचडॉग नियम इस पर नज़र रखता है",
+  "Closes the panel; a panel without it closes itself after a minute": "पैनल बंद करता है; इस बटन के बिना वाला पैनल एक मिनट बाद अपने आप बंद हो जाता है"
 }

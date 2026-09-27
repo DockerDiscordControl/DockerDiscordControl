@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Izpildīt katru gadu noteiktā datumā",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Tiešraides žurnālu funkciju pašlaik ir atspējis administrators.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Neizdevās saglabāt konteinera informāciju konteineram **{name}**. Pārbaudiet atļaujas konfigurācijas direktorijā.",
-  "Shows detailed mech stats and the donation system": "Parāda detalizētu Mech statistiku un ziedojumu sistēmu"
+  "Shows detailed mech stats and the donation system": "Parāda detalizētu Mech statistiku un ziedojumu sistēmu",
+  "Container admin panel": "Konteinera administratora panelis",
+  "Action pending (start, stop or restart)": "Darbība gaida (startēšana, apturēšana vai restartēšana)",
+  "Pick a container or group and open its admin panel": "Izvēlieties konteineru vai grupu un atveriet tā administratora paneli",
+  "Restart one Compose stack": "Restartēt vienu Compose steku",
+  "Support DDC": "Atbalstiet DDC",
+  "Start, stop or restart it": "Startēt, apturēt vai restartēt",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Tā informācija ar 📝 informācijas tekstu, ⏰ ieplānotajiem uzdevumiem un 📋 žurnāliem",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Uzrauga apkope: nav brīdinājumu un restartēšanu, kamēr strādājat ar to - redzams, ja to uzrauga uzrauga noteikums",
+  "Closes the panel; a panel without it closes itself after a minute": "Aizver paneli; panelis bez šīs pogas aizveras pats pēc minūtes"
 }

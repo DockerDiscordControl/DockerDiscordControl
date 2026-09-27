@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Εκτέλεση ετήσια σε συγκεκριμένη ημερομηνία",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Η λειτουργία ζωντανών αρχείων είναι απενεργοποιημένη από τον διαχειριστή.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Αποτυχία αποθήκευσης πληροφοριών container για **{name}**. Έλεγξε τα δικαιώματα στον κατάλογο ρυθμίσεων.",
-  "Shows detailed mech stats and the donation system": "Εμφανίζει λεπτομερή στατιστικά του Mech και το σύστημα δωρεών"
+  "Shows detailed mech stats and the donation system": "Εμφανίζει λεπτομερή στατιστικά του Mech και το σύστημα δωρεών",
+  "Container admin panel": "Πίνακας διαχειριστή container",
+  "Action pending (start, stop or restart)": "Ενέργεια σε εκκρεμότητα (εκκίνηση, διακοπή ή επανεκκίνηση)",
+  "Pick a container or group and open its admin panel": "Επίλεξε ένα container ή μια ομάδα και άνοιξε τον πίνακα διαχειριστή του",
+  "Restart one Compose stack": "Επανεκκίνηση ενός Compose stack",
+  "Support DDC": "Υποστήριξε το DDC",
+  "Start, stop or restart it": "Εκκίνηση, διακοπή ή επανεκκίνηση",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Οι πληροφορίες του, με 📝 κείμενο πληροφοριών, ⏰ προγραμματισμένες εργασίες και 📋 αρχεία καταγραφής",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Συντήρηση watchdog: χωρίς ειδοποιήσεις και χωρίς επανεκκινήσεις όσο δουλεύεις σε αυτό - εμφανίζεται όταν ένας κανόνας watchdog το παρακολουθεί",
+  "Closes the panel; a panel without it closes itself after a minute": "Κλείνει τον πίνακα· ένας πίνακας χωρίς αυτό το κουμπί κλείνει μόνος του μετά από ένα λεπτό"
 }

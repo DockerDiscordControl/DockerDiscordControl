@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Rulează anual la o dată specifică",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Funcția Jurnale Live este momentan dezactivată de administrator.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Nu s-au putut salva informațiile containerului pentru **{name}**. Verificați permisiunile directorului de configurare.",
-  "Shows detailed mech stats and the donation system": "Afișează statistici detaliate ale Mech-ului și sistemul de donații"
+  "Shows detailed mech stats and the donation system": "Afișează statistici detaliate ale Mech-ului și sistemul de donații",
+  "Container admin panel": "Panoul de administrare al containerului",
+  "Action pending (start, stop or restart)": "Acțiune în așteptare (pornire, oprire sau repornire)",
+  "Pick a container or group and open its admin panel": "Alegeți un container sau un grup și deschideți panoul său de administrare",
+  "Restart one Compose stack": "Repornește un stack Compose",
+  "Support DDC": "Sprijină DDC",
+  "Start, stop or restart it": "Pornire, oprire sau repornire",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Informațiile sale, cu 📝 text informativ, ⏰ sarcini programate și 📋 jurnale",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Mentenanță watchdog: fără alerte și fără reporniri cât timp lucrați la el - apare când o regulă watchdog îl supraveghează",
+  "Closes the panel; a panel without it closes itself after a minute": "Închide panoul; un panou fără acest buton se închide singur după un minut"
 }

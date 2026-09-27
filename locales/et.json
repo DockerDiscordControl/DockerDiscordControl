@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Käivita iga-aastaselt kindlal kuupäeval",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Reaalajas logide funktsioon on hetkel administraatori poolt keelatud.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Konteineri info salvestamine **{name}** jaoks ebaõnnestus. Kontrolli seadistuskataloogi õigusi.",
-  "Shows detailed mech stats and the donation system": "Kuvab Mechi üksikasjaliku statistika ja annetussüsteemi"
+  "Shows detailed mech stats and the donation system": "Kuvab Mechi üksikasjaliku statistika ja annetussüsteemi",
+  "Container admin panel": "Konteineri administraatoripaneel",
+  "Action pending (start, stop or restart)": "Toiming ootel (käivitamine, peatamine või taaskäivitamine)",
+  "Pick a container or group and open its admin panel": "Vali konteiner või rühm ja ava selle administraatoripaneel",
+  "Restart one Compose stack": "Taaskäivita üks Compose'i stack",
+  "Support DDC": "Toeta DDC-d",
+  "Start, stop or restart it": "Käivita, peata või taaskäivita see",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Selle info koos 📝 infoteksti, ⏰ ajastatud ülesannete ja 📋 logidega",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Valvuri hooldus: pole teavitusi ega taaskäivitusi, kuni sa sellega töötad - kuvatakse, kui valvuri reegel seda jälgib",
+  "Closes the panel; a panel without it closes itself after a minute": "Sulgeb paneeli; ilma selle nuputa paneel sulgub ise minuti pärast"
 }

@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Zaženi letno na določen datum",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Funkcija dnevnikov v živo je trenutno onemogočena s strani skrbnika.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Shranjevanje informacij o vsebniku za **{name}** ni uspelo. Preverite dovoljenja v konfiguracijski mapi.",
-  "Shows detailed mech stats and the donation system": "Prikaže podrobne statistike Mecha in sistem donacij"
+  "Shows detailed mech stats and the donation system": "Prikaže podrobne statistike Mecha in sistem donacij",
+  "Container admin panel": "Skrbniška plošča vsebnika",
+  "Action pending (start, stop or restart)": "Dejanje v teku (zagon, ustavitev ali ponovni zagon)",
+  "Pick a container or group and open its admin panel": "Izberite vsebnik ali skupino in odprite njegovo skrbniško ploščo",
+  "Restart one Compose stack": "Znova zaženi en sklad Compose",
+  "Support DDC": "Podprite DDC",
+  "Start, stop or restart it": "Zaženi, ustavi ali znova zaženi",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Njegove informacije z 📝 besedilom informacij, ⏰ načrtovanimi nalogami in 📋 dnevniki",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Vzdrževanje nadzornika: brez opozoril in ponovnih zagonov, medtem ko delate na njem - prikazano, ko ga spremlja pravilo nadzornika",
+  "Closes the panel; a panel without it closes itself after a minute": "Zapre ploščo; plošča brez tega gumba se po minuti zapre sama"
 }

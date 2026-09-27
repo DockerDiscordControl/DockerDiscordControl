@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Запускати щорічно в певну дату",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Функцію живих логів наразі вимкнено адміністратором.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Не вдалося зберегти інформацію про контейнер для **{name}**. Перевірте дозволи на директорію config.",
-  "Shows detailed mech stats and the donation system": "Показує детальну статистику Меха та систему донатів"
+  "Shows detailed mech stats and the donation system": "Показує детальну статистику Меха та систему донатів",
+  "Container admin panel": "Панель адміністратора контейнера",
+  "Action pending (start, stop or restart)": "Дія очікує (запуск, зупинка або перезапуск)",
+  "Pick a container or group and open its admin panel": "Виберіть контейнер або групу й відкрийте їхню панель адміністратора",
+  "Restart one Compose stack": "Перезапустити один стек Compose",
+  "Support DDC": "Підтримати DDC",
+  "Start, stop or restart it": "Запустити, зупинити або перезапустити",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Інформація про нього: 📝 текст інформації, ⏰ заплановані завдання та 📋 логи",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Обслуговування watchdog: без сповіщень і перезапусків, поки ви з ним працюєте - показується, коли його відстежує правило watchdog",
+  "Closes the panel; a panel without it closes itself after a minute": "Закриває панель; панель без цієї кнопки закривається сама через хвилину"
 }

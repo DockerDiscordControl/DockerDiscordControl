@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Uruchamiaj rocznie w określonej dacie",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Funkcja Live Logs jest obecnie wyłączona przez administratora.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Nie udało się zapisać informacji o kontenerze **{name}**. Sprawdź uprawnienia katalogu konfiguracji.",
-  "Shows detailed mech stats and the donation system": "Wyświetla szczegółowe statystyki Mecha i system darowizn"
+  "Shows detailed mech stats and the donation system": "Wyświetla szczegółowe statystyki Mecha i system darowizn",
+  "Container admin panel": "Panel administratora kontenera",
+  "Action pending (start, stop or restart)": "Akcja w toku (uruchomienie, zatrzymanie lub restart)",
+  "Pick a container or group and open its admin panel": "Wybierz kontener lub grupę i otwórz jego panel administratora",
+  "Restart one Compose stack": "Zrestartuj jeden stack Compose",
+  "Support DDC": "Wesprzyj DDC",
+  "Start, stop or restart it": "Uruchom, zatrzymaj lub zrestartuj",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Jego informacje: 📝 tekst informacji, ⏰ zaplanowane zadania i 📋 logi",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Konserwacja watchdoga: bez alertów i restartów, gdy nad nim pracujesz - widoczne, gdy pilnuje go reguła watchdoga",
+  "Closes the panel; a panel without it closes itself after a minute": "Zamyka panel; panel bez tego przycisku zamyka się sam po minucie"
 }

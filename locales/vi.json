@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "Chạy hàng năm vào ngày cụ thể",
   "❌ Live Logs are currently disabled by the administrator.": "❌ Tính năng nhật ký trực tiếp hiện đang bị quản trị viên tắt.",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ Không thể lưu thông tin container cho **{name}**. Kiểm tra quyền trên thư mục cấu hình.",
-  "Shows detailed mech stats and the donation system": "Hiển thị thống kê Mech chi tiết và hệ thống đóng góp"
+  "Shows detailed mech stats and the donation system": "Hiển thị thống kê Mech chi tiết và hệ thống đóng góp",
+  "Container admin panel": "Bảng quản trị container",
+  "Action pending (start, stop or restart)": "Hành động đang chờ (khởi động, dừng hoặc khởi động lại)",
+  "Pick a container or group and open its admin panel": "Chọn một container hoặc nhóm và mở bảng quản trị của nó",
+  "Restart one Compose stack": "Khởi động lại một Compose stack",
+  "Support DDC": "Hỗ trợ DDC",
+  "Start, stop or restart it": "Khởi động, dừng hoặc khởi động lại",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "Thông tin của nó, gồm 📝 văn bản thông tin, ⏰ tác vụ đã lên lịch và 📋 nhật ký",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "Bảo trì watchdog: không cảnh báo và không khởi động lại trong khi bạn làm việc với nó - hiển thị khi có quy tắc watchdog theo dõi nó",
+  "Closes the panel; a panel without it closes itself after a minute": "Đóng bảng; bảng không có nút này sẽ tự đóng sau một phút"
 }

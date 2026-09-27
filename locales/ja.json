@@ -1865,5 +1865,14 @@
   "Run yearly on a specific date": "毎年特定の日に実行",
   "❌ Live Logs are currently disabled by the administrator.": "❌ ライブログ機能は現在管理者により無効化されています。",
   "❌ Failed to save container info for **{name}**. Check the permissions of the config directory.": "❌ **{name}**のコンテナ情報の保存に失敗しました。設定ディレクトリの権限を確認してください。",
-  "Shows detailed mech stats and the donation system": "Mechの詳細な統計と寄付システムを表示します"
+  "Shows detailed mech stats and the donation system": "Mechの詳細な統計と寄付システムを表示します",
+  "Container admin panel": "コンテナ管理パネル",
+  "Action pending (start, stop or restart)": "操作保留中（起動・停止・再起動）",
+  "Pick a container or group and open its admin panel": "コンテナまたはグループを選んで管理パネルを開きます",
+  "Restart one Compose stack": "Composeスタックを1つ再起動",
+  "Support DDC": "DDCを支援",
+  "Start, stop or restart it": "起動・停止・再起動",
+  "Its info, with 📝 info text, ⏰ scheduled tasks and 📋 logs": "情報：📝 情報テキスト、⏰ スケジュールタスク、📋 ログ",
+  "Watchdog maintenance: no alerts and no restarts while you work on it - shown when a watchdog rule watches it": "ウォッチドッグのメンテナンス：作業中は通知も再起動もなし - ウォッチドッグのルールが監視している場合に表示",
+  "Closes the panel; a panel without it closes itself after a minute": "パネルを閉じます。このボタンのないパネルは1分後に自動で閉じます"
 }

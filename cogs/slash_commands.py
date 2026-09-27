@@ -440,42 +440,9 @@ class SlashCommandsMixin:
                 pass
             return
         """Displays help information about available commands."""
-        embed = discord.Embed(
-            title=_("DDC Help & Information"),
-            color=discord.Color.blue()
-        )
-
-        # Tip as first field with spacing
-        embed.add_field(name=f"**{_('Tip')}**", value=f"{_('Use /info <servername> to get detailed information about containers with ℹ️ indicators.')}" + "\n\u200b", inline=False)
-
-        # General Commands (work everywhere)
-        embed.add_field(name=f"**{_('General Commands')}**", value=f"`/help` - {_('Shows this help message.')}\n`/ping` - {_('Checks the bot latency.')}\n`/donate` - {_('Shows donation information to support the project.')}" + "\n\u200b", inline=False)
-
-        # Status Channel Commands
-        embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}\n`/info <container>` - {_('Shows detailed container information.')}" + "\n\u200b", inline=False)
-
-        # Control Channel Commands
-        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**{_('Container Control')}:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**{_('Task Management')}:** {_("Click the ⏰ button under a container's control panel to add scheduled tasks.")}" + "\n\u200b", inline=False)
-
-        # Add status indicators explanation. 🟡 was missing here and shown in
-        # the overview all along - the two helps had drifted apart.
-        embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
-
-        # The group section, from the one place that writes it.
-        from cogs.group_control import group_help_field
-
-        _group_help = group_help_field()
-        embed.add_field(name=_group_help[0], value=_group_help[1], inline=False)
-
-        # Add info system explanation
-        embed.add_field(name=f"**{_('Info System')}**", value=f"ℹ️ {_('Click for container details')}\n🔒 {_('Protected info (control channels only)')}\n🔓 {_('Public info available')}" + "\n\u200b", inline=False)
-
-        # Add task management explanation
-        embed.add_field(name=f"**{_('Task Scheduling')}**", value=f"⏰ {_('Click to manage scheduled tasks')}\n➕ **{_('Add Task')}** - {_('Schedule container actions (daily, weekly, monthly, yearly, once)')}\n❌ **{_('Delete Tasks')}** - {_('Remove scheduled tasks for the container')}" + "\n\u200b", inline=False)
-
-        # Add control buttons explanation (no spacing after last field)
-        embed.add_field(name=f"**{_('Control Buttons (Admin Channels)')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}", inline=False)
-        embed.set_footer(text="https://ddc.bot")
+        # The one help, shared with the ❓ button (cogs/help_embed.py).
+        from .help_embed import help_embed
+        embed = help_embed()
 
         try:
             await ctx.followup.send(embed=embed, ephemeral=True)
