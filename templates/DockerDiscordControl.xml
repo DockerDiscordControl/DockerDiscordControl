@@ -34,7 +34,7 @@ Alpine 3.23.3, less than 200MB RAM[br][br]
 [b]SETUP[/b][br]
 1. Create a Discord bot token[br]
 2. Access Web UI at http://[YOUR-IP]:9374[br]
-3. Login with admin/setup, then set your password[br][br]
+3. Log in with username admin and password setup, then set your own password[br][br]
 [b][a href="https://ddc.bot"]Homepage[/a] | [a href="https://github.com/DockerDiscordControl/DockerDiscordControl/wiki"]Wiki[/a][/b]</Overview>
   <Category>Tools:Utilities Productivity:</Category>
   <WebUI>http://[IP]:[PORT:9374]</WebUI>
@@ -104,7 +104,7 @@ Alpine 3.23.3, less than 200MB RAM[br][br]
   <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User ID for file permissions. Unraid default: 99 (nobody)." Type="Variable" Display="always" Required="false" Mask="false">99</Config>
   <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group ID for file permissions. Unraid default: 100 (users)." Type="Variable" Display="always" Required="false" Mask="false">100</Config>
   <Config Name="Web UI Port" Target="9374" Default="9374" Mode="tcp" Description="Port for DDC web interface." Type="Port" Display="always" Required="true" Mask="false">9374</Config>
-  <Config Name="Admin Password" Target="DDC_ADMIN_PASSWORD" Default="" Mode="" Description="Password for web UI admin user (username: admin). If not set, use admin/setup for first login." Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Admin Password" Target="DDC_ADMIN_PASSWORD" Default="" Mode="" Description="Password for web UI admin user (username: admin). If not set, first login is username admin, password setup." Type="Variable" Display="always" Required="false" Mask="true"/>
   <Config Name="Flask Secret Key" Target="FLASK_SECRET_KEY" Default="" Mode="" Description="Secret key for session security. Generate with: openssl rand -hex 32. If not set, DDC generates a random key once and keeps it in config/.flask_secret_key, so sessions survive restarts." Type="Variable" Display="always" Required="false" Mask="true"/>
   <Config Name="Discord Bot Token" Target="DISCORD_BOT_TOKEN" Default="" Mode="" Description="Discord bot token. Can also be configured via the Web UI after first login." Type="Variable" Display="normal" Required="false" Mask="true"/>
   <Config Name="Config Directory" Target="/app/config" Default="/mnt/user/appdata/dockerdiscordcontrol/config" Mode="rw" Description="DDC configuration files" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/dockerdiscordcontrol/config</Config>

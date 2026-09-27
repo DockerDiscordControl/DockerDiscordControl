@@ -286,7 +286,7 @@ def verify_password(username, password):
 
         # SECURITY FIX: Never fall back to default credentials for normal access
         logger.error("SECURITY: No password hash configured - authentication disabled for safety")
-        logger.error("FIRST TIME SETUP: Use admin/setup to access setup page, then set your password")
+        logger.error("FIRST TIME SETUP: Log in with username admin and password setup to open the setup page, then set your password")
         return None  # Fail securely - no authentication possible without configured password
     elif username == stored_user:
         if isinstance(password, str) and isinstance(stored_hash, str):

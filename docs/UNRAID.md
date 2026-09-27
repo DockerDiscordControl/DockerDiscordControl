@@ -54,7 +54,7 @@ WebUI: http://[IP]:9374   (https://... with DDC_TLS_MODE=self-signed)
 ```
 PUID=99                                  # Unraid default (nobody)
 PGID=100                                 # Unraid default (users)
-DDC_ADMIN_PASSWORD=your-secure-password  # Recommended - without it, first login is admin/setup (see below)
+DDC_ADMIN_PASSWORD=your-secure-password  # Recommended - without it, first login is username admin, password setup (see below)
 FLASK_SECRET_KEY=your-secure-random-key  # Recommended for persistent sessions
 ```
 
@@ -113,8 +113,8 @@ The container automatically:
 2. **Admin password** - either:
    - set `DDC_ADMIN_PASSWORD` in the template before the first start (recommended), then log in
      as `admin` with that password; or
-   - leave it empty and log in as `admin` / `setup`, which opens the first-time setup where you
-     choose the password (at least 12 characters).
+   - leave it empty and log in with username `admin` and password `setup`, which opens the
+     first-time setup where you choose the real password (at least 12 characters).
    **Until a password is set, anyone who can reach port 9374 can do this first-time setup.** Set
    the password right after the first start and keep the port off untrusted networks until then.
    `DDC_ADMIN_PASSWORD` only applies while no password is set; it does not reset a forgotten one

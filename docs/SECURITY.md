@@ -102,7 +102,7 @@ socket.
 ## Door B: the web panel
 
 - **First start without a password is open (by design).** Until a password is
-  set, the login `admin` / `setup` is accepted and `/setup` - which writes the
+  set, the login with username `admin` and password `setup` is accepted and `/setup` - which writes the
   password - needs no login at all [app/auth.py `verify_password`,
   app/blueprints/main_routes.py `setup_page`/`setup_save`, gated only by
   `setup_is_closed()`]. Whoever reaches the port first in that window sets the

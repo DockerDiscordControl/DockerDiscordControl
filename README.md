@@ -647,7 +647,7 @@ docker run -d --name ddc \
 1. **Access Web UI**: `http://<your-server-ip>:9374`
 2. **Setup Options**:
    - **Method 1**: Visit `/setup` for guided web setup
-   - **Method 2**: Use temporary credentials: `admin` / `setup` 
+   - **Method 2**: Log in with username `admin` and password `setup` 
    - **Method 3**: Set `DDC_ADMIN_PASSWORD=your_password` before starting
 
 3. **Complete Setup**: Configure bot token, Guild ID, container permissions
@@ -875,7 +875,7 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 **First-Time Setup Required**: DDC v2.0+ uses temporary default password 'setup' for initial access. Use one of these secure setup methods:
 - **Web Setup**: Visit `/setup` and create your password  
-- **Temporary Access**: Login with `admin` / `setup`, then set real password
+- **Temporary Access**: Log in with username `admin` and password `setup`, then set your own password
 - **Environment Variable**: Set `DDC_ADMIN_PASSWORD` before starting container
 
 **Password Security**: All passwords are hashed with PBKDF2-SHA256 (600,000 iterations) for maximum security.
@@ -883,8 +883,8 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 ## Quick Help
 
 **First-Time Setup Issues:**
-- **Can't Login**: Visit `/setup` or use `admin` / `setup` credentials
-- **"Authentication Required"**: Use default credentials `admin` / `setup` or configure DDC_ADMIN_PASSWORD
+- **Can't Login**: Visit `/setup` or log in with username `admin`, password `setup`
+- **"Authentication Required"**: Log in with username `admin`, password `setup`, or configure DDC_ADMIN_PASSWORD
 - **Password Reset**: Run `docker exec -it -u ddc ddc python3 scripts/reset_password.py`
 
 **Common Issues:**

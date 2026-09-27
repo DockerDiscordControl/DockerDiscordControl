@@ -277,7 +277,7 @@ docker logs ddc 2>&1 | grep -i "error\|failed"
 
 ### Initial Setup
 - [ ] Set `DDC_ADMIN_PASSWORD` environment variable (recommended)
-- [ ] Or change temporary password `admin` / `setup` immediately
+- [ ] Or log in with username `admin`, password `setup` and set your own password immediately
 - [ ] Generate and set `FLASK_SECRET_KEY`
 - [ ] Configure Discord bot token (environment variable recommended)
 - [ ] Configure firewall rules
@@ -339,7 +339,7 @@ docker logs ddc 2>&1 | grep -i "error\|failed"
 
 ⚠️ **Default Credentials:**
 - Set `DDC_ADMIN_PASSWORD` environment variable before first start (recommended)
-- If not set, temporary password is `admin` / `setup` - change immediately
+- If not set, the first login is username `admin`, password `setup` - set your own password immediately
 - No lockout on failed attempts (yet)
 
 ⚠️ **Web UI Exposure:**
@@ -351,7 +351,7 @@ docker logs ddc 2>&1 | grep -i "error\|failed"
 ## Common Security Pitfalls
 
 ### ❌ Don't:
-1. Leave default credentials (`admin` / `setup`)
+1. Leave the first-start login (username `admin`, password `setup`) in place
 2. Expose Web UI to internet without HTTPS
 3. Store secrets in version control
 4. Grant excessive Discord permissions

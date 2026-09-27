@@ -36,7 +36,7 @@ New to DDC? Start here:
 **First-Time Setup:**
 - Default Web UI: `http://your-server:9374`
 - Set `DDC_ADMIN_PASSWORD` before starting (recommended)
-- Or use temporary credentials `admin` / `setup` and change immediately
+- Or log in with username `admin` and password `setup` and set your own password immediately
 
 **Configuration:**
 - Primary method: Web UI at port 9374
