@@ -459,12 +459,14 @@ function updateDeeplTierVisibility() {
     const provider = document.getElementById('ctProvider');
     const deeplGroup = document.getElementById('ctDeeplUrlGroup');
     if (provider && deeplGroup) {
-        deeplGroup.style.display = provider.value === 'deepl' ? '' : 'none';
+        // A class, not an inline display: the column is d-flex, which sets it
+        // with !important and beat the inline style - the field never hid.
+        deeplGroup.classList.toggle('d-none', provider.value !== 'deepl');
     }
     // The Azure region matters only for Microsoft.
     const regionGroup = document.getElementById('ctMsRegionGroup');
     if (provider && regionGroup) {
-        regionGroup.style.display = provider.value === 'microsoft' ? '' : 'none';
+        regionGroup.classList.toggle('d-none', provider.value !== 'microsoft');
     }
 }
 

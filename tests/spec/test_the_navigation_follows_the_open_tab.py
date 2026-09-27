@@ -59,7 +59,10 @@ SCRIPT = ROOT / "app" / "static" / "js" / "floating_nav.js"
 GROUPS = (
     ("top",),
     ("donationSection",),
-    ("discord-settings", "channel-settings", "permissions-table"),
+    # The channel translation joined on 2026-09-27 (operator: "channel
+    # translations have no icon of their own in the nav bar"); it sits in the
+    # Discord tab, after the permissions table.
+    ("discord-settings", "channel-settings", "permissions-table", "channel-translation-settings"),
     # Containers: just the table since 2026-09-24 - the group editor became a
     # dialog opened from the bulk bar, so it is no longer a section of the page.
     ("server-selection",),

@@ -1864,5 +1864,6 @@
   "✅ Maintenance ended for {names} - the watchdog watches them again.": "✅ Maintenance ended for {names} - the watchdog watches them again.",
   "None of these containers was in maintenance.": "None of these containers was in maintenance.",
   "🔧 {names} in maintenance until {time} - the watchdog leaves them alone.": "🔧 {names} in maintenance until {time} - the watchdog leaves them alone.",
-  "Left out, not assigned to you: {names}": "Left out, not assigned to you: {names}"
+  "Left out, not assigned to you: {names}": "Left out, not assigned to you: {names}",
+  "web.nav.translation": "Channel translation"
 }
