@@ -765,7 +765,7 @@ class DebugLogsButton(discord.ui.Button):
             if not live_logs_enabled:
                 # Live Logs feature is disabled - show error message
                 await interaction.followup.send(
-                    _("❌ Live Logs feature is currently disabled by administrator."),
+                    _("❌ Live Logs are currently disabled by the administrator."),
                     ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
@@ -909,7 +909,7 @@ class StatusInfoButton(discord.ui.Button):
                 if spam_service.is_on_cooldown(interaction.user.id, "info"):
                     remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "info")
                     await interaction.response.send_message(
-                        _("⏰ Please wait {remaining:.1f} seconds before using info button again.").format(
+                        _("⏰ Please wait {remaining:.1f} seconds before using the info button again.").format(
                             remaining=remaining_time
                         ),
                         ephemeral=True, delete_after=NOTICE_STAYS_FOR

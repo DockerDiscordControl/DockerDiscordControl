@@ -284,7 +284,7 @@ class DonationBroadcastModal(DDCModal):
 
             if amount_validation_error:
                 await interaction.followup.send(
-                    amount_validation_error + _("\n\nTip: Use format like: 10.50 or 5 ($ will be added automatically)"),
+                    amount_validation_error + _("\n\nTip: Use a format like 10.50 or 5 ($ is added automatically)"),
                     ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return

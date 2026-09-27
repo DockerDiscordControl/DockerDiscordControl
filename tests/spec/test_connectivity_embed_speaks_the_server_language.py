@@ -40,7 +40,7 @@ ENGLISH_TITLES = {
 GERMAN_TITLES = {
     "serverstatus": "🚨 Container-Überwachung nicht verfügbar",  # language data
     "individual_container": "🚨 Systemadministrator erforderlich",  # language data
-    "general": "🚨 Docker-Konnektivitätsproblem",  # language data
+    "general": "🚨 Docker-Verbindungsproblem",  # language data (reworded 2026-09-27)
 }
 
 

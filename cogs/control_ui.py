@@ -318,7 +318,7 @@ class ActionButton(Button):
                 if spam_service.is_on_cooldown(interaction.user.id, self.action):
                     remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, self.action)
                     await interaction.response.send_message(
-                        _("⏰ Please wait {remaining:.1f} seconds before using '{action}' button again.").format(
+                        _("⏰ Please wait {remaining:.1f} seconds before using the '{action}' button again.").format(
                             remaining=remaining_time, action=self.action
                         ),
                         ephemeral=True, delete_after=NOTICE_STAYS_FOR
@@ -782,7 +782,7 @@ class InfoButton(Button):
                 if spam_service.is_on_cooldown(interaction.user.id, "info"):
                     remaining_time = spam_service.get_remaining_cooldown(interaction.user.id, "info")
                     await interaction.response.send_message(
-                        _("⏰ Please wait {remaining:.1f} seconds before using info button again.").format(
+                        _("⏰ Please wait {remaining:.1f} seconds before using the info button again.").format(
                             remaining=remaining_time
                         ),
                         ephemeral=True, delete_after=NOTICE_STAYS_FOR
@@ -1867,7 +1867,7 @@ class HelpButton(Button):
 
             embed.add_field(name=f"**{_('Status Indicators')}**", value=f"🟢 {_('Container is online')}\n🔴 {_('Container is offline')}\n❓ {_('Container not found')}\n🔄 {_('Container status loading')}\n🟡 {_('Action pending (starting/stopping)')}" + "\n\u200b", inline=False)
 
-            embed.add_field(name=f"**{_('Buttons')}**", value=f"**{_('Mech')}** - {_('Shows detailed mech stats and donation system')}\nℹ️ **{_('Info')}** - {_('Shows container details (if configured)')}\n🛠️ **{_('Admin')}** - {_('Opens admin control panel')}\n❓ **{_('Help')}** - {_('Shows this help message')}" + "\n\u200b", inline=False)
+            embed.add_field(name=f"**{_('Buttons')}**", value=f"**{_('Mech')}** - {_('Shows detailed mech stats and the donation system')}\nℹ️ **{_('Info')}** - {_('Shows container details (if configured)')}\n🛠️ **{_('Admin')}** - {_('Opens admin control panel')}\n❓ **{_('Help')}** - {_('Shows this help message')}" + "\n\u200b", inline=False)
 
             embed.add_field(name=f"**{_('Container Controls')}**", value=f"▶️ **{_('Start')}** - {_('Starts the container')}\n⏹️ **{_('Stop')}** - {_('Stops the container')}\n🔄 **{_('Restart')}** - {_('Restarts the container')}" + "\n\u200b", inline=False)
 
@@ -1875,7 +1875,7 @@ class HelpButton(Button):
             _group = group_help_field()
             embed.add_field(name=_group[0], value=_group[1], inline=False)
 
-            embed.add_field(name=f"**{_('Admin Panel')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}\n🔄 {_('Restart All containers')}\n⏹️ {_('Stop All containers')}", inline=False)
+            embed.add_field(name=f"**{_('Admin Panel')}**", value=f"📝 {_('Edit container info text')}\n📋 {_('View container logs')}\n🔄 {_('Restart all containers')}\n⏹️ {_('Stop all containers')}", inline=False)
 
             embed.set_footer(text="https://ddc.bot")
 

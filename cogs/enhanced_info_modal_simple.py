@@ -296,7 +296,7 @@ class SimplifiedContainerInfoModal(DDCModal):
                 logger.error(f"Attempted to save container_info object")
 
                 await interaction.response.send_message(
-                    _("❌ Failed to save container info for **{name}**. Check permissions on config directory.").format(name=self.display_name),
+                    _("❌ Failed to save container info for **{name}**. Check the permissions of the config directory.").format(name=self.display_name),
                     ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 safe_error_name = re.sub(r'[^\w\-_.@]', '', str(self.container_name))[:50]

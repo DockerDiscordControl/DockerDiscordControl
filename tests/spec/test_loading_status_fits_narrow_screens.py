@@ -89,7 +89,7 @@ def test_the_catalogs_carry_the_status_loading_texts():
     assert not missing, missing
     de = json.loads((LOCALES / "de.json").read_text(encoding="utf-8"))
     assert de["Loading Status"] == "Status wird geladen"  # language data
-    assert de["Fetching container data..."] == "Lade Container-Daten..."  # language data
+    assert de["Fetching container data..."] == "Container-Daten werden geladen..."  # language data (2026-09-27)
 
 
 # THE SECOND DRIVER IS GONE. Three cases here pressed the expand button and

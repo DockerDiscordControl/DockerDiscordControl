@@ -488,10 +488,10 @@ class CycleDropdown(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(label=_("Daily"), description=_("Run every day"), emoji="📅", value="daily"),
-            discord.SelectOption(label=_("Weekly"), description=_("Run weekly on specific day"), emoji="📆", value="weekly"),
-            discord.SelectOption(label=_("Monthly"), description=_("Run monthly on specific day"), emoji="🗓️", value="monthly"),
-            discord.SelectOption(label=_("Yearly"), description=_("Run yearly on specific date"), emoji="📊", value="yearly"),
-            discord.SelectOption(label=_("Once"), description=_("Run once at specific date"), emoji="⚡", value="once")
+            discord.SelectOption(label=_("Weekly"), description=_("Run weekly on a specific day"), emoji="📆", value="weekly"),
+            discord.SelectOption(label=_("Monthly"), description=_("Run monthly on a specific day"), emoji="🗓️", value="monthly"),
+            discord.SelectOption(label=_("Yearly"), description=_("Run yearly on a specific date"), emoji="📊", value="yearly"),
+            discord.SelectOption(label=_("Once"), description=_("Run once on a specific date"), emoji="⚡", value="once")
         ]
 
         super().__init__(placeholder=_("Choose cycle type..."), options=options, row=0)

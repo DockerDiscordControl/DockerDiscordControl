@@ -650,7 +650,7 @@ class TestDockerConnectivityErrorEmbed:
         svc = DockerConnectivityService()
         req = DockerErrorEmbedRequest(error_message="oops", language="de", context="general")
         result = svc.create_error_embed_data(req)
-        assert "Docker-Konnektivitätsproblem" in result.title
+        assert "Docker-Verbindungsproblem" in result.title  # reworded 2026-09-27
 
     def test_embed_general_en(self):
         svc = DockerConnectivityService()

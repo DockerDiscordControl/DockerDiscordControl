@@ -246,7 +246,7 @@ class StackSelect(Select):
         members = fit_lines([f"`{name}`" for name in self.stacks.get(stack, [])], separator=", ",
                             limit=3500, more=lambda count: _("… and {count} more").format(count=count))
         embed = discord.Embed(
-            title=_("⚠️ Confirm Restart Stack"),
+            title=_("⚠️ Confirm Stack Restart"),
             description=_("Restart the running containers of the stack **{stack}**?\n\n{members}").format(
                 stack=discord.utils.escape_markdown(stack), members=members),
             color=discord.Color.orange())

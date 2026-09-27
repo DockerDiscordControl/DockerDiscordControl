@@ -455,7 +455,7 @@ class SlashCommandsMixin:
         embed.add_field(name=f"**{_('Status Channel Commands')}**", value=f"`/serverstatus` or `/ss` - {_('Displays the status of all configured Docker containers.')}\n`/info <container>` - {_('Shows detailed container information.')}" + "\n\u200b", inline=False)
 
         # Control Channel Commands
-        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**{_('Container Control')}:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**{_('Task Management')}:** {_('Click ⏰ button under container control panels to add/delete scheduled tasks.')}" + "\n\u200b", inline=False)
+        embed.add_field(name=f"**{_('Control Channel Commands')}**", value=f"`/control` - {_('(Re)generates the main control panel message in channels configured for it.')}\n**{_('Container Control')}:** {_('Click control buttons under container status panels to start, stop, or restart.')}\n**{_('Task Management')}:** {_("Click the ⏰ button under a container's control panel to add scheduled tasks.")}" + "\n\u200b", inline=False)
 
         # Add status indicators explanation. 🟡 was missing here and shown in
         # the overview all along - the two helps had drifted apart.
