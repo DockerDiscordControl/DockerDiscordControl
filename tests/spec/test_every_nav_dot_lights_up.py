@@ -9,6 +9,11 @@ the bar itself - tests/js/nav_highlight.test.js checks every dot of the real
 base.html in node. This file also checks that every dot's target exists in
 the templates, since a dot pointing at nothing can never light up either.
 
+AND AGAIN THE SAME DAY: the channel translation and the Auto-Action System
+still stayed dark - each the last, short card of its tab, which the 150 px
+line never reaches because the page ends first; and in the gap between two
+cards no dot was lit at all. Two node cases hold both.
+
 COUNTER-CHECK (2026-09-27): red before - the node case named
 channel-translation-settings as the one dot that never lit up; all eleven
 others lit.
@@ -39,4 +44,4 @@ def test_every_dot_lights_up_in_node():
     result = subprocess.run([node, str(ROOT / "tests" / "js" / "nav_highlight.test.js")],
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok     ") == 2, result.stdout
+    assert result.stdout.count("ok     ") == 4, result.stdout

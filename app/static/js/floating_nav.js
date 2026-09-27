@@ -84,22 +84,42 @@
             .filter(id => id && id !== 'top');
 
         const scrollPos = window.scrollY + 150;
-        let activeId = null;
-
-        sections.forEach(id => {
-            const section = document.getElementById(id);
-            // offsetTop was 0 for anything inside a hidden tab pane, so every
-            // section in a closed tab looked like it was at the top of the page.
-            // The rectangle is document-relative whatever is displayed, and a
-            // hidden pane measures 0 height - which simply never matches.
-            if (section) {
+        // Every section that is laid out, top to bottom. offsetTop was 0 for
+        // anything inside a hidden tab pane, so every section in a closed tab
+        // looked like it was at the top of the page; the rectangle is
+        // document-relative whatever is displayed, and a hidden pane measures
+        // 0 height - which is left out here.
+        const laidOut = sections
+            .map(id => {
+                const section = document.getElementById(id);
+                if (!section) { return null; }
                 const box = section.getBoundingClientRect();
-                const top = box.top + window.scrollY;
-                if (box.height > 0 && scrollPos >= top && scrollPos < top + box.height) {
-                    activeId = id;
-                }
-            }
+                return box.height > 0 ? { id, top: box.top + window.scrollY } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.top - b.top);
+
+        // The last section that begins above the line. "The section the line
+        // is inside" left every dot dark in the gap between two cards (operator,
+        // 2026-09-27) - there the section above is still the one being read.
+        let activeId = null;
+        laidOut.forEach(entry => {
+            if (entry.top <= scrollPos) { activeId = entry.id; }
         });
+
+        // AT THE END OF THE PAGE the line cannot reach a short last section:
+        // the channel translation and the Auto-Action System, each the last
+        // card of its tab, never lit up and the section above stayed lit. Once
+        // the page is scrolled as far as it goes, the lowest section in view is
+        // the one being read.
+        const doc = document.documentElement;
+        const pageEnd = Math.max(doc.scrollHeight || 0, (document.body && document.body.scrollHeight) || 0);
+        if (window.innerHeight + window.scrollY >= pageEnd - 2) {
+            const bottom = window.scrollY + window.innerHeight;
+            laidOut.forEach(entry => {
+                if (entry.top < bottom) { activeId = entry.id; }
+            });
+        }
 
         // Update active class
         nav.querySelectorAll('.nav-dot').forEach(dot => {
