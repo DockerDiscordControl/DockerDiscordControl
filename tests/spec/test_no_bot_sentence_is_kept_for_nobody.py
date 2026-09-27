@@ -22,9 +22,19 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SKIP_DIRS = {".git", "locales", "tests", "docs", "node_modules", "config", "logs",
-             "cached_animations", "cached_displays", "__pycache__"}
-SUFFIXES = {".py", ".json", ".js", ".html", ".txt", ".yml", ".yaml", ".md", ".cfg", ".ini"}
+# ONLY THE PRODUCT'S OWN FOLDERS. A walk over the whole working tree also read
+# notes and generated reports - an untracked htmlcov/ with copies of old source,
+# a working note in the repo root - which kept fifteen dead sentences "used" on
+# the Mac while CI, with a clean checkout, found them (2026-09-27).
+SOURCE_DIRS = ("cogs", "services", "app", "utils", "scripts")
+SUFFIXES = {".py", ".json", ".js", ".html", ".txt", ".yml", ".yaml", ".cfg", ".ini"}
+
+
+def _source_files():
+    for name in SOURCE_DIRS:
+        yield from (p for p in (ROOT / name).rglob("*")
+                    if p.is_file() and p.suffix in SUFFIXES and "__pycache__" not in p.parts)
+    yield from ROOT.glob("*.py")
 
 
 def _source_text():
@@ -32,10 +42,7 @@ def _source_text():
     a sentence written as adjacent pieces over several lines ("...detected**\\n\\n"
     "Unable to...") is one constant there and nowhere one piece of text."""
     chunks = []
-    for path in ROOT.rglob("*"):
-        rel = path.relative_to(ROOT).parts
-        if not path.is_file() or rel[0] in SKIP_DIRS or path.suffix not in SUFFIXES:
-            continue
+    for path in _source_files():
         try:
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
