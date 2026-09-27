@@ -37,6 +37,22 @@
         </div>
     </div>
 
+    {# The use the feature is built for, spelled out (operator, 2026-09-27): follow a
+       foreign server's announcement channel, let DDC translate what arrives. Outside
+       #ctSection so it explains the feature while it is still switched off. Such posts
+       come through a webhook and still pass the bot filter (cogs/translation_monitor.py). #}
+    <div class="alert alert-secondary mt-3 mb-0" data-ct-explainer="follow">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>{{ _t('web.ct.follow_heading') }}</strong>
+        <p class="mb-2 mt-2">{{ _t('web.ct.follow_description') }}</p>
+        <ol class="mb-2 small">
+            <li>{{ _t('web.ct.follow_step1') }}</li>
+            <li>{{ _t('web.ct.follow_step2') }}</li>
+            <li>{{ _t('web.ct.follow_step3') }}</li>
+        </ol>
+        <p class="mb-0 small">{{ _t('web.ct.follow_note') }}</p>
+    </div>
+
     <div id="ctSection">
         <div class="mt-3">
 

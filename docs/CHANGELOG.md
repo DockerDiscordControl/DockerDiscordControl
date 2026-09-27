@@ -111,7 +111,9 @@ does not protect is in `docs/SECURITY.md`. Read "What changes for you" before up
     active rule without one is refused on save; old ones keep running, carry an "Any webhook"
     badge in the list and can still be switched off. Allowed usernames never vouch for a webhook.
   - **Channel translation ignores other bots and webhooks.** Two translation bots in the same
-    channels translated each other in a loop.
+    channels translated each other in a loop. Posts from an announcement channel your server
+    FOLLOWS are still translated (Discord marks them as crossposts, which no bot can fake) - the
+    panel now explains that setup. Other bot or RSS feeds posting into a source channel are not.
   - **The donation click counter needs the panel login**, and spam settings outside 0-300 s per
     cooldown or 1-100 per minute are refused by the server.
 

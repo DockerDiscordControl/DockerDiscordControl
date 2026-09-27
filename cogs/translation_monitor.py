@@ -39,7 +39,12 @@ class TranslationMonitor(commands.Cog):
         # second translation bot, or a webhook relay pointed back at a source
         # channel, answered each DDC translation with its own - which DDC then
         # translated again, burning the provider budget in a loop.
-        if message.author.bot or message.webhook_id:
+        # EXCEPT a post from a followed announcement channel (operator,
+        # 2026-09-27): Discord delivers those through a webhook, and reading a
+        # foreign server's news translated is what the feature is for. Only
+        # Discord sets IS_CROSSPOST - a bot or webhook cannot claim it - and DDC
+        # never publishes its translations, so this opens no loop.
+        if (message.author.bot or message.webhook_id) and not message.flags.is_crossposted:
             return
 
         # 2. Ignore DM messages
