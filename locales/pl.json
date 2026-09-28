@@ -1663,5 +1663,12 @@
   "out of memory": "brak pamięci",
   "exit code {code}": "kod wyjścia {code}",
   "image from {date}": "obraz z {date}",
-  "Memory limit: {size}": "Limit pamięci: {size}"
+  "Memory limit: {size}": "Limit pamięci: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Serwer gry nie odpowiada – kontener działa, gra w nim być może nie.",
+  "A newer image is in the registry": "W rejestrze jest nowszy obraz",
+  "👋 {names} joined {server}": "👋 {names} dołączył(a) do {server}",
+  "👋 A player joined {server}": "👋 Gracz dołączył do {server}",
+  "👋 {count} players joined {server}": "👋 {count} graczy dołączyło do {server}",
+  "web.permissions.col_player_joins": "Dołączenia graczy",
+  "web.permissions.col_player_joins_tooltip": "Ogłaszaj tutaj, kto dołącza do serwera gry (kontenery z zaznaczoną kolumną Gracze). Powiadomienie znika po 30 minutach."
 }

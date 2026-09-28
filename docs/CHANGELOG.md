@@ -51,6 +51,21 @@ All notable changes to DockerDiscordControl will be documented in this file.
   restart count and what restarts the container share one line, and "0/10" no longer gets a
   second line saying nobody plays. The address comes from one function now - there were
   three, and the dropdown's validated nothing.
+- **A game server that stopped answering is said.** Found on the operator's own host: an
+  Enshrouded server had died twelve days before while its container ran on (a `tail -f` kept it
+  alive), so it stood 🟢 online all along. DDC's query check had marked it unreachable and said
+  nothing; the info display now says "the game server does not answer - the container runs, the
+  game in it may not", at once.
+- **A newer image is said**, with "details" allowed: "⬆️ A newer image is in the registry". The
+  registry check existed for auto-actions only; the display asks Docker Hub, ghcr.io and lscr.io
+  through a six-hour cache, compares with the image that actually runs, never pulls, and never
+  says "up to date" on an answer it did not get.
+- **Who joins a game server can be announced**: "👋 Anna joined Valheim (2/10)". Off unless a
+  channel's new "Player joins" box is ticked in the panel's channel tables. Games that name
+  everyone are compared by name; games that only count (Icarus, Satisfactory) or send a sample
+  (Minecraft) by count - "👋 A player joined Icarus (3/8)". Nobody is announced for being there
+  when the bot starts, a failed query forgets nothing, and a notice disappears after 30 minutes
+  so the status panels stay where they are.
 - **The ℹ️ / ⓘ marker in the overviews is gone** - with every container having info it said
   nothing any more.
 

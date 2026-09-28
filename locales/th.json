@@ -1663,5 +1663,12 @@
   "out of memory": "หน่วยความจำหมด",
   "exit code {code}": "รหัสออก {code}",
   "image from {date}": "อิมเมจจาก {date}",
-  "Memory limit: {size}": "ขีดจำกัดหน่วยความจำ: {size}"
+  "Memory limit: {size}": "ขีดจำกัดหน่วยความจำ: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "เซิร์ฟเวอร์เกมไม่ตอบ - คอนเทนเนอร์ทำงานอยู่ แต่เกมข้างในอาจไม่",
+  "A newer image is in the registry": "มีอิมเมจใหม่กว่าใน registry",
+  "👋 {names} joined {server}": "👋 {names} เข้าร่วม {server}",
+  "👋 A player joined {server}": "👋 มีผู้เล่นเข้าร่วม {server}",
+  "👋 {count} players joined {server}": "👋 ผู้เล่น {count} คนเข้าร่วม {server}",
+  "web.permissions.col_player_joins": "ผู้เล่นเข้าร่วม",
+  "web.permissions.col_player_joins_tooltip": "แจ้งที่นี่ว่าใครเข้าร่วมเซิร์ฟเวอร์เกม (คอนเทนเนอร์ที่ติ๊กคอลัมน์ผู้เล่น) ข้อความจะหายไปหลัง 30 นาที"
 }

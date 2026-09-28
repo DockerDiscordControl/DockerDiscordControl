@@ -983,6 +983,12 @@ function addStatusChannelRow() {
         </td>
         <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="status_inactivity_timeout_${rowCount}" value="1" min="1" style="width: 70px;" disabled></td>
         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="status_player_joins_${rowCount}" value="1">
+                <label class="form-check-label visually-hidden">Player joins</label>
+            </div>
+        </td>
+        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
             <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="status-channel-row-${rowCount}">
                 <i class="bi bi-trash"></i>
             </button>
@@ -1024,6 +1030,12 @@ function addControlChannelRow() {
             </div>
         </td>
         <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="control_inactivity_timeout_${rowCount}" value="1" min="1" style="width: 70px;" disabled></td>
+        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="control_player_joins_${rowCount}" value="1">
+                <label class="form-check-label visually-hidden">Player joins</label>
+            </div>
+        </td>
         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
             <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="control-channel-row-${rowCount}">
                 <i class="bi bi-trash"></i>

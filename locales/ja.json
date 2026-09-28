@@ -1663,5 +1663,12 @@
   "out of memory": "メモリ不足",
   "exit code {code}": "終了コード {code}",
   "image from {date}": "{date} のイメージ",
-  "Memory limit: {size}": "メモリ上限: {size}"
+  "Memory limit: {size}": "メモリ上限: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "ゲームサーバーが応答しません – コンテナは動いていますが、中のゲームは動いていないかもしれません。",
+  "A newer image is in the registry": "レジストリに新しいイメージがあります",
+  "👋 {names} joined {server}": "👋 {names} が {server} に参加しました",
+  "👋 A player joined {server}": "👋 プレイヤーが {server} に参加しました",
+  "👋 {count} players joined {server}": "👋 {count} 人のプレイヤーが {server} に参加しました",
+  "web.permissions.col_player_joins": "プレイヤー参加",
+  "web.permissions.col_player_joins_tooltip": "ゲームサーバーに参加した人をここで知らせます（プレイヤー列にチェックのあるコンテナ）。通知は30分後に消えます。"
 }

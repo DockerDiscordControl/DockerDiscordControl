@@ -1663,5 +1663,12 @@
   "out of memory": "nestalo memorije",
   "exit code {code}": "izlazni kod {code}",
   "image from {date}": "image od {date}",
-  "Memory limit: {size}": "Ograničenje memorije: {size}"
+  "Memory limit: {size}": "Ograničenje memorije: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Poslužitelj igre ne odgovara – kontejner radi, igra u njemu možda ne.",
+  "A newer image is in the registry": "U registru je noviji image",
+  "👋 {names} joined {server}": "👋 {names} se pridružio/la na {server}",
+  "👋 A player joined {server}": "👋 Igrač se pridružio na {server}",
+  "👋 {count} players joined {server}": "👋 {count} igrača se pridružilo na {server}",
+  "web.permissions.col_player_joins": "Pridruživanja igrača",
+  "web.permissions.col_player_joins_tooltip": "Javi ovdje tko se pridruži poslužitelju igre (kontejneri s označenim stupcem Igrači). Obavijest nestaje nakon 30 minuta."
 }

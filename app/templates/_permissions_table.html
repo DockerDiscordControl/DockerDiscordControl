@@ -29,6 +29,7 @@
                 <th scope="col" style="width: 10%;">{{ _t('web.permissions.col_minutes') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="{{ _t('web.permissions.col_minutes_refresh_tooltip') }}" tabindex="0" role="button"></i></th>
                 <th scope="col" class="text-center" style="width: 10%; border-left: 3px solid #0dcaf0;">{{ _t('web.permissions.col_recreate') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="{{ _t('web.permissions.col_recreate_tooltip') }}" tabindex="0" role="button"></i></th>
                 <th scope="col" style="width: 10%;">{{ _t('web.permissions.col_minutes') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="{{ _t('web.permissions.col_minutes_recreate_tooltip') }}" tabindex="0" role="button"></i></th>
+                <th scope="col" class="text-center" style="width: 8%; border-left: 3px solid #0dcaf0;">{{ _t('web.permissions.col_player_joins') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="{{ _t('web.permissions.col_player_joins_tooltip') }}" tabindex="0" role="button"></i></th>
                 <th scope="col" class="text-center" style="width: 5%; border-left: 3px solid #0dcaf0;">{{ _t('web.permissions.col_action') }}</th>
             </tr>
         </thead>
@@ -66,6 +67,12 @@
                         </td>
                         <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="status_inactivity_timeout_{{ ns.status_channel_count }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ri_checked %}disabled{% endif %}></td>
                         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="status_player_joins_{{ ns.status_channel_count }}" value="1" {% if channel_data.get('player_joins') %}checked{% endif %}>
+                                <label class="form-check-label visually-hidden">{{ _t('web.permissions.col_player_joins') }}</label>
+                            </div>
+                        </td>
+                        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                             <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="status-channel-row-{{ ns.status_channel_count }}">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -100,6 +107,12 @@
                         </div>
                     </td>
                     <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="status_inactivity_timeout_1" value="{{ defaults.get('inactivity_timeout_minutes', 1) }}" min="1" style="width: 70px;" {% if not defaults.get('recreate_messages_on_inactivity', False) %}disabled{% endif %}></td>
+                    <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="status_player_joins_1" value="1">
+                            <label class="form-check-label visually-hidden">{{ _t('web.permissions.col_player_joins') }}</label>
+                        </div>
+                    </td>
                     <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="status-channel-row-1">
                             <i class="bi bi-trash"></i>
@@ -136,6 +149,7 @@
                 <th scope="col" style="width: 10%;">{{ _t('web.permissions.col_minutes') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="{{ _t('web.permissions.col_minutes_refresh_tooltip') }}" tabindex="0" role="button"></i></th>
                 <th scope="col" class="text-center" style="width: 10%; border-left: 3px solid #0dcaf0;">{{ _t('web.permissions.col_recreate') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="{{ _t('web.permissions.col_recreate_tooltip') }}" tabindex="0" role="button"></i></th>
                 <th scope="col" style="width: 10%;">{{ _t('web.permissions.col_minutes') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="{{ _t('web.permissions.col_minutes_recreate_tooltip') }}" tabindex="0" role="button"></i></th>
+                <th scope="col" class="text-center" style="width: 8%; border-left: 3px solid #0dcaf0;">{{ _t('web.permissions.col_player_joins') }}<i class="bi bi-question-circle help-icon" data-bs-toggle="tooltip" title="{{ _t('web.permissions.col_player_joins_tooltip') }}" tabindex="0" role="button"></i></th>
                 <th scope="col" class="text-center" style="width: 5%; border-left: 3px solid #0dcaf0;">{{ _t('web.permissions.col_action') }}</th>
             </tr>
         </thead>
@@ -171,6 +185,12 @@
                         </td>
                         <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="control_inactivity_timeout_{{ ns2.control_channel_count }}" value="{{ channel_data.get('inactivity_timeout_minutes', defaults.get('inactivity_timeout_minutes', 1)) }}" min="1" style="width: 70px;" {% if not is_ri_checked %}disabled{% endif %}></td>
                         <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="control_player_joins_{{ ns2.control_channel_count }}" value="1" {% if channel_data.get('player_joins') %}checked{% endif %}>
+                                <label class="form-check-label visually-hidden">{{ _t('web.permissions.col_player_joins') }}</label>
+                            </div>
+                        </td>
+                        <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                             <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="control-channel-row-{{ ns2.control_channel_count }}">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -205,6 +225,12 @@
                         </div>
                     </td>
                     <td><input type="number" class="form-control form-control-sm inactivity-minutes-input" name="control_inactivity_timeout_1" value="{{ defaults.get('inactivity_timeout_minutes', 1) }}" min="1" style="width: 70px;" {% if not defaults.get('recreate_messages_on_inactivity', False) %}disabled{% endif %}></td>
+                    <td class="text-center" style="border-left: 3px solid #0dcaf0;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="control_player_joins_1" value="1">
+                            <label class="form-check-label visually-hidden">{{ _t('web.permissions.col_player_joins') }}</label>
+                        </div>
+                    </td>
                     <td class="text-center" style="border-left: 3px solid #0dcaf0;">
                         <button type="button" class="btn btn-sm btn-danger remove-channel-btn" data-row-id="control-channel-row-1">
                             <i class="bi bi-trash"></i>

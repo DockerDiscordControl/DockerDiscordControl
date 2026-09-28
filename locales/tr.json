@@ -1663,5 +1663,12 @@
   "out of memory": "bellek doldu",
   "exit code {code}": "çıkış kodu {code}",
   "image from {date}": "{date} tarihli imaj",
-  "Memory limit: {size}": "Bellek sınırı: {size}"
+  "Memory limit: {size}": "Bellek sınırı: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Oyun sunucusu yanıt vermiyor – konteyner çalışıyor, içindeki oyun belki değil.",
+  "A newer image is in the registry": "Kayıt defterinde daha yeni bir imaj var",
+  "👋 {names} joined {server}": "👋 {names}, {server} sunucusuna katıldı",
+  "👋 A player joined {server}": "👋 Bir oyuncu {server} sunucusuna katıldı",
+  "👋 {count} players joined {server}": "👋 {count} oyuncu {server} sunucusuna katıldı",
+  "web.permissions.col_player_joins": "Oyuncu katılımları",
+  "web.permissions.col_player_joins_tooltip": "Bir oyun sunucusuna kimin katıldığını burada duyur (Oyuncular sütunu işaretli konteynerler). Duyuru 30 dakika sonra kaybolur."
 }

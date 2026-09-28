@@ -94,6 +94,8 @@ def _time_on_server(seconds: Optional[float]) -> str:
 def format_players(players) -> str:
     """The block for a PlayerList (services/infrastructure/game_query_service.py)."""
     if not players.success:
+        if players.error_type == 'not_answering':
+            return "⚠️ " + _("The game server does not answer - the container runs, the game in it may not.")
         return "👥 " + _("The player list cannot be read right now.")
     online = players.players_online or 0
     if players.max_players:
@@ -148,6 +150,19 @@ async def player_list(server_config: Dict[str, Any]):
 
     if not server_config.get('query_enabled'):
         return None
+    # FOUND BY THIS DISPLAY, 2026-09-28: the operator's Enshrouded server had
+    # stopped twelve days before - its log ends on 16 September, no process
+    # listens - while the container ran on (a `tail -f` keeps it alive), so it
+    # stood 🟢 online all along. The support check had long since marked it
+    # unreachable, and the display stayed silent about it. It says so now,
+    # at once: asking again would only cost the whole budget.
+    try:
+        from services.infrastructure.game_query_support_service import get_game_query_support_service
+        name = server_config.get('docker_name')
+        if get_game_query_support_service().is_supported(name) is False:
+            return PlayerList(success=False, error_type='not_answering') if _is_running(name) else None
+    except (ImportError, RuntimeError, AttributeError) as e:
+        logger.debug(f"Support verdict for {server_config.get('docker_name')} not readable: {e}")
     try:
         return await asyncio.wait_for(_ask(), timeout=BUDGET_SECONDS)
     except asyncio.TimeoutError:
@@ -175,8 +190,12 @@ def _restart_policy(name: Optional[str]) -> str:
     return _("Docker does not restart it after a crash")
 
 
-def format_facts(facts, details: bool) -> List[str]:
-    """Lines for a ContainerFacts (services/infrastructure/container_facts_service.py)."""
+def format_facts(facts, details: bool, update: Optional[bool] = None) -> List[str]:
+    """Lines for a ContainerFacts (services/infrastructure/container_facts_service.py).
+
+    ``update`` is True when the registry holds a newer image than the one that
+    runs - said only then, never "up to date" on an unknown answer.
+    """
     if facts is None:
         return []
     lines = []
@@ -195,6 +214,8 @@ def format_facts(facts, details: bool) -> List[str]:
             image.append(_("image from {date}").format(date=_when(facts.image_created, "D")))
         if image:
             lines.append("📦 " + " · ".join(image))
+        if update:
+            lines.append("⬆️ " + _("A newer image is in the registry"))
     # One line for restarts and what restarts it - two lines with 🔁 and 🔄
     # read as the same thing twice (operator, 2026-09-28)
     restarts = [_("🔄 Restarts: {count}").format(count=facts.restart_count)] \
@@ -245,6 +266,25 @@ async def address_line(info_config: Dict[str, Any], game_port: Optional[int] = N
     return f"🌐 **{_('Public IP')}:** `{wan_ip}{':' + port if port else ''}`" if wan_ip else None
 
 
+async def image_update(facts, wait: float) -> Optional[bool]:
+    """Whether the registry holds a newer image than the running one; None when not known.
+
+    The check the watchdog already had (Phase 4d, image_updates.py) ran only
+    for operators with an image_update rule. The display asks through a
+    six-hour cache, within what is left of its budget.
+    """
+    from services.automation.image_updates import (cached_remote_digest, parse_image_reference,
+                                                   update_available)
+    ref = parse_image_reference(facts.image_reference) if facts is not None else None
+    if ref is None or not facts.running_digests:
+        return None
+    try:
+        return update_available(await cached_remote_digest(ref, wait), set(facts.running_digests))
+    except Exception as e:  # noqa: BLE001 - the display opens without it
+        logger.debug(f"Image update for {facts.image_reference} not known: {e}")
+        return None
+
+
 @dataclass
 class Extras:
     """What info_extras found, in the groups the display separates with a blank line."""
@@ -266,14 +306,18 @@ async def info_extras(server_config: Dict[str, Any]) -> Extras:
     name = server_config.get('docker_name')
     if not name:
         return Extras()
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + BUDGET_SECONDS
+    details = bool(server_config.get('allow_detailed_status', True))
     facts_task = asyncio.ensure_future(get_container_facts(name))
     players = await player_list(server_config)
     try:
         facts = await asyncio.wait_for(asyncio.shield(facts_task), timeout=BUDGET_SECONDS)
     except asyncio.TimeoutError:
         facts = None
+    update = await image_update(facts, deadline - loop.time()) if details else None
     game = [game_line(players, facts), format_players(players) if players is not None else None]
     return Extras(
         game=[line for line in game if line],
-        docker=format_facts(facts, details=bool(server_config.get('allow_detailed_status', True))),
+        docker=format_facts(facts, details=details, update=update),
         port=connect_port(facts, players.game_port) if players is not None and players.success else None)

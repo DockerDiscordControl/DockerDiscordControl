@@ -1663,5 +1663,12 @@
   "out of memory": "baigėsi atmintis",
   "exit code {code}": "išėjimo kodas {code}",
   "image from {date}": "atvaizdas nuo {date}",
-  "Memory limit: {size}": "Atminties riba: {size}"
+  "Memory limit: {size}": "Atminties riba: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Žaidimo serveris neatsako – konteineris veikia, žaidimas jame galbūt ne.",
+  "A newer image is in the registry": "Registre yra naujesnis atvaizdas",
+  "👋 {names} joined {server}": "👋 {names} prisijungė prie {server}",
+  "👋 A player joined {server}": "👋 Žaidėjas prisijungė prie {server}",
+  "👋 {count} players joined {server}": "👋 {count} žaidėjai prisijungė prie {server}",
+  "web.permissions.col_player_joins": "Žaidėjų prisijungimai",
+  "web.permissions.col_player_joins_tooltip": "Pranešti čia, kas prisijungia prie žaidimo serverio (konteineriai su pažymėtu stulpeliu Žaidėjai). Pranešimas dingsta po 30 minučių."
 }

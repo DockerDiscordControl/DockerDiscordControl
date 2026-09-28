@@ -1663,5 +1663,12 @@
   "out of memory": "løb tør for hukommelse",
   "exit code {code}": "exitkode {code}",
   "image from {date}": "image fra {date}",
-  "Memory limit: {size}": "Hukommelsesgrænse: {size}"
+  "Memory limit: {size}": "Hukommelsesgrænse: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Spilserveren svarer ikke – containeren kører, spillet i den måske ikke.",
+  "A newer image is in the registry": "Der er et nyere image i registret",
+  "👋 {names} joined {server}": "👋 {names} kom på {server}",
+  "👋 A player joined {server}": "👋 En spiller kom på {server}",
+  "👋 {count} players joined {server}": "👋 {count} spillere kom på {server}",
+  "web.permissions.col_player_joins": "Spillere der kommer",
+  "web.permissions.col_player_joins_tooltip": "Meld her, hvem der kommer på en spilserver (containere med kolonnen Spillere slået til). Beskeden forsvinder efter 30 minutter."
 }

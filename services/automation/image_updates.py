@@ -28,8 +28,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from dataclasses import dataclass
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Tuple
 
 logger = logging.getLogger("ddc.image_updates")
 
@@ -159,6 +160,42 @@ async def remote_digest(ref: ImageRef, scheme: str = "https", timeout: float = 1
 
 IMAGE_UPDATE = "image_update"
 CHECK_INTERVAL_SECONDS = 6 * 3600
+# An unknown answer (registry down, private image) is asked again sooner
+UNKNOWN_RETRY_SECONDS = 1800
+
+# For the info display (v3.0.2): tag -> (when asked, digest or None). Asking a
+# registry takes a token round trip; a member opening the display five times
+# must not ask five times, and the check above runs only for operators with an
+# image_update rule.
+_REMOTE_CACHE: Dict[ImageRef, Tuple[float, Optional[str]]] = {}
+_REMOTE_IN_FLIGHT: Dict[ImageRef, "asyncio.Task"] = {}
+
+
+async def cached_remote_digest(ref: ImageRef, wait: float) -> Optional[str]:
+    """The tag's remote digest from the cache, or asked for - waiting at most ``wait`` seconds.
+
+    A lookup that takes longer goes on in the background and fills the cache,
+    so the next opening knows. Never raises; None when not (yet) known.
+    """
+    entry = _REMOTE_CACHE.get(ref)
+    if entry is not None:
+        asked, digest = entry
+        if time.monotonic() - asked < (CHECK_INTERVAL_SECONDS if digest else UNKNOWN_RETRY_SECONDS):
+            return digest
+    task = _REMOTE_IN_FLIGHT.get(ref)
+    if task is None or task.done():
+        async def _ask():
+            digest = await remote_digest(ref)
+            _REMOTE_CACHE[ref] = (time.monotonic(), digest)
+            return digest
+        task = asyncio.ensure_future(_ask())
+        _REMOTE_IN_FLIGHT[ref] = task
+        task.add_done_callback(lambda done, key=ref: _REMOTE_IN_FLIGHT.pop(key, None)
+                               if _REMOTE_IN_FLIGHT.get(key) is done else None)
+    try:
+        return await asyncio.wait_for(asyncio.shield(task), timeout=max(wait, 0.01))
+    except asyncio.TimeoutError:
+        return None
 
 
 class ImageUpdateChecker:

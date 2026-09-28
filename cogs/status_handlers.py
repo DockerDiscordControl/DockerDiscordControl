@@ -456,6 +456,9 @@ class StatusHandlersMixin:
                         verdicts.note_query_success(docker_name)
                     elif q.error_type in ('timeout', 'unreachable'):
                         verdicts.note_query_failure(docker_name)
+            # Who joined (cogs/player_joins.py): its own task, off unless a channel asks
+            from .player_joins import schedule_join_check
+            schedule_join_check(self, status_results, servers_by_docker_name)
         except (ImportError, RuntimeError, AttributeError, KeyError, TypeError) as e:
             logger.debug(f"[GAME_QUERY] Player-count enrichment skipped: {e}")
 

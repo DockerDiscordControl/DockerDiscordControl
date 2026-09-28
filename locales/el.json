@@ -1663,5 +1663,12 @@
   "out of memory": "εξαντλήθηκε η μνήμη",
   "exit code {code}": "κωδικός εξόδου {code}",
   "image from {date}": "image από {date}",
-  "Memory limit: {size}": "Όριο μνήμης: {size}"
+  "Memory limit: {size}": "Όριο μνήμης: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Ο διακομιστής παιχνιδιού δεν απαντά – το container τρέχει, το παιχνίδι μέσα ίσως όχι.",
+  "A newer image is in the registry": "Υπάρχει νεότερο image στο registry",
+  "👋 {names} joined {server}": "👋 Ο/Η {names} μπήκε στο {server}",
+  "👋 A player joined {server}": "👋 Ένας παίκτης μπήκε στο {server}",
+  "👋 {count} players joined {server}": "👋 {count} παίκτες μπήκαν στο {server}",
+  "web.permissions.col_player_joins": "Είσοδοι παικτών",
+  "web.permissions.col_player_joins_tooltip": "Ανακοίνωση εδώ για όποιον μπαίνει σε διακομιστή παιχνιδιού (containers με επιλεγμένη τη στήλη Παίκτες). Η ειδοποίηση εξαφανίζεται μετά από 30 λεπτά."
 }

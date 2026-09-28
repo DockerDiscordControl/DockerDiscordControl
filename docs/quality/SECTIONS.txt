@@ -59,15 +59,16 @@ cogs/donation_ui.py:1-693
 ## Section 07  (694 lines, 1 piece)
 cogs/enhanced_info_modal_simple.py:1-704
 
-## Section 08  (1112 lines, 1 piece)
-cogs/status_handlers.py:1-1112
+## Section 08  (1115 lines, 1 piece)
+cogs/status_handlers.py:1-1115
 
-## Section 09  (1406 lines, 2 pieces)
+## Section 09  (1611 lines, 3 pieces)
 # v3.0.2, 2026-09-28: every container has an info display; who plays on a
 # game server and Docker's facts come from info_extras.py, read with the display
-# it fills.
+# it fills; player_joins.py announces who joins, from the same player list.
 cogs/status_info_integration.py:1-1127
-cogs/info_extras.py:1-279
+cogs/info_extras.py:1-323
+cogs/player_joins.py:1-161
 
 ## Section 10  (1592 lines, 7 pieces)
 cogs/translation_manager.py:1-149
@@ -88,12 +89,12 @@ services/automation/automation_service.py:1-997
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-585
 
-## Section 12  (1819 lines, 5 pieces)
+## Section 12  (1847 lines, 5 pieces)
 # config_cache_service.py followed on 2026-09-23: section 11 went over 2,000
 # when automation_service.py grew with the group resolution.
 services/automation/own_actions.py:1-93
 services/config/config_cache_service.py:1-177
-services/config/config_form_parser_service.py:1-628
+services/config/config_form_parser_service.py:1-630
 services/config/config_loader_service.py:1-481
 services/config/config_migration_service.py:1-466
 # group_service.py left for section 37 on 2026-09-24: a group gained
@@ -168,11 +169,11 @@ services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-191
 services/infrastructure/event_manager.py:1-119
 
-## Section 19b  (868 lines, 2 pieces)
+## Section 19b  (877 lines, 2 pieces)
 # Split off Section 19 on 2026-09-23: container_status_service.py grew past the
 # 2000-line section limit with the cache-lifetime fix.
 services/infrastructure/game_query_service.py:1-698
-services/infrastructure/container_facts_service.py:1-170
+services/infrastructure/container_facts_service.py:1-179
 
 ## Section 20  (1577 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-341
@@ -429,10 +430,10 @@ cogs/message_updates.py:1-728
 # (2,403 -> 1234 lines); too large to join a neighbour.
 cogs/task_ui.py:1-1245
 
-## Section 42  (164 lines, 1 piece)
+## Section 42  (220 lines, 1 piece)
 # Phase 4d (2026-09-22): the image-update check. Section 11, where the other
 # automation files live, is at 1,987 of its 2,000 lines.
-services/automation/image_updates.py:1-183
+services/automation/image_updates.py:1-220
 
 ## Section 43  (104 lines, 1 piece)
 # The self-restart and debug-level routes (operator, 2026-09-24). Section

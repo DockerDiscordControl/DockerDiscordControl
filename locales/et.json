@@ -1663,5 +1663,12 @@
   "out of memory": "mälu sai otsa",
   "exit code {code}": "väljumiskood {code}",
   "image from {date}": "tõmmis {date}",
-  "Memory limit: {size}": "Mälupiirang: {size}"
+  "Memory limit: {size}": "Mälupiirang: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Mänguserver ei vasta – konteiner töötab, mäng selles ehk mitte.",
+  "A newer image is in the registry": "Registris on uuem tõmmis",
+  "👋 {names} joined {server}": "👋 {names} liitus serveriga {server}",
+  "👋 A player joined {server}": "👋 Mängija liitus serveriga {server}",
+  "👋 {count} players joined {server}": "👋 {count} mängijat liitus serveriga {server}",
+  "web.permissions.col_player_joins": "Mängijate liitumised",
+  "web.permissions.col_player_joins_tooltip": "Teata siin, kes mänguserveriga liitub (konteinerid, millel on veerg Mängijad märgitud). Teade kaob 30 minuti pärast."
 }

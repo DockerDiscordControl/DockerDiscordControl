@@ -1663,5 +1663,12 @@
   "out of memory": "memorie epuizată",
   "exit code {code}": "cod de ieșire {code}",
   "image from {date}": "imagine din {date}",
-  "Memory limit: {size}": "Limită de memorie: {size}"
+  "Memory limit: {size}": "Limită de memorie: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Serverul de joc nu răspunde – containerul rulează, jocul din el poate nu.",
+  "A newer image is in the registry": "În registru există o imagine mai nouă",
+  "👋 {names} joined {server}": "👋 {names} a intrat pe {server}",
+  "👋 A player joined {server}": "👋 Un jucător a intrat pe {server}",
+  "👋 {count} players joined {server}": "👋 {count} jucători au intrat pe {server}",
+  "web.permissions.col_player_joins": "Intrări jucători",
+  "web.permissions.col_player_joins_tooltip": "Anunță aici cine intră pe un server de joc (containere cu coloana Jucători bifată). Anunțul dispare după 30 de minute."
 }

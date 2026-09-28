@@ -1663,5 +1663,12 @@
   "out of memory": "beidzās atmiņa",
   "exit code {code}": "izejas kods {code}",
   "image from {date}": "attēls no {date}",
-  "Memory limit: {size}": "Atmiņas limits: {size}"
+  "Memory limit: {size}": "Atmiņas limits: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Spēles serveris neatbild – konteiners darbojas, spēle tajā varbūt ne.",
+  "A newer image is in the registry": "Reģistrā ir jaunāks attēls",
+  "👋 {names} joined {server}": "👋 {names} pievienojās {server}",
+  "👋 A player joined {server}": "👋 Spēlētājs pievienojās {server}",
+  "👋 {count} players joined {server}": "👋 {count} spēlētāji pievienojās {server}",
+  "web.permissions.col_player_joins": "Spēlētāju pievienošanās",
+  "web.permissions.col_player_joins_tooltip": "Paziņot šeit, kas pievienojas spēles serverim (konteineri ar atzīmētu kolonnu Spēlētāji). Paziņojums pazūd pēc 30 minūtēm."
 }

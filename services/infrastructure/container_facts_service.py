@@ -25,7 +25,7 @@ import asyncio
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, Optional, Tuple
+from typing import Dict, FrozenSet, Optional, Tuple
 
 from utils.logging_utils import get_module_logger
 
@@ -58,6 +58,10 @@ class ContainerFacts:
     network_mode: Optional[str] = None
     # (container port, protocol) -> published host port
     published: Dict[Tuple[int, str], int] = field(default_factory=dict)
+    # The tag the container was created from, and the digests of the image it RUNS
+    # (services/automation/image_updates.py explains why not the tag's)
+    image_reference: str = ''
+    running_digests: FrozenSet[str] = frozenset()
 
 
 def _moment(value) -> Optional[datetime]:
@@ -109,6 +113,9 @@ def facts_from_attrs(attrs: Dict, image_attrs: Optional[Dict] = None) -> Contain
     host = attrs.get('HostConfig') or {}
     running = bool(state.get('Running'))
     exit_code = state.get('ExitCode')
+    from services.automation.image_updates import local_digests, parse_image_reference
+    reference = str(config.get('Image') or '')
+    ref = parse_image_reference(reference)
     return ContainerFacts(
         running=running,
         started_at=_moment(state.get('StartedAt')) if running else None,
@@ -123,6 +130,8 @@ def facts_from_attrs(attrs: Dict, image_attrs: Optional[Dict] = None) -> Contain
         memory_limit=host.get('Memory') or None,
         network_mode=host.get('NetworkMode') or None,
         published=_published((attrs.get('NetworkSettings') or {}).get('Ports')),
+        image_reference=reference,
+        running_digests=frozenset(local_digests(image_attrs or {}, ref)) if ref else frozenset(),
     )
 
 

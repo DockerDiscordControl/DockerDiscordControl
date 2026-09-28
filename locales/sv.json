@@ -1663,5 +1663,12 @@
   "out of memory": "slut på minne",
   "exit code {code}": "slutkod {code}",
   "image from {date}": "image från {date}",
-  "Memory limit: {size}": "Minnesgräns: {size}"
+  "Memory limit: {size}": "Minnesgräns: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Spelservern svarar inte – containern körs, spelet i den kanske inte.",
+  "A newer image is in the registry": "Det finns en nyare image i registret",
+  "👋 {names} joined {server}": "👋 {names} anslöt till {server}",
+  "👋 A player joined {server}": "👋 En spelare anslöt till {server}",
+  "👋 {count} players joined {server}": "👋 {count} spelare anslöt till {server}",
+  "web.permissions.col_player_joins": "Spelare som ansluter",
+  "web.permissions.col_player_joins_tooltip": "Meddela här vem som ansluter till en spelserver (containrar med kolumnen Spelare ikryssad). Meddelandet försvinner efter 30 minuter."
 }

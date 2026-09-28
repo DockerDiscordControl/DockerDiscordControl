@@ -1663,5 +1663,12 @@
   "out of memory": "kehabisan memori",
   "exit code {code}": "kode keluar {code}",
   "image from {date}": "image dari {date}",
-  "Memory limit: {size}": "Batas memori: {size}"
+  "Memory limit: {size}": "Batas memori: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Server game tidak menjawab - container berjalan, game di dalamnya mungkin tidak.",
+  "A newer image is in the registry": "Ada image lebih baru di registry",
+  "👋 {names} joined {server}": "👋 {names} bergabung ke {server}",
+  "👋 A player joined {server}": "👋 Seorang pemain bergabung ke {server}",
+  "👋 {count} players joined {server}": "👋 {count} pemain bergabung ke {server}",
+  "web.permissions.col_player_joins": "Pemain bergabung",
+  "web.permissions.col_player_joins_tooltip": "Umumkan di sini siapa yang bergabung ke server game (container dengan kolom Pemain dicentang). Pemberitahuan hilang setelah 30 menit."
 }

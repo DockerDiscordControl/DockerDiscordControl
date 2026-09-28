@@ -1663,5 +1663,12 @@
   "out of memory": "内存不足",
   "exit code {code}": "退出代码 {code}",
   "image from {date}": "镜像日期 {date}",
-  "Memory limit: {size}": "内存限制：{size}"
+  "Memory limit: {size}": "内存限制：{size}",
+  "The game server does not answer - the container runs, the game in it may not.": "游戏服务器没有响应 - 容器在运行，但其中的游戏可能没有。",
+  "A newer image is in the registry": "镜像仓库中有更新的镜像",
+  "👋 {names} joined {server}": "👋 {names} 加入了 {server}",
+  "👋 A player joined {server}": "👋 一名玩家加入了 {server}",
+  "👋 {count} players joined {server}": "👋 {count} 名玩家加入了 {server}",
+  "web.permissions.col_player_joins": "玩家加入",
+  "web.permissions.col_player_joins_tooltip": "在这里通知谁加入了游戏服务器（勾选了“玩家”列的容器）。通知会在 30 分钟后消失。"
 }

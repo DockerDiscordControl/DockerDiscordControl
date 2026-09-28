@@ -1663,5 +1663,12 @@
   "out of memory": "elfogyott a memória",
   "exit code {code}": "kilépési kód {code}",
   "image from {date}": "image dátuma: {date}",
-  "Memory limit: {size}": "Memóriakorlát: {size}"
+  "Memory limit: {size}": "Memóriakorlát: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "A játékszerver nem válaszol – a konténer fut, a játék benne talán nem.",
+  "A newer image is in the registry": "Újabb image van a registryben",
+  "👋 {names} joined {server}": "👋 {names} csatlakozott: {server}",
+  "👋 A player joined {server}": "👋 Egy játékos csatlakozott: {server}",
+  "👋 {count} players joined {server}": "👋 {count} játékos csatlakozott: {server}",
+  "web.permissions.col_player_joins": "Csatlakozások",
+  "web.permissions.col_player_joins_tooltip": "Itt jelezze, ki csatlakozik egy játékszerverhez (a Játékosok oszlopban bejelölt konténerek). Az értesítés 30 perc után eltűnik."
 }

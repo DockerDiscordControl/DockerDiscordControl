@@ -1663,5 +1663,12 @@
   "out of memory": "zmanjkalo pomnilnika",
   "exit code {code}": "izhodna koda {code}",
   "image from {date}": "slika z dne {date}",
-  "Memory limit: {size}": "Omejitev pomnilnika: {size}"
+  "Memory limit: {size}": "Omejitev pomnilnika: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Strežnik igre ne odgovarja – vsebnik teče, igra v njem morda ne.",
+  "A newer image is in the registry": "V registru je novejša slika",
+  "👋 {names} joined {server}": "👋 {names} se je pridružil(a) na {server}",
+  "👋 A player joined {server}": "👋 Igralec se je pridružil na {server}",
+  "👋 {count} players joined {server}": "👋 Na {server} se je pridružilo {count} igralcev",
+  "web.permissions.col_player_joins": "Pridružitve igralcev",
+  "web.permissions.col_player_joins_tooltip": "Tukaj sporoči, kdo se pridruži strežniku igre (vsebniki z označenim stolpcem Igralci). Obvestilo izgine po 30 minutah."
 }

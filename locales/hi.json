@@ -1663,5 +1663,12 @@
   "out of memory": "मेमोरी खत्म",
   "exit code {code}": "एग्ज़िट कोड {code}",
   "image from {date}": "इमेज {date} की",
-  "Memory limit: {size}": "मेमोरी सीमा: {size}"
+  "Memory limit: {size}": "मेमोरी सीमा: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "गेम सर्वर जवाब नहीं दे रहा - कंटेनर चल रहा है, शायद उसमें गेम नहीं।",
+  "A newer image is in the registry": "रजिस्ट्री में नई इमेज है",
+  "👋 {names} joined {server}": "👋 {names} {server} पर आए",
+  "👋 A player joined {server}": "👋 एक खिलाड़ी {server} पर आया",
+  "👋 {count} players joined {server}": "👋 {count} खिलाड़ी {server} पर आए",
+  "web.permissions.col_player_joins": "खिलाड़ियों का आना",
+  "web.permissions.col_player_joins_tooltip": "यहाँ बताएं कि कौन गेम सर्वर पर आता है (जिन कंटेनरों में खिलाड़ी कॉलम चुना है)। सूचना 30 मिनट बाद हट जाती है।"
 }

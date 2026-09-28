@@ -1663,5 +1663,12 @@
   "out of memory": "حافظه تمام شد",
   "exit code {code}": "کد خروج {code}",
   "image from {date}": "ایمیج از {date}",
-  "Memory limit: {size}": "محدودیت حافظه: {size}"
+  "Memory limit: {size}": "محدودیت حافظه: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "سرور بازی پاسخ نمی‌دهد - کانتینر اجرا می‌شود، شاید بازی داخل آن نه.",
+  "A newer image is in the registry": "ایمیج جدیدتری در رجیستری هست",
+  "👋 {names} joined {server}": "👋 {names} وارد {server} شد",
+  "👋 A player joined {server}": "👋 یک بازیکن وارد {server} شد",
+  "👋 {count} players joined {server}": "👋 {count} بازیکن وارد {server} شدند",
+  "web.permissions.col_player_joins": "ورود بازیکنان",
+  "web.permissions.col_player_joins_tooltip": "اینجا اعلام کن چه کسی وارد سرور بازی می‌شود (کانتینرهایی که ستون بازیکنان آن‌ها تیک خورده). اعلان پس از ۳۰ دقیقه حذف می‌شود."
 }

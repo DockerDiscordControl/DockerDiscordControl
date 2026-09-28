@@ -1663,5 +1663,12 @@
   "out of memory": "نفدت الذاكرة",
   "exit code {code}": "رمز الخروج {code}",
   "image from {date}": "صورة من {date}",
-  "Memory limit: {size}": "حد الذاكرة: {size}"
+  "Memory limit: {size}": "حد الذاكرة: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "خادم اللعبة لا يستجيب - الحاوية تعمل، وربما لا تعمل اللعبة داخلها.",
+  "A newer image is in the registry": "توجد صورة أحدث في السجل",
+  "👋 {names} joined {server}": "👋 انضم {names} إلى {server}",
+  "👋 A player joined {server}": "👋 انضم لاعب إلى {server}",
+  "👋 {count} players joined {server}": "👋 انضم {count} لاعبين إلى {server}",
+  "web.permissions.col_player_joins": "انضمام اللاعبين",
+  "web.permissions.col_player_joins_tooltip": "أعلن هنا عمّن ينضم إلى خادم لعبة (الحاويات المحدد لها عمود اللاعبين). يختفي الإشعار بعد 30 دقيقة."
 }

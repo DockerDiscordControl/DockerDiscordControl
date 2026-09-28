@@ -1663,5 +1663,12 @@
   "out of memory": "došla paměť",
   "exit code {code}": "návratový kód {code}",
   "image from {date}": "image z {date}",
-  "Memory limit: {size}": "Limit paměti: {size}"
+  "Memory limit: {size}": "Limit paměti: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Herní server neodpovídá – kontejner běží, hra v něm možná ne.",
+  "A newer image is in the registry": "V registru je novější image",
+  "👋 {names} joined {server}": "👋 {names} se připojil(a) na {server}",
+  "👋 A player joined {server}": "👋 Na {server} se připojil hráč",
+  "👋 {count} players joined {server}": "👋 Na {server} se připojilo {count} hráčů",
+  "web.permissions.col_player_joins": "Připojení hráčů",
+  "web.permissions.col_player_joins_tooltip": "Oznamovat zde, kdo se připojí na herní server (kontejnery se zaškrtnutým sloupcem Hráči). Oznámení zmizí po 30 minutách."
 }

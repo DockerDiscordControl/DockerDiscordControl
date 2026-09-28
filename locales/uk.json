@@ -1663,5 +1663,12 @@
   "out of memory": "забракло пам’яті",
   "exit code {code}": "код виходу {code}",
   "image from {date}": "образ від {date}",
-  "Memory limit: {size}": "Ліміт пам’яті: {size}"
+  "Memory limit: {size}": "Ліміт пам’яті: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Ігровий сервер не відповідає – контейнер працює, а гра в ньому, можливо, ні.",
+  "A newer image is in the registry": "У реєстрі є новіший образ",
+  "👋 {names} joined {server}": "👋 {names} зайшов на {server}",
+  "👋 A player joined {server}": "👋 Гравець зайшов на {server}",
+  "👋 {count} players joined {server}": "👋 Гравців зайшло на {server}: {count}",
+  "web.permissions.col_player_joins": "Входи гравців",
+  "web.permissions.col_player_joins_tooltip": "Повідомляти тут, хто заходить на ігровий сервер (контейнери з позначеною колонкою «Гравці»). Повідомлення зникає через 30 хвилин."
 }

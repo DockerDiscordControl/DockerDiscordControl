@@ -121,13 +121,14 @@ cogs/donation_ui.py	693	NONE
 cogs/enhanced_info_modal_simple.py	704	passE:E27+bothscans:519-700
 cogs/group_control.py	361	NONE
 cogs/help_embed.py	95	NONE
-cogs/info_extras.py	279	new 2026-09-28 (v3.0.2 game server, players and Docker facts in the info display), written with its tests
+cogs/info_extras.py	323	new 2026-09-28 (v3.0.2 game server, players and Docker facts in the info display), written with its tests
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	728	v3rev2:1-791
 cogs/overview_embeds.py	610	v3rev2:1-964
+cogs/player_joins.py	161	new 2026-09-28 (v3.0.2 join announcements), written with its tests
 cogs/slash_commands.py	822	NONE
 cogs/stack_restart.py	325	v3rev:1-196
-cogs/status_handlers.py	1112	passE:E15,E16:80-200,560-700 v3rev2:1-1400
+cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1127	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1245	NONE
 cogs/task_player_options.py	124	new 2026-09-28 (v3.0.2 player options), written with its tests
@@ -143,7 +144,7 @@ services/automation/auto_action_config_service.py	910	passE:bothscans+E25 v3rev:
 services/automation/auto_action_state_service.py	389	passE:bothscans+E25
 services/automation/automation_service.py	997	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	224	v3rev:1-157
-services/automation/image_updates.py	183	v3rev:1-164
+services/automation/image_updates.py	220	v3rev:1-164
 services/automation/maintenance.py	124	NONE
 services/automation/own_actions.py	93	NONE
 services/config/__init__.py	16	passE:read-in-full
@@ -151,7 +152,7 @@ services/config/backup_service.py	206	NONE
 services/config/channel_config_service.py	585	passE:E28+bothscans:126-300
 services/config/channel_roles.py	55	NONE
 services/config/config_cache_service.py	177	passE:E29:read-in-full
-services/config/config_form_parser_service.py	628	pass1:s12:1-483  [23 of 625 lines never in a package] v3rev2:1-625
+services/config/config_form_parser_service.py	630	pass1:s12:1-483  [23 of 625 lines never in a package] v3rev2:1-625
 services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
 services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 lines never in a package]
 services/config/config_service.py	1266	passE:E26+bothscans:252-352,354-512,793-910
@@ -199,7 +200,7 @@ services/exceptions.py	299	pass1:s18:plan pass2:s18:1-299
 services/infrastructure/__init__.py	0	pass2:s18:1-0
 services/infrastructure/action_log_service.py	387	pass1:s18:plan pass2:s18:1-376  [11 of 387 lines never in a package]
 services/infrastructure/action_logger.py	137	pass1:s18:plan pass2:s18:1-86  [17 of 103 lines never in a package]
-services/infrastructure/container_facts_service.py	170	new 2026-09-28 (v3.0.2 Docker facts for the info display), written with its tests
+services/infrastructure/container_facts_service.py	179	new 2026-09-28 (v3.0.2 Docker facts for the info display), written with its tests
 services/infrastructure/container_info_service.py	332	pass1:s18:plan pass2:s18:1-282  [44 of 326 lines never in a package]
 services/infrastructure/container_status_service.py	887	pass1:s19:1-816  [14 of 830 lines never in a package]
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239

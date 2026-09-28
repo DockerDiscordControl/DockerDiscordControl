@@ -225,7 +225,9 @@ class ConfigFormParserService:
                 'enable_auto_refresh': form_data.get(f'{prefix}_enable_auto_refresh_{count}') in ['1', 'on', True],
                 'update_interval_minutes': int(form_data.get(f'{prefix}_update_interval_minutes_{count}', 1) or 1),
                 'recreate_messages_on_inactivity': form_data.get(f'{prefix}_recreate_messages_{count}') in ['1', 'on', True],
-                'inactivity_timeout_minutes': int(form_data.get(f'{prefix}_inactivity_timeout_{count}', 1) or 1)
+                'inactivity_timeout_minutes': int(form_data.get(f'{prefix}_inactivity_timeout_{count}', 1) or 1),
+                # v3.0.2: who joins a game server is announced here (off unless ticked)
+                'player_joins': form_data.get(f'{prefix}_player_joins_{count}') in ['1', 'on', True],
             }
             channels[channel_id] = channel_config
 

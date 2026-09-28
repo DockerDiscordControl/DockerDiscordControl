@@ -1663,5 +1663,12 @@
   "out of memory": "메모리 부족",
   "exit code {code}": "종료 코드 {code}",
   "image from {date}": "{date} 이미지",
-  "Memory limit: {size}": "메모리 한도: {size}"
+  "Memory limit: {size}": "메모리 한도: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "게임 서버가 응답하지 않습니다 – 컨테이너는 실행 중이지만 게임은 아닐 수 있습니다.",
+  "A newer image is in the registry": "레지스트리에 더 새로운 이미지가 있습니다",
+  "👋 {names} joined {server}": "👋 {names} 님이 {server}에 접속했습니다",
+  "👋 A player joined {server}": "👋 플레이어가 {server}에 접속했습니다",
+  "👋 {count} players joined {server}": "👋 플레이어 {count}명이 {server}에 접속했습니다",
+  "web.permissions.col_player_joins": "플레이어 접속",
+  "web.permissions.col_player_joins_tooltip": "게임 서버에 누가 접속하는지 여기에 알립니다(플레이어 열이 체크된 컨테이너). 알림은 30분 후 사라집니다."
 }

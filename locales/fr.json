@@ -1663,5 +1663,12 @@
   "out of memory": "mémoire épuisée",
   "exit code {code}": "code de sortie {code}",
   "image from {date}": "image du {date}",
-  "Memory limit: {size}": "Limite de mémoire : {size}"
+  "Memory limit: {size}": "Limite de mémoire : {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "Le serveur de jeu ne répond pas – le conteneur tourne, le jeu peut-être pas.",
+  "A newer image is in the registry": "Une image plus récente est dans le registre",
+  "👋 {names} joined {server}": "👋 {names} a rejoint {server}",
+  "👋 A player joined {server}": "👋 Un joueur a rejoint {server}",
+  "👋 {count} players joined {server}": "👋 {count} joueurs ont rejoint {server}",
+  "web.permissions.col_player_joins": "Arrivées de joueurs",
+  "web.permissions.col_player_joins_tooltip": "Annoncer ici qui rejoint un serveur de jeu (conteneurs avec la colonne Joueurs cochée). L'annonce disparaît après 30 minutes."
 }

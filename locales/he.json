@@ -1663,5 +1663,12 @@
   "out of memory": "הזיכרון אזל",
   "exit code {code}": "קוד יציאה {code}",
   "image from {date}": "אימג׳ מ-{date}",
-  "Memory limit: {size}": "מגבלת זיכרון: {size}"
+  "Memory limit: {size}": "מגבלת זיכרון: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "שרת המשחק לא עונה – הקונטיינר רץ, ייתכן שהמשחק בתוכו לא.",
+  "A newer image is in the registry": "יש אימג׳ חדש יותר ב-registry",
+  "👋 {names} joined {server}": "👋 {names} הצטרף/ה ל-{server}",
+  "👋 A player joined {server}": "👋 שחקן הצטרף ל-{server}",
+  "👋 {count} players joined {server}": "👋 {count} שחקנים הצטרפו ל-{server}",
+  "web.permissions.col_player_joins": "הצטרפות שחקנים",
+  "web.permissions.col_player_joins_tooltip": "הודע כאן מי מצטרף לשרת משחק (קונטיינרים שעמודת השחקנים שלהם מסומנת). ההודעה נעלמת אחרי 30 דקות."
 }

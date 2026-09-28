@@ -1663,5 +1663,12 @@
   "out of memory": "geheugen vol",
   "exit code {code}": "exitcode {code}",
   "image from {date}": "image van {date}",
-  "Memory limit: {size}": "Geheugenlimiet: {size}"
+  "Memory limit: {size}": "Geheugenlimiet: {size}",
+  "The game server does not answer - the container runs, the game in it may not.": "De gameserver antwoordt niet – de container draait, het spel erin misschien niet.",
+  "A newer image is in the registry": "Er staat een nieuwere image in de registry",
+  "👋 {names} joined {server}": "👋 {names} kwam op {server}",
+  "👋 A player joined {server}": "👋 Een speler kwam op {server}",
+  "👋 {count} players joined {server}": "👋 {count} spelers kwamen op {server}",
+  "web.permissions.col_player_joins": "Spelers die binnenkomen",
+  "web.permissions.col_player_joins_tooltip": "Meld hier wie op een gameserver komt (containers met de kolom Spelers aangevinkt). De melding verdwijnt na 30 minuten."
 }
