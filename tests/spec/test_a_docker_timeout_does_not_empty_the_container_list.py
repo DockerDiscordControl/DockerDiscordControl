@@ -46,6 +46,8 @@ containers must still be able to empty the cache.
 import time
 from unittest.mock import MagicMock
 
+from tests.spec import listed_rows
+
 import docker
 import pytest
 import requests
@@ -63,13 +65,13 @@ class _Container:
 
 def _client_listing(containers):
     client = MagicMock()
-    client.containers.list.return_value = containers
+    client.api.containers.return_value = listed_rows(containers)
     return client
 
 
 def _client_that_times_out(error):
     client = MagicMock()
-    client.containers.list.side_effect = error
+    client.api.containers.side_effect = error
     return client
 
 

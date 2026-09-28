@@ -22,3 +22,39 @@ def is_not_awaitable_error(error):
     return isinstance(error, TypeError) and (
         "can't be awaited" in text or "can't be used in 'await' expression" in text
     )
+
+
+class _RaisingRow(dict):
+    """A list row whose reading fails - a daemon answer that breaks mid-refresh."""
+
+    def __init__(self, error):
+        super().__init__()
+        self._error = error
+
+    def get(self, *args, **kwargs):
+        raise self._error
+
+
+def listed_rows(containers):
+    """docker-py-like fake containers as the rows of GET /containers/json.
+
+    Since 2026-09-28 the web panel's cache reads that one list answer instead of
+    containers.list(all=True), which inspected every container again (1 + 37
+    requests every 30 s on the operator's host). The fakes the tests had keep
+    working through this: a fake whose status raises becomes a row whose
+    reading raises, so "it broke mid-refresh" still breaks mid-refresh.
+    """
+    rows = []
+    for container in containers:
+        try:
+            status = container.status
+        except Exception as error:  # noqa: BLE001 - whatever the fake raises
+            rows.append(_RaisingRow(error))
+            continue
+        attrs = container.attrs if isinstance(getattr(container, "attrs", None), dict) else {}
+        config = attrs.get("Config") or {}
+        rows.append({"Id": container.id, "Names": ["/" + container.name], "State": status,
+                     "Image": config.get("Image") or attrs.get("Image") or "",
+                     "ImageID": attrs.get("Image") or "",
+                     "Labels": config.get("Labels") or attrs.get("Labels") or {}})
+    return rows

@@ -38,6 +38,8 @@ dropped and the order is still alphabetical.
 
 from unittest.mock import MagicMock
 
+from tests.spec import listed_rows
+
 import pytest
 
 from app.utils import web_helpers as wh
@@ -53,7 +55,7 @@ class _Container:
 
 def _client_listing(containers):
     client = MagicMock()
-    client.containers.list.return_value = containers
+    client.api.containers.return_value = listed_rows(containers)
     return client
 
 

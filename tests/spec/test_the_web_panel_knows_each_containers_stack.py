@@ -15,6 +15,9 @@ COUNTER-CHECK (2026-09-22): red before - the cache entry had no
 
 import logging
 
+from types import SimpleNamespace
+
+from tests.spec import listed_rows
 from utils.container_image import compose_project_of
 
 LABEL = "com.docker.compose.project"
@@ -53,6 +56,8 @@ class _Client:
     def __init__(self, containers):
         self.containers = self
         self._containers = containers
+        # What the cache reads since 2026-09-28: the one list answer
+        self.api = SimpleNamespace(containers=lambda all=False: listed_rows(self._containers))
 
     def list(self, all=False):
         return list(self._containers)

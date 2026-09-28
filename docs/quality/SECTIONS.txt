@@ -320,7 +320,7 @@ app/utils/__init__.py:1-7
 # past the 2000-line section limit. One file, read in one go.
 app/utils/container_info_web_handler.py:1-325
 
-## Section 34  (1286 lines, 9 pieces)
+## Section 34  (1314 lines, 9 pieces)
 # app/bot/startup_steps/sequence.py moved here from 33 on 2026-09-21: 33 had
 # grown to 2,021 of the 2,000 a section may hold, and this is the file that
 # grew (review E9). 34 had the room.
@@ -329,7 +329,7 @@ app/utils/container_info_web_handler.py:1-325
 app/bot/startup_steps/sequence.py:1-65
 app/bot/startup_steps/cooldowns.py:1-29
 app/bot/startup_steps/diagnostics.py:1-26
-app/utils/web_helpers.py:1-988
+app/utils/web_helpers.py:1-1016
 app/web/__init__.py:1-12
 app/web/action_logger.py:1-20
 app/web/app_factory.py:1-68

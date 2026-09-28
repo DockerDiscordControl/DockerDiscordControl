@@ -38,6 +38,8 @@ the cache against the NEXT per-container lookup someone adds to that loop.
 import time
 from unittest.mock import MagicMock
 
+from tests.spec import listed_rows
+
 import docker
 import pytest
 
@@ -74,7 +76,7 @@ class _Container:
 
 def _client_with(containers):
     client = MagicMock()
-    client.containers.list.return_value = containers
+    client.api.containers.return_value = listed_rows(containers)
     return client
 
 

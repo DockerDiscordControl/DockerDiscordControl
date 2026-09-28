@@ -267,6 +267,34 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
                 logger.debug(f"Limiting display to {MAX_CONTAINERS_DISPLAY} containers (total: {len(docker_cache['containers'])})")
             return list(containers_to_return), docker_cache['error']
 
+class _ListedContainer:
+    """One row of GET /containers/json, shaped like the docker-py container the cache read.
+
+    The cache needs five fields - id, name, status, image, stack - and the list
+    answer carries all of them. ``client.containers.list(all=True)`` threw that
+    away and inspected every container again, one request each: measured on the
+    operator's host (2026-09-28), 1 list + 37 inspects every 30 seconds, whether
+    or not anyone had the panel open.
+    """
+
+    def __init__(self, row, client):
+        self.id = row.get('Id') or ''
+        self.name = ((row.get('Names') or [''])[0] or '').lstrip('/')
+        self.status = row.get('State') or ''
+        reference = row.get('Image') or ''
+        # The one field the list does NOT always answer like the inspect: once a
+        # container's tag has moved on (a pull without recreating it), the list
+        # names the image by its id while Config.Image still has the name. Only
+        # such a container is inspected - measured: 1 of 37.
+        if reference.startswith('sha256:'):
+            try:
+                reference = (client.api.inspect_container(self.id).get('Config') or {}).get('Image') or reference
+            except docker.errors.DockerException:
+                pass
+        self.attrs = {'Config': {'Image': reference}, 'Image': row.get('ImageID') or '',
+                      'Labels': row.get('Labels') or {}}
+
+
 def update_docker_cache(logger):
     """Updates the Docker container cache with current data and memory optimization"""
     global last_docker_query_time
@@ -283,8 +311,8 @@ def update_docker_cache(logger):
         client = build_docker_client(timeout=BACKGROUND_REFRESH_TIMEOUT)
 
         try:
-            # Direct call without signal-based timeout wrapper
-            containers_to_process = client.containers.list(all=True)
+            # One list request - see _ListedContainer for what it replaced
+            containers_to_process = [_ListedContainer(row, client) for row in client.api.containers(all=True)]
         except Exception as te:
             # Catch timeouts from requests/docker-py. This used to set
             # containers_to_process = [] and CARRY ON - straight into the

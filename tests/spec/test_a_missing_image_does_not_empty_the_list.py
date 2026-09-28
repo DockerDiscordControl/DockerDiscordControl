@@ -46,6 +46,8 @@ import contextlib
 import logging
 from types import SimpleNamespace
 
+from tests.spec import listed_rows
+
 import docker
 import pytest
 
@@ -82,6 +84,8 @@ class _Client:
     def __init__(self, containers):
         self._containers = {c.name: c for c in containers}
         self.containers = self
+        # The web panel's cache reads the one list answer since 2026-09-28
+        self.api = SimpleNamespace(containers=lambda all=False: listed_rows(self._containers.values()))
 
     def list(self, all=False):
         return list(self._containers.values())

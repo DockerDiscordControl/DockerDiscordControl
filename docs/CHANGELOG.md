@@ -71,6 +71,15 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - **The ℹ️ / ⓘ marker in the overviews is gone** - with every container having info it said
   nothing any more.
 
+### ⚡ The web panel asks Docker once instead of once per container
+
+- The web panel's container list is refreshed every 30 seconds in the background, whether or not
+  anyone has it open. It asked Docker for the list and then for every container again, one
+  request each - measured on a host with 37 containers: 38 requests every 30 seconds. It reads
+  the one list answer now, which carries everything the panel shows; only a container whose image
+  tag has moved on since it was created is looked up on its own, so the names shown stay the
+  same. Checked live: 2 requests instead of 38, identical list.
+
 ## v3.0.1 - 2026-09-27
 
 GitHub's code scanner (CodeQL) read the v3.0 code for the first time when it reached `main` and

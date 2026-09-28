@@ -41,6 +41,8 @@ if not hasattr(_dc, "_DDC_SLOTS_PATCHED"):
 # -----------------------------------------------------------------------------
 
 import base64
+
+from tests.spec import listed_rows
 import logging
 import socket
 import subprocess
@@ -210,16 +212,17 @@ class TestUpdateDockerCache:
         c.status = status
         c.image.tags = [image_tag] if image_tag else []
         c.image.id = "sha256:" + ("0" * 64)
+        c.attrs = {"Image": c.image.id, "Config": {"Image": image_tag or c.image.id}}
         return c
 
     def test_update_cache_populates_containers(self, monkeypatch):
         import app.utils.web_helpers as wh
 
         client = MagicMock()
-        client.containers.list.return_value = [
+        client.api.containers.return_value = listed_rows([
             self._build_fake_container("zeta"),
             self._build_fake_container("alpha"),
-        ]
+        ])
         client.close = MagicMock()
         monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **kw: client)
 
@@ -285,7 +288,7 @@ class TestUpdateDockerCache:
         import app.utils.web_helpers as wh
 
         client = MagicMock()
-        client.containers.list.side_effect = Exception(
+        client.api.containers.side_effect = Exception(
             "Read timed out after 30 seconds"
         )
         client.close = MagicMock()
@@ -316,7 +319,9 @@ class TestUpdateDockerCache:
                    "Config": {"Image": "sha256:deadbeefcafe0011223344"}}
 
         client = MagicMock()
-        client.containers.list.return_value = [c]
+        client.api.containers.return_value = listed_rows([c])
+        # A bare id in the list answer is looked up once - here it is a bare id there too
+        client.api.inspect_container.return_value = {"Config": {"Image": "sha256:deadbeefcafe0011223344"}}
         client.close = MagicMock()
         monkeypatch.setattr("services.docker_service.client_factory.build_docker_client", lambda **kw: client)
 
