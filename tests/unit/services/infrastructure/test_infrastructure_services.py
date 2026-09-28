@@ -953,14 +953,15 @@ class TestUpdateNotifier:
         data = json.loads(notifier.status_file.read_text(encoding="utf-8"))
         assert data["notifications_shown"].count(notifier.current_version) == 1
 
-    def test_create_update_embed_returns_embed_with_fields(self, tmp_path):
+    def test_create_update_embed_names_the_version_and_links_the_notes(self, tmp_path):
         notifier = UpdateNotifier(config_dir=str(tmp_path))
         embed = notifier.create_update_embed()
         # The embed type comes from discord.Embed - we just assert structure
         assert embed.title  # non-empty
         assert embed.color is not None
-        # At least 4 fields added
-        assert len(embed.fields) >= 4
+        # No feature list since 2026-09-28: it listed early-2025 features for every
+        # release (tests/spec/test_the_update_notice_knows_which_version_runs.py)
+        assert embed.fields == [] and "releases/tag/v" in embed.url
 
     @pytest.mark.asyncio
     async def test_send_update_notification_skips_when_already_shown(self, tmp_path):

@@ -211,7 +211,7 @@ services/infrastructure/event_manager.py	119	pass1:s19:1-118
 services/infrastructure/game_query_service.py	698	pass1:s19:1-525  [28 of 553 lines never in a package; PlayerList, a2s_version and get_player_list new 2026-09-28 (v3.1.0), written with their tests]
 services/infrastructure/game_query_support_service.py	357	pass1:s20:1-282  [59 of 341 lines never in a package]
 services/infrastructure/spam_protection_service.py	609	pass1:s20:1-504  [49 of 553 lines never in a package]
-services/infrastructure/update_notifier.py	247	pass1:s20:1-213  [22 of 235 lines never in a package]
+services/infrastructure/update_notifier.py	225	pass1:s20:1-213  [22 of 235 lines never in a package]
 services/mech/__init__.py	30	pass1:s20:1-30
 services/mech/animation_cache_service.py	1823	pass1:s21:1-1813  [33 of 1846 lines never in a package]
 services/mech/animation_disk_cache.py	76	NONE

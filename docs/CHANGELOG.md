@@ -106,6 +106,12 @@ All notable changes to DockerDiscordControl will be documented in this file.
   others'. The "only when nobody plays" options for a restart or stop sit below the schedule, not
   in the middle of it.
 
+### 📣 The update notice says what it knows
+
+- After an update DDC posts one notice into each control channel. It listed "new features" typed
+  into it in early 2025 - spam protection, the /info command, timezones - and would have announced
+  them again for this release. It now names the version and links its release notes.
+
 ### 🪵 Two log lines that said something else
 
 - **"Every minute" updated every two minutes.** The message edits ticked once a minute, and the

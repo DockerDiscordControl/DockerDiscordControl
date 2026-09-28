@@ -19,6 +19,13 @@ control channels after an upgrade:
 COUNTER-CHECK (2026-09-22): red before - the notifier reported the 2025
 literal, a failed save still reported success, and the second run posted to
 the channel that already had it.
+
+THE TEXT, 2026-09-28. The first point above names it and it stayed: the notice
+listed "new features" typed into the method in early 2025 - spam protection,
+the /info command, the timezones - and would have announced them as new for
+v3.1.0 in every control channel. It now names the version and links its release
+notes, nothing that can go out of date. COUNTER-CHECK: with the old embed back,
+the text case went red.
 """
 
 import json
@@ -72,3 +79,12 @@ def test_a_new_version_starts_again(notifier, monkeypatch):
     later = UpdateNotifier()
 
     assert later.channels_still_to_tell([111, 222]) == [111, 222]
+
+
+def test_the_notice_names_the_version_and_links_its_notes(notifier):
+    embed = notifier.create_update_embed()
+    link = "https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v3.0.0"
+    assert "v3.0.0" in embed.title and link in embed.description and embed.url == link
+    assert not embed.fields, "a list of features in the notice goes out of date"
+    for stale in ("Spam Protection", "/info command", "Timezone"):
+        assert stale not in embed.description, f"the notice still advertises {stale!r}"

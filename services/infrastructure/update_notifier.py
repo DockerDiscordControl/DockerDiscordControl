@@ -21,6 +21,9 @@ from utils.atomic_io import atomic_write_json
 from utils.logging_utils import get_module_logger
 from cogs.translation_manager import _
 
+# Where a version's release notes are - the notice links them instead of listing features
+RELEASE_NOTES_URL = "https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v{version}"
+
 logger = get_module_logger('update_notifier')
 
 class UpdateNotifier:
@@ -144,47 +147,22 @@ class UpdateNotifier:
         return False
 
     def create_update_embed(self) -> discord.Embed:
-        """Create the update notification embed."""
+        """The notice a new version posts once in each control channel: the version and
+        where its release notes are - nothing that can go out of date.
+
+        It used to list "new features" typed into this method long ago - the spam
+        protection, the /info command, the timezones - and announced them as new for
+        every release since. Found on 2026-09-28 before the v3.1.0 rebuild would have
+        posted them into the operator's control channel once more.
+        """
+        url = RELEASE_NOTES_URL.format(version=self.current_version)
         embed = discord.Embed(
-            title=_("🎉 DockerDiscordControl Update"),
-            description=_("**Version {version}** - New features available!").format(version=self.current_version),
+            title=_("🎉 DockerDiscordControl v{version}").format(version=self.current_version),
+            description=_("DDC has been updated to version {version}. What is new is in the "
+                          "release notes:").format(version=self.current_version) + f"\n{url}",
+            url=url,
             color=0x00ff00
         )
-
-        # New features in this update
-        embed.add_field(
-            name=_("🔒 Spam Protection System"),
-            value=_("• Dynamically configurable cooldowns for all commands\n"
-                    "• Web UI Modal under 'Web UI Authentication'\n"
-                    "• Individual settings per command and button\n"
-                    "• Protection against rate-limiting and abuse"),
-            inline=False
-        )
-
-        embed.add_field(
-            name=_("📋 Container Info System"),
-            value=_("• New /info command for detailed container information\n"
-                    "• Port field in info editor modal\n"
-                    "• Live WAN IP detection or custom address\n"
-                    "• Consistent display in all info views"),
-            inline=False
-        )
-
-        embed.add_field(
-            name=_("🌍 Dynamic Timezone System"),
-            value=_("• Automatic timezone detection from Web UI config\n"
-                    "• No more hardcoded timezones\n"
-                    "• Better token decryption"),
-            inline=False
-        )
-
-        embed.add_field(
-            name=_("⚙️ Configuration"),
-            value=_("**Spam Protection:** Web UI → Configuration → 'Spam Protection Settings'\n"
-                    "**Container Info:** Use info buttons in status messages"),
-            inline=False
-        )
-
         embed.set_footer(text=_("This message is only shown once • https://ddc.bot"))
         return embed
 
