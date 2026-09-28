@@ -81,7 +81,7 @@ async def test_the_overview_waits_like_the_admin_overview_does(
     cog, queued = cog_with_a_broken_decision_service
 
     from cogs.docker_control import DockerControlCog
-    await DockerControlCog.periodic_message_edit_loop.coro(cog)
+    await cog.edit_due_messages()
 
     assert "overview" not in queued, (
         "the channel asks for one hour between refreshes and the overview was "
@@ -96,7 +96,7 @@ async def test_the_admin_overview_still_waits_too(cog_with_a_broken_decision_ser
     cog, queued = cog_with_a_broken_decision_service
 
     from cogs.docker_control import DockerControlCog
-    await DockerControlCog.periodic_message_edit_loop.coro(cog)
+    await cog.edit_due_messages()
 
     assert "admin_overview" not in queued
 
@@ -111,7 +111,7 @@ async def test_an_overdue_overview_is_still_refreshed(
                                           "admin_overview": long_ago}}
 
     from cogs.docker_control import DockerControlCog
-    await DockerControlCog.periodic_message_edit_loop.coro(cog)
+    await cog.edit_due_messages()
 
     assert "overview" in queued, (
         "three hours past a one-hour interval and the overview was not refreshed"

@@ -22,7 +22,8 @@ import pytest
 
 from cogs.docker_control import DockerControlCog
 
-LOOPS = ("status_update_loop", "periodic_message_edit_loop", "inactivity_check_loop",
+# periodic_message_edit_loop is gone since 2026-09-28 (one clock, see status_update_loop)
+LOOPS = ("status_update_loop", "inactivity_check_loop",
          "performance_cache_clear_loop", "heartbeat_send_loop",
          "start_mech_cache_loop", "initial_animation_cache_warmup")
 

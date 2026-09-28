@@ -108,10 +108,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ### 🪵 Two log lines that said something else
 
-- **"Every minute" updated every two minutes.** The message edits tick once a minute, and the
-  time of the last update is taken after the edit, a second into the tick - so the next tick
-  found 59 seconds and waited another minute. The status messages and their "Last update" now
-  come every minute when set to every minute.
+- **"Every minute" updated every two minutes.** The message edits ticked once a minute, and the
+  time of the last update was taken after the edit, a second into the tick - so the next tick
+  found 59 seconds and waited another minute. Fixed for good by the single beat below.
 - **Opening the web panel is no failed login.** A browser's first request carries no credentials
   yet and was logged as "Failed login attempt for user: " each time; a real wrong name or password
   still is.
@@ -126,6 +125,12 @@ All notable changes to DockerDiscordControl will be documented in this file.
   otherwise at the configured interval. Every fetch feeds the cache, the player counts, the join
   check and the watchdog; the edits only fetch when something is missing. The age hints in the
   status messages count from the real beat.
+- **And the messages run on that beat too.** They were edited by a loop of their own, ticking
+  beside the status loop - two clocks, a tolerance to keep them from missing each other. Now the
+  status loop edits the due messages right after each fetch, its pace is the update interval set
+  for the channels in the web panel (the shortest one of a channel that refreshes on its own),
+  and a channel is due when its interval is reached within half a beat. "Last update" is the
+  moment DDC looked, and a channel set to five minutes is edited exactly every fifth beat.
 
 ## v3.0.1 - 2026-09-27
 

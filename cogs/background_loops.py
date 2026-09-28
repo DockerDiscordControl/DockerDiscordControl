@@ -83,6 +83,12 @@ WATCH_STATE_FILE = "watchdog_state.json"
 def status_beat_seconds(config: dict, cache_duration: float) -> float:
     """How often the status loop fetches from Docker - the ONE beat everything runs on.
 
+    Since the second step the same day, the beat is also the messages' clock: the
+    loop edits the due messages right after each fetch (message_updates.
+    edit_due_messages). So it keeps the pace the web panel's channel table asks for -
+    the shortest update interval of a channel that refreshes on its own - unless
+    DDC_DOCKER_CACHE_DURATION asks for a faster one.
+
     MEASURED 2026-09-28 on the operator's installation (DDC_DOCKER_CACHE_DURATION
     = 120, both channels refreshing every minute): Docker was polled every 60 s,
     by two paths taking turns. The loop fetched every 120 s; in between, the
@@ -96,11 +102,14 @@ def status_beat_seconds(config: dict, cache_duration: float) -> float:
     which then governs alone. The edits find fresh data and fetch only when
     something is missing (after an action, a failed fetch).
     """
-    from .docker_control import STATUS_CACHE_MAX_RENDER_AGE_SECONDS
-    channels = ((config or {}).get('channel_permissions') or {}).values()
-    if any(isinstance(channel, dict) and channel.get('enable_auto_refresh') for channel in channels):
-        return min(cache_duration, STATUS_CACHE_MAX_RENDER_AGE_SECONDS)
-    return cache_duration
+    intervals = []
+    for channel in ((config or {}).get('channel_permissions') or {}).values():
+        if isinstance(channel, dict) and channel.get('enable_auto_refresh'):
+            try:
+                intervals.append(max(1, int(channel.get('update_interval_minutes') or 1)) * 60)
+            except (TypeError, ValueError):
+                intervals.append(60)
+    return min([cache_duration] + intervals)
 
 
 def _watch_state_path():
@@ -297,6 +306,14 @@ class BackgroundLoopsMixin:
 
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"[STATUS_LOOP] Unexpected error during status update loop: {e}", exc_info=True)
+
+        # The messages on the same beat, right after the data - outside the semaphore:
+        # an edit that finds something missing refreshes through it itself. A failed
+        # edit must not end the beat the watchdog and the player counts run on.
+        try:
+            await self.edit_due_messages()
+        except (discord.errors.DiscordException, RuntimeError, ValueError, OSError, KeyError) as e:
+            logger.error(f"[STATUS_LOOP] Message edits failed this beat: {e}", exc_info=True)
 
     async def _feed_container_watchdog(self, results, config):
         """Hand this cycle's container states to the watchdog and its rules (Phase 4a).

@@ -280,7 +280,8 @@ def test_both_the_loops_and_their_helpers_are_reached():
     """
     reached = {fn.name for _path, fn in _per_cycle_functions()}
 
-    assert "periodic_message_edit_loop" in reached, "the loop bodies are not scanned"
+    assert "status_update_loop" in reached, "the loop bodies are not scanned"
+    assert "edit_due_messages" in reached, "the message edits, run by the status loop, are not scanned"
     assert "bulk_fetch_container_status" in reached, "the helpers are not scanned"
     assert "update_docker_cache" in reached, "the thread-loop helpers are not scanned"
 
@@ -328,7 +329,7 @@ def test_the_cycles_still_report_what_they_did():
     an INFO line SOMEWHERE - inside the branch that did the work."""
     for name, source in (("inactivity_check_loop", PROJECT / "cogs" / "background_loops.py"),
                          ("status_update_loop", PROJECT / "cogs" / "background_loops.py"),
-                         ("periodic_message_edit_loop", PROJECT / "cogs" / "message_updates.py")):
+                         ("edit_due_messages", PROJECT / "cogs" / "message_updates.py")):
         loop = next(node for node in ast.walk(ast.parse(source.read_text(encoding="utf-8")))
                     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
                     and node.name == name)

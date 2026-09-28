@@ -33,11 +33,11 @@ cogs/control_ui.py:1-1457
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
 cogs/control_ui.py:1458-2608
 
-## Section 04  (1559 lines, 3 pieces)
+## Section 04  (1550 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
 # Step 5 (2026-09-22): channel setup/teardown/regeneration moved to channel_lifecycle.py.
 cogs/channel_lifecycle.py:1-631
-cogs/docker_control.py:1-833
+cogs/docker_control.py:1-824
 cogs/loop_safety.py:1-103
 
 ## Section 05  (1526 lines, 3 pieces)
@@ -45,15 +45,15 @@ cogs/loop_safety.py:1-103
 # moved from this range of docker_control.py into overview_embeds.py, which
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
-cogs/docker_control.py:834-851
+cogs/docker_control.py:825-842
 cogs/overview_embeds.py:1-612
 cogs/slash_commands.py:1-822
 
-## Section 06  (1833 lines, 3 pieces)
+## Section 06  (1849 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
-cogs/docker_control.py:852-1259
-cogs/background_loops.py:1-833
+cogs/docker_control.py:843-1249
+cogs/background_loops.py:1-850
 cogs/donation_ui.py:1-693
 
 ## Section 07  (694 lines, 1 piece)
@@ -114,11 +114,11 @@ services/config/server_config_service.py:1-233
 services/config/channel_roles.py:1-55
 services/discord/__init__.py:1-20
 
-## Section 14  (1894 lines, 8 pieces)
+## Section 14  (1909 lines, 8 pieces)
 services/discord/channel_cleanup_service.py:1-509
 services/discord/conditional_update_cache_service.py:1-184
 services/discord/embed_helper_service.py:1-227
-services/discord/status_overview_service.py:1-374
+services/discord/status_overview_service.py:1-389
 services/docker_service/self_restart.py:1-124
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-318
@@ -420,10 +420,10 @@ services/docker_proxy/__init__.py:1-2
 services/docker_proxy/allowlist_proxy.py:1-368
 services/web/two_factor_service.py:1-331
 
-## Section 40  (720 lines, 1 piece)
+## Section 40  (728 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
-cogs/message_updates.py:1-728
+cogs/message_updates.py:1-736
 
 ## Section 41  (1233 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py

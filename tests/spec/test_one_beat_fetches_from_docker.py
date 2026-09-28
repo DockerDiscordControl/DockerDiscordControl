@@ -25,6 +25,17 @@ COUNTER-CHECK (2026-09-28): with status_beat_seconds ignoring the channels,
 the beat case and the loop case went red; with the grace removed, the drift
 case did; the old-entry case stayed green in both - it is the safety net that
 must keep working.
+
+SECOND STEP, SAME DAY (operator: "let the option in the web panel control it"):
+the messages were still edited by a loop of their own, ticking beside the
+status loop - two clocks, a 5-second tolerance between them. Now the status
+loop edits the due messages right after each fetch, its beat is the shortest
+update interval of a refreshing channel in the web panel (or the faster
+DDC_DOCKER_CACHE_DURATION), and "due" is counted in beats: reached within half
+a beat. COUNTER-CHECK: with the edits no longer called from the status loop,
+the one-clock case went red; with is_due back to a plain comparison, the
+half-beat case did; with the beat ignoring the channels' minutes, the
+five-minute case did.
 """
 
 from types import SimpleNamespace
@@ -59,6 +70,7 @@ async def test_the_loop_runs_on_the_beat_and_says_so(monkeypatch, config, beat):
     cog._mark_status_cache_refreshed = MagicMock()
     cog.pending_actions = {}
     cog.bulk_fetch_container_status = AsyncMock(return_value={})
+    cog.edit_due_messages = AsyncMock()
     monkeypatch.setattr(loops, "load_config", lambda: config)
     monkeypatch.setattr(loops, "get_server_config_service",
                         lambda: SimpleNamespace(get_all_servers=lambda: [{"docker_name": "web"}]))
@@ -87,3 +99,61 @@ async def test_an_old_entry_still_fetches():
          patch("cogs.overview_embeds.load_config", return_value={"language": "en"}):
         await cog._ensure_status_cache_fresh()
     assert cog.bulk_fetch_container_status.await_count == 1
+
+
+def test_the_beat_is_the_web_panels_update_interval():
+    def channels(*minutes):
+        return {"channel_permissions": {str(i): {"enable_auto_refresh": True, "update_interval_minutes": m}
+                                        for i, m in enumerate(minutes)}}
+    assert status_beat_seconds(channels(5), 300) == 300
+    assert status_beat_seconds(channels(5, 2), 300) == 120, "the fastest channel sets the pace"
+    assert status_beat_seconds(channels(5), 120) == 120, "a faster DDC_DOCKER_CACHE_DURATION stays faster"
+
+
+def test_due_is_counted_in_beats():
+    from datetime import datetime, timedelta, timezone
+    from services.discord.status_overview_service import is_due
+    ago = lambda seconds: datetime.now(timezone.utc) - timedelta(seconds=seconds)
+    minute, five = timedelta(minutes=1), timedelta(minutes=5)
+    assert is_due(ago(59.2), minute, beat_seconds=60)
+    # Edited in between (after an action, say) 25 s before the beat: waits for the next one
+    assert not is_due(ago(25), minute, beat_seconds=60)
+    assert is_due(ago(285), five, beat_seconds=60), "the fifth beat was missed by a hair"
+    assert not is_due(ago(240), five, beat_seconds=60), "the fourth beat is not the fifth"
+    assert is_due(None, five, beat_seconds=60)
+
+
+async def test_the_status_loop_edits_the_messages_after_it_fetched(monkeypatch):
+    import cogs.background_loops as loops
+    from cogs.docker_control import DockerControlCog
+
+    order = []
+    cog = object.__new__(DockerControlCog)
+    cog.cache_ttl_seconds = 300
+    cog.status_cache_service = MagicMock()
+    cog._mark_status_cache_refreshed = MagicMock()
+    cog.pending_actions = {}
+
+    async def _fetch(names):
+        order.append("fetch")
+        return {}
+
+    async def _edit():
+        # Outside the semaphore: an edit that finds something missing refreshes through it
+        order.append("edit, semaphore free" if not cog._status_update_semaphore.locked() else "edit, LOCKED")
+        raise RuntimeError("Discord said no")
+    cog.bulk_fetch_container_status = _fetch
+    cog.edit_due_messages = _edit
+    monkeypatch.setattr(loops, "load_config", lambda: REFRESHING)
+    monkeypatch.setattr(loops, "get_server_config_service",
+                        lambda: SimpleNamespace(get_all_servers=lambda: [{"docker_name": "web"}]))
+    monkeypatch.setattr("utils.settings.get_setting", lambda key, default=None: 120)
+    await cog.status_update_loop.coro(cog)
+    assert order == ["fetch", "edit, semaphore free"]
+
+
+def test_the_messages_have_no_clock_of_their_own():
+    import inspect
+    from cogs.docker_control import DockerControlCog
+    assert not hasattr(DockerControlCog, "periodic_message_edit_loop"), "a second clock is back"
+    assert inspect.iscoroutinefunction(DockerControlCog.edit_due_messages)

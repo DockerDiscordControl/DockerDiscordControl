@@ -19,14 +19,12 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 import discord
-from discord.ext import tasks
 
 from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
 from utils.logging_utils import setup_logger
 
 from .control_helpers import TRACKED_MESSAGE_KINDS
-from .loop_safety import survives_one_bad_cycle
 from .translation_manager import _
 
 # Same logger name as the cog: log lines and log-based tests read as before the move.
@@ -62,10 +60,19 @@ class MessageUpdatesMixin:
 
 
     # --- PERIODIC MESSAGE EDIT LOOP (FULL LOGIC, MOVED DIRECTLY INTO COG) ---
-    @tasks.loop(minutes=1, reconnect=True)
-    @survives_one_bad_cycle
-    async def periodic_message_edit_loop(self):
-        """Periodically checks and edits messages in channels that require updates."""
+    async def edit_due_messages(self):
+        """Edit the messages that are due - called by the status loop after each fetch.
+
+        ONE CLOCK (operator, 2026-09-28). This was a loop of its own, ticking once a
+        minute beside the status loop: two clocks, the edits a second off the fetches,
+        a 5-second tolerance to keep them from missing each other, and "Last update"
+        showing the edit rather than the look at Docker. The status loop runs at the
+        pace the channels ask for in the web panel (background_loops.status_beat_seconds)
+        and hands over right after it fetched; a channel is due when its interval is
+        reached within half a beat (status_overview_service.is_due).
+        """
+        from services.discord.status_overview_service import is_due
+        beat = getattr(self, 'status_refresh_interval_seconds', None)
         config = load_config()
         if not config:
             logger.error("Periodic Edit Loop: Could not load configuration. Skipping cycle.")
@@ -73,7 +80,7 @@ class MessageUpdatesMixin:
 
         # The cycle announces nothing on the way in. What it did is logged
         # when it is done: "... finished. Total tasks: N. Success: ...".
-        logger.debug("--- DIRECT COG periodic_message_edit_loop cycle --- Starting Check --- ")
+        logger.debug("--- edit_due_messages --- Starting Check --- ")
         if not self.initial_messages_sent:
              logger.debug("Direct Cog Periodic edit loop: Initial messages not sent yet, skipping.")
              return
@@ -81,7 +88,6 @@ class MessageUpdatesMixin:
         logger.debug(f"Direct Cog Periodic Edit Loop: Checking {len(self.channel_server_message_ids)} channels with tracked messages.")
 
         tasks_to_run = []
-        now_utc = datetime.now(timezone.utc)
 
         channel_permissions_config = config.get('channel_permissions', {})
         # Get default permissions from config
@@ -137,7 +143,8 @@ class MessageUpdatesMixin:
                             global_config=config,
                             last_update_time=last_update_time,
                             reason="periodic_overview_check",
-                            last_channel_activity=last_activity
+                            last_channel_activity=last_activity,
+                            beat_seconds=beat
                         )
 
                         if decision.should_update:
@@ -157,7 +164,7 @@ class MessageUpdatesMixin:
                         # an operator who had asked for once (review E18). Two
                         # messages taking the same decision had two different
                         # fallbacks, and nobody decided that they should.
-                        if last_update_time is None or (now_utc - last_update_time) >= update_interval_delta:
+                        if is_due(last_update_time, update_interval_delta, beat):
                             tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
 
                     continue  # Overview message handled, move to next message
@@ -175,7 +182,8 @@ class MessageUpdatesMixin:
                             global_config=config,
                             last_update_time=last_update_time,
                             reason="periodic_admin_overview_check",
-                            last_channel_activity=last_activity
+                            last_channel_activity=last_activity,
+                            beat_seconds=beat
                         )
 
                         if decision.should_update:
@@ -187,7 +195,7 @@ class MessageUpdatesMixin:
                     except (ImportError, AttributeError, RuntimeError) as service_error:
                         logger.warning(f"SERVICE_FIRST: Error in admin overview decision service: {service_error}")
                         # Fallback to simple update interval check
-                        if last_update_time is None or (now_utc - last_update_time) >= update_interval_delta:
+                        if is_due(last_update_time, update_interval_delta, beat):
                             tasks_to_run.append(self._update_overview_message(channel_id, message_id, "admin_overview"))
 
                     continue  # Admin overview message handled, move to next message
@@ -297,7 +305,7 @@ class MessageUpdatesMixin:
         else:
             logger.info("Direct Cog Periodic message update check: No messages were due for update in any channel.")
 
-    # Wrapper for editing, needs to be part of this Cog now if periodic_message_edit_loop uses it.
+    # Wrapper for editing, used by edit_due_messages.
     async def _refresh_cache_for_cycle(self):
         """Refresh the status cache for this cycle; never raise.
 

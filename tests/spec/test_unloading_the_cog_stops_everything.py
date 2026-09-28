@@ -26,7 +26,9 @@ import pytest
 
 from cogs.docker_control import DockerControlCog
 
-LOOPS = ("heartbeat_send_loop", "status_update_loop", "periodic_message_edit_loop",
+# periodic_message_edit_loop is gone since 2026-09-28: the status loop edits the
+# messages after each fetch (one clock) - nothing of its own to stop.
+LOOPS = ("heartbeat_send_loop", "status_update_loop",
          "inactivity_check_loop", "performance_cache_clear_loop",
          "start_mech_cache_loop", "initial_animation_cache_warmup")
 

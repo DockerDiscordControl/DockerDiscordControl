@@ -26,9 +26,25 @@ import discord
 
 logger = get_module_logger('status_overview_service')
 
-# How much short of its interval a message still counts as due - the drift of the
-# once-a-minute edit loop (see UpdateDecision's time check)
+# How much short of its interval a message still counts as due when no beat is known
+# (a render outside the status loop); with one, half a beat - see is_due
 UPDATE_DUE_GRACE_SECONDS = 5
+
+
+def is_due(last_update_time: Optional[datetime], interval: timedelta,
+           beat_seconds: Optional[float] = None) -> bool:
+    """Whether a message updated at last_update_time is due again.
+
+    The messages are edited on the status loop's beat (one clock, 2026-09-28), right
+    after it fetched. The time of an edit is taken when it is done, a moment into the
+    beat, and that moment varies with how long the fetch took - so "exactly one
+    interval later" can land a fraction early. Counted in beats it cannot: due when
+    the interval is reached within half a beat.
+    """
+    if last_update_time is None:
+        return True
+    grace = beat_seconds / 2 if beat_seconds else UPDATE_DUE_GRACE_SECONDS
+    return datetime.now(timezone.utc) - last_update_time >= interval - timedelta(seconds=grace)
 
 @dataclass
 class StatusOverviewUpdateConfig:
@@ -70,7 +86,8 @@ class StatusOverviewService:
                            reason: str = "auto_update",
                            force_refresh: bool = False,
                            force_recreate: bool = False,
-                           last_channel_activity: Optional[datetime] = None) -> UpdateDecision:
+                           last_channel_activity: Optional[datetime] = None,
+                           beat_seconds: Optional[float] = None) -> UpdateDecision:
         """
         DECISION LAYER: Determine if and how status overview should be updated.
 
@@ -118,11 +135,9 @@ class StatusOverviewService:
                 time_since_update = datetime.now(timezone.utc) - last_update_time
                 update_interval = timedelta(minutes=config.update_interval_minutes)
 
-                # The edit loop ticks once a minute and the time of the last update is
-                # taken after the edit, a second or so into the tick - so the next tick
-                # found 59.x s and waited another minute. Measured on the operator's
-                # installation (2026-09-28): "every minute" updated every two minutes.
-                if time_since_update < update_interval - timedelta(seconds=UPDATE_DUE_GRACE_SECONDS):
+                # Counted in beats (is_due): measured on the operator's installation
+                # (2026-09-28), a plain comparison made "every minute" every two minutes
+                if not is_due(last_update_time, update_interval, beat_seconds):
                     remaining_seconds = (update_interval - time_since_update).total_seconds()
                     should_update_by_time = False
                     time_reason = f"interval_not_reached_({remaining_seconds:.1f}s_remaining)"

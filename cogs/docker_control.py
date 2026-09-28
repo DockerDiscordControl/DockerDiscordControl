@@ -98,10 +98,9 @@ def _restored_tracked_message_ids(state_data) -> Dict[int, Dict[str, int]]:
 # DDC_DOCKER_CACHE_DURATION (up to 300 s), so a container stopped outside DDC doesn't stay 🟢
 # for minutes. A stale cache still triggers only ONE shared bulk refresh (_ensure_status_cache_fresh).
 STATUS_CACHE_MAX_RENDER_AGE_SECONDS = 60
-# The status loop keeps this beat (background_loops.status_beat_seconds), so an edit
-# normally finds data younger than the limit. Timers drift by fractions of a second:
-# an edit landing just after the beat's anniversary would find 60.2 s and fetch a
-# second time. This much past the limit is still the same beat.
+# A render a moment past the limit is not worth a second fetch. The periodic edits
+# come right after the status loop's fetch and find fresh data anyway (one clock,
+# message_updates.edit_due_messages); this matters for renders outside the beat.
 RENDER_AGE_GRACE_SECONDS = 5
 
 
@@ -437,7 +436,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
         loops_to_check = [
             'heartbeat_send_loop',
             'status_update_loop',
-            'periodic_message_edit_loop',
             'inactivity_check_loop',
             'performance_cache_clear_loop'
         ]
@@ -472,12 +470,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
             )
             self.bot.loop.create_task(self._track_task(status_task))
 
-            # Start periodic message edit loop (1 minute interval)
-            logger.info("Scheduling controlled start of periodic_message_edit_loop...")
-            edit_task = self.bot.loop.create_task(
-                self._start_periodic_message_edit_loop_safely()
-            )
-            self.bot.loop.create_task(self._track_task(edit_task))
+            # No loop of its own for the message edits: the status loop edits the due
+            # messages after each fetch (message_updates.edit_due_messages, 2026-09-28)
 
             # Start inactivity check loop (1 minute interval)
             inactivity_task = self.bot.loop.create_task(
@@ -559,9 +553,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                     logger.info(f"{loop_name} re-started successfully via _start_loop_safely after check.")
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"Error starting {loop_name} via _start_loop_safely: {e}", exc_info=True)
-
-    async def _start_periodic_message_edit_loop_safely(self):
-        await self._start_loop_safely(self.periodic_message_edit_loop, "Periodic Message Edit Loop (Direct Cog)")
 
     async def trigger_status_refresh(self, container_name: str, delay_seconds: int = 5):
         """
@@ -756,14 +747,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
     async def _ensure_status_cache_fresh(self):
         """Refresh the status cache only if it is stale.
 
-        status_update_loop keeps the beat the displays need (background_loops.
-        status_beat_seconds): while a channel refreshes on its own, at most
-        STATUS_CACHE_MAX_RENDER_AGE_SECONDS. So this normally finds fresh data and
-        fetches nothing - it is the safety net for a configured container that did
-        not fail its last fetch and has no entry (expired, or invalidated after a
-        container action) or one older than the limit plus RENDER_AGE_GRACE_SECONDS
-        (the loop missed its beat). Until 2026-09-28 it was the second fetch path:
-        with DDC_DOCKER_CACHE_DURATION at 120 s it fetched every other minute.
+        The periodic edits run right after the status loop's fetch (one clock,
+        message_updates.edit_due_messages), so they normally find fresh data and
+        this fetches nothing. It is the safety net for a render outside the beat,
+        and for a configured container that did not fail its last fetch and has no
+        entry (expired, or invalidated after a container action) or one older than
+        STATUS_CACHE_MAX_RENDER_AGE_SECONDS plus RENDER_AGE_GRACE_SECONDS. Until
+        2026-09-28 it was a second fetch path: with DDC_DOCKER_CACHE_DURATION at
+        120 s it fetched every other minute.
         """
         requested_at = time.monotonic()
         try:
@@ -916,7 +907,6 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
         logger.info("Unloading DockerControlCog, cancelling tasks...")
         if hasattr(self, 'heartbeat_send_loop') and self.heartbeat_send_loop.is_running(): self.heartbeat_send_loop.cancel()
         if hasattr(self, 'status_update_loop') and self.status_update_loop.is_running(): self.status_update_loop.cancel()
-        if hasattr(self, 'periodic_message_edit_loop') and self.periodic_message_edit_loop.is_running(): self.periodic_message_edit_loop.cancel()
         if hasattr(self, 'inactivity_check_loop') and self.inactivity_check_loop.is_running(): self.inactivity_check_loop.cancel()
         if hasattr(self, 'performance_cache_clear_loop') and self.performance_cache_clear_loop.is_running(): self.performance_cache_clear_loop.cancel()
         # These three are started in setup() and used to be missing here, although

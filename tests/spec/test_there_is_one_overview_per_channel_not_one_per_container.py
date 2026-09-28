@@ -123,7 +123,7 @@ def test_the_overview_path_is_untouched():
     are what actually draws the operator's two panels."""
     present = {name for _path, name in _defined_functions()}
 
-    for needed in ("_generate_status_embed_and_view", "periodic_message_edit_loop",
+    for needed in ("_generate_status_embed_and_view", "edit_due_messages",
                    "_regenerate_channel"):
 
         assert needed in present, f"{needed} went with the dead code"

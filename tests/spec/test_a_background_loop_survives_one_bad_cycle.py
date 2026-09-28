@@ -50,7 +50,9 @@ def _loop(name):
 
 
 # The three that had no guard of their own, named because the fix is per-loop.
-UNGUARDED = ["periodic_message_edit_loop", "status_update_loop", "inactivity_check_loop"]
+# periodic_message_edit_loop was the third; since 2026-09-28 its work runs inside
+# status_update_loop (one clock), under that loop's guard.
+UNGUARDED = ["status_update_loop", "inactivity_check_loop"]
 
 
 def _all_loops():
@@ -119,7 +121,7 @@ def test_every_loop_says_so_when_it_dies(loop_name):
 @pytest.mark.asyncio
 async def test_the_death_notice_names_the_loop_and_the_consequence(caplog):
     """A log line saying 'error' is not enough to act on at three in the morning."""
-    loop = _loop("periodic_message_edit_loop")
+    loop = _loop("status_update_loop")
 
     with caplog.at_level(logging.DEBUG):
         await loop._error(None, ValueError("something went wrong"))
@@ -127,7 +129,7 @@ async def test_the_death_notice_names_the_loop_and_the_consequence(caplog):
     errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.ERROR]
     assert errors, "the loop died and nothing was logged"
     joined = " ".join(errors)
-    assert "periodic_message_edit_loop" in joined, (
+    assert "status_update_loop" in joined, (
         f"the notice does not say WHICH loop stopped: {joined!r}"
     )
     assert "ValueError" in joined, f"the notice does not say why: {joined!r}"

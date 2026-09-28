@@ -63,7 +63,7 @@ def cog(monkeypatch):
 async def test_a_loop_cycle_keeps_the_donation_id(cog):
     from cogs.docker_control import DockerControlCog
 
-    await DockerControlCog.periodic_message_edit_loop.coro(cog)
+    await cog.edit_due_messages()
 
     assert cog.channel_server_message_ids[111].get("donation") == 9003, (
         cog.channel_server_message_ids)
