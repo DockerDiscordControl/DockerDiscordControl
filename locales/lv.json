@@ -78,10 +78,7 @@
   "Container Controls": "Konteineru vadība",
   "Container Info System": "Konteinera informācijas sistēma",
   "Container Information": "Konteinera informācija",
-  "Container info is not configured for this container.": "Konteinera informācija šim konteineram nav konfigurēta.",
   "Container information is not configured for '{container}'.": "Konteinera informācija nav konfigurēta konteineram '{container}'.",
-  "Container information is not enabled for": "Konteinera informācija nav iespējota konteineram",
-  "Container information is not enabled for '{container}'.": "Konteinera informācija nav iespējota konteineram '{container}'.",
   "Container is offline": "Konteiners ir bezsaistē",
   "Container is online": "Konteiners ir tiešsaistē",
   "Container not found": "Konteiners nav atrasts",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Konteineru piešķiršana to sašaurina: noņemiet atzīmi \"Visi konteineri\" administratoram, lai piešķirtu tikai jūsu izvēlētos. Administrators bez piešķiršanas patur visus konteinerus, arī vēlāk pievienotos.",
   "The command could not be completed. The reason is in the DDC log.": "Komandu neizdevās pabeigt. Iemesls ir DDC žurnālā.",
   "the mech state could not be read": "Mech stāvokli neizdevās nolasīt",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Šim konteineram nav konfigurēta informācija.",
   "ℹ️ No active containers have information configured.": "ℹ️ Nevienam aktīvam konteineram nav konfigurētas informācijas.",
   "❌ Error loading mech history. Please try again later.": "❌ Kļūda, ielādējot Mech vēsturi. Lūdzu, mēģiniet vēlāk vēlreiz.",
   "❌ Error processing donation request. Please try again later.": "❌ Kļūda, apstrādājot ziedojuma pieprasījumu. Lūdzu, mēģiniet vēlāk vēlreiz.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Brīdināt spēlētājus iepriekš?",
   "Saved": "Saglabāts",
   "runs at its time, no warning": "tiek izpildīts savā laikā, bez brīdinājuma",
-  "Below: wait until nobody plays, and warn before.": "Zemāk: gaidīt, līdz neviens nespēlē, un brīdināt iepriekš."
+  "Below: wait until nobody plays, and warn before.": "Zemāk: gaidīt, līdz neviens nespēlē, un brīdināt iepriekš.",
+  "under a minute": "mazāk par minūti",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} st. {minutes} min",
+  "The player list cannot be read right now.": "Spēlētāju sarakstu pašlaik nevar nolasīt.",
+  "Nobody is playing right now.": "Pašlaik neviens nespēlē.",
+  "This game does not send player names.": "Šī spēle nesūta spēlētāju vārdus.",
+  "+{count} more": "+{count} vēl"
 }

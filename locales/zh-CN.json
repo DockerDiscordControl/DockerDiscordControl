@@ -78,10 +78,7 @@
   "Container Controls": "容器控制",
   "Container Info System": "容器信息系统",
   "Container Information": "容器信息",
-  "Container info is not configured for this container.": "此容器未配置容器信息。",
   "Container information is not configured for '{container}'.": "容器 '{container}' 未配置容器信息。",
-  "Container information is not enabled for": "未启用容器信息：",
-  "Container information is not enabled for '{container}'.": "容器 '{container}' 未启用容器信息。",
   "Container is offline": "容器已离线",
   "Container is online": "容器在线",
   "Container not found": "未找到容器",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "容器分配可以缩小此范围：为管理员取消勾选“所有容器”，即可只授予你选择的容器。没有分配的管理员保留所有容器，包括以后添加的容器。",
   "The command could not be completed. The reason is in the DDC log.": "命令无法完成。原因记录在 DDC 日志中。",
   "the mech state could not be read": "无法读取机甲状态",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ 此容器未配置任何信息。",
   "ℹ️ No active containers have information configured.": "ℹ️ 没有已配置信息的活动容器。",
   "❌ Error loading mech history. Please try again later.": "❌ 加载机甲历史时出错。请稍后重试。",
   "❌ Error processing donation request. Please try again later.": "❌ 处理捐赠请求时出错。请稍后重试。",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "是否提前警告玩家？",
   "Saved": "已保存",
   "runs at its time, no warning": "按时运行，不警告",
-  "Below: wait until nobody plays, and warn before.": "下方：等待无人游玩，并提前警告。"
+  "Below: wait until nobody plays, and warn before.": "下方：等待无人游玩，并提前警告。",
+  "under a minute": "不到一分钟",
+  "{minutes} min": "{minutes} 分钟",
+  "{hours} h {minutes} min": "{hours} 小时 {minutes} 分钟",
+  "The player list cannot be read right now.": "目前无法读取玩家列表。",
+  "Nobody is playing right now.": "当前没有人在玩。",
+  "This game does not send player names.": "此游戏不发送玩家名称。",
+  "+{count} more": "另外 {count} 人"
 }

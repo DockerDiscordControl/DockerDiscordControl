@@ -78,10 +78,7 @@
   "Container Controls": "Điều khiển container",
   "Container Info System": "Hệ thống thông tin Container",
   "Container Information": "Thông tin Container",
-  "Container info is not configured for this container.": "Thông tin container chưa được cấu hình cho container này.",
   "Container information is not configured for '{container}'.": "Thông tin container chưa được cấu hình cho '{container}'.",
-  "Container information is not enabled for": "Thông tin container chưa được bật cho",
-  "Container information is not enabled for '{container}'.": "Thông tin container chưa được bật cho '{container}'.",
   "Container is offline": "Container đang ngoại tuyến",
   "Container is online": "Container đang trực tuyến",
   "Container not found": "Không tìm thấy container",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Việc gán container sẽ thu hẹp phạm vi này: bỏ chọn \"Tất cả container\" cho một quản trị viên để chỉ giao cho họ các container bạn chọn. Quản trị viên không được gán sẽ giữ mọi container, kể cả những container được thêm sau.",
   "The command could not be completed. The reason is in the DDC log.": "Không thể hoàn tất lệnh. Lý do nằm trong nhật ký DDC.",
   "the mech state could not be read": "không thể đọc trạng thái của Mech",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Chưa cấu hình thông tin cho container này.",
   "ℹ️ No active containers have information configured.": "ℹ️ Không có container đang hoạt động nào được cấu hình thông tin.",
   "❌ Error loading mech history. Please try again later.": "❌ Lỗi khi tải lịch sử Mech. Vui lòng thử lại sau.",
   "❌ Error processing donation request. Please try again later.": "❌ Lỗi khi xử lý yêu cầu đóng góp. Vui lòng thử lại sau.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Cảnh báo người chơi trước?",
   "Saved": "Đã lưu",
   "runs at its time, no warning": "chạy đúng giờ, không cảnh báo",
-  "Below: wait until nobody plays, and warn before.": "Bên dưới: chờ đến khi không ai chơi và cảnh báo trước."
+  "Below: wait until nobody plays, and warn before.": "Bên dưới: chờ đến khi không ai chơi và cảnh báo trước.",
+  "under a minute": "dưới một phút",
+  "{minutes} min": "{minutes} phút",
+  "{hours} h {minutes} min": "{hours} giờ {minutes} phút",
+  "The player list cannot be read right now.": "Hiện không thể đọc danh sách người chơi.",
+  "Nobody is playing right now.": "Hiện không có ai đang chơi.",
+  "This game does not send player names.": "Trò chơi này không gửi tên người chơi.",
+  "+{count} more": "+{count} người khác"
 }

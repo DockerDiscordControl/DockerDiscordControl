@@ -656,17 +656,8 @@ class SlashCommandsMixin:
                     await ctx.respond(_("Container information is not configured for '{container}'.").format(container=container_name), ephemeral=True)
                 return
 
-            # Debug the enabled flag
-            enabled_value = info_result.data.enabled
-            logger.info(f"DEBUG INFO COMMAND: {call_id} - Container {container_name} enabled value: {enabled_value} (type: {type(enabled_value)})")
-
-            if not enabled_value:
-                logger.info(f"Container info is disabled for {container_name} - call_id: {call_id}")
-                if deferred:
-                    await ctx.followup.send(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
-                else:
-                    await ctx.respond(_("Container information is not enabled for '{container}'.").format(container=container_name), ephemeral=True)
-                return
+            # No refusal for a container without a text: every container has an info
+            # display since v3.0.2 - restarts, health and, on a game server, players.
 
             # Convert ContainerInfo to dict for compatibility
             info_config = info_result.data.to_dict()

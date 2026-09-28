@@ -23,6 +23,19 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The task list shows the options next to the schedule. Rule warnings that were saved but never
   shown (a protected container, for instance) now appear after saving.
 
+### ✨ Who is playing, in the info display
+
+- **Every container has an info display now**, not only the ones with a text set: the ℹ️ button
+  in the status and control channels, the overview dropdown and `/info` open it for all of them.
+  It shows restarts and the health check, and the text and address when they are switched on.
+- **A game server names its players** there, with their time on the server where the game sends
+  it (Source games such as Valheim): "👥 Players online: 3/10 · Anna · 1 h 20 min". Minecraft
+  sends at most twelve names, the rest is counted as "+k more". Some games count players without
+  naming them (Icarus, Satisfactory); the display says so. The names are asked for when the
+  display is opened, not every status cycle.
+- **The ℹ️ / ⓘ marker in the overviews is gone** - with every container having info it said
+  nothing any more.
+
 ## v3.0.1 - 2026-09-27
 
 GitHub's code scanner (CodeQL) read the v3.0 code for the first time when it reached `main` and

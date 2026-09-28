@@ -78,10 +78,7 @@
   "Container Controls": "การควบคุม Container",
   "Container Info System": "ระบบข้อมูล Container",
   "Container Information": "ข้อมูล Container",
-  "Container info is not configured for this container.": "ข้อมูล Container ยังไม่ได้กำหนดค่าสำหรับ Container นี้",
   "Container information is not configured for '{container}'.": "ข้อมูล Container ยังไม่ได้กำหนดค่าสำหรับ '{container}'",
-  "Container information is not enabled for": "ไม่ได้เปิดใช้งานข้อมูล Container สำหรับ",
-  "Container information is not enabled for '{container}'.": "ข้อมูล Container ยังไม่ได้เปิดใช้งานสำหรับ '{container}'",
   "Container is offline": "Container ออฟไลน์",
   "Container is online": "Container ออนไลน์",
   "Container not found": "ไม่พบ Container",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "การกำหนด Container จะจำกัดขอบเขตนี้: เอาเครื่องหมายออกจาก \"Container ทั้งหมด\" เพื่อให้ผู้ดูแลระบบคนนั้นควบคุมเฉพาะ Container ที่คุณเลือก ผู้ดูแลระบบที่ไม่มีการกำหนดจะควบคุม Container ได้ทุกตัว รวมถึงตัวที่เพิ่มในภายหลัง",
   "The command could not be completed. The reason is in the DDC log.": "ไม่สามารถดำเนินคำสั่งให้เสร็จสิ้นได้ เหตุผลอยู่ในบันทึกของ DDC",
   "the mech state could not be read": "ไม่สามารถอ่านสถานะของ Mech ได้",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ ยังไม่ได้กำหนดค่าข้อมูลสำหรับ Container นี้",
   "ℹ️ No active containers have information configured.": "ℹ️ ไม่มี Containerที่ใช้งานอยู่ที่ตั้งค่าข้อมูลไว้",
   "❌ Error loading mech history. Please try again later.": "❌ เกิดข้อผิดพลาดขณะโหลดประวัติ Mech กรุณาลองใหม่ภายหลัง",
   "❌ Error processing donation request. Please try again later.": "❌ เกิดข้อผิดพลาดขณะประมวลผลคำขอบริจาค กรุณาลองใหม่ภายหลัง",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "เตือนผู้เล่นล่วงหน้าไหม?",
   "Saved": "บันทึกแล้ว",
   "runs at its time, no warning": "ทำงานตามเวลา ไม่เตือน",
-  "Below: wait until nobody plays, and warn before.": "ด้านล่าง: รอจนไม่มีใครเล่น และเตือนล่วงหน้า"
+  "Below: wait until nobody plays, and warn before.": "ด้านล่าง: รอจนไม่มีใครเล่น และเตือนล่วงหน้า",
+  "under a minute": "ไม่ถึงหนึ่งนาที",
+  "{minutes} min": "{minutes} นาที",
+  "{hours} h {minutes} min": "{hours} ชม. {minutes} นาที",
+  "The player list cannot be read right now.": "ไม่สามารถอ่านรายชื่อผู้เล่นได้ในขณะนี้",
+  "Nobody is playing right now.": "ขณะนี้ไม่มีใครเล่นอยู่",
+  "This game does not send player names.": "เกมนี้ไม่ส่งชื่อผู้เล่น",
+  "+{count} more": "+อีก {count} คน"
 }

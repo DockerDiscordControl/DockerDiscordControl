@@ -223,17 +223,6 @@ class OverviewEmbedsMixin:
                 if cached_entry and cached_entry.get('data'):
                     status_result = cached_entry['data']
 
-            # Check if container has info configured
-            has_info = False
-            try:
-                from services.infrastructure.container_info_service import get_container_info_service
-                info_service = get_container_info_service()
-                info_result = info_service.get_container_info(docker_name)
-                if info_result.success and info_result.data.enabled:
-                    has_info = True
-            except (discord.errors.DiscordException, RuntimeError):
-                pass
-
             # Process status and build field
             # NOW USING ContainerStatusResult Objects (not tuples)
             from services.docker_status.models import ContainerStatusResult
@@ -299,8 +288,8 @@ class OverviewEmbedsMixin:
                     except (ValueError, AttributeError):
                         ram_formatted = "—GB"
 
-                    # Build single-line: "🟢 Name · cpu% • ramGB ⓘ"
-                    # Use middot (·) as separator, ⓘ only if has info.
+                    # Build single-line: "🟢 Name · cpu% • ramGB", middot (·) as separator.
+                    # No ⓘ marker since v3.0.2: every container has an info display.
                     # Details switched off for this container are NOT a failed
                     # measurement: "Hidden" does not parse as a number, so the row
                     # used to read "—% • —GB", which the operator reads as "DDC
@@ -309,18 +298,12 @@ class OverviewEmbedsMixin:
                         container_line = f"{status_emoji} {truncated_name} · 🔒 {translate('Hidden')}"
                     else:
                         container_line = f"{status_emoji} {truncated_name} · {cpu_formatted} • {ram_formatted}"
-                    if has_info:
-                        container_line += " ⓘ"
                 elif status_result.not_found:
                     # Deleted/renamed container: "❓ Name · not found"
                     container_line = f"❓ {truncated_name} · {translate('not found')}"
-                    if has_info:
-                        container_line += " ⓘ"
                 else:
                     # Container is stopped: "🔴 Name · offline"
                     container_line = f"{status_emoji} {truncated_name} · {translate('offline')}"
-                    if has_info:
-                        container_line += " ⓘ"
 
                 # Add to container lines list
                 container_lines.append(container_line)
@@ -342,8 +325,6 @@ class OverviewEmbedsMixin:
 
                 # Single-line format: "🔄 Name"
                 container_line = f"{status_emoji} {truncated_name}"
-                if has_info:
-                    container_line += " ⓘ"
 
                 # Add to container lines list
                 container_lines.append(container_line)
@@ -377,7 +358,7 @@ class OverviewEmbedsMixin:
         header_lines[1] = translate("Container: {total} • Online: {online} • Offline: {offline}").format(total=total_containers, online=online_count, offline=offline_count)
 
         # Build final description with consistent spacing between container lines
-        # Use Hangul filler (ㅤ U+3164) on separator line to match ⓘ height.
+        # Hangul filler (ㅤ U+3164) on the separator line keeps an empty line Discord would drop.
         # Cut to what Discord accepts: an embed description longer than 4096
         # characters is REFUSED, so on a large installation the whole admin
         # overview never appeared - the last line says how many are missing.
@@ -463,17 +444,6 @@ class OverviewEmbedsMixin:
                 logger.debug(f"[/serverstatus] No cache entry for '{display_name}' - Background loop will update")
                 status_result = None
 
-            # Check if container has info available (same as original)
-            info_indicator = ""
-            try:
-                from services.infrastructure.container_info_service import get_container_info_service
-                info_service = get_container_info_service()
-                info_result = info_service.get_container_info(docker_name)
-                if info_result.success and info_result.data.enabled:
-                    info_indicator = " ℹ️"
-            except (RuntimeError, ValueError, KeyError, OSError) as e:
-                logger.debug(f"Could not check info status for {docker_name}: {e}")
-
             # Process status result - NOW USING ContainerStatusResult Objects (not tuples)
             # Check if we have a successful ContainerStatusResult
             from services.docker_status.models import ContainerStatusResult
@@ -500,18 +470,18 @@ class OverviewEmbedsMixin:
                 # Compact live player count (e.g. "  3/8") for running game servers with query data
                 from services.discord.embed_helper_service import format_player_inline
                 player_indicator = format_player_inline(status_result.players_online, status_result.max_players)
-                # Add status line: status emoji, name, player count, info indicator
-                line = f"│ {status_emoji} {truncated_name}{player_indicator}{info_indicator}"
+                # Status line: emoji, name, player count (no ℹ️ since v3.0.2 - every container has info)
+                line = f"│ {status_emoji} {truncated_name}{player_indicator}"
                 if status_result.not_found:
                     # Deleted/renamed container: own state instead of 🔴 or an endless 🔄
-                    line = f"│ ❓ {truncated_name} · {translate('not found')}{info_indicator}"
+                    line = f"│ ❓ {truncated_name} · {translate('not found')}"
                 content_lines.append(line)
             else:
                 # No cache data available - show loading status
                 status_emoji = "🔄"
                 # Truncate display name for mobile (max 20 chars)
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name
-                line = f"│ {status_emoji} {truncated_name}{info_indicator}"
+                line = f"│ {status_emoji} {truncated_name}"
                 content_lines.append(line)
 
         # The operator's groups, below the containers and set apart from them
@@ -530,21 +500,6 @@ class OverviewEmbedsMixin:
         embed.description = fit_lines(
             content_lines, prefix="```\n", suffix="\n```",
             more=lambda count: translate("… and {count} more containers").format(count=count))
-
-        # Check if any containers have info available
-        has_any_info = False
-        try:
-            from services.infrastructure.container_info_service import get_container_info_service
-            info_service = get_container_info_service()
-            for server_conf in ordered_servers:
-                docker_name = server_conf.get('docker_name')
-                if docker_name:
-                    info_result = info_service.get_container_info(docker_name)
-                    if info_result.success and info_result.data.enabled:
-                        has_any_info = True
-                        break
-        except (KeyError, AttributeError, ValueError) as e:
-            logger.debug(f"Could not check info availability: {e}")
 
         # Help text removed - replaced with Help button in MechView
 

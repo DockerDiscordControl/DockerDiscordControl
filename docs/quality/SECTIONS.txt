@@ -27,11 +27,11 @@ cogs/action_effect.py:1-162
 # no longer holds its lines.
 cogs/control_ui.py:1-1457
 
-## Section 03  (1250 lines, 1 piece)
+## Section 03  (1223 lines, 1 piece)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1458-2693
+cogs/control_ui.py:1458-2680
 
 ## Section 04  (1552 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -46,8 +46,8 @@ cogs/loop_safety.py:1-103
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:827-844
-cogs/overview_embeds.py:1-655
-cogs/slash_commands.py:1-831
+cogs/overview_embeds.py:1-610
+cogs/slash_commands.py:1-822
 
 ## Section 06  (1807 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
@@ -59,11 +59,14 @@ cogs/donation_ui.py:1-693
 ## Section 07  (694 lines, 1 piece)
 cogs/enhanced_info_modal_simple.py:1-704
 
-## Section 08  (1115 lines, 1 piece)
-cogs/status_handlers.py:1-1115
+## Section 08  (1112 lines, 1 piece)
+cogs/status_handlers.py:1-1112
 
-## Section 09  (1267 lines, 1 piece)
-cogs/status_info_integration.py:1-1285
+## Section 09  (1312 lines, 2 pieces)
+# v3.0.2, 2026-09-28: every container has an info display; who plays on a
+# game server comes from player_list_info.py, read with the display it fills.
+cogs/status_info_integration.py:1-1194
+cogs/player_list_info.py:1-118
 
 ## Section 10  (1592 lines, 7 pieces)
 cogs/translation_manager.py:1-149
@@ -164,10 +167,10 @@ services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-191
 services/infrastructure/event_manager.py:1-119
 
-## Section 19b  (553 lines, 1 piece)
+## Section 19b  (638 lines, 1 piece)
 # Split off Section 19 on 2026-09-23: container_status_service.py grew past the
 # 2000-line section limit with the cache-lifetime fix.
-services/infrastructure/game_query_service.py:1-553
+services/infrastructure/game_query_service.py:1-638
 
 ## Section 20  (1577 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-341

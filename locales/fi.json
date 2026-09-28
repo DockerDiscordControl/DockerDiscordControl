@@ -78,10 +78,7 @@
   "Container Controls": "Säilön ohjaus",
   "Container Info System": "Säilön tietojärjestelmä",
   "Container Information": "Säilön tiedot",
-  "Container info is not configured for this container.": "Säilön tietoja ei ole määritetty tälle säilölle.",
   "Container information is not configured for '{container}'.": "Säilön tietoja ei ole määritetty säilölle '{container}'.",
-  "Container information is not enabled for": "Säilötiedot eivät ole käytössä kohteelle",
-  "Container information is not enabled for '{container}'.": "Säilön tiedot eivät ole käytössä säilölle '{container}'.",
   "Container is offline": "Säilö on offline",
   "Container is online": "Säilö on online",
   "Container not found": "Säilöä ei löydy",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Säilömääritys rajaa tätä: poista valinta kohdasta \"Kaikki säilöt\", niin ylläpitäjä saa vain valitsemasi säilöt. Ylläpitäjä ilman määritystä hallitsee kaikkia säilöjä, myös myöhemmin lisättyjä.",
   "The command could not be completed. The reason is in the DDC log.": "Komentoa ei voitu suorittaa loppuun. Syy löytyy DDC-lokista.",
   "the mech state could not be read": "mechin tilaa ei voitu lukea",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Tälle säilölle ei ole määritetty tietoja.",
   "ℹ️ No active containers have information configured.": "ℹ️ Yhdellekään aktiiviselle säilölle ei ole määritetty tietoja.",
   "❌ Error loading mech history. Please try again later.": "❌ Virhe Mech-historian lataamisessa. Yritä myöhemmin uudelleen.",
   "❌ Error processing donation request. Please try again later.": "❌ Virhe lahjoituspyynnön käsittelyssä. Yritä myöhemmin uudelleen.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Varoitetaanko pelaajia etukäteen?",
   "Saved": "Tallennettu",
   "runs at its time, no warning": "suoritetaan ajallaan, ei varoitusta",
-  "Below: wait until nobody plays, and warn before.": "Alla: odota, kunnes kukaan ei pelaa, ja varoita etukäteen."
+  "Below: wait until nobody plays, and warn before.": "Alla: odota, kunnes kukaan ei pelaa, ja varoita etukäteen.",
+  "under a minute": "alle minuutti",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} h {minutes} min",
+  "The player list cannot be read right now.": "Pelaajalistaa ei voi lukea juuri nyt.",
+  "Nobody is playing right now.": "Kukaan ei pelaa juuri nyt.",
+  "This game does not send player names.": "Tämä peli ei lähetä pelaajien nimiä.",
+  "+{count} more": "+{count} muuta"
 }

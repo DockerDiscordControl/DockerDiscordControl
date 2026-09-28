@@ -78,10 +78,7 @@
   "Container Controls": "Controale container",
   "Container Info System": "Sistem Informații Container",
   "Container Information": "Informații Container",
-  "Container info is not configured for this container.": "Informațiile containerului nu sunt configurate pentru acest container.",
   "Container information is not configured for '{container}'.": "Informațiile containerului nu sunt configurate pentru '{container}'.",
-  "Container information is not enabled for": "Informațiile containerului nu sunt activate pentru",
-  "Container information is not enabled for '{container}'.": "Informațiile containerului nu sunt activate pentru '{container}'.",
   "Container is offline": "Containerul este offline",
   "Container is online": "Containerul este online",
   "Container not found": "Containerul nu a fost găsit",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "O alocare de containere restrânge acest lucru: debifați \"Toate containerele\" pentru un administrator ca să-i dați doar pe cele alese de dvs. Un administrator fără alocare păstrează toate containerele, inclusiv cele adăugate ulterior.",
   "The command could not be completed. The reason is in the DDC log.": "Comanda nu a putut fi finalizată. Motivul se află în jurnalul DDC.",
   "the mech state could not be read": "starea Mech-ului nu a putut fi citită",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Nu sunt configurate informații pentru acest container.",
   "ℹ️ No active containers have information configured.": "ℹ️ Niciun container activ nu are informații configurate.",
   "❌ Error loading mech history. Please try again later.": "❌ Eroare la încărcarea istoricului Mech. Încercați din nou mai târziu.",
   "❌ Error processing donation request. Please try again later.": "❌ Eroare la procesarea cererii de donație. Încercați din nou mai târziu.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Avertizați jucătorii înainte?",
   "Saved": "Salvat",
   "runs at its time, no warning": "rulează la ora ei, fără avertisment",
-  "Below: wait until nobody plays, and warn before.": "Mai jos: așteptați până nu joacă nimeni și avertizați înainte."
+  "Below: wait until nobody plays, and warn before.": "Mai jos: așteptați până nu joacă nimeni și avertizați înainte.",
+  "under a minute": "sub un minut",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} h {minutes} min",
+  "The player list cannot be read right now.": "Lista jucătorilor nu poate fi citită acum.",
+  "Nobody is playing right now.": "Nimeni nu joacă acum.",
+  "This game does not send player names.": "Acest joc nu trimite numele jucătorilor.",
+  "+{count} more": "+{count} în plus"
 }

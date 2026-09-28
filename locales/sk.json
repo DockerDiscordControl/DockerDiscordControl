@@ -78,10 +78,7 @@
   "Container Controls": "Ovládanie kontajnerov",
   "Container Info System": "Informačný systém kontajnerov",
   "Container Information": "Informácie o kontajneri",
-  "Container info is not configured for this container.": "Informácie o kontajneri nie sú pre tento kontajner nakonfigurované.",
   "Container information is not configured for '{container}'.": "Informácie o kontajneri nie sú nakonfigurované pre '{container}'.",
-  "Container information is not enabled for": "Informácie o kontajneri nie sú povolené pre",
-  "Container information is not enabled for '{container}'.": "Informácie o kontajneri nie sú povolené pre '{container}'.",
   "Container is offline": "Kontajner je offline",
   "Container is online": "Kontajner je online",
   "Container not found": "Kontajner sa nenašiel",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Priradenie kontajnerov to zužuje: zrušte zaškrtnutie „Všetky kontajnery“ pri správcovi, aby dostal iba tie, ktoré vyberiete. Správca bez priradenia si ponecháva všetky kontajnery vrátane neskôr pridaných.",
   "The command could not be completed. The reason is in the DDC log.": "Príkaz sa nepodarilo dokončiť. Dôvod nájdete v logu DDC.",
   "the mech state could not be read": "stav Mecha sa nepodarilo načítať",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Pre tento kontajner nie sú nastavené žiadne informácie.",
   "ℹ️ No active containers have information configured.": "ℹ️ Žiadny aktívny kontajner nemá nastavené informácie.",
   "❌ Error loading mech history. Please try again later.": "❌ Chyba pri načítaní histórie Mecha. Skúste to prosím neskôr.",
   "❌ Error processing donation request. Please try again later.": "❌ Chyba pri spracovaní požiadavky na príspevok. Skúste to prosím neskôr.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Varovať hráčov vopred?",
   "Saved": "Uložené",
   "runs at its time, no warning": "prebehne vo svoj čas, bez varovania",
-  "Below: wait until nobody plays, and warn before.": "Nižšie: čakať, kým nikto nehrá, a vopred varovať."
+  "Below: wait until nobody plays, and warn before.": "Nižšie: čakať, kým nikto nehrá, a vopred varovať.",
+  "under a minute": "menej ako minúta",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} h {minutes} min",
+  "The player list cannot be read right now.": "Zoznam hráčov sa teraz nedá načítať.",
+  "Nobody is playing right now.": "Práve nikto nehrá.",
+  "This game does not send player names.": "Táto hra neposiela mená hráčov.",
+  "+{count} more": "+{count} ďalší"
 }

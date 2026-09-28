@@ -29,55 +29,43 @@ the service logged the refusal.
 import logging
 from unittest.mock import patch
 
-import discord
-import pytest
+
+# The status embed enrichment this file first pinned ("ℹ️ Additional info
+# available") is gone since v3.0.2 - every container has an info display, so
+# there is nothing to announce. The status channel's info VIEW is the caller
+# handed whatever the panel shows now; the same guard sits there.
+
+def _view(server_config):
+    from cogs.status_info_integration import StatusInfoView
+
+    return StatusInfoView(None, server_config, True)
 
 
-@pytest.fixture
-def embed():
-    return discord.Embed(title="Gameserver", description="1/2")
-
-
-def _enhance(server_config, embed):
-    from cogs.status_info_integration import create_enhanced_status_embed
-
-    return create_enhanced_status_embed(embed, server_config, info_indicator=True)
-
-
-def test_a_group_is_not_looked_up(embed):
+async def test_a_group_is_not_looked_up():
     """THE FINDING: the service was asked and refused the name."""
-    with patch("services.infrastructure.container_info_service.get_container_info_service") as service:
-        result = _enhance({"docker_name": "group:Gameserver", "name": "Gameserver"}, embed)
+    with patch("cogs.status_info_integration.get_container_info_service") as service:
+        view = _view({"docker_name": "group:Gameserver", "name": "Gameserver"})
 
         assert service.call_count == 0, "the info service was asked about a group"
-    assert result is embed, "a group's embed must come back untouched"
+    assert view.children == [], "a group has no info button"
 
 
-def test_a_group_logs_nothing_at_error(embed, caplog):
+async def test_a_group_logs_nothing_at_error(caplog):
     """The point of the finding: the log stays clean."""
     with caplog.at_level(logging.ERROR):
-        _enhance({"docker_name": "group:Gameserver", "name": "Gameserver"}, embed)
+        _view({"docker_name": "group:Gameserver", "name": "Gameserver"})
 
     assert [r.message for r in caplog.records] == []
 
 
-def test_a_container_is_still_looked_up(embed):
+async def test_a_container_is_still_looked_up():
     """Counter-check that the guard did not switch the feature off: without
     it, the case above would pass for every container too."""
     with patch("cogs.status_info_integration.get_container_info_service") as service:
         service.return_value.get_container_info.return_value.success = False
-        _enhance({"docker_name": "alpha", "name": "alpha"}, embed)
+        _view({"docker_name": "alpha", "name": "alpha"})
 
         assert service.return_value.get_container_info.call_args[0][0] == "alpha"
-
-
-def test_the_admin_marker_still_skips_too(embed):
-    """The guard sits beside an existing one and must not have replaced it."""
-    with patch("cogs.status_info_integration.get_container_info_service") as service:
-        result = _enhance({"docker_name": "alpha", "_is_admin_control": True}, embed)
-
-        assert service.call_count == 0
-    assert result is embed
 
 
 def test_no_caller_hands_a_group_to_the_info_service():
@@ -95,7 +83,6 @@ def test_no_caller_hands_a_group_to_the_info_service():
     # Callers that can only ever see a container: they iterate the configured
     # containers, where a group does not appear.
     known = {
-        "cogs/overview_embeds.py",          # walks the container list
         "cogs/slash_commands.py",           # /info <container>, name from the command
         "cogs/enhanced_info_modal_simple.py",   # a modal opened from a container
         "cogs/status_info_integration.py",  # guarded, see the cases above

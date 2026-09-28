@@ -98,6 +98,25 @@ class GameQueryResult:
                    error_type='no_query', error_message=message)
 
 
+@dataclass
+class PlayerList:
+    """Who is on a server, asked when someone opens the info display (v3.0.2).
+
+    ``names`` holds (name, seconds on the server or None) for every player the
+    game NAMED. A game may count players without naming them - Icarus sends
+    empty names (opengsq issue #44), Satisfactory's API has no list at all -
+    so ``players_online`` can be larger than ``len(names)``; ``names_given``
+    is False when the game named nobody it counted.
+    """
+    success: bool
+    players_online: Optional[int] = None
+    max_players: Optional[int] = None
+    names: List[Tuple[str, Optional[float]]] = field(default_factory=list)
+    names_given: bool = True
+    # 'timeout' | 'unreachable' | 'no_query' | 'bad_config'
+    error_type: Optional[str] = None
+
+
 class GameQueryService:
     """Singleton service that queries game servers via opengsq, cached and non-blocking."""
 
@@ -165,6 +184,72 @@ class GameQueryService:
                 return None, None
             return players, max_players
         raise ValueError(f"unsupported protocol: {protocol}")
+
+    async def _query_players(self, protocol: str, host: str, port: int,
+                             timeout: float, token: str = '') -> PlayerList:
+        """The player list of one server on one port. Raises like _query_protocol."""
+        names: List[Tuple[str, Optional[float]]] = []
+        if protocol == 'source':
+            from opengsq.protocols.source import Source  # lazy import
+            server = Source(host=host, port=port, timeout=timeout)
+            info = await server.get_info()
+            online, max_players = getattr(info, 'players', None), getattr(info, 'max_players', None)
+            if online:
+                names = [(p.name.strip(), p.duration) for p in await server.get_players()
+                         if (p.name or '').strip()]
+        elif protocol == 'minecraft':
+            from opengsq.protocols.minecraft import Minecraft  # lazy import
+            players = ((await Minecraft(host=host, port=port, timeout=timeout).get_status()) or {}).get('players') or {}
+            online, max_players = players.get('online'), players.get('max')
+            # The server sends a SAMPLE, at most twelve names; the rest is "+k more"
+            names = [(str(p.get('name')).strip(), None) for p in (players.get('sample') or [])
+                     if isinstance(p, dict) and str(p.get('name') or '').strip()]
+        elif protocol == 'palworld':
+            online, max_players = await self._query_protocol(protocol, host, port, timeout, token)
+            if online:
+                from opengsq.protocols.palworld import Palworld  # lazy import
+                server = Palworld(host=host, port=port, api_username='admin',
+                                  api_password=(token or ''), timeout=timeout)
+                names = [(p.name.strip(), None) for p in await server.get_players() if (p.name or '').strip()]
+        elif protocol == 'satisfactory':
+            # Its API counts players and names none
+            online, max_players = await self._query_protocol(protocol, host, port, timeout, token)
+            return PlayerList(success=True, players_online=online, max_players=max_players,
+                              names_given=not online)
+        else:
+            raise ValueError(f"unsupported protocol: {protocol}")
+        return PlayerList(success=True, players_online=online, max_players=max_players,
+                          names=names, names_given=bool(names) or not online)
+
+    async def get_player_list(self, request: GameQueryRequest) -> PlayerList:
+        """Ask one server who is playing. Never raises; not cached.
+
+        Only the info display asks this, when someone opens it - the status
+        cycle keeps asking for the count alone. The ports are tried in the
+        order _fetch uses, so a port learned there (Valheim answers on 2457
+        only) comes first here too.
+        """
+        if request.protocol not in SUPPORTED_PROTOCOLS:
+            return PlayerList(success=False, error_type='bad_config')
+        if not request.host or not request.port:
+            return PlayerList(success=False, error_type='no_query')
+        error = 'no_query'
+        for port in [request.port] + [p for p in request.candidate_ports if p != request.port]:
+            try:
+                result = await asyncio.wait_for(
+                    self._query_players(request.protocol, request.host, port,
+                                        request.timeout_seconds, request.token),
+                    timeout=request.timeout_seconds)
+            except asyncio.TimeoutError:
+                error = 'timeout'
+                continue
+            except Exception as e:  # noqa: BLE001 - as in _fetch_one: opengsq raises its own errors
+                logger.debug(f"[GAME_QUERY] Player list failed for {request.container_name}: {e}")
+                error = 'unreachable'
+                continue
+            self._promote_target_port(request.container_name, port)
+            return result
+        return PlayerList(success=False, error_type=error)
 
     # --- single query ------------------------------------------------------
 

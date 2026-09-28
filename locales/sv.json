@@ -78,10 +78,7 @@
   "Container Controls": "Containerkontroller",
   "Container Info System": "Container-informationssystem",
   "Container Information": "Containerinformation",
-  "Container info is not configured for this container.": "Container-info är inte konfigurerad för denna container.",
   "Container information is not configured for '{container}'.": "Containerinformation är inte konfigurerad för '{container}'.",
-  "Container information is not enabled for": "Containerinformation är inte aktiverad för",
-  "Container information is not enabled for '{container}'.": "Containerinformation är inte aktiverad för '{container}'.",
   "Container is offline": "Containern är offline",
   "Container is online": "Containern är online",
   "Container not found": "Containern hittades inte",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "En containertilldelning begränsar detta: bocka ur \"Alla containrar\" för en admin för att bara ge hen de du väljer. En admin utan tilldelning behåller alla containrar, även de som läggs till senare.",
   "The command could not be completed. The reason is in the DDC log.": "Kommandot kunde inte slutföras. Orsaken finns i DDC-loggen.",
   "the mech state could not be read": "mechens status kunde inte läsas",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Ingen information är konfigurerad för den här containern.",
   "ℹ️ No active containers have information configured.": "ℹ️ Ingen aktiv container har information konfigurerad.",
   "❌ Error loading mech history. Please try again later.": "❌ Fel vid inläsning av Mech-historiken. Försök igen senare.",
   "❌ Error processing donation request. Please try again later.": "❌ Fel vid behandling av donationsbegäran. Försök igen senare.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Varna spelarna innan?",
   "Saved": "Sparat",
   "runs at its time, no warning": "körs vid sin tid, ingen varning",
-  "Below: wait until nobody plays, and warn before.": "Nedan: vänta tills ingen spelar och varna innan."
+  "Below: wait until nobody plays, and warn before.": "Nedan: vänta tills ingen spelar och varna innan.",
+  "under a minute": "under en minut",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} h {minutes} min",
+  "The player list cannot be read right now.": "Spelarlistan kan inte läsas just nu.",
+  "Nobody is playing right now.": "Ingen spelar just nu.",
+  "This game does not send player names.": "Det här spelet skickar inte spelarnamn.",
+  "+{count} more": "+{count} till"
 }

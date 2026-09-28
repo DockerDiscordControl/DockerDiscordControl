@@ -78,10 +78,7 @@
   "Container Controls": "Kawalan Bekas",
   "Container Info System": "Sistem Info Bekas",
   "Container Information": "Maklumat Bekas",
-  "Container info is not configured for this container.": "Info bekas tidak dikonfigurasi untuk bekas ini.",
   "Container information is not configured for '{container}'.": "Maklumat bekas tidak dikonfigurasi untuk '{container}'.",
-  "Container information is not enabled for": "Maklumat bekas tidak didayakan untuk",
-  "Container information is not enabled for '{container}'.": "Maklumat bekas tidak diaktifkan untuk '{container}'.",
   "Container is offline": "Bekas berada di luar talian",
   "Container is online": "Bekas berada dalam talian",
   "Container not found": "Bekas tidak dijumpai",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Penetapan bekas menyempitkan ini: nyahtanda \"Semua bekas\" bagi seorang admin untuk memberinya hanya bekas yang anda pilih. Admin tanpa penetapan mengekalkan setiap bekas, termasuk yang ditambah kemudian.",
   "The command could not be completed. The reason is in the DDC log.": "Arahan tidak dapat diselesaikan. Sebabnya ada dalam log DDC.",
   "the mech state could not be read": "status Mech tidak dapat dibaca",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Tiada maklumat dikonfigurasikan untuk bekas ini.",
   "ℹ️ No active containers have information configured.": "ℹ️ Tiada bekas aktif yang mempunyai maklumat dikonfigurasikan.",
   "❌ Error loading mech history. Please try again later.": "❌ Ralat semasa memuatkan sejarah Mech. Sila cuba lagi kemudian.",
   "❌ Error processing donation request. Please try again later.": "❌ Ralat semasa memproses permintaan derma. Sila cuba lagi kemudian.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Beri amaran kepada pemain dahulu?",
   "Saved": "Disimpan",
   "runs at its time, no warning": "berjalan pada masanya, tiada amaran",
-  "Below: wait until nobody plays, and warn before.": "Di bawah: tunggu sehingga tiada siapa bermain, dan beri amaran dahulu."
+  "Below: wait until nobody plays, and warn before.": "Di bawah: tunggu sehingga tiada siapa bermain, dan beri amaran dahulu.",
+  "under a minute": "kurang seminit",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} j {minutes} min",
+  "The player list cannot be read right now.": "Senarai pemain tidak dapat dibaca sekarang.",
+  "Nobody is playing right now.": "Tiada sesiapa bermain sekarang.",
+  "This game does not send player names.": "Permainan ini tidak menghantar nama pemain.",
+  "+{count} more": "+{count} lagi"
 }

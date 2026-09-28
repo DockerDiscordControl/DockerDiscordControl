@@ -867,12 +867,7 @@ class InfoButton(Button):
                     admin_view.message = message
                     admin_view.auto_delete_task = asyncio.create_task(admin_view.start_auto_delete_timer())
                     return
-                else:
-                    await interaction.followup.send(
-                        _("ℹ️ Container info is not configured for this container."),
-                        ephemeral=True, delete_after=NOTICE_STAYS_FOR
-                    )
-                    return
+                # Without control the display opens all the same: restarts, health, players (v3.0.2)
 
             # Use the same logic as StatusInfoButton for consistency
             from .status_info_integration import StatusInfoButton, ContainerInfoAdminView
@@ -1133,29 +1128,26 @@ class InfoDropdownButton(Button):
             server_config_service = get_server_config_service()
             all_servers = server_config_service.get_all_servers()
 
-            # Collect containers with info enabled
+            # Every container has an info display since v3.0.2, not only those with a text set
             containers_with_info = []
             for container_data in all_servers:
                 try:
-                    # Container is already active (filtered by service)
-                    # Check if container has info enabled or protected info
                     info_config = container_data.get('info', {})
-                    if info_config.get('enabled', False) or info_config.get('protected_enabled', False):
-                        container_name = container_data.get('container_name', container_data.get('docker_name'))
-                        display_name = container_data.get('display_name', [container_name, container_name])
-                        if isinstance(display_name, list) and len(display_name) > 0:
-                            display_name = display_name[0]
+                    container_name = container_data.get('container_name', container_data.get('docker_name'))
+                    display_name = container_data.get('display_name', [container_name, container_name])
+                    if isinstance(display_name, list) and len(display_name) > 0:
+                        display_name = display_name[0]
 
-                        # Remove " Server" suffix if present
-                        if display_name.endswith(' Server'):
-                            display_name = display_name[:-7]  # Remove last 7 characters (" Server")
+                    # Remove " Server" suffix if present
+                    if display_name.endswith(' Server'):
+                        display_name = display_name[:-7]  # Remove last 7 characters (" Server")
 
-                        containers_with_info.append({
-                            'name': container_name,
-                            'display': display_name,
-                            'protected': info_config.get('protected_enabled', False),
-                            'order': container_data.get('order', 999)  # Include order field directly
-                        })
+                    containers_with_info.append({
+                        'name': container_name,
+                        'display': display_name,
+                        'protected': info_config.get('protected_enabled', False),
+                        'order': container_data.get('order', 999)  # Include order field directly
+                    })
                 except (RuntimeError, ValueError, KeyError) as e:
                     logger.error(f"Error processing container data: {e}", exc_info=True)
                     continue
@@ -1270,14 +1262,6 @@ class ContainerInfoDropdown(discord.ui.Select):
 
             info_config = container_data.get('info', {})
 
-            # Check if info is enabled
-            if not info_config.get('enabled', False) and not info_config.get('protected_enabled', False):
-                await interaction.response.edit_message(
-                    content=f"ℹ️ {_('Container information is not enabled for')} '{selected_container}'.",
-                    embed=None,
-                    view=None
-                )
-                return
 
             # Check channel type for protected info WITHOUT password
             is_control_channel = False
@@ -1303,10 +1287,13 @@ class ContainerInfoDropdown(discord.ui.Select):
             if isinstance(display_name, list) and len(display_name) > 0:
                 display_name = display_name[0]
 
-            embed = discord.Embed(
-                title=f"ℹ️ {display_name}",
-                color=discord.Color.blue()
-            )
+            embed = discord.Embed(title=f"ℹ️ {display_name}", color=discord.Color.blue())
+            # Who is playing, restarts, health - there for every container (v3.0.2)
+            from .player_list_info import players_block
+            from .status_info_integration import StatusInfoButton
+            known = [await players_block(container_data),
+                     StatusInfoButton(self.cog, container_data, info_config)._get_status_info()]
+            embed.description = "\n".join(part for part in known if part) or None
 
             # Add public info
             if info_config.get('enabled', False):

@@ -78,10 +78,7 @@
   "Container Controls": "Containerkontroll",
   "Container Info System": "Container-infosystem",
   "Container Information": "Containerinformasjon",
-  "Container info is not configured for this container.": "Container-info er ikke konfigurert for denne containeren.",
   "Container information is not configured for '{container}'.": "Containerinformasjon er ikke konfigurert for '{container}'.",
-  "Container information is not enabled for": "Containerinformasjon er ikke aktivert for",
-  "Container information is not enabled for '{container}'.": "Containerinformasjon er ikke aktivert for '{container}'.",
   "Container is offline": "Containeren er frakoblet",
   "Container is online": "Containeren er tilkoblet",
   "Container not found": "Container ikke funnet",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "En containertildeling begrenser dette: fjern haken ved \"Alle containere\" for en admin for å gi vedkommende bare de du velger. En admin uten tildeling beholder alle containere, også de som legges til senere.",
   "The command could not be completed. The reason is in the DDC log.": "Kommandoen kunne ikke fullføres. Årsaken står i DDC-loggen.",
   "the mech state could not be read": "mech-statusen kunne ikke leses",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Ingen informasjon er konfigurert for denne containeren.",
   "ℹ️ No active containers have information configured.": "ℹ️ Ingen aktive containere har informasjon konfigurert.",
   "❌ Error loading mech history. Please try again later.": "❌ Feil ved lasting av Mech-historikken. Prøv igjen senere.",
   "❌ Error processing donation request. Please try again later.": "❌ Feil ved behandling av donasjonsforespørselen. Prøv igjen senere.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Varsle spillerne først?",
   "Saved": "Lagret",
   "runs at its time, no warning": "kjører på sitt tidspunkt, ingen varsel",
-  "Below: wait until nobody plays, and warn before.": "Nedenfor: vent til ingen spiller, og varsle først."
+  "Below: wait until nobody plays, and warn before.": "Nedenfor: vent til ingen spiller, og varsle først.",
+  "under a minute": "under ett minutt",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} t {minutes} min",
+  "The player list cannot be read right now.": "Spillerlisten kan ikke leses akkurat nå.",
+  "Nobody is playing right now.": "Ingen spiller akkurat nå.",
+  "This game does not send player names.": "Dette spillet sender ikke spillernavn.",
+  "+{count} more": "+{count} til"
 }

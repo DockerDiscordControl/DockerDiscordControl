@@ -78,10 +78,7 @@
   "Container Controls": "컨테이너 제어",
   "Container Info System": "컨테이너 정보 시스템",
   "Container Information": "컨테이너 정보",
-  "Container info is not configured for this container.": "이 컨테이너에 대한 정보가 설정되지 않았습니다.",
   "Container information is not configured for '{container}'.": "'{container}'에 대한 컨테이너 정보가 설정되지 않았습니다.",
-  "Container information is not enabled for": "컨테이너 정보가 활성화되지 않았습니다:",
-  "Container information is not enabled for '{container}'.": "'{container}'에 대한 컨테이너 정보가 활성화되지 않았습니다.",
   "Container is offline": "컨테이너가 오프라인입니다",
   "Container is online": "컨테이너가 온라인입니다",
   "Container not found": "컨테이너를 찾을 수 없음",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "컨테이너 할당으로 범위를 좁힐 수 있습니다: 관리자의 \"모든 컨테이너\" 선택을 해제하면 선택한 컨테이너만 부여됩니다. 할당이 없는 관리자는 나중에 추가된 것을 포함해 모든 컨테이너를 유지합니다.",
   "The command could not be completed. The reason is in the DDC log.": "명령을 완료할 수 없습니다. 이유는 DDC 로그에 기록되어 있습니다.",
   "the mech state could not be read": "Mech 상태를 읽을 수 없습니다",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ 이 컨테이너에 설정된 정보가 없습니다.",
   "ℹ️ No active containers have information configured.": "ℹ️ 정보가 설정된 활성 컨테이너가 없습니다.",
   "❌ Error loading mech history. Please try again later.": "❌ Mech 기록을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
   "❌ Error processing donation request. Please try again later.": "❌ 기부 요청을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "플레이어에게 미리 경고할까요?",
   "Saved": "저장됨",
   "runs at its time, no warning": "예정된 시간에 실행, 경고 없음",
-  "Below: wait until nobody plays, and warn before.": "아래: 아무도 플레이하지 않을 때까지 기다리고 미리 경고합니다."
+  "Below: wait until nobody plays, and warn before.": "아래: 아무도 플레이하지 않을 때까지 기다리고 미리 경고합니다.",
+  "under a minute": "1분 미만",
+  "{minutes} min": "{minutes}분",
+  "{hours} h {minutes} min": "{hours}시간 {minutes}분",
+  "The player list cannot be read right now.": "지금은 플레이어 목록을 읽을 수 없습니다.",
+  "Nobody is playing right now.": "지금 플레이 중인 사람이 없습니다.",
+  "This game does not send player names.": "이 게임은 플레이어 이름을 보내지 않습니다.",
+  "+{count} more": "+{count}명 더"
 }

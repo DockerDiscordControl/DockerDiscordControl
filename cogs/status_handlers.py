@@ -1086,7 +1086,7 @@ class StatusHandlersMixin:
             # actual_server_conf = next((s for s in all_servers_config if s.get('name', s.get('docker_name')) == display_name), server_conf)
 
             # Import here to avoid circular imports
-            from .status_info_integration import should_show_info_in_status_channel, StatusInfoView, create_enhanced_status_embed
+            from .status_info_integration import should_show_info_in_status_channel, StatusInfoView
 
             # Check if this is a status-only channel that should show info integration
             # Skip info integration for admin control messages
@@ -1095,12 +1095,9 @@ class StatusHandlersMixin:
             show_info_integration = should_show_info_in_status_channel(channel_id, current_config) and not is_admin_control
 
             if show_info_integration and not channel_has_control:
-                # STATUS-ONLY CHANNEL: Use StatusInfoView and enhance embed
+                # STATUS-ONLY CHANNEL: StatusInfoView. The embed carries no "info
+                # available" marker any more - every container has info (v3.0.2).
                 view = StatusInfoView(self, server_conf, running)
-
-                # Enhance embed with info indicators if info is available
-                embed = create_enhanced_status_embed(embed, server_conf, info_indicator=True)
-
             else:
                 # CONTROL CHANNEL: Use standard ControlView
                 view = ControlView(self, server_conf, running, channel_has_control_permission=channel_has_control, channel_id=channel_id)

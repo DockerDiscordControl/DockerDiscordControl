@@ -78,10 +78,7 @@
   "Container Controls": "Контроле контејнера",
   "Container Info System": "Информациони систем контејнера",
   "Container Information": "Информације о контејнеру",
-  "Container info is not configured for this container.": "Информације о контејнеру нису подешене за овај контејнер.",
   "Container information is not configured for '{container}'.": "Информације о контејнеру нису подешене за '{container}'.",
-  "Container information is not enabled for": "Информације о контејнеру нису омогућене за",
-  "Container information is not enabled for '{container}'.": "Информације о контејнеру нису омогућене за '{container}'.",
   "Container is offline": "Контејнер је ван мреже",
   "Container is online": "Контејнер је на мрежи",
   "Container not found": "Контејнер није пронађен",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Додела контејнера ово сужава: уклоните квачицу са \"Сви контејнери\" код администратора да бисте му дали само изабране. Администратор без доделе задржава све контејнере, укључујући и касније додате.",
   "The command could not be completed. The reason is in the DDC log.": "Команду није било могуће довршити. Разлог се налази у DDC дневнику.",
   "the mech state could not be read": "стање Меха није било могуће прочитати",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ За овај контејнер нису подешене информације.",
   "ℹ️ No active containers have information configured.": "ℹ️ Ниједан активан контејнер нема подешене информације.",
   "❌ Error loading mech history. Please try again later.": "❌ Грешка при учитавању историје Меха. Покушајте поново касније.",
   "❌ Error processing donation request. Please try again later.": "❌ Грешка при обради захтева за донацију. Покушајте поново касније.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Упозорити играче унапред?",
   "Saved": "Сачувано",
   "runs at its time, no warning": "извршава се у своје време, без упозорења",
-  "Below: wait until nobody plays, and warn before.": "Испод: чекај док нико не игра и упозори унапред."
+  "Below: wait until nobody plays, and warn before.": "Испод: чекај док нико не игра и упозори унапред.",
+  "under a minute": "мање од минута",
+  "{minutes} min": "{minutes} мин",
+  "{hours} h {minutes} min": "{hours} ч {minutes} мин",
+  "The player list cannot be read right now.": "Списак играча тренутно не може да се прочита.",
+  "Nobody is playing right now.": "Тренутно нико не игра.",
+  "This game does not send player names.": "Ова игра не шаље имена играча.",
+  "+{count} more": "+{count} још"
 }

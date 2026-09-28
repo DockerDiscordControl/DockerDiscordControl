@@ -78,10 +78,7 @@
   "Container Controls": "Containerbediening",
   "Container Info System": "Containerinfosysteem",
   "Container Information": "Containerinformatie",
-  "Container info is not configured for this container.": "Containerinfo is niet geconfigureerd voor deze container.",
   "Container information is not configured for '{container}'.": "Containerinformatie is niet geconfigureerd voor '{container}'.",
-  "Container information is not enabled for": "Containerinformatie is niet ingeschakeld voor",
-  "Container information is not enabled for '{container}'.": "Containerinformatie is niet ingeschakeld voor '{container}'.",
   "Container is offline": "Container is offline",
   "Container is online": "Container is online",
   "Container not found": "Container niet gevonden",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Een containertoewijzing beperkt dit: vink \"Alle containers\" uit voor een beheerder om die alleen de door jou gekozen containers te geven. Een beheerder zonder toewijzing houdt elke container, ook later toegevoegde.",
   "The command could not be completed. The reason is in the DDC log.": "De opdracht kon niet worden voltooid. De reden staat in het DDC-log.",
   "the mech state could not be read": "de status van de Mech kon niet worden gelezen",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Er is geen informatie ingesteld voor deze container.",
   "ℹ️ No active containers have information configured.": "ℹ️ Geen enkele actieve container heeft informatie ingesteld.",
   "❌ Error loading mech history. Please try again later.": "❌ Fout bij het laden van de Mech-geschiedenis. Probeer het later opnieuw.",
   "❌ Error processing donation request. Please try again later.": "❌ Fout bij het verwerken van het donatieverzoek. Probeer het later opnieuw.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "De spelers vooraf waarschuwen?",
   "Saved": "Opgeslagen",
   "runs at its time, no warning": "draait op haar tijd, geen waarschuwing",
-  "Below: wait until nobody plays, and warn before.": "Hieronder: wachten tot niemand speelt en vooraf waarschuwen."
+  "Below: wait until nobody plays, and warn before.": "Hieronder: wachten tot niemand speelt en vooraf waarschuwen.",
+  "under a minute": "minder dan een minuut",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} u {minutes} min",
+  "The player list cannot be read right now.": "De spelerslijst kan nu niet worden gelezen.",
+  "Nobody is playing right now.": "Er speelt nu niemand.",
+  "This game does not send player names.": "Dit spel stuurt geen spelersnamen mee.",
+  "+{count} more": "+{count} meer"
 }

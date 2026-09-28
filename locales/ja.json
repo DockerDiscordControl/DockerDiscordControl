@@ -78,10 +78,7 @@
   "Container Controls": "コンテナ操作",
   "Container Info System": "コンテナ情報システム",
   "Container Information": "コンテナ情報",
-  "Container info is not configured for this container.": "このコンテナのコンテナ情報は設定されていません。",
   "Container information is not configured for '{container}'.": "コンテナ'{container}'のコンテナ情報が設定されていません。",
-  "Container information is not enabled for": "コンテナ情報が有効になっていません:",
-  "Container information is not enabled for '{container}'.": "コンテナ'{container}'のコンテナ情報が有効になっていません。",
   "Container is offline": "コンテナはオフラインです",
   "Container is online": "コンテナはオンラインです",
   "Container not found": "コンテナが見つかりません",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "コンテナの割り当てで範囲を絞り込めます: 管理者の「すべてのコンテナ」のチェックを外すと、選択したコンテナのみが与えられます。割り当てのない管理者は、後から追加されたものも含めてすべてのコンテナを管理できます。",
   "The command could not be completed. The reason is in the DDC log.": "コマンドを完了できませんでした。理由は DDC のログに記録されています。",
   "the mech state could not be read": "Mech の状態を読み取れませんでした",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ このコンテナには情報が設定されていません。",
   "ℹ️ No active containers have information configured.": "ℹ️ 情報が設定されているアクティブなコンテナはありません。",
   "❌ Error loading mech history. Please try again later.": "❌ Mech の履歴の読み込みでエラーが発生しました。 しばらくしてからもう一度お試しください。",
   "❌ Error processing donation request. Please try again later.": "❌ 寄付リクエストの処理でエラーが発生しました。 しばらくしてからもう一度お試しください。",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "事前にプレイヤーへ警告しますか？",
   "Saved": "保存しました",
   "runs at its time, no warning": "予定時刻に実行、警告なし",
-  "Below: wait until nobody plays, and warn before.": "下: 誰もプレイしなくなるまで待ち、事前に警告します。"
+  "Below: wait until nobody plays, and warn before.": "下: 誰もプレイしなくなるまで待ち、事前に警告します。",
+  "under a minute": "1分未満",
+  "{minutes} min": "{minutes}分",
+  "{hours} h {minutes} min": "{hours}時間{minutes}分",
+  "The player list cannot be read right now.": "現在プレイヤー一覧を読み取れません。",
+  "Nobody is playing right now.": "現在プレイ中の人はいません。",
+  "This game does not send player names.": "このゲームはプレイヤー名を送信しません。",
+  "+{count} more": "他{count}人"
 }

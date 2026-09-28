@@ -78,10 +78,7 @@
   "Container Controls": "Contrôles des conteneurs",
   "Container Info System": "Système d'infos des conteneurs",
   "Container Information": "Informations du conteneur",
-  "Container info is not configured for this container.": "Les informations du conteneur ne sont pas configurées pour ce conteneur.",
   "Container information is not configured for '{container}'.": "Les informations du conteneur ne sont pas configurées pour '{container}'.",
-  "Container information is not enabled for": "Les informations du conteneur ne sont pas activées pour",
-  "Container information is not enabled for '{container}'.": "Les informations du conteneur ne sont pas activées pour '{container}'.",
   "Container is offline": "Le conteneur est hors ligne",
   "Container is online": "Le conteneur est en ligne",
   "Container not found": "Conteneur introuvable",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Une attribution de conteneurs restreint cela : décochez « Tous les conteneurs » pour un administrateur afin de lui donner uniquement ceux que vous choisissez. Un administrateur sans attribution conserve tous les conteneurs, y compris ceux ajoutés plus tard.",
   "The command could not be completed. The reason is in the DDC log.": "La commande n'a pas pu être exécutée. La raison se trouve dans le journal DDC.",
   "the mech state could not be read": "l'état du Mech n'a pas pu être lu",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Aucune information n'est configurée pour ce conteneur.",
   "ℹ️ No active containers have information configured.": "ℹ️ Aucun conteneur actif n'a d'informations configurées.",
   "❌ Error loading mech history. Please try again later.": "❌ Erreur lors du chargement de l'historique du Mech. Veuillez réessayer plus tard.",
   "❌ Error processing donation request. Please try again later.": "❌ Erreur lors du traitement de la demande de don. Veuillez réessayer plus tard.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Avertir les joueurs avant ?",
   "Saved": "Enregistré",
   "runs at its time, no warning": "s'exécute à son heure, sans avertissement",
-  "Below: wait until nobody plays, and warn before.": "Ci-dessous : attendre que personne ne joue, et avertir avant."
+  "Below: wait until nobody plays, and warn before.": "Ci-dessous : attendre que personne ne joue, et avertir avant.",
+  "under a minute": "moins d'une minute",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} h {minutes} min",
+  "The player list cannot be read right now.": "La liste des joueurs est illisible pour le moment.",
+  "Nobody is playing right now.": "Personne ne joue en ce moment.",
+  "This game does not send player names.": "Ce jeu n'envoie pas les noms des joueurs.",
+  "+{count} more": "+{count} de plus"
 }

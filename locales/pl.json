@@ -78,10 +78,7 @@
   "Container Controls": "Sterowanie kontenerami",
   "Container Info System": "System informacji o kontenerach",
   "Container Information": "Informacje o kontenerze",
-  "Container info is not configured for this container.": "Informacje o kontenerze nie są skonfigurowane dla tego kontenera.",
   "Container information is not configured for '{container}'.": "Informacje o kontenerze nie są skonfigurowane dla '{container}'.",
-  "Container information is not enabled for": "Informacje o kontenerze nie są włączone dla",
-  "Container information is not enabled for '{container}'.": "Informacje o kontenerze nie są włączone dla '{container}'.",
   "Container is offline": "Kontener jest offline",
   "Container is online": "Kontener jest online",
   "Container not found": "Nie znaleziono kontenera",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Przypisanie kontenerów to zawęża: odznacz \"Wszystkie kontenery\" u administratora, aby dać mu tylko wybrane. Administrator bez przypisania zachowuje wszystkie kontenery, także te dodane później.",
   "The command could not be completed. The reason is in the DDC log.": "Nie udało się wykonać polecenia. Powód znajduje się w logu DDC.",
   "the mech state could not be read": "nie udało się odczytać stanu Mecha",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Dla tego kontenera nie skonfigurowano informacji.",
   "ℹ️ No active containers have information configured.": "ℹ️ Żaden aktywny kontener nie ma skonfigurowanych informacji.",
   "❌ Error loading mech history. Please try again later.": "❌ Błąd podczas ładowania historii Mecha. Spróbuj ponownie później.",
   "❌ Error processing donation request. Please try again later.": "❌ Błąd podczas przetwarzania żądania darowizny. Spróbuj ponownie później.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Ostrzec graczy wcześniej?",
   "Saved": "Zapisano",
   "runs at its time, no warning": "wykona się o swojej porze, bez ostrzeżenia",
-  "Below: wait until nobody plays, and warn before.": "Poniżej: czekaj, aż nikt nie gra, i ostrzeż wcześniej."
+  "Below: wait until nobody plays, and warn before.": "Poniżej: czekaj, aż nikt nie gra, i ostrzeż wcześniej.",
+  "under a minute": "mniej niż minuta",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} godz. {minutes} min",
+  "The player list cannot be read right now.": "Nie można teraz odczytać listy graczy.",
+  "Nobody is playing right now.": "Teraz nikt nie gra.",
+  "This game does not send player names.": "Ta gra nie wysyła nazw graczy.",
+  "+{count} more": "+{count} więcej"
 }

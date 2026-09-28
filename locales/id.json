@@ -78,10 +78,7 @@
   "Container Controls": "Kontrol Kontainer",
   "Container Info System": "Sistem Info Kontainer",
   "Container Information": "Informasi Kontainer",
-  "Container info is not configured for this container.": "Info kontainer tidak dikonfigurasi untuk kontainer ini.",
   "Container information is not configured for '{container}'.": "Informasi kontainer tidak dikonfigurasi untuk '{container}'.",
-  "Container information is not enabled for": "Informasi kontainer tidak diaktifkan untuk",
-  "Container information is not enabled for '{container}'.": "Informasi kontainer tidak diaktifkan untuk '{container}'.",
   "Container is offline": "Kontainer sedang offline",
   "Container is online": "Kontainer sedang online",
   "Container not found": "Kontainer tidak ditemukan",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Penetapan kontainer mempersempit ini: hapus centang \"Semua kontainer\" untuk seorang admin agar ia hanya mendapat kontainer yang Anda pilih. Admin tanpa penetapan tetap memegang semua kontainer, termasuk yang ditambahkan kemudian.",
   "The command could not be completed. The reason is in the DDC log.": "Perintah tidak dapat diselesaikan. Alasannya ada di log DDC.",
   "the mech state could not be read": "status Mech tidak dapat dibaca",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Tidak ada informasi yang dikonfigurasi untuk kontainer ini.",
   "ℹ️ No active containers have information configured.": "ℹ️ Tidak ada kontainer aktif yang memiliki informasi terkonfigurasi.",
   "❌ Error loading mech history. Please try again later.": "❌ Kesalahan saat memuat riwayat Mech. Silakan coba lagi nanti.",
   "❌ Error processing donation request. Please try again later.": "❌ Kesalahan saat memproses permintaan donasi. Silakan coba lagi nanti.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Peringatkan pemain terlebih dahulu?",
   "Saved": "Tersimpan",
   "runs at its time, no warning": "berjalan sesuai waktunya, tanpa peringatan",
-  "Below: wait until nobody plays, and warn before.": "Di bawah: tunggu hingga tidak ada yang bermain, dan peringatkan terlebih dahulu."
+  "Below: wait until nobody plays, and warn before.": "Di bawah: tunggu hingga tidak ada yang bermain, dan peringatkan terlebih dahulu.",
+  "under a minute": "kurang dari satu menit",
+  "{minutes} min": "{minutes} mnt",
+  "{hours} h {minutes} min": "{hours} j {minutes} mnt",
+  "The player list cannot be read right now.": "Daftar pemain tidak dapat dibaca saat ini.",
+  "Nobody is playing right now.": "Saat ini tidak ada yang bermain.",
+  "This game does not send player names.": "Game ini tidak mengirim nama pemain.",
+  "+{count} more": "+{count} lainnya"
 }

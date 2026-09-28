@@ -78,10 +78,7 @@
   "Container Controls": "Управление контейнерами",
   "Container Info System": "Система информации о контейнерах",
   "Container Information": "Информация о контейнере",
-  "Container info is not configured for this container.": "Информация о контейнере не настроена для этого контейнера.",
   "Container information is not configured for '{container}'.": "Информация о контейнере не настроена для '{container}'.",
-  "Container information is not enabled for": "Информация о контейнере не включена для",
-  "Container information is not enabled for '{container}'.": "Информация о контейнере не включена для '{container}'.",
   "Container is offline": "Контейнер не в сети",
   "Container is online": "Контейнер в сети",
   "Container not found": "Контейнер не найден",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Назначение контейнеров сужает это: снимите отметку «Все контейнеры» у администратора, чтобы дать ему только выбранные. Администратор без назначения сохраняет доступ ко всем контейнерам, включая добавленные позже.",
   "The command could not be completed. The reason is in the DDC log.": "Не удалось выполнить команду. Причина указана в журнале DDC.",
   "the mech state could not be read": "не удалось прочитать состояние Меха",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Для этого контейнера не настроена информация.",
   "ℹ️ No active containers have information configured.": "ℹ️ Ни для одного активного контейнера не настроена информация.",
   "❌ Error loading mech history. Please try again later.": "❌ Ошибка при загрузке истории Меха. Попробуйте позже.",
   "❌ Error processing donation request. Please try again later.": "❌ Ошибка при обработке запроса на пожертвование. Попробуйте позже.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Предупредить игроков заранее?",
   "Saved": "Сохранено",
   "runs at its time, no warning": "выполнится в своё время, без предупреждения",
-  "Below: wait until nobody plays, and warn before.": "Ниже: ждать, пока никто не играет, и предупредить заранее."
+  "Below: wait until nobody plays, and warn before.": "Ниже: ждать, пока никто не играет, и предупредить заранее.",
+  "under a minute": "меньше минуты",
+  "{minutes} min": "{minutes} мин",
+  "{hours} h {minutes} min": "{hours} ч {minutes} мин",
+  "The player list cannot be read right now.": "Список игроков сейчас не удаётся прочитать.",
+  "Nobody is playing right now.": "Сейчас никто не играет.",
+  "This game does not send player names.": "Эта игра не передаёт имена игроков.",
+  "+{count} more": "+{count} ещё"
 }

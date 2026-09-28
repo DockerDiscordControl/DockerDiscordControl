@@ -78,10 +78,7 @@
   "Container Controls": "کنترل کانتینر",
   "Container Info System": "سیستم اطلاعات کانتینر",
   "Container Information": "اطلاعات کانتینر",
-  "Container info is not configured for this container.": "اطلاعات کانتینر برای این کانتینر پیکربندی نشده است.",
   "Container information is not configured for '{container}'.": "اطلاعات کانتینر برای '{container}' پیکربندی نشده است.",
-  "Container information is not enabled for": "اطلاعات کانتینر فعال نیست:",
-  "Container information is not enabled for '{container}'.": "اطلاعات کانتینر برای '{container}' فعال نیست.",
   "Container is offline": "کانتینر آفلاین است",
   "Container is online": "کانتینر آنلاین است",
   "Container not found": "کانتینر یافت نشد",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "اختصاص کانتینر این را محدود می‌کند: تیک \"همه کانتینرها\" را برای یک مدیر بردارید تا فقط کانتینرهای انتخابی شما را در اختیار داشته باشد. مدیری که اختصاصی ندارد همه کانتینرها را در اختیار دارد، از جمله کانتینرهایی که بعداً اضافه می‌شوند.",
   "The command could not be completed. The reason is in the DDC log.": "اجرای دستور ممکن نشد. دلیل آن در لاگ DDC آمده است.",
   "the mech state could not be read": "خواندن وضعیت مک ممکن نشد",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ برای این کانتینر اطلاعاتی پیکربندی نشده است.",
   "ℹ️ No active containers have information configured.": "ℹ️ هیچ کانتینر فعالی اطلاعات پیکربندی‌شده ندارد.",
   "❌ Error loading mech history. Please try again later.": "❌ خطا در بارگذاری تاریخچه مک. لطفاً بعداً دوباره تلاش کنید.",
   "❌ Error processing donation request. Please try again later.": "❌ خطا در پردازش درخواست کمک مالی. لطفاً بعداً دوباره تلاش کنید.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "بازیکنان از قبل مطلع شوند؟",
   "Saved": "ذخیره شد",
   "runs at its time, no warning": "در زمان خودش اجرا می‌شود، بدون هشدار",
-  "Below: wait until nobody plays, and warn before.": "در پایین: صبر تا کسی بازی نکند، و هشدار از قبل."
+  "Below: wait until nobody plays, and warn before.": "در پایین: صبر تا کسی بازی نکند، و هشدار از قبل.",
+  "under a minute": "کمتر از یک دقیقه",
+  "{minutes} min": "{minutes} دقیقه",
+  "{hours} h {minutes} min": "{hours} ساعت {minutes} دقیقه",
+  "The player list cannot be read right now.": "فهرست بازیکنان اکنون قابل خواندن نیست.",
+  "Nobody is playing right now.": "اکنون کسی بازی نمی‌کند.",
+  "This game does not send player names.": "این بازی نام بازیکنان را ارسال نمی‌کند.",
+  "+{count} more": "+{count} نفر دیگر"
 }

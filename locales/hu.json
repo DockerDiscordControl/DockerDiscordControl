@@ -78,10 +78,7 @@
   "Container Controls": "Konténervezérlés",
   "Container Info System": "Konténerinfó rendszer",
   "Container Information": "Konténerinformáció",
-  "Container info is not configured for this container.": "A konténerinfó nincs beállítva ehhez a konténerhez.",
   "Container information is not configured for '{container}'.": "A konténerinformáció nincs beállítva a(z) '{container}' számára.",
-  "Container information is not enabled for": "A konténerinformáció nincs engedélyezve ehhez:",
-  "Container information is not enabled for '{container}'.": "A konténerinformáció nincs engedélyezve a(z) '{container}' számára.",
   "Container is offline": "A konténer offline",
   "Container is online": "A konténer online",
   "Container not found": "A konténer nem található",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Egy konténer-hozzárendelés ezt szűkíti: vedd ki a pipát a \"Minden konténer\" elől egy adminnál, hogy csak az általad választottakat kapja meg. A hozzárendelés nélküli admin minden konténert megtart, a később hozzáadottakat is.",
   "The command could not be completed. The reason is in the DDC log.": "A parancsot nem sikerült végrehajtani. Az okot a DDC naplója tartalmazza.",
   "the mech state could not be read": "a Mech állapotát nem sikerült beolvasni",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Ehhez a konténerhez nincs információ beállítva.",
   "ℹ️ No active containers have information configured.": "ℹ️ Egyetlen aktív konténerhez sincs információ beállítva.",
   "❌ Error loading mech history. Please try again later.": "❌ Hiba a Mech előzményeinek betöltésekor. Kérjük, próbáld újra később.",
   "❌ Error processing donation request. Please try again later.": "❌ Hiba az adománykérés feldolgozásakor. Kérjük, próbáld újra később.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Figyelmeztessük előre a játékosokat?",
   "Saved": "Mentve",
   "runs at its time, no warning": "a saját idejében fut, figyelmeztetés nélkül",
-  "Below: wait until nobody plays, and warn before.": "Lent: várj, amíg senki sem játszik, és figyelmeztess előre."
+  "Below: wait until nobody plays, and warn before.": "Lent: várj, amíg senki sem játszik, és figyelmeztess előre.",
+  "under a minute": "kevesebb mint egy perc",
+  "{minutes} min": "{minutes} perc",
+  "{hours} h {minutes} min": "{hours} óra {minutes} perc",
+  "The player list cannot be read right now.": "A játékoslista most nem olvasható.",
+  "Nobody is playing right now.": "Most senki sem játszik.",
+  "This game does not send player names.": "Ez a játék nem küldi el a játékosok nevét.",
+  "+{count} more": "+{count} további"
 }

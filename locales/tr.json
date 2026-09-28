@@ -78,10 +78,7 @@
   "Container Controls": "Konteyner Kontrolleri",
   "Container Info System": "Konteyner Bilgi Sistemi",
   "Container Information": "Konteyner Bilgileri",
-  "Container info is not configured for this container.": "Bu konteyner için konteyner bilgisi yapılandırılmamış.",
   "Container information is not configured for '{container}'.": "'{container}' için konteyner bilgisi yapılandırılmamış.",
-  "Container information is not enabled for": "Konteyner bilgisi etkin değil:",
-  "Container information is not enabled for '{container}'.": "'{container}' için konteyner bilgisi etkin değil.",
   "Container is offline": "Konteyner çevrimdışı",
   "Container is online": "Konteyner çevrimiçi",
   "Container not found": "Konteyner bulunamadı",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Konteyner ataması bunu daraltır: bir yöneticiye yalnızca seçtiğiniz konteynerleri vermek için \"Tüm konteynerler\" işaretini kaldırın. Ataması olmayan bir yönetici, sonradan eklenenler dahil tüm konteynerleri kontrol etmeye devam eder.",
   "The command could not be completed. The reason is in the DDC log.": "Komut tamamlanamadı. Nedeni DDC günlüğünde yer alıyor.",
   "the mech state could not be read": "mech durumu okunamadı",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Bu konteyner için bilgi yapılandırılmamış.",
   "ℹ️ No active containers have information configured.": "ℹ️ Hiçbir etkin konteynerde bilgi yapılandırılmamış.",
   "❌ Error loading mech history. Please try again later.": "❌ Mech geçmişi yüklenirken hata oluştu. Lütfen daha sonra tekrar deneyin.",
   "❌ Error processing donation request. Please try again later.": "❌ Bağış isteği işlenirken hata oluştu. Lütfen daha sonra tekrar deneyin.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Oyuncular önceden uyarılsın mı?",
   "Saved": "Kaydedildi",
   "runs at its time, no warning": "zamanında çalışır, uyarı yok",
-  "Below: wait until nobody plays, and warn before.": "Aşağıda: kimse oynamayana kadar bekleyin ve önceden uyarın."
+  "Below: wait until nobody plays, and warn before.": "Aşağıda: kimse oynamayana kadar bekleyin ve önceden uyarın.",
+  "under a minute": "bir dakikadan az",
+  "{minutes} min": "{minutes} dk",
+  "{hours} h {minutes} min": "{hours} sa {minutes} dk",
+  "The player list cannot be read right now.": "Oyuncu listesi şu anda okunamıyor.",
+  "Nobody is playing right now.": "Şu anda kimse oynamıyor.",
+  "This game does not send player names.": "Bu oyun oyuncu adlarını göndermiyor.",
+  "+{count} more": "+{count} daha"
 }

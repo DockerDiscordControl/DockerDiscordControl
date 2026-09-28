@@ -78,10 +78,7 @@
   "Container Controls": "Konteinerių valdymas",
   "Container Info System": "Konteinerio informacijos sistema",
   "Container Information": "Konteinerio informacija",
-  "Container info is not configured for this container.": "Šiam konteineriui informacija nesukonfigūruota.",
   "Container information is not configured for '{container}'.": "Konteinerio informacija nesukonfigūruota konteineriui '{container}'.",
-  "Container information is not enabled for": "Konteinerio informacija neįjungta:",
-  "Container information is not enabled for '{container}'.": "Konteinerio informacija neįjungta konteineriui '{container}'.",
   "Container is offline": "Konteineris neveikia",
   "Container is online": "Konteineris veikia",
   "Container not found": "Konteineris nerastas",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Konteinerių priskyrimas tai susiaurina: nuimkite administratoriui varnelę \"Visi konteineriai\", kad jis gautų tik jūsų pasirinktus. Administratorius be priskyrimo išlaiko visus konteinerius, įskaitant vėliau pridėtus.",
   "The command could not be completed. The reason is in the DDC log.": "Komandos nepavyko įvykdyti. Priežastis nurodyta DDC žurnale.",
   "the mech state could not be read": "nepavyko nuskaityti Mech būsenos",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Šiam konteineriui informacija nesukonfigūruota.",
   "ℹ️ No active containers have information configured.": "ℹ️ Nė vienam aktyviam konteineriui nesukonfigūruota informacija.",
   "❌ Error loading mech history. Please try again later.": "❌ Klaida įkeliant Mech istoriją. Bandykite vėliau dar kartą.",
   "❌ Error processing donation request. Please try again later.": "❌ Klaida apdorojant aukos užklausą. Bandykite vėliau dar kartą.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Įspėti žaidėjus iš anksto?",
   "Saved": "Išsaugota",
   "runs at its time, no warning": "vykdoma savo laiku, be įspėjimo",
-  "Below: wait until nobody plays, and warn before.": "Žemiau: laukti, kol niekas nežais, ir įspėti iš anksto."
+  "Below: wait until nobody plays, and warn before.": "Žemiau: laukti, kol niekas nežais, ir įspėti iš anksto.",
+  "under a minute": "mažiau nei minutė",
+  "{minutes} min": "{minutes} min.",
+  "{hours} h {minutes} min": "{hours} val. {minutes} min.",
+  "The player list cannot be read right now.": "Žaidėjų sąrašo šiuo metu nepavyksta nuskaityti.",
+  "Nobody is playing right now.": "Šiuo metu niekas nežaidžia.",
+  "This game does not send player names.": "Šis žaidimas nesiunčia žaidėjų vardų.",
+  "+{count} more": "+{count} daugiau"
 }

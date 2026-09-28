@@ -78,10 +78,7 @@
   "Container Controls": "التحكم في الحاوية",
   "Container Info System": "نظام معلومات الحاوية",
   "Container Information": "معلومات الحاوية",
-  "Container info is not configured for this container.": "معلومات الحاوية غير مُعدّة لهذه الحاوية.",
   "Container information is not configured for '{container}'.": "معلومات الحاوية غير مُعدّة لـ '{container}'.",
-  "Container information is not enabled for": "معلومات الحاوية غير مفعّلة لـ",
-  "Container information is not enabled for '{container}'.": "معلومات الحاوية غير مفعّلة لـ '{container}'.",
   "Container is offline": "الحاوية غير متصلة",
   "Container is online": "الحاوية متصلة",
   "Container not found": "الحاوية غير موجودة",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "تعيين الحاويات يضيّق هذا: أزل علامة \"جميع الحاويات\" عن مشرف لتمنحه فقط الحاويات التي تختارها. المشرف دون تعيين يحتفظ بكل الحاويات، بما فيها التي تُضاف لاحقاً.",
   "The command could not be completed. The reason is in the DDC log.": "تعذّر إكمال الأمر. السبب موجود في سجل DDC.",
   "the mech state could not be read": "تعذّرت قراءة حالة الـ Mech",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ لا توجد معلومات مُعدّة لهذه الحاوية.",
   "ℹ️ No active containers have information configured.": "ℹ️ لا توجد حاوية نشطة بمعلومات مُعدّة.",
   "❌ Error loading mech history. Please try again later.": "❌ خطأ أثناء تحميل سجل الـ Mech. يُرجى المحاولة لاحقاً.",
   "❌ Error processing donation request. Please try again later.": "❌ خطأ أثناء معالجة طلب التبرّع. يُرجى المحاولة لاحقاً.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "هل نحذّر اللاعبين مسبقًا؟",
   "Saved": "تم الحفظ",
   "runs at its time, no warning": "تعمل في موعدها، بدون تحذير",
-  "Below: wait until nobody plays, and warn before.": "في الأسفل: الانتظار حتى لا يلعب أحد، والتحذير مسبقًا."
+  "Below: wait until nobody plays, and warn before.": "في الأسفل: الانتظار حتى لا يلعب أحد، والتحذير مسبقًا.",
+  "under a minute": "أقل من دقيقة",
+  "{minutes} min": "{minutes} د",
+  "{hours} h {minutes} min": "{hours} س {minutes} د",
+  "The player list cannot be read right now.": "تعذّرت قراءة قائمة اللاعبين حاليًا.",
+  "Nobody is playing right now.": "لا أحد يلعب الآن.",
+  "This game does not send player names.": "هذه اللعبة لا ترسل أسماء اللاعبين.",
+  "+{count} more": "+{count} آخرين"
 }

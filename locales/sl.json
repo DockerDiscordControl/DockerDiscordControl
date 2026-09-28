@@ -78,10 +78,7 @@
   "Container Controls": "Upravljanje vsebnikov",
   "Container Info System": "Sistem informacij o vsebniku",
   "Container Information": "Informacije o vsebniku",
-  "Container info is not configured for this container.": "Informacije o vsebniku niso nastavljene za ta vsebnik.",
   "Container information is not configured for '{container}'.": "Informacije o vsebniku niso nastavljene za '{container}'.",
-  "Container information is not enabled for": "Informacije o vsebniku niso omogočene za",
-  "Container information is not enabled for '{container}'.": "Informacije o vsebniku niso omogočene za '{container}'.",
   "Container is offline": "Vsebnik je brez povezave",
   "Container is online": "Vsebnik je na spletu",
   "Container not found": "Vsebnik ni najden",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Dodelitev vsebnikov to omeji: odkljukajte \"Vsi vsebniki\", da skrbniku dodelite le izbrane. Skrbnik brez dodelitve obdrži vse vsebnike, tudi pozneje dodane.",
   "The command could not be completed. The reason is in the DDC log.": "Ukaza ni bilo mogoče dokončati. Razlog je v dnevniku DDC.",
   "the mech state could not be read": "stanja Mecha ni bilo mogoče prebrati",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Za ta vsebnik ni nastavljenih informacij.",
   "ℹ️ No active containers have information configured.": "ℹ️ Noben aktiven vsebnik nima nastavljenih informacij.",
   "❌ Error loading mech history. Please try again later.": "❌ Napaka pri nalaganju zgodovine Mecha. Poskusite znova pozneje.",
   "❌ Error processing donation request. Please try again later.": "❌ Napaka pri obdelavi zahteve za donacijo. Poskusite znova pozneje.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Opozoriti igralce vnaprej?",
   "Saved": "Shranjeno",
   "runs at its time, no warning": "izvede se ob svojem času, brez opozorila",
-  "Below: wait until nobody plays, and warn before.": "Spodaj: počakaj, da nihče ne igra, in opozori vnaprej."
+  "Below: wait until nobody plays, and warn before.": "Spodaj: počakaj, da nihče ne igra, in opozori vnaprej.",
+  "under a minute": "manj kot minuta",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} h {minutes} min",
+  "The player list cannot be read right now.": "Seznama igralcev trenutno ni mogoče prebrati.",
+  "Nobody is playing right now.": "Trenutno nihče ne igra.",
+  "This game does not send player names.": "Ta igra ne pošilja imen igralcev.",
+  "+{count} more": "+{count} več"
 }

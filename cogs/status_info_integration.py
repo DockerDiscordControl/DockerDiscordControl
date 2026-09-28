@@ -839,7 +839,8 @@ class DebugLogsButton(discord.ui.Button):
 class StatusInfoView(DDCView):
     """
     View for status-only channels that provides info display without control buttons.
-    Only shows info button when container has info enabled.
+    Every container has the info button (v3.0.2): restarts, health and, on a game
+    server, who is playing are there even without a text set. A group has none.
     """
 
     def __init__(self, cog_instance, server_config: Dict[str, Any], is_running: bool):
@@ -849,14 +850,13 @@ class StatusInfoView(DDCView):
         self.is_running = is_running
         self.container_name = server_config.get('docker_name')
 
-        # Load container info to check if info is enabled
-        info_service = get_container_info_service()
-        info_result = info_service.get_container_info(self.container_name)
-        self.info_config = info_result.data.to_dict() if info_result.success else {}
+        self.info_config = {}
+        if is_group_target(self.container_name):
+            return  # a group has no info section and no info button
 
-        # Only add info button if info is enabled
-        if self.info_config.get('enabled', False):
-            self.add_item(StatusInfoButton(cog_instance, server_config, self.info_config))
+        info_result = get_container_info_service().get_container_info(self.container_name)
+        self.info_config = info_result.data.to_dict() if info_result.success else {}
+        self.add_item(StatusInfoButton(cog_instance, server_config, self.info_config))
 
         # Add Protected Info button if protected info is enabled (for password validation)
         if self.info_config.get('protected_enabled', False):
@@ -995,13 +995,16 @@ class StatusInfoButton(discord.ui.Button):
 
         # Add custom text if provided
         # Cut here too: a file written by hand or by an older version can hold
-        # more than the save allows, and Discord refuses an over-long description
-        custom_text = fresh_info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT]
+        # more than the save allows, and Discord refuses an over-long description.
+        # Text and address only while the info is switched on: every container
+        # opens this display since v3.0.2, and a switched-off text stays hidden.
+        shown = bool(fresh_info_config.get('enabled', False))
+        custom_text = fresh_info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT] if shown else ''
         if custom_text:
             description_parts.append(f"{custom_text}")
 
         # Add IP information if enabled
-        if fresh_info_config.get('show_ip', False):
+        if shown and fresh_info_config.get('show_ip', False):
             ip_info = await self._get_ip_info(fresh_info_config)
             if ip_info:
                 description_parts.append(ip_info)
@@ -1023,6 +1026,12 @@ class StatusInfoButton(discord.ui.Button):
             if protected_content:
                 description_parts.append("\n**🔐 Protected Information:**")
                 description_parts.append(protected_content)
+
+        # Who is playing, on a game server with the player count switched on
+        from .player_list_info import players_block
+        players = await players_block(self.server_config)
+        if players:
+            description_parts.append(players)
 
         # Add container status info
         status_info = self._get_status_info()
@@ -1161,106 +1170,6 @@ class ProtectedInfoButton(discord.ui.Button):
                 )
             except Exception:
                 pass
-
-def create_enhanced_status_embed(
-    original_embed: discord.Embed,
-    server_config: Dict[str, Any],
-    info_indicator: bool = False
-) -> discord.Embed:
-    """
-    Enhance a status embed with info indicators for status channels.
-
-    Args:
-        original_embed: The original status embed
-        server_config: Server configuration
-        info_indicator: Whether to add info indicator to the embed
-
-    Returns:
-        Enhanced embed with info indicators
-    """
-    if not info_indicator:
-        return original_embed
-
-    # Skip enrichments for Admin Control messages
-    if server_config.get('_is_admin_control', False):
-        return original_embed
-
-    # A GROUP HAS NO INFO SECTION. A container's info lives in its own
-    # config/containers/<name>.json; a group has no such file and is not meant
-    # to. Asking anyway made the service refuse the name and write an ERROR to
-    # the log for a thing working exactly as designed (operator's log,
-    # 2026-09-24) - and a log full of those is one nobody reads.
-    if is_group_target(server_config.get('docker_name')):
-        return original_embed
-
-    try:
-        # Load container info
-        container_name = server_config.get('docker_name')
-        info_service = get_container_info_service()
-        info_result = info_service.get_container_info(container_name)
-        info_config = info_result.data.to_dict() if info_result.success else {}
-
-        if not info_config.get('enabled', False):
-            return original_embed
-
-        # Add info indicator to embed description
-        if original_embed.description:
-            # Look for the closing ``` to insert info indicator
-            description = original_embed.description
-
-            # Find the last occurrence of ``` (closing code block)
-            last_code_block = description.rfind('```')
-            if last_code_block != -1:
-                # Insert info indicator before closing code block
-                before_closing = description[:last_code_block]
-                after_closing = description[last_code_block:]
-
-                # Add info line inside the box
-                info_line = "│ ℹ️ *Additional info available*\n"
-
-                # Insert before the footer line (look for └ character)
-                footer_pos = before_closing.rfind('└')
-                if footer_pos != -1:
-                    # Find start of footer line (last \n before └)
-                    footer_line_start = before_closing.rfind('\n', 0, footer_pos)
-                    if footer_line_start != -1:
-                        enhanced_description = (
-                            before_closing[:footer_line_start + 1] +
-                            info_line +
-                            before_closing[footer_line_start + 1:] +
-                            after_closing
-                        )
-                        original_embed.description = enhanced_description
-
-        # Add subtle footer enhancement
-        current_footer = original_embed.footer.text if original_embed.footer else ""
-
-        # Security: Validate URL properly to prevent malicious URLs like:
-        # - "https://evil-ddc.bot" (would pass simple endswith check)
-        # - "Visit https://ddc.bot.evil.com • https://ddc.bot" (would affect multiple URLs with replace)
-        # Use exact match for the complete footer or validate suffix properly
-        if current_footer == "https://ddc.bot":
-            # Exact match - safe to enhance
-            enhanced_footer = "ℹ️ Info Available • https://ddc.bot"
-            original_embed.set_footer(text=enhanced_footer)
-        elif current_footer.endswith(" • https://ddc.bot") or current_footer.endswith(" https://ddc.bot"):
-            # Footer ends with separator + our URL - safe to enhance
-            # Only replace the exact suffix at the end, not all occurrences
-            if current_footer.endswith(" • https://ddc.bot"):
-                prefix = current_footer.removesuffix(" • https://ddc.bot")
-                enhanced_footer = prefix + " • ℹ️ Info Available • https://ddc.bot"
-            else:
-                prefix = current_footer.removesuffix(" https://ddc.bot")
-                enhanced_footer = prefix + " ℹ️ Info Available • https://ddc.bot"
-            original_embed.set_footer(text=enhanced_footer)
-
-        logger.debug(f"Enhanced status embed with info indicator for {container_name}")
-
-    except (KeyError, ValueError, RuntimeError) as e:
-        logger.error(f"Error enhancing status embed: {e}", exc_info=True)
-
-    return original_embed
-
 
 def should_show_info_in_status_channel(channel_id: int, config: Dict[str, Any]) -> bool:
     """

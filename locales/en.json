@@ -78,10 +78,7 @@
   "Container Controls": "Container Controls",
   "Container Info System": "Container Info System",
   "Container Information": "Container Information",
-  "Container info is not configured for this container.": "Container info is not configured for this container.",
   "Container information is not configured for '{container}'.": "Container information is not configured for '{container}'.",
-  "Container information is not enabled for": "Container information is not enabled for",
-  "Container information is not enabled for '{container}'.": "Container information is not enabled for '{container}'.",
   "Container is offline": "Container is offline",
   "Container is online": "Container is online",
   "Container not found": "Container not found",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "A container assignment narrows this: untick \"All containers\" for an admin to give them only the containers you choose. An admin without an assignment keeps every container, including ones added later.",
   "The command could not be completed. The reason is in the DDC log.": "The command could not be completed. The reason is in the DDC log.",
   "the mech state could not be read": "the mech state could not be read",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Container info is not configured for this container.",
   "ℹ️ No active containers have information configured.": "ℹ️ No active containers have information configured.",
   "❌ Error loading mech history. Please try again later.": "❌ Error loading mech history. Please try again later.",
   "❌ Error processing donation request. Please try again later.": "❌ Error processing donation request. Please try again later.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Warn the players before?",
   "Saved": "Saved",
   "runs at its time, no warning": "runs at its time, no warning",
-  "Below: wait until nobody plays, and warn before.": "Below: wait until nobody plays, and warn before."
+  "Below: wait until nobody plays, and warn before.": "Below: wait until nobody plays, and warn before.",
+  "under a minute": "under a minute",
+  "{minutes} min": "{minutes} min",
+  "{hours} h {minutes} min": "{hours} h {minutes} min",
+  "The player list cannot be read right now.": "The player list cannot be read right now.",
+  "Nobody is playing right now.": "Nobody is playing right now.",
+  "This game does not send player names.": "This game does not send player names.",
+  "+{count} more": "+{count} more"
 }

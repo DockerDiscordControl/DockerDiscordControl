@@ -78,10 +78,7 @@
   "Container Controls": "Έλεγχος container",
   "Container Info System": "Σύστημα πληροφοριών Container",
   "Container Information": "Πληροφορίες Container",
-  "Container info is not configured for this container.": "Οι πληροφορίες container δεν έχουν ρυθμιστεί για αυτό το container.",
   "Container information is not configured for '{container}'.": "Οι πληροφορίες container δεν έχουν ρυθμιστεί για '{container}'.",
-  "Container information is not enabled for": "Οι πληροφορίες container δεν είναι ενεργοποιημένες για το",
-  "Container information is not enabled for '{container}'.": "Οι πληροφορίες container δεν είναι ενεργοποιημένες για '{container}'.",
   "Container is offline": "Το container είναι εκτός σύνδεσης",
   "Container is online": "Το container είναι σε σύνδεση",
   "Container not found": "Το container δεν βρέθηκε",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "Η ανάθεση containers το περιορίζει: ξετσέκαρε το «Όλα τα containers» για έναν διαχειριστή ώστε να του δώσεις μόνο αυτά που επιλέγεις. Ένας διαχειριστής χωρίς ανάθεση κρατά όλα τα containers, και όσα προστεθούν αργότερα.",
   "The command could not be completed. The reason is in the DDC log.": "Η εντολή δεν ήταν δυνατό να ολοκληρωθεί. Ο λόγος βρίσκεται στο αρχείο καταγραφής DDC.",
   "the mech state could not be read": "δεν ήταν δυνατή η ανάγνωση της κατάστασης του Mech",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ Δεν έχουν ρυθμιστεί πληροφορίες για αυτό το container.",
   "ℹ️ No active containers have information configured.": "ℹ️ Κανένα ενεργό container δεν έχει ρυθμισμένες πληροφορίες.",
   "❌ Error loading mech history. Please try again later.": "❌ Σφάλμα κατά τη φόρτωση του ιστορικού Mech. Δοκίμασε ξανά αργότερα.",
   "❌ Error processing donation request. Please try again later.": "❌ Σφάλμα κατά την επεξεργασία του αιτήματος δωρεάς. Δοκίμασε ξανά αργότερα.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "Να προειδοποιηθούν πρώτα οι παίκτες;",
   "Saved": "Αποθηκεύτηκε",
   "runs at its time, no warning": "εκτελείται στην ώρα της, χωρίς προειδοποίηση",
-  "Below: wait until nobody plays, and warn before.": "Παρακάτω: αναμονή μέχρι να μην παίζει κανείς και προειδοποίηση πριν."
+  "Below: wait until nobody plays, and warn before.": "Παρακάτω: αναμονή μέχρι να μην παίζει κανείς και προειδοποίηση πριν.",
+  "under a minute": "λιγότερο από ένα λεπτό",
+  "{minutes} min": "{minutes} λεπ.",
+  "{hours} h {minutes} min": "{hours} ώ. {minutes} λεπ.",
+  "The player list cannot be read right now.": "Η λίστα παικτών δεν μπορεί να διαβαστεί αυτή τη στιγμή.",
+  "Nobody is playing right now.": "Κανείς δεν παίζει αυτή τη στιγμή.",
+  "This game does not send player names.": "Αυτό το παιχνίδι δεν στέλνει ονόματα παικτών.",
+  "+{count} more": "+{count} ακόμη"
 }

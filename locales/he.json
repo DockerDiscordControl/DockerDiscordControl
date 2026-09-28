@@ -78,10 +78,7 @@
   "Container Controls": "בקרת קונטיינרים",
   "Container Info System": "מערכת מידע על קונטיינרים",
   "Container Information": "מידע על קונטיינר",
-  "Container info is not configured for this container.": "מידע על קונטיינר לא הוגדר עבור קונטיינר זה.",
   "Container information is not configured for '{container}'.": "מידע על קונטיינר לא הוגדר עבור '{container}'.",
-  "Container information is not enabled for": "מידע הקונטיינר אינו מופעל עבור",
-  "Container information is not enabled for '{container}'.": "מידע על קונטיינר לא מופעל עבור '{container}'.",
   "Container is offline": "הקונטיינר לא מקוון",
   "Container is online": "הקונטיינר מקוון",
   "Container not found": "הקונטיינר לא נמצא",
@@ -1430,7 +1427,6 @@
   "web.permissions.admin_modal_scope": "שיוך קונטיינרים מצמצם זאת: בטל את הסימון של \"כל הקונטיינרים\" עבור מנהל כדי לתת לו רק את אלה שתבחר. מנהל ללא שיוך שומר על כל הקונטיינרים, כולל כאלה שיתווספו בהמשך.",
   "The command could not be completed. The reason is in the DDC log.": "לא ניתן היה להשלים את הפקודה. הסיבה מופיעה ביומן של DDC.",
   "the mech state could not be read": "לא ניתן היה לקרוא את מצב המק",
-  "ℹ️ Container info is not configured for this container.": "ℹ️ לא הוגדר מידע עבור קונטיינר זה.",
   "ℹ️ No active containers have information configured.": "ℹ️ לאף קונטיינר פעיל לא הוגדר מידע.",
   "❌ Error loading mech history. Please try again later.": "❌ שגיאה בטעינת היסטוריית המק. נסה שוב מאוחר יותר.",
   "❌ Error processing donation request. Please try again later.": "❌ שגיאה בעיבוד בקשת התרומה. נסה שוב מאוחר יותר.",
@@ -1650,5 +1646,12 @@
   "Warn the players before?": "להזהיר את השחקנים מראש?",
   "Saved": "נשמר",
   "runs at its time, no warning": "רצה בזמנה, ללא אזהרה",
-  "Below: wait until nobody plays, and warn before.": "למטה: להמתין עד שאף אחד לא משחק, ולהזהיר מראש."
+  "Below: wait until nobody plays, and warn before.": "למטה: להמתין עד שאף אחד לא משחק, ולהזהיר מראש.",
+  "under a minute": "פחות מדקה",
+  "{minutes} min": "{minutes} דק׳",
+  "{hours} h {minutes} min": "{hours} שע׳ {minutes} דק׳",
+  "The player list cannot be read right now.": "לא ניתן לקרוא את רשימת השחקנים כרגע.",
+  "Nobody is playing right now.": "אף אחד לא משחק כרגע.",
+  "This game does not send player names.": "המשחק הזה לא שולח שמות שחקנים.",
+  "+{count} more": "+{count} נוספים"
 }
