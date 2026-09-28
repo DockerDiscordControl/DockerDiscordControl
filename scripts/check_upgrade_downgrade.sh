@@ -27,7 +27,7 @@
 # that this script can fail.
 
 set -u
-OLD="${1:-dockerdiscordcontrol:v2.4.1-backup}"
+OLD="${1:-dockerdiscordcontrol/dockerdiscordcontrol:2.4.1}"  # from Docker Hub; docker pulls it on first use
 NEW="${2:-dockerdiscordcontrol:latest}"
 WORK=$(mktemp -d /tmp/ddc-updown-XXXX)
 chown 1000:1000 "$WORK"
