@@ -539,21 +539,26 @@ class AutomationService:
         # group of 200 members was 200 messages into one channel, and Discord's
         # rate limit stops them long before the containers are done. The
         # only_if_running notices were consolidated for the same reason.
+        # Only when nobody plays, and a warning first (v3.0.2): once for all
+        # targets, before any of them is touched (services/scheduling/player_gate.py)
+        gate_verb = player_gate.gated_verb(action_type)
+        gated = bool(gate_verb and getattr(rule.action, 'player_options', None))
+
         if not rule.action.silent and bot and target_containers:
             delay_info = (f" ({rule.action.delay_seconds}s delay)"
                           if rule.action.delay_seconds > 0 else "")
+            # With the player options the action may come hours later - the notice says so,
+            # or "⚡ RESTART" at 01:00 is followed by nothing until 03:00 (operator, 2026-09-28)
+            gate_info = f" · {player_gate.describe(rule.action.player_options)}" if gated else ""
             named = fit_lines([f"**{name}**" for name in target_containers], separator=", ",
                               limit=1500,
                               more=lambda count: _("… and {count} more").format(count=count))
             await self._send_feedback(
                 bot, rule.action.notification_channel_id or ctx.channel_id,
-                f"⚡ `{action_type}` {named}{delay_info} — *{rule.name}* · "
+                f"⚡ `{action_type}` {named}{delay_info}{gate_info} — *{rule.name}* · "
                 f"[Trigger]({ctx.message_link})")
 
-        # Only when nobody plays, and a warning first (v3.0.2): once for all
-        # targets, before any of them is touched (services/scheduling/player_gate.py)
-        gate_verb = player_gate.gated_verb(action_type)
-        if gate_verb and getattr(rule.action, 'player_options', None):
+        if gated:
             await player_gate.hold_until_empty(getattr(rule.action, 'player_options', None), list(target_containers),
                                                gate_verb, ", ".join(target_containers[:3]), bot)
 

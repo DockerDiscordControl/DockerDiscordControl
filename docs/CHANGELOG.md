@@ -20,6 +20,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   auto-actions, and in Discord two dropdowns under the confirmation of a new restart or stop task.
 - **A player count that cannot be read counts as empty** (decided with the operator). Whether it
   can be read is checked when the task or rule is saved, and the panel says so there.
+- **A rule that waits says so when it fires**: "⚡ RESTART Icarus · only when nobody plays (at most
+  120 min) · warning 10 min before", instead of announcing a restart that then comes hours later.
 - The task list shows the options next to the schedule. Rule warnings that were saved but never
   shown (a protected container, for instance) now appear after saving.
 

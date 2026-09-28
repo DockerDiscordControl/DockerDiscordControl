@@ -18,7 +18,9 @@ Companion of test_a_task_waits_until_nobody_plays.py (the scheduler). Here:
 COUNTER-CHECK (2026-09-28): with hold_until_empty returning at once, the three
 timing cases went red; with the status channels left out of
 warning_channel_ids, the channel case did; with the query-problem warning
-removed from validate_rule_data, the rule-warning case did.
+removed from validate_rule_data, the rule-warning case did. Later the same
+day: with the gate description dropped from the rule's notice, the notice case
+went red.
 """
 
 import asyncio
@@ -167,3 +169,60 @@ def test_every_form_offers_the_options(path):
     assert prefix, f"{path} has no player options"
     for field in ("WaitEmpty", "MaxWait", "WarnMinutes"):
         assert f'id="{prefix.group(1)}{field}"' in html, (path, field)
+
+
+async def test_a_waiting_rule_says_so_in_its_notice(monkeypatch):
+    """The notice "⚡ RESTART Icarus" goes out when the rule fires - with the
+    player options that may be two hours before the restart. It says so now,
+    instead of announcing a restart that then does not come (2026-09-28, when
+    the operator's three update rules got the options)."""
+    from types import SimpleNamespace
+    from services.automation import automation_service as module
+    from services.automation.auto_action_config_service import AutoActionRule
+
+    order = []
+
+    async def _hold(options, containers, action, label, bot, **kwargs):
+        order.append("hold")
+
+    async def _docker(name, action):
+        order.append(f"{action} {name}")
+        return True, ""
+
+    async def _exists(name):
+        return True
+
+    monkeypatch.setattr(player_gate, "hold_until_empty", _hold)
+    monkeypatch.setattr(module, "docker_action", _docker)
+    monkeypatch.setattr(module, "is_container_exists", _exists)
+    service = module.AutomationService()
+    service.state_service = SimpleNamespace(
+        record_trigger=lambda *a, **k: None, acquire_execution_locks=lambda *a, **k: (True, "", None),
+        release_execution_lock=lambda *a, **k: None, release_execution_locks=lambda *a, **k: None,
+        release_rule_cooldown=lambda *a, **k: None)
+
+    async def _send(bot, channel_id, text):
+        order.append(text)
+    service._send_feedback = _send
+
+    async def _running(*args, **kwargs):
+        return False
+    service._honours_only_if_running = _running
+
+    def _rule(options):
+        return AutoActionRule.from_dict({
+            "id": "r1", "name": "Icarus Update Watcher", "enabled": True,
+            "trigger": {"type": "message", "channel_ids": [], "keywords": ["update"]},
+            "action": {"type": "RESTART", "containers": ["Icarus"], "player_options": options}})
+
+    context = SimpleNamespace(message=None, channel_id=9, message_link="https://x")
+    await service._execute_rule(_rule({"wait_for_empty": True, "max_wait_minutes": 120, "warn_minutes": 10}),
+                                context, {"protected_containers": []}, bot=object())
+    notice = next(entry for entry in order if entry.startswith("⚡"))
+    assert "only when nobody plays (at most 120 min) · warning 10 min before" in notice, notice
+    assert order.index(notice) < order.index("hold"), "the notice came after the wait"
+
+    order.clear()
+    await service._execute_rule(_rule({}), context, {"protected_containers": []}, bot=object())
+    plain = next(entry for entry in order if entry.startswith("⚡"))
+    assert "nobody plays" not in plain and "hold" not in order, "a rule without options changed"
