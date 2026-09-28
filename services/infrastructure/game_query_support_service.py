@@ -24,6 +24,13 @@ Lifecycle per container:
              final=True)        offline / after restart), never downgraded. Unlocks the UI.
 - unsupported (supported=False, stayed online 15 min without answering -> FINAL. Never probed
                final=True)      again. Stays locked. (No A2S/Minecraft support.)
+- silent      (supported=False, a server that ANSWERED once, was demoted after failed live
+               final=True,      queries and then stayed silent for the 15 min - it has query
+               demoted=True)    support, its game is just not running. Probed again every
+                                DEMOTED_RETRY_SECONDS, so a game that comes back is seen again.
+                                Found 2026-09-28: without this, a crashed Enshrouded server
+                                that came back would have stayed "unreachable" for good - and
+                                the info display now says so to everyone.
 """
 
 import json
@@ -53,11 +60,14 @@ WINDOW_GAP_RESET_SECONDS = 300.0
 # kept costing a full query timeout on every status cycle. At a 120 s cycle three in a row is
 # about six minutes, which comfortably survives a container restart.
 QUERY_FAILURE_DEMOTE_THRESHOLD = 3
+# A demoted server that went FINAL silent is asked again this often. Only those: a container
+# that never answered (an ordinary app) stays final and costs nothing.
+DEMOTED_RETRY_SECONDS = 1800.0
 
 _SUPPORT_FILENAME = 'query_support.json'
 # Fields that define the verdict (used for change detection; 'updated' is excluded so a
 # still-probing container doesn't rewrite the file every cycle).
-_VERDICT_FIELDS = ('supported', 'final', 'protocol', 'port', 'probing_since')
+_VERDICT_FIELDS = ('supported', 'final', 'protocol', 'port', 'probing_since', 'demoted')
 
 
 def _config_dir() -> Path:
@@ -199,13 +209,18 @@ class GameQuerySupportService:
 
     # --- probe scheduling --------------------------------------------------
     def should_probe(self, name: str, now_mono: float) -> bool:
-        # A FINAL verdict (supported, or gave-up-after-15-min) is never probed again.
+        # A FINAL verdict (supported, or gave-up-after-15-min) is never probed again -
+        # except a server that answered once and then fell silent (see the module doc).
+        interval = PROBE_RETRY_SECONDS
         if self.is_final(name):
-            return False
+            entry = self._state.get(name) or {}
+            if entry.get('supported') or not entry.get('demoted'):
+                return False
+            interval = DEMOTED_RETRY_SECONDS
         last = self._last_probe.get(name)
         if last is None:
             return True
-        return (now_mono - last) >= PROBE_RETRY_SECONDS
+        return (now_mono - last) >= interval
 
     def mark_probed(self, name: str, now_mono: float) -> None:
         self._last_probe[name] = now_mono
@@ -220,7 +235,7 @@ class GameQuerySupportService:
             return
         prev = self._state.get(name) or {}
         if prev.get('final'):
-            return  # already final (should not have been probed) - leave as-is
+            return  # already final (a silent server's re-probe failed again) - leave as-is
         since = prev.get('probing_since') or now_wall
         # If there was a long gap since we last touched this container (DDC downtime, or the
         # container was offline and just came back), start a FRESH window instead of counting
@@ -231,7 +246,7 @@ class GameQuerySupportService:
             since = now_wall
         gave_up = (now_wall - since) >= PROBE_WINDOW_SECONDS
         self._set(name, supported=False, final=gave_up, protocol=None,
-                  port=None, probing_since=since)
+                  port=None, probing_since=since, demoted=bool(prev.get('demoted')))
 
     def note_query_success(self, name: str) -> None:
         """A live query answered - clear any failure streak."""
@@ -260,7 +275,7 @@ class GameQuerySupportService:
         self._failures.pop(name, None)
         self._last_probe.pop(name, None)  # allow an immediate re-probe
         self._set(name, supported=False, final=False, protocol=None, port=None,
-                  probing_since=time.time())
+                  probing_since=time.time(), demoted=True)
         logger.info("[GAME_QUERY] %s failed %d live queries in a row - resetting its verdict so "
                     "it gets probed again", name, count)
         return True
@@ -302,6 +317,7 @@ class GameQuerySupportService:
             'protocol': fields.get('protocol'),
             'port': fields.get('port'),
             'probing_since': fields.get('probing_since'),
+            'demoted': bool(fields.get('demoted')),
             'updated': time.time(),
         }
         prev = self._state.get(name)

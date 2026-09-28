@@ -7,7 +7,9 @@ Agreed with the operator on 2026-09-28, in this order:
    had stopped on 16 September - its log ends there, no process listens - while
    its container ran on (a `tail -f` keeps it alive) and stood 🟢 online for
    twelve days. The support check had marked it unreachable long before, and
-   the info display stayed silent. It says so now, without asking again.
+   the info display stayed silent. It says so now, without asking again - and a
+   server that answered once and fell silent is asked again every 30 minutes,
+   so one that comes back is not called silent for good.
 2. A NEWER IMAGE IS SAID in the info display. The registry check existed
    (Phase 4d) but ran only for operators with an image_update rule. The
    display asks through a six-hour cache and never says "up to date" on an
@@ -18,7 +20,8 @@ Agreed with the operator on 2026-09-28, in this order:
    what was seen, so the next join is still noticed.
 
 COUNTER-CHECK (2026-09-28): with the verdict check removed from player_list,
-the silent-server case went red; with cached_remote_digest asking every time,
+the silent-server case went red; with should_probe back to "final is final",
+the comes-back case did; with cached_remote_digest asking every time,
 the cache case did; with the first look announcing, the first-look case did;
 with a Minecraft sample compared by name, the sample case did; with a failed
 query forgetting what was seen, the hiccup case did - its first version, which
@@ -68,6 +71,47 @@ def test_a_stopped_silent_server_is_not_called_silent(monkeypatch):
     _verdict(monkeypatch, False)
     monkeypatch.setattr(info_extras, "_is_running", lambda name: False)
     assert asyncio.run(info_extras.player_list({"docker_name": "V-Rising", "query_enabled": True})) is None
+
+
+def _silent_for_good(tmp_path):
+    """A server that answered, then fell silent through the whole 15-minute window."""
+    from services.infrastructure import game_query_support_service as mod
+    service = mod.GameQuerySupportService(path=tmp_path / "query_support.json")
+    service.record_result("Enshrouded", True, protocol="source")
+    for _ in range(mod.QUERY_FAILURE_DEMOTE_THRESHOLD):
+        service.note_query_failure("Enshrouded")
+    since = service._state["Enshrouded"]["probing_since"]
+    # A probe a minute through the window, as the status cycle makes them
+    for minute in range(1, int(mod.PROBE_WINDOW_SECONDS // 60) + 2):
+        service._state["Enshrouded"]["updated"] = since + (minute - 1) * 60
+        service.record_result("Enshrouded", False, now_wall=since + minute * 60)
+    assert service.is_final("Enshrouded") and service.is_supported("Enshrouded") is False
+    return mod, service
+
+
+def test_a_server_that_comes_back_is_seen_again(tmp_path):
+    """FOUND BY THE RESTART of the operator's Enshrouded server (2026-09-28): a
+    server that answered once, died and stayed silent for 15 minutes became a
+    FINAL "unreachable" - never asked again. It recovered that day only because
+    the day's rebuilds kept restarting its window. With the warning above, a
+    recovered server would have been called silent to everyone, for good."""
+    mod, service = _silent_for_good(tmp_path)
+    service.mark_probed("Enshrouded", 1000.0)
+    assert not service.should_probe("Enshrouded", 1000.0 + 60)
+    assert service.should_probe("Enshrouded", 1000.0 + mod.DEMOTED_RETRY_SECONDS)
+    service._state["Enshrouded"]["final"] = True  # a failed re-probe leaves it as it is
+    service.record_result("Enshrouded", True, protocol="source")
+    assert service.is_supported("Enshrouded") is True
+
+
+def test_a_container_that_never_answered_is_not_asked_again(tmp_path):
+    """The counter-case: an ordinary app must not cost a probe every 30 minutes."""
+    from services.infrastructure import game_query_support_service as mod
+    service = mod.GameQuerySupportService(path=tmp_path / "query_support.json")
+    service.record_result("plex", False, now_wall=1000.0)
+    service.record_result("plex", False, now_wall=1000.0 + mod.PROBE_WINDOW_SECONDS + 1)
+    assert service.is_final("plex")
+    assert not service.should_probe("plex", 10 ** 9)
 
 
 # --- 2. a newer image ----------------------------------------------------------

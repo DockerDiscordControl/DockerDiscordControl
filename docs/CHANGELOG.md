@@ -55,7 +55,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   Enshrouded server had died twelve days before while its container ran on (a `tail -f` kept it
   alive), so it stood 🟢 online all along. DDC's query check had marked it unreachable and said
   nothing; the info display now says "the game server does not answer - the container runs, the
-  game in it may not", at once.
+  game in it may not", at once. And a server that answered once and then fell silent is asked
+  again every 30 minutes: until now such a verdict became final after 15 silent minutes, so a
+  server that came back was never counted again (the same day's Enshrouded restart showed it).
 - **A newer image is said**, with "details" allowed: "⬆️ A newer image is in the registry". The
   registry check existed for auto-actions only; the display asks Docker Hub, ghcr.io and lscr.io
   through a six-hour cache, compares with the image that actually runs, never pulls, and never
