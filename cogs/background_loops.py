@@ -80,6 +80,29 @@ def _measured_for(result, metric: str, unit: str):
 WATCH_STATE_FILE = "watchdog_state.json"
 
 
+def status_beat_seconds(config: dict, cache_duration: float) -> float:
+    """How often the status loop fetches from Docker - the ONE beat everything runs on.
+
+    MEASURED 2026-09-28 on the operator's installation (DDC_DOCKER_CACHE_DURATION
+    = 120, both channels refreshing every minute): Docker was polled every 60 s,
+    by two paths taking turns. The loop fetched every 120 s; in between, the
+    message edits found entries older than the age a display accepts
+    (docker_control.STATUS_CACHE_MAX_RENDER_AGE_SECONDS, 60 s) and fetched on
+    their own. Same load, but the watchdog - fed by the loop only - saw every
+    second fetch, and the setting said 120 while 60 happened.
+
+    So the loop keeps the beat the displays need: while any channel refreshes its
+    messages on its own, at most that age; with none, the configured interval,
+    which then governs alone. The edits find fresh data and fetch only when
+    something is missing (after an action, a failed fetch).
+    """
+    from .docker_control import STATUS_CACHE_MAX_RENDER_AGE_SECONDS
+    channels = ((config or {}).get('channel_permissions') or {}).values()
+    if any(isinstance(channel, dict) and channel.get('enable_auto_refresh') for channel in channels):
+        return min(cache_duration, STATUS_CACHE_MAX_RENDER_AGE_SECONDS)
+    return cache_duration
+
+
 def _watch_state_path():
     from utils.config_paths import get_config_dir
 
@@ -214,14 +237,17 @@ class BackgroundLoopsMixin:
         if self.cache_ttl_seconds != calculated_ttl:
             self.cache_ttl_seconds = calculated_ttl
             logger.info(f"[STATUS_LOOP] Cache TTL updated to {calculated_ttl} seconds (interval: {cache_duration}s)")
-        # Keep the published interval in sync when the setting changes at runtime.
-        self.status_refresh_interval_seconds = cache_duration
+        # The one beat (status_beat_seconds), published for the age hints of the embeds
+        beat = status_beat_seconds(config, cache_duration)
+        self.status_refresh_interval_seconds = beat
 
         # Dynamically change the loop interval if needed
-        if self.status_update_loop.seconds != cache_duration:
+        if self.status_update_loop.seconds != beat:
             try:
-                self.status_update_loop.change_interval(seconds=cache_duration)
-                logger.info(f"[STATUS_LOOP] Cache update interval changed to {cache_duration} seconds")
+                self.status_update_loop.change_interval(seconds=beat)
+                logger.info(f"[STATUS_LOOP] Interval set to {beat} seconds "
+                            f"(DDC_DOCKER_CACHE_DURATION {cache_duration} s, channels refreshing on their own "
+                            f"{'yes' if beat < cache_duration else 'no or slower'})")
             except (discord.errors.DiscordException, RuntimeError, OSError, KeyError) as e:
                 logger.error(f"[STATUS_LOOP] Failed to change interval: {e}", exc_info=True)
 

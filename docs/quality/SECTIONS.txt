@@ -33,11 +33,11 @@ cogs/control_ui.py:1-1457
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
 cogs/control_ui.py:1458-2608
 
-## Section 04  (1552 lines, 3 pieces)
+## Section 04  (1559 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
 # Step 5 (2026-09-22): channel setup/teardown/regeneration moved to channel_lifecycle.py.
 cogs/channel_lifecycle.py:1-631
-cogs/docker_control.py:1-826
+cogs/docker_control.py:1-833
 cogs/loop_safety.py:1-103
 
 ## Section 05  (1524 lines, 3 pieces)
@@ -45,15 +45,15 @@ cogs/loop_safety.py:1-103
 # moved from this range of docker_control.py into overview_embeds.py, which
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
-cogs/docker_control.py:827-844
+cogs/docker_control.py:834-851
 cogs/overview_embeds.py:1-610
 cogs/slash_commands.py:1-822
 
-## Section 06  (1807 lines, 3 pieces)
+## Section 06  (1833 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
-cogs/docker_control.py:845-1252
-cogs/background_loops.py:1-807
+cogs/docker_control.py:852-1259
+cogs/background_loops.py:1-833
 cogs/donation_ui.py:1-693
 
 ## Section 07  (694 lines, 1 piece)

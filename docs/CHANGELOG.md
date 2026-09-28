@@ -80,6 +80,17 @@ All notable changes to DockerDiscordControl will be documented in this file.
   tag has moved on since it was created is looked up on its own, so the names shown stay the
   same. Checked live: 2 requests instead of 38, identical list.
 
+### ⏱️ One beat for everything that asks Docker
+
+- The status loop was set to 120 s on the operator's installation, but Docker was polled every
+  60 s: the message edits, which refresh every minute, found the data older than a display
+  accepts and fetched on their own in between. Same load, two paths - and the watchdog (restart
+  loops, CPU/RAM alarms), fed by the loop only, saw every second fetch. The loop now keeps the
+  beat the displays need: while a channel refreshes its messages on its own, at most every 60 s;
+  otherwise at the configured interval. Every fetch feeds the cache, the player counts, the join
+  check and the watchdog; the edits only fetch when something is missing. The age hints in the
+  status messages count from the real beat.
+
 ## v3.0.1 - 2026-09-27
 
 GitHub's code scanner (CodeQL) read the v3.0 code for the first time when it reached `main` and

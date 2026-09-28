@@ -98,6 +98,11 @@ def _restored_tracked_message_ids(state_data) -> Dict[int, Dict[str, int]]:
 # DDC_DOCKER_CACHE_DURATION (up to 300 s), so a container stopped outside DDC doesn't stay 🟢
 # for minutes. A stale cache still triggers only ONE shared bulk refresh (_ensure_status_cache_fresh).
 STATUS_CACHE_MAX_RENDER_AGE_SECONDS = 60
+# The status loop keeps this beat (background_loops.status_beat_seconds), so an edit
+# normally finds data younger than the limit. Timers drift by fractions of a second:
+# an edit landing just after the beat's anniversary would find 60.2 s and fetch a
+# second time. This much past the limit is still the same beat.
+RENDER_AGE_GRACE_SECONDS = 5
 
 
 def _status_entry_age_seconds(entry) -> float:
@@ -751,13 +756,14 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
     async def _ensure_status_cache_fresh(self):
         """Refresh the status cache only if it is stale.
 
-        status_update_loop refreshes every DDC_DOCKER_CACHE_DURATION seconds and
-        ContainerStatusService drops entries older than that, so the cache is stale
-        when a configured container that did not fail its last fetch has no entry
-        (expired, or invalidated after a container action) or an entry older than
-        STATUS_CACHE_MAX_RENDER_AGE_SECONDS (long cache durations must not keep a
-        container stopped outside DDC green for minutes). Overview renders use the
-        cache as-is otherwise instead of doing a full Docker bulk fetch per message.
+        status_update_loop keeps the beat the displays need (background_loops.
+        status_beat_seconds): while a channel refreshes on its own, at most
+        STATUS_CACHE_MAX_RENDER_AGE_SECONDS. So this normally finds fresh data and
+        fetches nothing - it is the safety net for a configured container that did
+        not fail its last fetch and has no entry (expired, or invalidated after a
+        container action) or one older than the limit plus RENDER_AGE_GRACE_SECONDS
+        (the loop missed its beat). Until 2026-09-28 it was the second fetch path:
+        with DDC_DOCKER_CACHE_DURATION at 120 s it fetched every other minute.
         """
         requested_at = time.monotonic()
         try:
@@ -774,7 +780,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                 if not docker_name or docker_name in failed:
                     continue
                 entry = self.status_cache_service.get(docker_name)
-                if not entry or _status_entry_age_seconds(entry) > STATUS_CACHE_MAX_RENDER_AGE_SECONDS:
+                if not entry or _status_entry_age_seconds(entry) > \
+                        STATUS_CACHE_MAX_RENDER_AGE_SECONDS + RENDER_AGE_GRACE_SECONDS:
                     stale.append(docker_name)
             if not stale:
                 logger.debug("Status cache is fresh - rendering from cache")
