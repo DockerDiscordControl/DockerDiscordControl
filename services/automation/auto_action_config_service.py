@@ -340,6 +340,21 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
     if not isinstance(delay, int) or delay < MIN_DELAY_SECONDS or delay > MAX_DELAY_SECONDS:
         errors.append(f"Delay must be between {MIN_DELAY_SECONDS} and {MAX_DELAY_SECONDS} seconds")
 
+    # Only when nobody plays, and the warning (v3.0.2, services/scheduling/player_gate.py).
+    # A count that cannot be read counts as empty - said here, at saving time.
+    raw_player_options = action.get('player_options')
+    if raw_player_options:
+        from services.scheduling.player_gate import gated_verb, normalize_options, query_problems
+        player_options, player_error = normalize_options(
+            raw_player_options, gated_verb(action.get('type', '')) or 'start')
+        if player_error:
+            errors.append(player_error)
+        elif player_options.get('wait_for_empty'):
+            problems = [p for c in (containers or []) for p in query_problems(c, False)]
+            if problems:
+                warnings.append("The player count cannot be read, so the server counts as empty "
+                                "and the action does not wait: " + "; ".join(problems))
+
     # Notification channel
     notif_channel = action.get('notification_channel_id')
     if notif_channel:
@@ -490,6 +505,8 @@ class ActionConfig:
     delay_seconds: int = 0
     notification_channel_id: Optional[str] = None
     silent: bool = False
+    # v3.0.2: only when nobody plays, and a warning first (services/scheduling/player_gate.py)
+    player_options: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ActionConfig':
@@ -498,7 +515,8 @@ class ActionConfig:
             containers=data.get('containers', []),
             delay_seconds=data.get('delay_seconds', 0),
             notification_channel_id=data.get('notification_channel_id'),
-            silent=data.get('silent', False)
+            silent=data.get('silent', False),
+            player_options=dict(data.get('player_options') or {})
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -507,7 +525,8 @@ class ActionConfig:
             "containers": self.containers,
             "delay_seconds": self.delay_seconds,
             "notification_channel_id": self.notification_channel_id,
-            "silent": self.silent
+            "silent": self.silent,
+            "player_options": self.player_options
         }
 
 @dataclass

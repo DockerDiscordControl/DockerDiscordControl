@@ -1027,7 +1027,19 @@ class CreateTaskButton(discord.ui.Button):
                     inline=True
                 )
 
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                # Restart and stop can wait for an empty server and warn first (v3.0.2);
+                # the options come as two dropdowns under the confirmation.
+                from services.scheduling.player_gate import GATED_ACTIONS
+                if task.action in GATED_ACTIONS:
+                    from .task_player_options import TaskPlayerOptionsView
+                    embed.add_field(name=f"👥 {_('Players')}",
+                                    value=_("Below: wait until nobody plays, and warn before."),
+                                    inline=False)
+                    await interaction.followup.send(
+                        embed=embed, view=TaskPlayerOptionsView(task.task_id, self.container_name),
+                        ephemeral=True)
+                else:
+                    await interaction.followup.send(embed=embed, ephemeral=True)
 
             else:
                 await interaction.followup.send(

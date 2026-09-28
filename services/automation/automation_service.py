@@ -22,6 +22,7 @@ from .auto_action_state_service import get_auto_action_state_service
 # Import Docker Control (we reuse existing utils to ensure consistency)
 from services.docker_service.docker_utils import docker_action, is_container_exists, get_docker_info
 from cogs.translation_manager import _
+from services.scheduling import player_gate
 from services.discord.embed_helper_service import fit_lines
 
 logger = logging.getLogger('ddc.automation_service')
@@ -549,6 +550,13 @@ class AutomationService:
                 f"⚡ `{action_type}` {named}{delay_info} — *{rule.name}* · "
                 f"[Trigger]({ctx.message_link})")
 
+        # Only when nobody plays, and a warning first (v3.0.2): once for all
+        # targets, before any of them is touched (services/scheduling/player_gate.py)
+        gate_verb = player_gate.gated_verb(action_type)
+        if gate_verb and getattr(rule.action, 'player_options', None):
+            await player_gate.hold_until_empty(getattr(rule.action, 'player_options', None), list(target_containers),
+                                               gate_verb, ", ".join(target_containers[:3]), bot)
+
         for container in target_containers:
             logger.info(f"AAS: Executing {action_type} on {container}...")
             
@@ -775,7 +783,8 @@ class AutomationService:
         if not channel_id:
             logger.warning(f"AAS: watchdog rule '{rule.name}' has no channel to report to "
                            f"(no notification channel and no control channel): {event.reason}")
-        if action_type != 'NOTIFY' and rule.action.delay_seconds > 0:
+        waits_for_players = bool(player_gate.gated_verb(action_type) and getattr(rule.action, 'player_options', None))
+        if action_type != 'NOTIFY' and (rule.action.delay_seconds > 0 or waits_for_players):
             # A DELAYED ACTION RUNS BESIDE THE STATUS LOOP, NOT INSIDE IT. It was
             # awaited here until 2026-09-26, and this is called from the status
             # loop: for up to an hour (the delay's maximum) no status update, no
@@ -810,6 +819,11 @@ class AutomationService:
                                               f"🚨 {event.reason} → `{action_type}` — *{rule.name}*")
                 if delayed:
                     await asyncio.sleep(rule.action.delay_seconds)
+                    # Until nobody plays on it, or the wait is over - then look again (v3.0.2)
+                    gate_verb = player_gate.gated_verb(action_type)
+                    if gate_verb and getattr(rule.action, 'player_options', None):
+                        await player_gate.hold_until_empty(getattr(rule.action, 'player_options', None), [container],
+                                                           gate_verb, container, bot)
                     from services.automation.maintenance import is_paused
 
                     if is_paused(container) or not await self._condition_still_holds(event, container):

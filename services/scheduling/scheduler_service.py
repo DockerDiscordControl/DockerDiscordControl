@@ -27,6 +27,7 @@ from .scheduler import (
     find_task_by_id
 )
 from utils.logging_utils import setup_logger
+from . import player_gate
 
 # Logger for Scheduler Service
 logger = setup_logger('ddc.scheduler_service', level=logging.DEBUG)
@@ -88,6 +89,10 @@ class SchedulerService:
         self._last_cycle_start_ts: Optional[float] = None
         self._last_cycle_end_ts: Optional[float] = None
         self._seen_due: Dict[str, float] = {}
+        # Player gate (v3.0.2, services/scheduling/player_gate.py): task_id -> the
+        # occurrence already warned about / already reported as waiting
+        self._warned: Dict[str, float] = {}
+        self._waiting: Dict[str, float] = {}
         # Set when the service loop runs on a borrowed (already-running) event
         # loop instead of in its own thread. Lets stop() cancel cleanly.
         self._service_task = None
@@ -331,6 +336,42 @@ class SchedulerService:
             # System task errors (import failures, runtime issues, attribute/type/value errors)
             logger.error(f"Error in system tasks check: {e}", exc_info=True)
 
+    def _gate_counts(self, task: ScheduledTask) -> Dict[str, Optional[int]]:
+        return player_gate.counts_for(
+            player_gate.target_containers(task.container_name, getattr(task, 'target_is_group', False)))
+
+    async def _warn_players_if_due(self, task: ScheduledTask, current_ts: float) -> None:
+        """Post the player warning once per occurrence, when player_gate says it is time."""
+        warn = int(task.options.get('warn_minutes') or 0)
+        if not warn or self._warned.get(task.task_id) == task.next_run_ts:
+            return
+        moment = player_gate.acting_at(task.options, task.next_run_ts)
+        if not moment - warn * 60 <= current_ts < moment:
+            return  # outside the warning window: no need to ask for player counts
+        counts = self._gate_counts(task)
+        if not player_gate.warning_due(task.options, task.next_run_ts, current_ts, counts):
+            return
+        self._warned[task.task_id] = task.next_run_ts
+        minutes = max(1, round((player_gate.acting_at(task.options, task.next_run_ts) - current_ts) / 60))
+        text = player_gate.warning_text(task.container_name, task.action, minutes, counts)
+        try:
+            await player_gate.post_warning(get_bot_instance(), text)
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
+            logger.error(f"Player warning for task {task.task_id} failed: {e}", exc_info=True)
+
+    def _players_allow(self, task: ScheduledTask, current_ts: float) -> bool:
+        """May the due occurrence run now - or does it wait for an empty server?"""
+        counts = self._gate_counts(task)
+        if player_gate.should_act(task.options, task.next_run_ts, current_ts, counts):
+            return True
+        if self._waiting.get(task.task_id) != task.next_run_ts:
+            self._waiting[task.task_id] = task.next_run_ts
+            latest = datetime.fromtimestamp(player_gate.acting_at(task.options, task.next_run_ts))
+            logger.info(f"Task {task.task_id} ({task.action} {task.container_name}) waits: "
+                        f"{sum((c or 0) for c in counts.values())} player(s) online, "
+                        f"at the latest {latest:%H:%M}")
+        return False
+
     def _lateness(self, task: ScheduledTask, current_ts: float) -> float:
         """Seconds a due task is late, counting only time the scheduler could have run it.
 
@@ -369,8 +410,17 @@ class SchedulerService:
                 if not task.is_active:  # Fixed: was task.enabled
                     continue
 
-                # Not scheduled or not due yet
-                if not task.next_run_ts or task.next_run_ts > current_ts:
+                if not task.next_run_ts:
+                    continue
+                # "Only when nobody plays" and the warning before (v3.0.2). The
+                # warning can be due before the occurrence is.
+                gated = bool(getattr(task, 'options', None)) and \
+                    (task.action or '').lower() in player_gate.GATED_ACTIONS
+                if gated:
+                    await self._warn_players_if_due(task, current_ts)
+
+                # Not due yet
+                if task.next_run_ts > current_ts:
                     continue
 
                 # Skip if task is already running
@@ -402,13 +452,18 @@ class SchedulerService:
                 # once its execution returns, so a slow run still looks due, and
                 # this used to write it off as "Missed scheduled time ...; not
                 # executed" while it was executing.
-                if self._lateness(task, current_ts) > MISSED_RUN_GRACE_SECONDS:
+                # An occurrence waiting for an empty server is not missed while it may wait.
+                window = player_gate.window_seconds(task.options) if gated else 0
+                if self._lateness(task, current_ts) > MISSED_RUN_GRACE_SECONDS + window:
                     try:
                         # Writes tasks.json under the cross-process lock, so it
                         # goes off the event loop like the read above (B8).
                         await asyncio.to_thread(reschedule_missed_task, task)
                     except (RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
                         logger.error(f"Error rescheduling missed task {task.task_id}: {e}", exc_info=True)
+                    continue
+
+                if gated and not self._players_allow(task, current_ts):
                     continue
 
                 due_tasks.append(task)

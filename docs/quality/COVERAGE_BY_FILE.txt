@@ -50,7 +50,7 @@
 app/__init__.py	13	pass1:s31:plan pass2:s31:1-13
 app/auth.py	344	pass1:s31:plan pass2:s31:1-249 v3rev2:1-270
 app/blueprints/action_log_routes.py	91	pass1:s31:plan pass2:s31:1-86  [5 of 91 lines never in a package]
-app/blueprints/automation_routes.py	322	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
+app/blueprints/automation_routes.py	334	pass1:s31:plan pass2:s31:1-267  [5 of 272 lines never in a package]
 app/blueprints/backup_routes.py	128	NONE
 app/blueprints/group_routes.py	170	NONE
 app/blueprints/log_routes.py	242	pass1:s31:plan pass2:s31:1-242
@@ -58,7 +58,7 @@ app/blueprints/login_routes.py	119	new 2026-09-23 (the panel form login and logo
 app/blueprints/main_routes.py	1309	pass1:s32:plan pass2:s32:1-1468  [46 of 1514 lines never in a package] v3rev2:1-1507
 app/blueprints/security_routes.py	206	pass1:s32:plan pass2:s32:1-193
 app/blueprints/system_routes.py	104	pass2:s32:1-51  [self-restart route, added 2026-09-24]
-app/blueprints/tasks_bp.py	348	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
+app/blueprints/tasks_bp.py	389	pass1:s32:plan pass2:s32:1-300  [14 of 314 lines never in a package]
 app/blueprints/translation_routes.py	370	pass1:s33:1-350  [13 of 363 lines never in a package]
 app/blueprints/two_factor_routes.py	402	v3rev:1-198
 app/bootstrap/__init__.py	34	pass1:s33:1-34
@@ -128,7 +128,8 @@ cogs/slash_commands.py	831	NONE
 cogs/stack_restart.py	325	v3rev:1-196
 cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1285	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
-cogs/task_ui.py	1233	NONE
+cogs/task_ui.py	1245	NONE
+cogs/task_player_options.py	124	new 2026-09-28 (v3.0.2 player options), written with its tests
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	112	passE:E32:read-in-full
 cogs/watchdog_maintenance.py	262	NONE
@@ -137,9 +138,9 @@ services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	429	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/alert_webhook.py	104	NONE
-services/automation/auto_action_config_service.py	891	passE:bothscans+E25 v3rev:1-813
+services/automation/auto_action_config_service.py	910	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	389	passE:bothscans+E25
-services/automation/automation_service.py	983	passE:bothscans+E25 v3rev:1-676
+services/automation/automation_service.py	997	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	224	v3rev:1-157
 services/automation/image_updates.py	183	v3rev:1-164
 services/automation/maintenance.py	124	NONE
@@ -147,7 +148,7 @@ services/automation/own_actions.py	93	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/backup_service.py	206	NONE
 services/config/channel_config_service.py	585	passE:E28+bothscans:126-300
-services/config/channel_roles.py	38	NONE
+services/config/channel_roles.py	55	NONE
 services/config/config_cache_service.py	177	passE:E29:read-in-full
 services/config/config_form_parser_service.py	628	pass1:s12:1-483  [23 of 625 lines never in a package] v3rev2:1-625
 services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
@@ -235,7 +236,8 @@ services/scheduling/group_tasks.py	96	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
 services/scheduling/scheduler.py	2243	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]
-services/scheduling/scheduler_service.py	568	pass1:s27:1-539  [13 of 552 lines never in a package]
+services/scheduling/scheduler_service.py	623	pass1:s27:1-539  [13 of 552 lines never in a package]
+services/scheduling/player_gate.py	310	new 2026-09-28 (v3.0.2 player options), written with its tests
 services/scheduling/task_timezone.py	71	new 2026-09-23 (the panel's timezone question), written test-first
 services/scheduling/task_writeback.py	119	NONE
 services/status/__init__.py	13	pass1:s27:1-13
@@ -258,7 +260,7 @@ services/web/mech_status_details_service.py	447	pass1:s30:1-401  [9 of 410 lines
 services/web/mech_web_service.py	531	pass1:s30:1-676
 services/web/performance_stats_service.py	182	pass1:s30:1-172  [9 of 181 lines never in a package]
 services/web/security_service.py	351	pass1:s30:1-339  [6 of 345 lines never in a package]
-services/web/task_management_service.py	1171	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
+services/web/task_management_service.py	1173	pass1:s31:plan pass2:s31:1-1060  [27 of 1087 lines never in a package]
 services/web/two_factor_service.py	331	v3rev:1-224
 utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150

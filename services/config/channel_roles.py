@@ -36,3 +36,20 @@ def control_channel_ids(config: Dict[str, Any]) -> List[int]:
                 except (ValueError, KeyError):
                     pass
     return channels
+
+
+def status_channel_ids(config: Dict[str, Any]) -> List[int]:
+    """The channels with the serverstatus permission - where the players look.
+
+    The same question the donation appeal and the member count ask; the player
+    warning of v3.0.2 (services/scheduling/player_gate.py) asks it here.
+    """
+    channels: List[int] = []
+    for channel_id, perms in (config.get('channel_permissions') or {}).items():
+        commands = (perms or {}).get('commands', {}) if isinstance(perms, dict) else {}
+        if isinstance(commands, dict) and commands.get('serverstatus', False):
+            try:
+                channels.append(int(channel_id))
+            except ValueError:
+                logger.debug(f"Invalid channel ID: {channel_id}")
+    return channels

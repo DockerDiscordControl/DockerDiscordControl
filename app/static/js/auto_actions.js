@@ -1,3 +1,7 @@
+// The player-option fields of this form (v3.0.2, player_options.js)
+const RULE_PLAYER_FIELDS = { PlayerGate: 'aasRulePlayerGate', WaitEmpty: 'aasRuleWaitEmpty',
+    MaxWait: 'aasRuleMaxWait', WarnMinutes: 'aasRuleWarnMinutes' };
+
 /**
  * DockerDiscordControl - Auto-Action System (AAS)
  * Frontend Logic for Rule Management & Testing
@@ -348,6 +352,11 @@ async function openRuleEditor(ruleId = null) {
     form.reset();
     document.getElementById('aasTestResult').innerHTML = '';
     updateTriggerTypeFields();
+    // Player options (v3.0.2): off for a new rule, shown for restart/recreate/stop only
+    const actionTypeField = document.getElementById('aasRuleActionType');
+    fillPlayerOptions(RULE_PLAYER_FIELDS, {});
+    showPlayerOptions(RULE_PLAYER_FIELDS, playerGateActionOf(actionTypeField.value));
+    actionTypeField.onchange = () => showPlayerOptions(RULE_PLAYER_FIELDS, playerGateActionOf(actionTypeField.value));
 
     // Reload containers if list is empty (may have loaded before DOM was ready)
     if (allContainers.length === 0) {
@@ -461,6 +470,8 @@ function populateRuleForm(rule) {
     // Action
     document.getElementById('aasRuleActionType').value = rule.action.type;
     document.getElementById('aasRuleDelay').value = rule.action.delay_seconds;
+    fillPlayerOptions(RULE_PLAYER_FIELDS, rule.action.player_options);
+    showPlayerOptions(RULE_PLAYER_FIELDS, playerGateActionOf(rule.action.type));
 
     // Select feedback channel radio button
     const feedbackChannelId = rule.action.notification_channel_id || '';
@@ -589,6 +600,8 @@ async function saveAASRule() {
             type: document.getElementById('aasRuleActionType').value,
             containers: containers,
             delay_seconds: safeInt(document.getElementById('aasRuleDelay').value, 0),
+            player_options: readPlayerOptions(RULE_PLAYER_FIELDS,
+                playerGateActionOf(document.getElementById('aasRuleActionType').value)),
             notification_channel_id: document.querySelector('input[name="aasFeedbackChannel"]:checked')?.value || null
         },
 
@@ -618,6 +631,7 @@ async function saveAASRule() {
             modal.hide();
             loadAASRules();
             showNotification(t('aas.rule_saved'), 'success');
+            if (result.warnings && result.warnings.length) showNotification(result.warnings.join(' '), 'warning');
         } else {
             alert(t('aas.error_saving_rule') + ': ' + result.error);
         }
@@ -670,6 +684,8 @@ async function saveContainerStateRule(ruleName, watchedContainers) {
             type: document.getElementById('aasRuleActionType').value,
             containers: [],
             delay_seconds: safeInt(document.getElementById('aasRuleDelay').value, 0),
+            player_options: readPlayerOptions(RULE_PLAYER_FIELDS,
+                playerGateActionOf(document.getElementById('aasRuleActionType').value)),
             notification_channel_id: document.querySelector('input[name="aasFeedbackChannel"]:checked')?.value || null
         },
         safety: {
@@ -690,6 +706,7 @@ async function saveContainerStateRule(ruleName, watchedContainers) {
             modal.hide();
             loadAASRules();
             showNotification(t('aas.rule_saved'), 'success');
+            if (result.warnings && result.warnings.length) showNotification(result.warnings.join(' '), 'warning');
         } else {
             alert(t('aas.error_saving_rule') + ': ' + result.error);
         }

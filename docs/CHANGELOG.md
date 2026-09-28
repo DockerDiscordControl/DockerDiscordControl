@@ -4,6 +4,25 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v3.0.2 - unreleased
+
+### ✨ Restart only when nobody plays
+
+- **A restart or stop can wait for an empty server.** Scheduled tasks and auto-actions take the
+  option "only when nobody plays": the action waits until the player count is 0, at most as long
+  as set (1-720 minutes, 120 by default), and then happens anyway - a daily restart stays
+  guaranteed. "Restart daily at 4, but only once nobody plays, at the latest at 6."
+- **A warning before it**, in the status and the control channels: "Valheim will restart in 10
+  minutes". Without waiting it comes that long before the scheduled moment (for an auto-action:
+  now, and the action that long later); with waiting only before the deadline, and only while
+  someone still plays - an empty server needs no warning.
+- **Where:** the task form and the task edit dialog in the panel, the rule editor of the
+  auto-actions, and in Discord two dropdowns under the confirmation of a new restart or stop task.
+- **A player count that cannot be read counts as empty** (decided with the operator). Whether it
+  can be read is checked when the task or rule is saved, and the panel says so there.
+- The task list shows the options next to the schedule. Rule warnings that were saved but never
+  shown (a protected container, for instance) now appear after saving.
+
 ## v3.0.1 - 2026-09-27
 
 GitHub's code scanner (CodeQL) read the v3.0 code for the first time when it reached `main` and

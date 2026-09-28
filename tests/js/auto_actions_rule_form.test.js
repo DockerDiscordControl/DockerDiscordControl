@@ -117,6 +117,7 @@ function makeEnv() {
   // with ddcJsArg since 2026-09-26.
   vm.runInContext(js('escape.js'), ctx);
   vm.runInContext(js('rule_targets.js'), ctx);
+  vm.runInContext(js('player_options.js'), ctx);  // v3.0.2 player options in the rule editor
   vm.runInContext(js('auto_actions.js'), ctx);
   ctx.loadAASRules = () => {};
   return { ctx, els, containers, groups, states, sent, alerts };

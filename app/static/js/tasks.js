@@ -1,3 +1,7 @@
+// The player-option fields of this form (v3.0.2, player_options.js)
+const EDIT_TASK_PLAYER_FIELDS = { PlayerGate: 'editTaskPlayerGate', WaitEmpty: 'editTaskWaitEmpty',
+    MaxWait: 'editTaskMaxWait', WarnMinutes: 'editTaskWarnMinutes' };
+
 /**
  * Task Management JavaScript Module
  * Handles all task-related functionality in the Web UI
@@ -39,6 +43,8 @@ class TaskManager {
         
         // Edit modal events
         document.getElementById('editTaskCycle')?.addEventListener('change', (e) => this.handleCycleChange(e));
+        document.getElementById('editTaskAction')?.addEventListener('change',
+            (e) => showPlayerOptions(EDIT_TASK_PLAYER_FIELDS, e.target.value));
         document.getElementById('saveTaskChanges')?.addEventListener('click', () => this.saveTaskChanges());
         
         // Modal reset on close
@@ -239,6 +245,10 @@ class TaskManager {
         if (details.day) parts.push(`${t('tasks.day_label')}: ${this.escapeHtml(details.day)}`);
         if (details.month) parts.push(`${t('tasks.month_label')}: ${this.escapeHtml(details.month)}`);
         if (details.year) parts.push(`${t('tasks.year_label')}: ${this.escapeHtml(details.year)}`);
+        // "only when empty" and the warning (v3.0.2, player_options.js)
+        const gate = describePlayerOptions(details.options, {
+            whenEmpty: t('tasks.when_empty_short'), warning: t('tasks.warning_short') });
+        if (gate) parts.push(this.escapeHtml(gate));
 
         return parts.join(', ') || t('tasks.no_details');
     }
@@ -375,7 +385,9 @@ class TaskManager {
         
         // Handle schedule details
         const scheduleDetails = task.schedule_details || {};
-        
+        fillPlayerOptions(EDIT_TASK_PLAYER_FIELDS, scheduleDetails.options);
+        showPlayerOptions(EDIT_TASK_PLAYER_FIELDS, task.action);
+
         if (task.cycle === 'cron') {
             this.setFormValue('editTaskCronString', scheduleDetails.cron_string);
             this.showElement('editTaskCronStringRow');
@@ -517,7 +529,8 @@ class TaskManager {
             if (result.success) {
                 // The service's own words when it has some: an edit can move the
                 // task to another timezone, and that used to happen in silence.
-                this.showSuccess(result.message || t('tasks.updated_successfully'));
+                const warnings = (result.warnings || []).join(' ');
+                this.showSuccess((result.message || t('tasks.updated_successfully')) + (warnings ? ' ⚠️ ' + warnings : ''));
                 setTimeout(() => {
                     this.editModal?.hide();
                     this.fetchTasks();
@@ -577,6 +590,9 @@ class TaskManager {
                 scheduleDetails.year = year;
             }
         }
+
+        // Always sent from the edit dialog, so switching the options off sticks
+        scheduleDetails.options = readPlayerOptions(EDIT_TASK_PLAYER_FIELDS, action);
 
         return {
             taskId,

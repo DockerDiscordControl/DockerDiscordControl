@@ -177,7 +177,7 @@ class ScheduledTask:
         'validation_errored',
         # True when container_name names a GROUP, not a container: the name
         # stays there so list, log and validation keep working.
-        'target_is_group'
+        'target_is_group', 'options'
     ]
 
     def __init__(self,
@@ -218,6 +218,7 @@ class ScheduledTask:
         self.month_val = None
         self.day_val = None # Day of month or weekday string (Mo, Di etc. or 1-31)
         self.weekday_val = None # 0-6 for internal calculation if cycle is weekly from discord
+        self.options = dict((schedule_details or {}).get('options') or {})  # services/scheduling/player_gate.py
 
         # New attributes for execution results
         self.last_run_success = last_run_success  # True/False when executed, None when not executed
@@ -494,9 +495,8 @@ class ScheduledTask:
             details["month"] = self.month_val
         if self.year_val:
             details["year"] = self.year_val
-
-        # If schedule_details is empty and it's not cron, could be a problem.
-        # But the Web UI fills it based on the cycle.
+        if self.options:  # "only when nobody plays", warning (services/scheduling/player_gate.py)
+            details["options"] = self.options
         return data
 
     @classmethod

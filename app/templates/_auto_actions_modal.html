@@ -393,6 +393,27 @@
                             </div>
                             <div class="form-text">{{ _t('web.aas.feedback_channels_hint') }}</div>
                         </div>
+                        {# v3.0.2: only when nobody plays, and a warning first (services/scheduling/player_gate.py).
+                           Restart, recreate and stop only - app/static/js/player_options.js shows it. #}
+                        <div class="col-12" id="aasRulePlayerGate" hidden>
+                            <div class="border border-secondary rounded p-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="aasRuleWaitEmpty">
+                                    <label class="form-check-label" for="aasRuleWaitEmpty">{{ _t('web.tasks.wait_empty_label') }}</label>
+                                </div>
+                                <div class="form-text">{{ _t('web.aas.wait_empty_help') }}</div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-md-4 d-flex flex-column">
+                                        <label for="aasRuleMaxWait" class="form-label small">{{ _t('web.tasks.max_wait_label') }}</label>
+                                        <input type="number" class="form-control mt-auto" id="aasRuleMaxWait" min="1" max="720" value="120">
+                                    </div>
+                                    <div class="col-md-4 d-flex flex-column">
+                                        <label for="aasRuleWarnMinutes" class="form-label small">{{ _t('web.tasks.warn_minutes_label') }}</label>
+                                        <input type="number" class="form-control mt-auto" id="aasRuleWarnMinutes" min="0" max="60" value="0">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Section: Safety -->

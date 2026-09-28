@@ -12,6 +12,42 @@ from app.auth import auth
 tasks_bp = Blueprint('tasks_bp', __name__, url_prefix='/tasks')
 
 
+# --- "Only when nobody plays" and the warning (v3.0.2, services/scheduling/player_gate.py).
+# Checked here, where the request arrives: the service class is at its size ceiling.
+
+def _refused_player_options(data: dict):
+    """None when the request's player options are fine (they are replaced by the checked
+    ones), else the reason - one of our own sentences, shown to the operator as it is."""
+    details = data.get('schedule_details')
+    if not isinstance(details, dict) or 'options' not in details:
+        return None
+    from services.scheduling.player_gate import normalize_options
+    options, error = normalize_options(details.get('options'), data.get('action') or '')
+    if error:
+        return error
+    details['options'] = options
+    return None
+
+
+def _player_warnings(task_data) -> list:
+    """Said when a task waits for an empty server whose player count cannot be read.
+
+    Decided with the operator (2026-09-28): such a count counts as empty, so the task
+    then runs at its time - the operator learns it here, not at 4 a.m.
+    """
+    if not isinstance(task_data, dict):
+        return []
+    options = (task_data.get('schedule_details') or {}).get('options') or {}
+    if not options.get('wait_for_empty'):
+        return []
+    from services.scheduling.player_gate import query_problems
+    problems = query_problems(task_data.get('container'), bool(task_data.get('target_is_group')))
+    if not problems:
+        return []
+    return ["The player count cannot be read, so the server counts as empty and the task "
+            "runs at its time: " + "; ".join(problems)]
+
+
 @tasks_bp.route('/add', methods=['POST'])
 @auth.login_required
 def add_task():
@@ -29,6 +65,9 @@ def add_task():
             return jsonify({"error": "Container is required"}), 400
         if not data.get('action'):
             return jsonify({"error": "Action is required"}), 400
+        refused = _refused_player_options(data)
+        if refused:
+            return jsonify({"error": refused}), 400
 
         # Use TaskManagementService for business logic
         from services.web.task_management_service import get_task_management_service, AddTaskRequest
@@ -49,10 +88,10 @@ def add_task():
         result = service.add_task(request_obj)
 
         if result.success:
-            return jsonify({
-                "message": result.message,
-                "task": result.task_data
-            }), 201
+            answer = {"message": result.message, "task": result.task_data}
+            if _player_warnings(result.task_data):
+                answer["warnings"] = _player_warnings(result.task_data)
+            return jsonify(answer), 201
         else:
             # Log detailed error but return generic message to user
             current_app.logger.error(f"Failed to add task: {result.error}")
@@ -282,6 +321,9 @@ def edit_task_route(task_id):
             data = request.get_json()
             if not data:
                 return jsonify({"success": False, "error": "No data provided"}), 400
+            refused = _refused_player_options(data)
+            if refused:
+                return jsonify({"success": False, "error": refused}), 400
 
             request_obj = EditTaskRequest(
                 task_id=task_id,
@@ -293,11 +335,10 @@ def edit_task_route(task_id):
             result = service.edit_task(request_obj)
 
             if result.success:
-                return jsonify({
-                    "success": True,
-                    "message": result.message,
-                    "task": result.task_data
-                }), 200
+                answer = {"success": True, "message": result.message, "task": result.task_data}
+                if _player_warnings(result.task_data):
+                    answer["warnings"] = _player_warnings(result.task_data)
+                return jsonify(answer), 200
             else:
                 # Log detailed error but return generic message to user
                 current_app.logger.error(f"Failed to update task: {result.error}")

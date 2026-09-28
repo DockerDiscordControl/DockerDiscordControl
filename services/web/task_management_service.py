@@ -996,6 +996,8 @@ class TaskManagementService:
             # Update schedule details
             if 'schedule_details' in data:
                 self._update_task_schedule_details(task, data['schedule_details'])
+                if 'options' in data['schedule_details']:  # checked by the route (v3.0.2)
+                    task.options = data['schedule_details']['options']
 
             # Update timezone if provided. The edit form sends the timezone the
             # PANEL is set to, not the one the task was created in, so opening an

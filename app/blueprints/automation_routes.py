@@ -33,6 +33,12 @@ def get_rules():
     rules = config_service.get_rules()
     return jsonify({'rules': [r.to_dict() for r in rules]})
 
+def _rule_warnings(rule) -> list:
+    metadata = getattr(rule, 'metadata', None)
+    warnings = metadata.get('validation_warnings') if isinstance(metadata, dict) else None
+    return list(warnings) if isinstance(warnings, list) else []
+
+
 @automation_bp.route('/api/automation/rules', methods=['POST'])
 @auth.login_required
 def create_rule():
@@ -42,7 +48,12 @@ def create_rule():
     
     result = config_service.add_rule(data)
     if result.success:
-        return jsonify({'success': True, 'rule': result.data.to_dict()})
+        # The warnings were written into the rule and shown nowhere (protected
+        # containers; since v3.0.2 also an unreadable player count).
+        answer = {'success': True, 'rule': result.data.to_dict()}
+        if _rule_warnings(result.data):
+            answer['warnings'] = _rule_warnings(result.data)
+        return jsonify(answer)
     return jsonify({'success': False, 'error': result.error}), 400
 
 @automation_bp.route('/api/automation/rules/<rule_id>', methods=['PUT'])
@@ -54,7 +65,8 @@ def update_rule(rule_id):
     
     result = config_service.update_rule(rule_id, data)
     if result.success:
-        return jsonify({'success': True})
+        warnings = _rule_warnings(config_service.get_rule(rule_id))
+        return jsonify({'success': True, 'warnings': warnings} if warnings else {'success': True})
     return jsonify({'success': False, 'error': result.error}), 400
 
 @automation_bp.route('/api/automation/rules/<rule_id>', methods=['DELETE'])

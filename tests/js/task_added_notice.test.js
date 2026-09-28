@@ -33,6 +33,15 @@ const cases = {
     assert.strictEqual(notice.level, 'alert-success');
     assert.ok(notice.text.startsWith(ADDED), notice.text);
   },
+  'a warning sent along turns the line yellow and is shown'() {
+    // v3.0.2: a task waiting for an empty server whose player count cannot be read.
+    const notice = taskAddedNotice({
+      message: 'Task added successfully', task: { id: 'a', is_active: true },
+      warnings: ['The player count cannot be read, so the server counts as empty: Valheim: off'],
+    }, ADDED);
+    assert.strictEqual(notice.level, 'alert-warning');
+    assert.ok(notice.text.includes('player count cannot be read'), notice.text);
+  },
   'a body without a task is not treated as switched off'() {
     assert.strictEqual(taskAddedNotice({}, ADDED).level, 'alert-success');
     assert.strictEqual(taskAddedNotice(null, ADDED).level, 'alert-success');

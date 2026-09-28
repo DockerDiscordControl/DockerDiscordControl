@@ -104,4 +104,5 @@ def test_the_form_shows_what_the_server_said():
     result = subprocess.run([node, str(root / "tests" / "js" / "task_added_notice.test.js")],
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.count("ok   - ") == 4, result.stdout
+    # 5 since v3.0.2: a warning sent along (player count unreadable) turns the line yellow
+    assert result.stdout.count("ok   - ") == 5, result.stdout

@@ -145,6 +145,12 @@ def _expected(tmp_path, monkeypatch):
         pairs[f"cooldown_{field}"] = value
     for field, value in spam.button_cooldowns.items():
         pairs[f"button_{field}"] = value
+    # v3.0.2 player options, in the task form, the task edit dialog and the rule editor:
+    # the wait a switched-on option takes when none is given, and "no warning"
+    from services.scheduling.player_gate import DEFAULT_MAX_WAIT_MINUTES
+    for prefix in ("task", "editTask", "aasRule"):
+        pairs[f"{prefix}MaxWait"] = DEFAULT_MAX_WAIT_MINUTES
+        pairs[f"{prefix}WarnMinutes"] = 0
     return pairs
 
 

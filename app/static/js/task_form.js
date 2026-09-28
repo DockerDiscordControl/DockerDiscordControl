@@ -9,6 +9,10 @@
 // _container_groups.html already hands DDC_GROUP_TEXTS to container_groups.js.
 // A translated string belongs to the catalogue; the code that shows it does not.
 
+// The player-option fields of this form (v3.0.2, player_options.js)
+const TASK_PLAYER_FIELDS = { PlayerGate: 'taskPlayerGate', WaitEmpty: 'taskWaitEmpty',
+    MaxWait: 'taskMaxWait', WarnMinutes: 'taskWarnMinutes' };
+
 // Function to get the current date/time
 function getCurrentDateTime() {
     const now = new Date();
@@ -117,6 +121,11 @@ function populateDateTimeFields() {
 }
 
 // Event listener for changes in the cycle field
+// Restart and stop can wait for an empty server and warn first (player_options.js)
+document.getElementById('taskAction').addEventListener('change', function() {
+    showPlayerOptions(TASK_PLAYER_FIELDS, this.value);
+});
+
 document.getElementById('taskCycle').addEventListener('change', function() {
     // Show/hide Cron field based on selection
     const cronRow = document.getElementById('taskCronStringRow');
@@ -150,6 +159,10 @@ function resetTaskForm() {
     
     // Hide cron field
     document.getElementById('taskCronStringRow').style.display = 'none';
+
+    // Player options back to off, and hidden until restart or stop is chosen
+    fillPlayerOptions(TASK_PLAYER_FIELDS, {});
+    showPlayerOptions(TASK_PLAYER_FIELDS, '');
     
     // Reset feedback message
     document.getElementById('responseMessage').textContent = '';
@@ -256,6 +269,9 @@ document.getElementById('createTaskButton').addEventListener('click', function()
             data.schedule_details.year = year;
         }
     }
+
+    const playerOptions = readPlayerOptions(TASK_PLAYER_FIELDS, action);
+    if (Object.keys(playerOptions).length) data.schedule_details.options = playerOptions;
 
     const responseMessageDiv = document.getElementById('responseMessage');
     responseMessageDiv.textContent = '';
