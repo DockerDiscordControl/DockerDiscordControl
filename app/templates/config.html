@@ -329,7 +329,12 @@
     {# Modals #}
     {# The group editor is a dialog now, opened by the + in the bulk bar. #}
     {% include '_container_groups.html' %}
-    {% include 'tasks/_edit_modal.html' %}
+    {# With the container list, like the form and the list above: without it the
+       dialog's container field had no options, stayed empty for every task, and
+       the dialog could not save (operator's screen, 2026-09-28). #}
+    {% with active_containers=active_container_names %}
+        {% include 'tasks/_edit_modal.html' %}
+    {% endwith %}
     {% include '_spam_protection_modal.html' %}
     {% include '_token_security_modal.html' %}
     {% include '_secure_token_modal.html' %}

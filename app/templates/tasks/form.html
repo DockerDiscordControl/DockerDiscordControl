@@ -56,8 +56,43 @@
             <input type="time" class="form-control mt-auto" id="taskTime" name="time" required>
 
         </div>
+        <!-- Date fields in one row -->
+        <div class="col-md-4 d-flex flex-column" id="dateFieldsContainer">
+            <label class="form-label">{{ _t('web.tasks.date_label') }}</label>
+            {# Help above the fields, like cycle and time beside it - below them, the
+               fields stood higher than their neighbours #}
+            <div class="form-text">{{ _t('web.tasks.date_help') }}</div>
+            <div class="row g-2 mt-auto">
+                <div class="col-4" id="dayFieldContainer">
+                    <input type="text" class="form-control" id="taskDay" name="day" placeholder="{{ _t('web.tasks.day_placeholder') }}">
+                    <select class="form-control" id="taskWeekday" name="weekday" style="display: none;">
+                        <option value="Mon">{{ _t('web.tasks.monday') }}</option>
+                        <option value="Tue">{{ _t('web.tasks.tuesday') }}</option>
+                        <option value="Wed">{{ _t('web.tasks.wednesday') }}</option>
+                        <option value="Thu">{{ _t('web.tasks.thursday') }}</option>
+                        <option value="Fri">{{ _t('web.tasks.friday') }}</option>
+                        <option value="Sat">{{ _t('web.tasks.saturday') }}</option>
+                        <option value="Sun">{{ _t('web.tasks.sunday') }}</option>
+                    </select>
+                </div>
+                <div class="col-4">
+                    <input type="text" class="form-control" id="taskMonth" name="month" placeholder="{{ _t('web.tasks.month_placeholder') }}">
+                </div>
+                <div class="col-4">
+                    <input type="number" class="form-control" id="taskYear" name="year" placeholder="{{ _t('web.tasks.year_placeholder') }}" min="2025">
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-12 d-flex flex-column" id="taskCronStringRow" style="display: none !important;">
+            <label for="taskCronString" class="form-label">{{ _t('web.tasks.cron_string_label') }}</label>
+            <div class="form-text">{{ _t('web.tasks.cron_string_help') }}</div>
+            <input type="text" class="form-control mt-auto" id="taskCronString" name="cron_string">
+
+        </div>
         {# v3.0.2: only when nobody plays, and a warning before (services/scheduling/player_gate.py).
-           Restart and stop only - app/static/js/player_options.js shows it for those. #}
+           Restart and stop only - app/static/js/player_options.js shows it for those.
+           Below the schedule: in the middle of its row it pushed the date fields down. #}
         <div class="col-12" id="taskPlayerGate" hidden>
             <div class="border border-secondary rounded p-2">
                 <div class="form-check">
@@ -78,38 +113,6 @@
             </div>
         </div>
         
-        <!-- Date fields in one row -->
-        <div class="col-md-4" id="dateFieldsContainer">
-            <label class="form-label">{{ _t('web.tasks.date_label') }}</label>
-            <div class="row g-2">
-                <div class="col-4" id="dayFieldContainer">
-                    <input type="text" class="form-control" id="taskDay" name="day" placeholder="{{ _t('web.tasks.day_placeholder') }}">
-                    <select class="form-control" id="taskWeekday" name="weekday" style="display: none;">
-                        <option value="Mon">{{ _t('web.tasks.monday') }}</option>
-                        <option value="Tue">{{ _t('web.tasks.tuesday') }}</option>
-                        <option value="Wed">{{ _t('web.tasks.wednesday') }}</option>
-                        <option value="Thu">{{ _t('web.tasks.thursday') }}</option>
-                        <option value="Fri">{{ _t('web.tasks.friday') }}</option>
-                        <option value="Sat">{{ _t('web.tasks.saturday') }}</option>
-                        <option value="Sun">{{ _t('web.tasks.sunday') }}</option>
-                    </select>
-                </div>
-                <div class="col-4">
-                    <input type="text" class="form-control" id="taskMonth" name="month" placeholder="{{ _t('web.tasks.month_placeholder') }}">
-                </div>
-                <div class="col-4">
-                    <input type="number" class="form-control" id="taskYear" name="year" placeholder="{{ _t('web.tasks.year_placeholder') }}" min="2025">
-                </div>
-            </div>
-            <div class="form-text">{{ _t('web.tasks.date_help') }}</div>
-        </div>
-        
-        <div class="col-md-12 d-flex flex-column" id="taskCronStringRow" style="display: none;">
-            <label for="taskCronString" class="form-label">{{ _t('web.tasks.cron_string_label') }}</label>
-            <div class="form-text">{{ _t('web.tasks.cron_string_help') }}</div>
-            <input type="text" class="form-control mt-auto" id="taskCronString" name="cron_string">
-
-        </div>
         
         <!-- Hidden field for server-side timezone -->
         <input type="hidden" id="serverTimezone" name="timezone_str" value="{{ timezone_str }}">

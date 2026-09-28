@@ -128,12 +128,10 @@ document.getElementById('taskAction').addEventListener('change', function() {
 
 document.getElementById('taskCycle').addEventListener('change', function() {
     // Show/hide Cron field based on selection
+    // !important, and flex: the row is d-flex, which is !important itself and beat
+    // a plain style.display - it showed for every cycle (2026-09-28)
     const cronRow = document.getElementById('taskCronStringRow');
-    if (this.value === 'cron') {
-        cronRow.style.display = 'block';
-    } else {
-        cronRow.style.display = 'none';
-    }
+    cronRow.style.setProperty('display', this.value === 'cron' ? 'flex' : 'none', 'important');
     
     // Pre-fill date/time fields and enable/disable accordingly
     populateDateTimeFields();
@@ -158,7 +156,7 @@ function resetTaskForm() {
     document.getElementById('taskYear').disabled = false;
     
     // Hide cron field
-    document.getElementById('taskCronStringRow').style.display = 'none';
+    document.getElementById('taskCronStringRow').style.setProperty('display', 'none', 'important');
 
     // Player options back to off, and hidden until restart or stop is chosen
     fillPlayerOptions(TASK_PLAYER_FIELDS, {});

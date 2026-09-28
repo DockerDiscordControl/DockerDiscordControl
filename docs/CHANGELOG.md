@@ -86,6 +86,17 @@ All notable changes to DockerDiscordControl will be documented in this file.
   does not count as a visit. The first page after a pause fetches a fresh list itself (until now a
   list up to five minutes old could be handed out as it was).
 
+### 🗓️ The task forms, straightened out
+
+- **Editing a task works again.** Since the edit dialog moved into its own file (2026-09-23) it
+  was included without the list of containers, so its container field stayed empty for every
+  task and the dialog would not save. It shows the task's container again.
+- **The cron line only shows for the cron cycle.** It was hidden by an inline style that
+  Bootstrap's `d-flex` (which is `!important`) always beat, in the new-task form and the dialog.
+- **The date fields line up** with cycle and time: their help text stands above them like the
+  others'. The "only when nobody plays" options for a restart or stop sit below the schedule, not
+  in the middle of it.
+
 ### 🪵 Two log lines that said something else
 
 - **"Every minute" updated every two minutes.** The message edits tick once a minute, and the

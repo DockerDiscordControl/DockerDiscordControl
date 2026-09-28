@@ -430,14 +430,17 @@ class TaskManager {
         }
     }
 
+    // Set !important: Bootstrap's d-* classes are, and a plain style.display never won
+    // against them - the cron row (d-flex) stayed visible for every cycle
+    // (operator's screen, 2026-09-28). A d-flex element is shown as flex again.
     showElement(elementId) {
         const element = document.getElementById(elementId);
-        if (element) element.style.display = 'block';
+        if (element) element.style.setProperty('display', element.classList.contains('d-flex') ? 'flex' : 'block', 'important');
     }
 
     hideElement(elementId) {
         const element = document.getElementById(elementId);
-        if (element) element.style.display = 'none';
+        if (element) element.style.setProperty('display', 'none', 'important');
     }
 
     disableTimeFields(disabled) {
