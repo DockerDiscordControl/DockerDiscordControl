@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Konteiner töötab, mänguserver selles ei vasta",
   "Shows container details and, on a game server, who plays": "Näitab konteineri üksikasju ja mänguserveris, kes mängib",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC uuendati versioonile {version}. Mis on uut, on kirjas väljalaskemärkmetes:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC uuendati versioonile {version}. Mis on uut, on kirjas väljalaskemärkmetes:",
+  "Full release notes:": "Täielikud väljalaskemärkmed:"
 }

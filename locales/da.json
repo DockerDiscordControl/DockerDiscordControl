@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Containeren kører, spilserveren i den svarer ikke",
   "Shows container details and, on a game server, who plays": "Viser containerdetaljer og, på en spilserver, hvem der spiller",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC er opdateret til version {version}. Det nye står i udgivelsesnoterne:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC er opdateret til version {version}. Det nye står i udgivelsesnoterne:",
+  "Full release notes:": "Hele udgivelsesnoterne:"
 }

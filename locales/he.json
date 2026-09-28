@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "הקונטיינר פועל, שרת המשחק בתוכו לא עונה",
   "Shows container details and, on a game server, who plays": "מציג פרטי קונטיינר, ובשרת משחק מי משחק",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC עודכן לגרסה {version}. מה חדש – בהערות השחרור:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC עודכן לגרסה {version}. מה חדש – בהערות השחרור:",
+  "Full release notes:": "הערות השחרור המלאות:"
 }

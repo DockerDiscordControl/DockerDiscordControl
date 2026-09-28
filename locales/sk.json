@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Kontajner beží, herný server v ňom neodpovedá",
   "Shows container details and, on a game server, who plays": "Zobrazí detaily kontajnera a pri hernom serveri, kto hrá",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC bol aktualizovaný na verziu {version}. Čo je nové, nájdete v poznámkach k vydaniu:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC bol aktualizovaný na verziu {version}. Čo je nové, nájdete v poznámkach k vydaniu:",
+  "Full release notes:": "Úplné poznámky k vydaniu:"
 }

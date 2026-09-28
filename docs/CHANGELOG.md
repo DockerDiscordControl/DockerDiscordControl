@@ -110,7 +110,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 - After an update DDC posts one notice into each control channel. It listed "new features" typed
   into it in early 2025 - spam protection, the /info command, timezones - and would have announced
-  them again for this release. It now names the version and links its release notes.
+  them again for this release. It now shows the release notes of the version that was installed,
+  read from GitHub once and laid out for Discord (the notes are hard-wrapped, which Discord would
+  show ragged), cut at a paragraph if they are long, with a link to the full text. Without an
+  answer from GitHub it names the version and links the notes.
 
 ### 🪵 Two log lines that said something else
 

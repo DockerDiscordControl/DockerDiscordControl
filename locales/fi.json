@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Kontti on käynnissä, pelipalvelin siinä ei vastaa",
   "Shows container details and, on a game server, who plays": "Näyttää kontin tiedot ja pelipalvelimella, kuka pelaa",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC on päivitetty versioon {version}. Uutuudet löytyvät julkaisutiedoista:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC on päivitetty versioon {version}. Uutuudet löytyvät julkaisutiedoista:",
+  "Full release notes:": "Koko julkaisutiedot:"
 }

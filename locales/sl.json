@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Vsebnik teče, strežnik igre v njem ne odgovarja",
   "Shows container details and, on a game server, who plays": "Prikaže podrobnosti vsebnika in na strežniku igre, kdo igra",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC je posodobljen na različico {version}. Novosti so v opombah ob izdaji:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC je posodobljen na različico {version}. Novosti so v opombah ob izdaji:",
+  "Full release notes:": "Celotne opombe ob izdaji:"
 }

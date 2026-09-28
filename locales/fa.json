@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "کانتینر اجرا می‌شود، اما سرور بازی درون آن پاسخ نمی‌دهد",
   "Shows container details and, on a game server, who plays": "جزئیات کانتینر و در سرورهای بازی، بازیکنان را نشان می‌دهد",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC به نسخه {version} به‌روز شد. تغییرات جدید در یادداشت‌های انتشار آمده است:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC به نسخه {version} به‌روز شد. تغییرات جدید در یادداشت‌های انتشار آمده است:",
+  "Full release notes:": "یادداشت‌های کامل انتشار:"
 }

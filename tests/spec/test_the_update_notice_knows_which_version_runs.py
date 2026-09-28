@@ -26,6 +26,14 @@ the /info command, the timezones - and would have announced them as new for
 v3.1.0 in every control channel. It now names the version and links its release
 notes, nothing that can go out of date. COUNTER-CHECK: with the old embed back,
 the text case went red.
+
+THE NOTES THEMSELVES, same day (operator: load them after the update, once per
+version). The notice reads the installed version's release notes from GitHub
+and shows them; without an answer - a build of develop, no internet - it links
+them as above. The notes are hard-wrapped at ~95 characters, which GitHub joins
+and Discord does not, so they are reflowed. COUNTER-CHECK: without the reflow
+the paragraph case went red; with the notes ignored, the notes case did; with
+the cut removed, the length case did.
 """
 
 import json
@@ -88,3 +96,75 @@ def test_the_notice_names_the_version_and_links_its_notes(notifier):
     assert not embed.fields, "a list of features in the notice goes out of date"
     for stale in ("Spam Protection", "/info command", "Timezone"):
         assert stale not in embed.description, f"the notice still advertises {stale!r}"
+
+
+NOTES = """# DDC v3.0.1: Security patch
+
+When v3.0.0 reached `main`, GitHub's code scanner (CodeQL) read its code for the first time and
+reported 25 places, and Docker Scout reported one package in the image.
+
+---
+
+## Security
+
+- **A login link can no longer send the browser to another host.** After the login and the
+  second factor, DDC returns to the page given in `next`.
+- **The group list no longer shows a raw error text**, which could name a file path.
+
+```
+docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
+```
+"""
+
+
+def test_the_notes_read_as_paragraphs_in_discord():
+    from services.infrastructure.update_notifier import notes_for_discord
+    text = notes_for_discord(NOTES)
+    assert ("time and reported 25 places" in text), "a hard-wrapped paragraph stayed broken"
+    assert "next`.\n- **The group list" in text, "two list items ran into one"
+    assert "the page given in `next`" in text and "  second factor" not in text
+    assert "---" not in text and "## Security" in text
+    assert "```\ndocker pull dockerdiscordcontrol/dockerdiscordcontrol:latest\n```" in text
+
+
+def test_the_notice_shows_the_notes_and_links_them(notifier):
+    embed = notifier.create_update_embed(NOTES)
+    assert "## Security" in embed.description
+    assert embed.description.rstrip().endswith("releases/tag/v3.0.0")
+    assert "Full release notes:" in embed.description
+
+
+def test_long_notes_are_cut_at_a_paragraph(notifier):
+    long_notes = "\n\n".join(f"Paragraph {i}. " + "word " * 60 for i in range(40))
+    embed = notifier.create_update_embed(long_notes)
+    assert len(embed.description) <= 4096, "Discord refuses a description this long"
+    assert "…" in embed.description and "releases/tag/v3.0.0" in embed.description
+    last = embed.description.split("…")[0].rstrip().rsplit("\n", 1)[-1]
+    assert last.endswith("word"), f"cut inside a paragraph: {last[-40:]!r}"
+
+
+async def test_without_an_answer_from_github_the_notice_links_the_notes(notifier, monkeypatch):
+    import services.infrastructure.update_notifier as module
+    posted = []
+
+    class _Channel:
+        async def send(self, embed):
+            posted.append(embed)
+
+    async def _no_notes(version, timeout=10.0):
+        return None
+    monkeypatch.setattr(module, "fetch_release_notes", _no_notes)
+    monkeypatch.setattr(module, "load_config", lambda: {"channel_permissions": {
+        "111111111111111111": {"commands": {"control": True}}}})
+    bot = type("Bot", (), {"get_channel": lambda self, cid: _Channel()})()
+    assert await notifier.send_update_notification(bot) is True
+    assert "What is new is in the release notes" in posted[0].description
+
+    async def _notes(version, timeout=10.0):
+        return NOTES
+    monkeypatch.setattr(module, "fetch_release_notes", _notes)
+    monkeypatch.setenv("DDC_VERSION", "3.0.1")
+    fresh = module.UpdateNotifier()
+    assert await fresh.send_update_notification(bot) is True
+    assert "## Security" in posted[1].description
+    assert await fresh.send_update_notification(bot) is False, "shown twice for one version"

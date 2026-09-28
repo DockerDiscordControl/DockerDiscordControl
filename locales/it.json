@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Il container è attivo, il server di gioco non risponde",
   "Shows container details and, on a game server, who plays": "Mostra i dettagli del container e, su un server di gioco, chi gioca",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC è stato aggiornato alla versione {version}. Le novità sono nelle note di rilascio:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC è stato aggiornato alla versione {version}. Le novità sono nelle note di rilascio:",
+  "Full release notes:": "Note di rilascio complete:"
 }

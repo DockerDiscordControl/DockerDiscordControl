@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "कंटेनर चल रहा है, उसमें गेम सर्वर जवाब नहीं दे रहा",
   "Shows container details and, on a game server, who plays": "कंटेनर विवरण और गेम सर्वर पर कौन खेल रहा है दिखाता है",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC को संस्करण {version} पर अपडेट किया गया। नया क्या है, रिलीज़ नोट्स में देखें:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC को संस्करण {version} पर अपडेट किया गया। नया क्या है, रिलीज़ नोट्स में देखें:",
+  "Full release notes:": "पूरे रिलीज़ नोट्स:"
 }

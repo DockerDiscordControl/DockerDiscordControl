@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "コンテナは動作中ですが、ゲームサーバーが応答しません",
   "Shows container details and, on a game server, who plays": "コンテナの詳細と、ゲームサーバーではプレイ中の人を表示します",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC がバージョン {version} に更新されました。新機能はリリースノートをご覧ください:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC がバージョン {version} に更新されました。新機能はリリースノートをご覧ください:",
+  "Full release notes:": "リリースノート全文:"
 }

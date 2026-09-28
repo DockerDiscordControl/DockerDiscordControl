@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Konteyner çalışıyor, içindeki oyun sunucusu yanıt vermiyor",
   "Shows container details and, on a game server, who plays": "Konteyner ayrıntılarını ve oyun sunucusunda kimin oynadığını gösterir",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC {version} sürümüne güncellendi. Yenilikler sürüm notlarında:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC {version} sürümüne güncellendi. Yenilikler sürüm notlarında:",
+  "Full release notes:": "Tüm sürüm notları:"
 }

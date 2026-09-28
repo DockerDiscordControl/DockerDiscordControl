@@ -12,6 +12,7 @@ Update Notification System - Shows new features after updates
 import asyncio
 import json
 import os
+import re
 from services.config.config_service import load_config
 import logging
 import discord
@@ -23,6 +24,81 @@ from cogs.translation_manager import _
 
 # Where a version's release notes are - the notice links them instead of listing features
 RELEASE_NOTES_URL = "https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v{version}"
+# The same notes as text, read once when the notice for a version goes out (operator,
+# 2026-09-28: show the notes of the version that was installed, once per version)
+RELEASE_API_URL = "https://api.github.com/repos/DockerDiscordControl/DockerDiscordControl/releases/tags/v{version}"
+# An embed description holds 4096 characters; room is left for the link under the notes
+NOTES_LIMIT = 3800
+
+
+async def fetch_release_notes(version: str, timeout: float = 10.0) -> Optional[str]:
+    """The release notes of `version` from GitHub, or None.
+
+    None when the version has no release there (a build of develop), GitHub
+    cannot be reached, or it answers anything but the release. The notice then
+    links the notes instead of showing them. Never raises.
+    """
+    import aiohttp
+    if not version:
+        return None
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+            async with session.get(RELEASE_API_URL.format(version=version),
+                                   headers={"Accept": "application/vnd.github+json"}) as answer:
+                if answer.status != 200:
+                    logger.info(f"Release notes for v{version}: GitHub answered {answer.status}")
+                    return None
+                data = await answer.json(content_type=None)
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as e:
+        logger.info(f"Release notes for v{version} not reachable: {e}")
+        return None
+    body = str((data or {}).get("body") or "").strip() if isinstance(data, dict) else ""
+    return body or None
+
+
+def notes_for_discord(markdown: str) -> str:
+    """GitHub release notes as Discord shows them well.
+
+    The notes are written hard-wrapped at about 95 characters. GitHub joins
+    those lines into paragraphs; Discord breaks at every one, so a paragraph
+    came out ragged. Lines are joined back into their paragraph or list item;
+    headings, list items, quotes, tables and code blocks start their own line,
+    and a "---" rule, which Discord shows as three dashes, becomes a gap.
+    """
+    out, fenced = [], False
+    for raw in markdown.replace("\r\n", "\n").split("\n"):
+        line = raw.rstrip()
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            fenced = not fenced
+            out.append(line)
+            continue
+        if fenced:
+            out.append(line)
+            continue
+        if stripped in ("---", "***", "___"):
+            out.append("")
+            continue
+        starts_own_line = (not stripped or stripped.startswith(("#", "- ", "* ", "> ", "|"))
+                           or re.match(r"\d+\. ", stripped))
+        previous = out[-1].strip() if out else ""
+        if not starts_own_line and previous and not previous.startswith(("#", "```", "|")):
+            out[-1] = out[-1] + " " + stripped
+        else:
+            out.append(stripped if stripped.startswith(("- ", "* ")) else line)
+    text = "\n".join(out)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def _cut(text: str, limit: int) -> str:
+    """At most `limit` characters, cut at a paragraph (or a line) with an ellipsis."""
+    if len(text) <= limit:
+        return text
+    head = text[:limit]
+    cut = head.rfind("\n\n")
+    if cut < limit // 2:
+        cut = head.rfind("\n")
+    return (head[:cut] if cut > 0 else head).rstrip() + "\n\n…"
 
 logger = get_module_logger('update_notifier')
 
@@ -146,7 +222,7 @@ class UpdateNotifier:
                      self.status_file)
         return False
 
-    def create_update_embed(self) -> discord.Embed:
+    def create_update_embed(self, notes: Optional[str] = None) -> discord.Embed:
         """The notice a new version posts once in each control channel: the version and
         where its release notes are - nothing that can go out of date.
 
@@ -156,10 +232,16 @@ class UpdateNotifier:
         posted them into the operator's control channel once more.
         """
         url = RELEASE_NOTES_URL.format(version=self.current_version)
+        if notes:
+            # The notes themselves (fetch_release_notes), laid out for Discord
+            description = (_cut(notes_for_discord(notes), NOTES_LIMIT)
+                           + "\n\n" + _("Full release notes:") + f" {url}")
+        else:
+            description = _("DDC has been updated to version {version}. What is new is in the "
+                            "release notes:").format(version=self.current_version) + f"\n{url}"
         embed = discord.Embed(
             title=_("🎉 DockerDiscordControl v{version}").format(version=self.current_version),
-            description=_("DDC has been updated to version {version}. What is new is in the "
-                          "release notes:").format(version=self.current_version) + f"\n{url}",
+            description=description,
             url=url,
             color=0x00ff00
         )
@@ -183,7 +265,8 @@ class UpdateNotifier:
                 self.mark_notification_shown()
                 return False
 
-            embed = self.create_update_embed()
+            # The notes of this version, read once per notice; without them the link
+            embed = self.create_update_embed(await fetch_release_notes(self.current_version))
             sent_count = 0
             told = []
 

@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Το container τρέχει, ο διακομιστής παιχνιδιού μέσα δεν απαντά",
   "Shows container details and, on a game server, who plays": "Εμφανίζει λεπτομέρειες container και, σε διακομιστή παιχνιδιού, ποιος παίζει",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "Το DDC ενημερώθηκε στην έκδοση {version}. Τα νέα θα τα βρείτε στις σημειώσεις έκδοσης:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "Το DDC ενημερώθηκε στην έκδοση {version}. Τα νέα θα τα βρείτε στις σημειώσεις έκδοσης:",
+  "Full release notes:": "Πλήρεις σημειώσεις έκδοσης:"
 }

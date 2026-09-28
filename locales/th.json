@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "คอนเทนเนอร์ทำงาน แต่เซิร์ฟเวอร์เกมข้างในไม่ตอบ",
   "Shows container details and, on a game server, who plays": "แสดงรายละเอียดคอนเทนเนอร์ และผู้ที่กำลังเล่นบนเซิร์ฟเวอร์เกม",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC ได้อัปเดตเป็นเวอร์ชัน {version} แล้ว ดูสิ่งใหม่ในบันทึกประจำรุ่น:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC ได้อัปเดตเป็นเวอร์ชัน {version} แล้ว ดูสิ่งใหม่ในบันทึกประจำรุ่น:",
+  "Full release notes:": "บันทึกประจำรุ่นฉบับเต็ม:"
 }

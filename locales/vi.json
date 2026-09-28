@@ -1659,5 +1659,6 @@
   "Container runs, the game server in it does not answer": "Container đang chạy, máy chủ game bên trong không phản hồi",
   "Shows container details and, on a game server, who plays": "Hiển thị chi tiết container và, với máy chủ game, ai đang chơi",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
-  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC đã được cập nhật lên phiên bản {version}. Xem điểm mới trong ghi chú phát hành:"
+  "DDC has been updated to version {version}. What is new is in the release notes:": "DDC đã được cập nhật lên phiên bản {version}. Xem điểm mới trong ghi chú phát hành:",
+  "Full release notes:": "Ghi chú phát hành đầy đủ:"
 }
