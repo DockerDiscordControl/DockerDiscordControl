@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} хв",
   "{hours} h {minutes} min": "{hours} год {minutes} хв",
   "The player list cannot be read right now.": "Список гравців зараз не вдається прочитати.",
-  "Nobody is playing right now.": "Зараз ніхто не грає.",
   "This game does not send player names.": "Ця гра не надсилає імена гравців.",
   "+{count} more": "+{count} ще",
   "Password": "Пароль",

@@ -23,6 +23,7 @@ time zone and language.
 """
 
 import asyncio
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 import discord
@@ -100,7 +101,7 @@ def format_players(players) -> str:
     else:
         head = "👥 **" + _("Players online: {count}").format(count=online) + "**"
     if not online:
-        return head + "\n" + _("Nobody is playing right now.")
+        return head  # "0/10" says it; a line "nobody is playing" repeated it
     if not players.names_given:
         return head + "\n" + _("This game does not send player names.")
     lines = [head] + [f"• {discord.utils.escape_markdown(name)}{_time_on_server(seconds)}"
@@ -188,39 +189,91 @@ def format_facts(facts, details: bool) -> List[str]:
         elif facts.exit_code is not None and facts.exit_code not in ORDINARY_EXIT:
             line += " · " + _("exit code {code}").format(code=facts.exit_code)
         lines.append(line)
-    if not details:
-        return lines
-    image = [discord.utils.escape_markdown(facts.version)] if facts.version else []
-    if facts.image_created:
-        image.append(_("image from {date}").format(date=_when(facts.image_created, "D")))
-    if image:
-        lines.append("📦 " + " · ".join(image))
-    lines.append("🔁 " + _restart_policy(facts.restart_policy))
-    if facts.memory_limit:
+    if details:
+        image = [discord.utils.escape_markdown(facts.version)] if facts.version else []
+        if facts.image_created:
+            image.append(_("image from {date}").format(date=_when(facts.image_created, "D")))
+        if image:
+            lines.append("📦 " + " · ".join(image))
+    # One line for restarts and what restarts it - two lines with 🔁 and 🔄
+    # read as the same thing twice (operator, 2026-09-28)
+    restarts = [_("🔄 Restarts: {count}").format(count=facts.restart_count)] \
+        if facts.restart_count is not None else []
+    if details:
+        restarts.append(_restart_policy(facts.restart_policy) if restarts
+                        else "🔄 " + _restart_policy(facts.restart_policy))
+    if restarts:
+        lines.append(" · ".join(restarts))
+    if facts.health:
+        lines.append(_("🩺 Health check: {status}").format(status=facts.health))
+    if details and facts.memory_limit:
         size = facts.memory_limit / 1024 ** 3
         text = f"{size:.1f} GB" if size >= 1 else f"{facts.memory_limit // 1024 ** 2} MB"
         lines.append("🧠 " + _("Memory limit: {size}").format(size=text))
     return lines
 
 
-async def info_extras(server_config: Dict[str, Any]) -> List[str]:
-    """Everything beyond the operator's text, as lines for the info display. Never raises.
+async def address_line(info_config: Dict[str, Any], game_port: Optional[int] = None) -> Optional[str]:
+    """The address a member connects to, or None. One function for every path.
 
-    The game server's line and its players first, then Docker's facts. Game
-    query and Docker inspect run side by side within one budget.
+    There were three: _get_ip_info in control_ui.py and in
+    status_info_integration.py (the twins validate_custom_address was
+    extracted from) and the dropdown's own copy, which validated nothing.
+
+    The port is the one set in the info form; without one, the port the game
+    server names (operator, 2026-09-28: "185.137.173.157" without a port
+    under a Valheim server, the port three lines higher) - but never glued to
+    an address that already carries its own.
     """
-    from services.infrastructure.container_facts_service import get_container_facts
+    from .control_helpers import validate_custom_address, validate_custom_port
+    custom_ip = str(info_config.get('custom_ip') or '').strip()
+    custom_port = str(info_config.get('custom_port') or '').strip()
+    port = custom_port if validate_custom_port(custom_port) else ''
+    if not port and game_port and ':' not in custom_ip:
+        port = str(game_port)
+    if custom_ip:
+        if not validate_custom_address(custom_ip):
+            logger.warning(f"Invalid custom address format: {custom_ip}")
+            return f"🔗 **{_('Custom Address')}:** [Invalid Format]"
+        return f"🔗 **{_('Custom Address')}:** `{custom_ip}{':' + port if port else ''}`"
+    try:
+        from utils.common_helpers import get_wan_ip_async
+        wan_ip = await get_wan_ip_async()
+    except (OSError, RuntimeError, ValueError) as e:
+        logger.debug(f"Could not get WAN IP: {e}")
+        wan_ip = None
+    return f"🌐 **{_('Public IP')}:** `{wan_ip}{':' + port if port else ''}`" if wan_ip else None
+
+
+@dataclass
+class Extras:
+    """What info_extras found, in the groups the display separates with a blank line."""
+    game: List[str] = field(default_factory=list)
+    docker: List[str] = field(default_factory=list)
+    # The port players connect to, for the address line; None when not known
+    port: Optional[int] = None
+
+    def blocks(self) -> List[str]:
+        return ["\n".join(group) for group in (self.game, self.docker) if group]
+
+
+async def info_extras(server_config: Dict[str, Any]) -> Extras:
+    """Everything beyond the operator's text, for the info display. Never raises.
+
+    Game query and Docker inspect run side by side within one budget.
+    """
+    from services.infrastructure.container_facts_service import connect_port, get_container_facts
     name = server_config.get('docker_name')
     if not name:
-        return []
+        return Extras()
     facts_task = asyncio.ensure_future(get_container_facts(name))
     players = await player_list(server_config)
     try:
         facts = await asyncio.wait_for(asyncio.shield(facts_task), timeout=BUDGET_SECONDS)
     except asyncio.TimeoutError:
         facts = None
-    lines = [game_line(players, facts)]
-    if players is not None:
-        lines.append(format_players(players))
-    lines.extend(format_facts(facts, details=bool(server_config.get('allow_detailed_status', True))))
-    return [line for line in lines if line]
+    game = [game_line(players, facts), format_players(players) if players is not None else None]
+    return Extras(
+        game=[line for line in game if line],
+        docker=format_facts(facts, details=bool(server_config.get('allow_detailed_status', True))),
+        port=connect_port(facts, players.game_port) if players is not None and players.success else None)

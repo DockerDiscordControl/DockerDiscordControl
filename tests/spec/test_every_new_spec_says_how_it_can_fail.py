@@ -45,7 +45,6 @@ WITHOUT_A_NOTE = {
     "test_a_temp_file_that_cannot_be_created_is_handled.py",
     "test_action_log_download_serves_the_written_file.py",
     "test_addadmin_has_the_same_brake.py",
-    "test_an_address_the_panel_shows_can_exist.py",
     "test_an_admin_may_be_scoped_to_containers.py",
     "test_an_assigned_admin_controls_only_his_containers.py",
     "test_an_empty_translation_falls_back.py",

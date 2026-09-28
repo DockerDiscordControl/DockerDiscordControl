@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} phút",
   "{hours} h {minutes} min": "{hours} giờ {minutes} phút",
   "The player list cannot be read right now.": "Hiện không thể đọc danh sách người chơi.",
-  "Nobody is playing right now.": "Hiện không có ai đang chơi.",
   "This game does not send player names.": "Trò chơi này không gửi tên người chơi.",
   "+{count} more": "+{count} người khác",
   "Password": "Mật khẩu",

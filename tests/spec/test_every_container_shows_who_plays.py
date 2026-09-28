@@ -27,6 +27,9 @@ _generate_info_embed, the switched-off-text case did; with StatusInfoView
 back on `if info enabled`, the every-container case did; with the
 support-verdict skip removed from _request_for, the unreachable case did; with
 the per-port wait back at the whole budget, the silent-first-port case did.
+Later the same day (the operator's text stood last under the dropdown): with
+the operator's block moved behind the game and Docker blocks, the ordering
+case of each path went red.
 """
 
 import asyncio
@@ -152,8 +155,9 @@ def test_the_block_reads_as_a_list():
 
 
 def test_nobody_and_unreadable_say_so():
-    assert "Nobody is playing" in info_extras.format_players(
-        PlayerList(success=True, players_online=0, max_players=10))
+    # "0/10" says nobody plays; a second line repeating it was dropped (operator, 2026-09-28)
+    assert info_extras.format_players(PlayerList(success=True, players_online=0, max_players=10)) \
+        == "👥 **Players online: 0/10**"
     assert "cannot be read" in info_extras.format_players(PlayerList(success=False))
 
 
@@ -243,7 +247,8 @@ async def test_a_switched_off_text_stays_hidden_but_the_players_show(monkeypatch
     _info_service(monkeypatch, info)
 
     async def _extras(cfg):
-        return ["👥 **Players online: 1/10**\n• Anna"]
+        return info_extras.Extras(game=["👥 **Players online: 1/10**", "• Anna"],
+                                  docker=["⏱️ Running since …"], port=2456)
     monkeypatch.setattr(info_extras, "info_extras", _extras)
     button = StatusInfoButton(None, {"docker_name": "valheim", "name": "Valheim"}, info)
     text = (await button._generate_info_embed(include_protected=False)).description
@@ -253,6 +258,40 @@ async def test_a_switched_off_text_stays_hidden_but_the_players_show(monkeypatch
     info["enabled"] = True
     text = (await button._generate_info_embed(include_protected=False)).description
     assert "Password: secret" in text, "the switch now hides a text that is on"
+    # The operator's words first, then the game, then Docker - apart by blank lines
+    # (operator, 2026-09-28: his text stood last on the dropdown path)
+    own, game, docker = text.split("\n\n")
+    assert own == "🔗 **Custom Address:** `1.2.3.4:2456`\nPassword: secret", own
+    assert game.startswith("👥") and docker.startswith("⏱️")
+
+
+async def test_the_dropdown_puts_the_operators_words_first_too(monkeypatch):
+    """The overview dropdown built its own embed with the text as a field below
+    everything. Through the real selection callback."""
+    from cogs import control_ui
+    from types import SimpleNamespace
+
+    async def _extras(cfg):
+        return info_extras.Extras(game=["🎯 **BachelorLaming**"], docker=["⏱️ Running since …"])
+    monkeypatch.setattr(info_extras, "info_extras", _extras)
+    server = {"docker_name": "Valheim", "container_name": "Valheim", "display_name": ["Valheim"],
+              "info": {"enabled": True, "custom_text": "Worldname: DrKongo"}}
+    monkeypatch.setattr(control_ui, "get_server_config_service",
+                        lambda: SimpleNamespace(get_server_by_docker_name=lambda name: server,
+                                                get_all_servers=lambda: [server]))
+    shown = {}
+
+    async def _edit(**kwargs):
+        shown.update(kwargs)
+    interaction = SimpleNamespace(channel=None, user=SimpleNamespace(id=1, name="op"),
+                                  response=SimpleNamespace(edit_message=_edit, is_done=lambda: False))
+    dropdown = control_ui.ContainerInfoDropdown(
+        None, [{"name": "Valheim", "display": "Valheim", "protected": False, "order": 1}])
+    dropdown._interaction, dropdown._selected_values = interaction, ["Valheim"]  # as py-cord sets them
+    await dropdown.callback(interaction)
+    embed = shown["embed"]
+    assert embed.description.split("\n\n") == ["Worldname: DrKongo", "🎯 **BachelorLaming**", "⏱️ Running since …"]
+    assert not embed.fields, "the operator's text is still a field below everything"
 
 
 def test_no_path_refuses_a_container_without_info_text():

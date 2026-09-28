@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes}分",
   "{hours} h {minutes} min": "{hours}時間{minutes}分",
   "The player list cannot be read right now.": "現在プレイヤー一覧を読み取れません。",
-  "Nobody is playing right now.": "現在プレイ中の人はいません。",
   "This game does not send player names.": "このゲームはプレイヤー名を送信しません。",
   "+{count} more": "他{count}人",
   "Password": "パスワード",

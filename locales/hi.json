@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} मिनट",
   "{hours} h {minutes} min": "{hours} घं {minutes} मिनट",
   "The player list cannot be read right now.": "खिलाड़ियों की सूची अभी पढ़ी नहीं जा सकती।",
-  "Nobody is playing right now.": "अभी कोई नहीं खेल रहा है।",
   "This game does not send player names.": "यह गेम खिलाड़ियों के नाम नहीं भेजता।",
   "+{count} more": "+{count} और",
   "Password": "पासवर्ड",

@@ -990,24 +990,26 @@ class StatusInfoButton(discord.ui.Button):
             color=0x3498db
         )
 
-        # Build description content
-        description_parts = []
+        # The operator's own words first - the address and the text members need
+        # to join - then the game server, then Docker, each group apart by a blank
+        # line (operator, 2026-09-28: his text stood last on one path, first on
+        # the other). The game server's port completes an address without one.
+        from .info_extras import address_line, info_extras
+        extras = await info_extras(self.server_config)
+        own = []
 
-        # Add custom text if provided
-        # Cut here too: a file written by hand or by an older version can hold
-        # more than the save allows, and Discord refuses an over-long description.
         # Text and address only while the info is switched on: every container
         # opens this display since v3.0.2, and a switched-off text stays hidden.
         shown = bool(fresh_info_config.get('enabled', False))
+        if shown and fresh_info_config.get('show_ip', False):
+            address = await address_line(fresh_info_config, extras.port)
+            if address:
+                own.append(address)
+        # Cut here too: a file written by hand or by an older version can hold
+        # more than the save allows, and Discord refuses an over-long description.
         custom_text = fresh_info_config.get('custom_text', '').strip()[:MAX_CUSTOM_TEXT] if shown else ''
         if custom_text:
-            description_parts.append(f"{custom_text}")
-
-        # Add IP information if enabled
-        if shown and fresh_info_config.get('show_ip', False):
-            ip_info = await self._get_ip_info(fresh_info_config)
-            if ip_info:
-                description_parts.append(ip_info)
+            own.append(custom_text)
 
         # Add protected information if in control channel and enabled.
         #
@@ -1024,82 +1026,15 @@ class StatusInfoButton(discord.ui.Button):
                 and not has_password:
             protected_content = fresh_info_config.get('protected_content', '').strip()
             if protected_content:
-                description_parts.append("\n**🔐 Protected Information:**")
-                description_parts.append(protected_content)
+                own.append("**🔐 Protected Information:**")
+                own.append(protected_content)
 
-        # The game server and who plays on it, Docker's facts (cogs/info_extras.py)
-        from .info_extras import info_extras
-        description_parts.extend(await info_extras(self.server_config))
-
-        # Add container status info
-        status_info = self._get_status_info()
-        if status_info:
-            description_parts.append(status_info)
-
-        # Set description if we have any content
-        if description_parts:
-            embed.description = "\n".join(description_parts)
+        description = "\n\n".join(block for block in ["\n".join(own)] + extras.blocks() if block)
+        if description:
+            embed.description = description
 
         embed.set_footer(text="https://ddc.bot")
         return embed
-
-    async def _get_ip_info(self, info_config: dict) -> Optional[str]:
-        """Get IP information for the container."""
-        custom_ip = info_config.get('custom_ip', '').strip()
-        custom_port = info_config.get('custom_port', '').strip()
-        # At method level, not inside the branch below: the WAN branch appends
-        # the same port and is only reached when custom_ip is empty, so an
-        # import inside the custom_ip branch would never have run for it.
-        from .control_helpers import validate_custom_address, validate_custom_port
-
-        if custom_ip:
-            # Validate custom IP/hostname format for security
-            if validate_custom_address(custom_ip):
-                # Add port if provided
-                address = custom_ip
-                if validate_custom_port(custom_port):
-                    address = f"{custom_ip}:{custom_port}"
-                return f"🔗 **Custom Address:** {address}"
-            else:
-                logger.warning(f"Invalid custom address format: {custom_ip}")
-                return "🔗 **Custom Address:** [Invalid Format]"
-
-        # Try to get WAN IP
-        try:
-            from utils.common_helpers import get_wan_ip_async
-            wan_ip = await get_wan_ip_async()
-            if wan_ip:
-                # Add port if provided
-                address = wan_ip
-                if validate_custom_port(custom_port):
-                    address = f"{wan_ip}:{custom_port}"
-                return f"**Public IP:** {address}"
-        except (OSError, RuntimeError, ValueError) as e:
-            logger.debug(f"Could not get WAN IP for {self.container_name}: {e}")
-
-        return "**IP:** Auto-detection failed"
-
-
-    def _get_status_info(self) -> Optional[str]:
-        """Restart count and health check from the status cache (roadmap Phase 4e).
-
-        State and uptime are already in the main status embed right above, so
-        they are not repeated. Nothing known means nothing shown - no invented
-        zero. The values come from the cache the watchdog fills; no Docker call.
-        """
-        cache = getattr(getattr(self, 'cog', None), 'status_cache_service', None)
-        entry = cache.get(self.container_name) if cache else None
-        data = (entry or {}).get('data')
-        if not data or not getattr(data, 'success', False):
-            return None
-        lines = []
-        restarts = getattr(data, 'restart_count', None)
-        if restarts is not None:
-            lines.append(_("🔄 Restarts: {count}").format(count=restarts))
-        health = getattr(data, 'health', None)
-        if health:
-            lines.append(_("🩺 Health check: {status}").format(status=health))
-        return "\n".join(lines) if lines else None
 
 class ProtectedInfoButton(discord.ui.Button):
     """

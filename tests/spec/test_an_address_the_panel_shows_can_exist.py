@@ -113,57 +113,60 @@ def test_the_port_rule_counts_values_and_not_digits(port, expected):
 
 
 # --------------------------------------------------------------------------
-# And where it is actually shown. Both copies of _get_ip_info append the
-# separate custom_port field, on two branches each: the custom address and the
+# And where it is actually shown. The two copies of _get_ip_info - plus the
+# overview dropdown's own, which validated nothing - became ONE function in
+# v3.0.2, cogs/info_extras.address_line, used by every path. It appends the
+# separate custom_port field, on two branches: the custom address and the
 # public IP. The public-IP branch is only reached when custom_ip is EMPTY -
 # which is how the first version of this repair broke it: the import sat
 # inside the custom_ip branch, so the public-IP branch raised NameError for
 # every container without a custom address. Caught here before it was
-# committed, and these four cases are why the tests stay.
+# committed, and these cases are why the tests stay.
+#
+# Without a port of its own, the address takes the port the game server names
+# (operator, 2026-09-28) - but never glued onto an address carrying its own.
+# COUNTER-CHECK (2026-09-28): without the fallback the completing case went
+# red; with the fallback glued onto any address, the own-port case did.
 # --------------------------------------------------------------------------
 
 import asyncio
 
-import pytest as _pytest
 
-
-def _ip_info(view_class, info_config, *, wan_ip=None, monkeypatch=None):
-    view = view_class.__new__(view_class)
+def _address(info_config, *, game_port=None, wan_ip=None, monkeypatch=None):
+    from cogs.info_extras import address_line
     if wan_ip is not None:
         import utils.common_helpers as helpers
-        monkeypatch.setattr(helpers, "get_wan_ip_async", _async_return(wan_ip))
-    return asyncio.run(view._get_ip_info(info_config))
+
+        async def _wan(*args, **kwargs):
+            return wan_ip
+        monkeypatch.setattr(helpers, "get_wan_ip_async", _wan)
+    return asyncio.run(address_line(info_config, game_port))
 
 
-def _async_return(value):
-    async def _call(*args, **kwargs):
-        return value
-    return _call
+def test_a_shown_custom_address_carries_only_a_real_port():
+    text = _address({"custom_ip": "1.2.3.4", "custom_port": "99999"})
+    assert "99999" not in text, f"a port that is not a port is shown: {text!r}"
 
 
-@_pytest.fixture(params=["control_ui", "status_info_integration"])
-def view_class(request):
-    import importlib
-    module = importlib.import_module(f"cogs.{request.param}")
-    return {"control_ui": "InfoButton",
-            "status_info_integration": "StatusInfoButton"}[request.param], module
+def test_an_impossible_custom_address_is_not_shown():
+    text = _address({"custom_ip": "999.999.999.999:80", "custom_port": ""})
+    assert "999" not in text
 
 
-def test_a_shown_custom_address_carries_only_a_real_port(view_class):
-    name, module = view_class
-    text = _ip_info(getattr(module, name),
-                    {"custom_ip": "1.2.3.4", "custom_port": "99999"})
-
-    assert "99999" not in text, (
-        f"{module.__name__} shows a port that is not a port: {text!r}"
-    )
-
-
-def test_the_public_ip_is_shown_with_its_port(view_class, monkeypatch):
+def test_the_public_ip_is_shown_with_its_port(monkeypatch):
     """The branch the first version of this repair broke."""
-    name, module = view_class
-    text = _ip_info(getattr(module, name),
-                    {"custom_ip": "", "custom_port": "80"},
-                    wan_ip="203.0.113.7", monkeypatch=monkeypatch)
-
+    text = _address({"custom_ip": "", "custom_port": "80"}, wan_ip="203.0.113.7", monkeypatch=monkeypatch)
     assert "203.0.113.7:80" in text, text
+
+
+def test_the_game_port_completes_an_address_without_one(monkeypatch):
+    text = _address({"custom_ip": "", "custom_port": ""}, game_port=2456,
+                    wan_ip="185.137.173.157", monkeypatch=monkeypatch)
+    assert "`185.137.173.157:2456`" in text, text
+    assert "1.2.3.4:27015" in _address({"custom_ip": "1.2.3.4", "custom_port": "27015"}, game_port=2456), \
+        "the port set by the operator lost to the game's"
+
+
+def test_the_game_port_is_not_glued_onto_an_address_with_its_own():
+    text = _address({"custom_ip": "play.example.com:2500", "custom_port": ""}, game_port=2456)
+    assert "play.example.com:2500`" in text and "2456" not in text, text

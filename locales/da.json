@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} min",
   "{hours} h {minutes} min": "{hours} t {minutes} min",
   "The player list cannot be read right now.": "Spillerlisten kan ikke læses lige nu.",
-  "Nobody is playing right now.": "Ingen spiller lige nu.",
   "This game does not send player names.": "Dette spil sender ikke spillernavne.",
   "+{count} more": "+{count} mere",
   "Password": "Adgangskode",

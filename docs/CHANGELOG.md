@@ -44,6 +44,13 @@ All notable changes to DockerDiscordControl will be documented in this file.
   restart policy and the memory limit; a server that hides CPU and RAM hides these too. A
   version is taken from the image labels only when it is the app's own (an image built on
   ubuntu inherits "22.04"), then from the tag; otherwise only the image date is shown.
+- **Laid out for the people who read it**: the operator's own address and text come first on
+  every path (the overview dropdown used to put them last, as a field below everything), then
+  the game server, then Docker, each group apart by a blank line. An address without a port
+  of its own gets the game server's port - "185.137.173.157:2456", ready to paste. The
+  restart count and what restarts the container share one line, and "0/10" no longer gets a
+  second line saying nobody plays. The address comes from one function now - there were
+  three, and the dropdown's validated nothing.
 - **The ℹ️ / ⓘ marker in the overviews is gone** - with every container having info it said
   nothing any more.
 

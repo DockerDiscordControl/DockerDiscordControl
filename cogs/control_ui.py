@@ -904,48 +904,6 @@ class InfoButton(Button):
                 ephemeral=True, delete_after=NOTICE_STAYS_FOR
             )
 
-    async def _get_ip_info(self, info_config: dict) -> str:
-        """Get IP information for the container."""
-        custom_ip = info_config.get('custom_ip', '').strip()
-        custom_port = info_config.get('custom_port', '').strip()
-        # At method level, not inside the branch below: the WAN branch appends
-        # the same port and is only reached when custom_ip is empty, so an
-        # import inside the custom_ip branch would never have run for it.
-        from .control_helpers import validate_custom_address, validate_custom_port
-
-        if custom_ip:
-            # Validate custom IP/hostname format for security
-            if validate_custom_address(custom_ip):
-                # Add port if provided
-                address = custom_ip
-                if validate_custom_port(custom_port):
-                    address = f"{custom_ip}:{custom_port}"
-                return f"🔗 **Custom Address:** {address}"
-            else:
-                logger.warning(f"Invalid custom address format: {custom_ip}")
-                return "🔗 **Custom Address:** [Invalid Format]"
-
-        # Try to get WAN IP
-        try:
-            from utils.common_helpers import get_wan_ip_async
-            wan_ip = await get_wan_ip_async()
-            if wan_ip:
-                # Add port if provided
-                address = wan_ip
-                if validate_custom_port(custom_port):
-                    address = f"{wan_ip}:{custom_port}"
-                return f"**Public IP:** {address}"
-        except (OSError, RuntimeError, ValueError) as e:
-            logger.debug(f"Could not get WAN IP: {e}")
-
-        return "**IP:** Auto-detection failed"
-
-    async def _get_status_info(self) -> str:
-        """Get current container status information."""
-        # Status information (State/Uptime) is already displayed in the main status embed above,
-        # so we don't need to duplicate it in the info section
-        return ""
-
     def _channel_has_info_permission(self, channel_id: int, config: dict) -> bool:
         """Check if channel has info permission."""
         from .control_helpers import _channel_has_permission
@@ -1288,49 +1246,19 @@ class ContainerInfoDropdown(discord.ui.Select):
                 display_name = display_name[0]
 
             embed = discord.Embed(title=f"ℹ️ {display_name}", color=discord.Color.blue())
-            # Game server, players, Docker's facts, restarts, health - for every container (v3.0.2)
-            from .info_extras import info_extras
-            from .status_info_integration import StatusInfoButton
-            known = await info_extras(container_data) + [
-                StatusInfoButton(self.cog, container_data, info_config)._get_status_info()]
-            embed.description = "\n".join(part for part in known if part) or None
-
-            # Add public info
+            # The operator's address and text first, then the game server, then
+            # Docker - the order of the ℹ️ button (status_info_integration.py);
+            # this path used to put his text last, as a field below it all.
+            from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
+            from .info_extras import address_line, info_extras
+            extras = await info_extras(container_data)
+            own = []
             if info_config.get('enabled', False):
-                info_text = []
-
                 if info_config.get('show_ip', False):
-                    custom_ip = info_config.get('custom_ip', '').strip()
-                    custom_port = info_config.get('custom_port', '').strip()
-
-                    if custom_ip:
-                        # Use custom IP
-                        if custom_port:
-                            info_text.append(f"🔗 **{_('Custom Address')}:** `{custom_ip}:{custom_port}`")
-                        else:
-                            info_text.append(f"🔗 **{_('Custom Address')}:** `{custom_ip}`")
-                    else:
-                        # Fallback to WAN IP
-                        try:
-                            from utils.common_helpers import get_wan_ip_async
-                            wan_ip = await get_wan_ip_async()
-                            if wan_ip:
-                                if custom_port:
-                                    info_text.append(f"**{_('Public IP')}:** `{wan_ip}:{custom_port}`")
-                                else:
-                                    info_text.append(f"**{_('Public IP')}:** `{wan_ip}`")
-                        except (OSError, RuntimeError, ValueError) as e:
-                            logger.debug(f"Could not get WAN IP: {e}")
-
-                if info_config.get('custom_text'):
-                    info_text.append(info_config['custom_text'])
-
-                if info_text:
-                    embed.add_field(
-                        name=_("Information"),
-                        value='\n'.join(info_text),
-                        inline=False
-                    )
+                    own.append(await address_line(info_config, extras.port))
+                own.append(str(info_config.get('custom_text') or '').strip()[:MAX_CUSTOM_TEXT])
+            blocks = ["\n".join(line for line in own if line)] + extras.blocks()
+            embed.description = "\n\n".join(block for block in blocks if block) or None
 
             # Handle protected information
             if info_config.get('protected_enabled', False):

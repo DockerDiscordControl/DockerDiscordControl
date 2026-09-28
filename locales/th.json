@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} นาที",
   "{hours} h {minutes} min": "{hours} ชม. {minutes} นาที",
   "The player list cannot be read right now.": "ไม่สามารถอ่านรายชื่อผู้เล่นได้ในขณะนี้",
-  "Nobody is playing right now.": "ขณะนี้ไม่มีใครเล่นอยู่",
   "This game does not send player names.": "เกมนี้ไม่ส่งชื่อผู้เล่น",
   "+{count} more": "+อีก {count} คน",
   "Password": "รหัสผ่าน",

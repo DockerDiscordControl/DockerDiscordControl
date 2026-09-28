@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} Min.",
   "{hours} h {minutes} min": "{hours} Std. {minutes} Min.",
   "The player list cannot be read right now.": "Die Spielerliste lässt sich gerade nicht lesen.",
-  "Nobody is playing right now.": "Gerade spielt niemand.",
   "This game does not send player names.": "Dieses Spiel sendet keine Spielernamen.",
   "+{count} more": "+{count} weitere",
   "Password": "Passwort",

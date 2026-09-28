@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} د",
   "{hours} h {minutes} min": "{hours} س {minutes} د",
   "The player list cannot be read right now.": "تعذّرت قراءة قائمة اللاعبين حاليًا.",
-  "Nobody is playing right now.": "لا أحد يلعب الآن.",
   "This game does not send player names.": "هذه اللعبة لا ترسل أسماء اللاعبين.",
   "+{count} more": "+{count} آخرين",
   "Password": "كلمة مرور",

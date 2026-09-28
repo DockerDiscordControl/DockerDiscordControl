@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} min.",
   "{hours} h {minutes} min": "{hours} val. {minutes} min.",
   "The player list cannot be read right now.": "Žaidėjų sąrašo šiuo metu nepavyksta nuskaityti.",
-  "Nobody is playing right now.": "Šiuo metu niekas nežaidžia.",
   "This game does not send player names.": "Šis žaidimas nesiunčia žaidėjų vardų.",
   "+{count} more": "+{count} daugiau",
   "Password": "Slaptažodis",

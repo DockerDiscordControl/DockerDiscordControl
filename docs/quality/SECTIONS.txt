@@ -27,11 +27,11 @@ cogs/action_effect.py:1-162
 # no longer holds its lines.
 cogs/control_ui.py:1-1457
 
-## Section 03  (1223 lines, 1 piece)
+## Section 03  (1151 lines, 1 piece)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1458-2680
+cogs/control_ui.py:1458-2608
 
 ## Section 04  (1552 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -62,12 +62,12 @@ cogs/enhanced_info_modal_simple.py:1-704
 ## Section 08  (1112 lines, 1 piece)
 cogs/status_handlers.py:1-1112
 
-## Section 09  (1418 lines, 2 pieces)
+## Section 09  (1406 lines, 2 pieces)
 # v3.0.2, 2026-09-28: every container has an info display; who plays on a
 # game server and Docker's facts come from info_extras.py, read with the display
 # it fills.
-cogs/status_info_integration.py:1-1192
-cogs/info_extras.py:1-226
+cogs/status_info_integration.py:1-1127
+cogs/info_extras.py:1-279
 
 ## Section 10  (1592 lines, 7 pieces)
 cogs/translation_manager.py:1-149
@@ -168,11 +168,11 @@ services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-191
 services/infrastructure/event_manager.py:1-119
 
-## Section 19b  (864 lines, 2 pieces)
+## Section 19b  (868 lines, 2 pieces)
 # Split off Section 19 on 2026-09-23: container_status_service.py grew past the
 # 2000-line section limit with the cache-lifetime fix.
 services/infrastructure/game_query_service.py:1-698
-services/infrastructure/container_facts_service.py:1-166
+services/infrastructure/container_facts_service.py:1-170
 
 ## Section 20  (1577 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-341

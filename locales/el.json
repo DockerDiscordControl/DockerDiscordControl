@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} λεπ.",
   "{hours} h {minutes} min": "{hours} ώ. {minutes} λεπ.",
   "The player list cannot be read right now.": "Η λίστα παικτών δεν μπορεί να διαβαστεί αυτή τη στιγμή.",
-  "Nobody is playing right now.": "Κανείς δεν παίζει αυτή τη στιγμή.",
   "This game does not send player names.": "Αυτό το παιχνίδι δεν στέλνει ονόματα παικτών.",
   "+{count} more": "+{count} ακόμη",
   "Password": "Κωδικός",

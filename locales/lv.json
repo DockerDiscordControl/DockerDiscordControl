@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} min",
   "{hours} h {minutes} min": "{hours} st. {minutes} min",
   "The player list cannot be read right now.": "Spēlētāju sarakstu pašlaik nevar nolasīt.",
-  "Nobody is playing right now.": "Pašlaik neviens nespēlē.",
   "This game does not send player names.": "Šī spēle nesūta spēlētāju vārdus.",
   "+{count} more": "+{count} vēl",
   "Password": "Parole",

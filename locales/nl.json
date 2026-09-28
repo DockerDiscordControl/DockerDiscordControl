@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} min",
   "{hours} h {minutes} min": "{hours} u {minutes} min",
   "The player list cannot be read right now.": "De spelerslijst kan nu niet worden gelezen.",
-  "Nobody is playing right now.": "Er speelt nu niemand.",
   "This game does not send player names.": "Dit spel stuurt geen spelersnamen mee.",
   "+{count} more": "+{count} meer",
   "Password": "Wachtwoord",

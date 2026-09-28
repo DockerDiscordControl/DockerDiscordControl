@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} min",
   "{hours} h {minutes} min": "{hours} h {minutes} min",
   "The player list cannot be read right now.": "Popis igrača trenutačno se ne može pročitati.",
-  "Nobody is playing right now.": "Trenutačno nitko ne igra.",
   "This game does not send player names.": "Ova igra ne šalje imena igrača.",
   "+{count} more": "+{count} još",
   "Password": "Lozinka",

@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} min",
   "{hours} h {minutes} min": "{hours} h {minutes} min",
   "The player list cannot be read right now.": "Mängijate nimekirja ei saa praegu lugeda.",
-  "Nobody is playing right now.": "Praegu ei mängi keegi.",
   "This game does not send player names.": "See mäng ei saada mängijate nimesid.",
   "+{count} more": "+{count} veel",
   "Password": "Parool",

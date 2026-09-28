@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} 分鐘",
   "{hours} h {minutes} min": "{hours} 小時 {minutes} 分鐘",
   "The player list cannot be read right now.": "目前無法讀取玩家列表。",
-  "Nobody is playing right now.": "目前沒有人在玩。",
   "This game does not send player names.": "此遊戲不會傳送玩家名稱。",
   "+{count} more": "另外 {count} 人",
   "Password": "密碼",

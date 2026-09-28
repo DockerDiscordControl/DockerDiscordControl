@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} perc",
   "{hours} h {minutes} min": "{hours} óra {minutes} perc",
   "The player list cannot be read right now.": "A játékoslista most nem olvasható.",
-  "Nobody is playing right now.": "Most senki sem játszik.",
   "This game does not send player names.": "Ez a játék nem küldi el a játékosok nevét.",
   "+{count} more": "+{count} további",
   "Password": "Jelszó",

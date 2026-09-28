@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} min",
   "{hours} h {minutes} min": "{hours} h {minutes} min",
   "The player list cannot be read right now.": "Lista jucătorilor nu poate fi citită acum.",
-  "Nobody is playing right now.": "Nimeni nu joacă acum.",
   "This game does not send player names.": "Acest joc nu trimite numele jucătorilor.",
   "+{count} more": "+{count} în plus",
   "Password": "Parolă",

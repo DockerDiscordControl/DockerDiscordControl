@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} min",
   "{hours} h {minutes} min": "{hours} h {minutes} min",
   "The player list cannot be read right now.": "Zoznam hráčov sa teraz nedá načítať.",
-  "Nobody is playing right now.": "Práve nikto nehrá.",
   "This game does not send player names.": "Táto hra neposiela mená hráčov.",
   "+{count} more": "+{count} ďalší",
   "Password": "Heslo",

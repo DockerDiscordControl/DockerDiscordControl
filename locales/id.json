@@ -1651,7 +1651,6 @@
   "{minutes} min": "{minutes} mnt",
   "{hours} h {minutes} min": "{hours} j {minutes} mnt",
   "The player list cannot be read right now.": "Daftar pemain tidak dapat dibaca saat ini.",
-  "Nobody is playing right now.": "Saat ini tidak ada yang bermain.",
   "This game does not send player names.": "Game ini tidak mengirim nama pemain.",
   "+{count} more": "+{count} lainnya",
   "Password": "Kata sandi",

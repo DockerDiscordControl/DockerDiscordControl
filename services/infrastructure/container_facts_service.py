@@ -50,6 +50,8 @@ class ContainerFacts:
     exit_code: Optional[int] = None
     oom_killed: bool = False
     restart_policy: Optional[str] = None
+    restart_count: Optional[int] = None
+    health: Optional[str] = None  # the health check's verdict; None without a check
     version: Optional[str] = None
     image_created: Optional[datetime] = None
     memory_limit: Optional[int] = None  # bytes
@@ -114,6 +116,8 @@ def facts_from_attrs(attrs: Dict, image_attrs: Optional[Dict] = None) -> Contain
         exit_code=exit_code if isinstance(exit_code, int) and not running else None,
         oom_killed=bool(state.get('OOMKilled')) and not running,
         restart_policy=((host.get('RestartPolicy') or {}).get('Name') or None),
+        restart_count=attrs.get('RestartCount') if isinstance(attrs.get('RestartCount'), int) else None,
+        health=((state.get('Health') or {}).get('Status') or None),
         version=version_of(config.get('Labels') or {}, str(config.get('Image') or '')),
         image_created=_moment((image_attrs or {}).get('Created')),
         memory_limit=host.get('Memory') or None,

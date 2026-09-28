@@ -169,10 +169,10 @@ def test_game_query_and_docker_run_side_by_side(monkeypatch):
     monkeypatch.setattr(facts_mod, 'get_container_facts', _facts)
     monkeypatch.setattr(info_extras, 'player_list', _players)
     started = time.monotonic()
-    lines = asyncio.run(info_extras.info_extras({'docker_name': 'Valheim', 'allow_detailed_status': False}))
+    extras = asyncio.run(info_extras.info_extras({'docker_name': 'Valheim', 'allow_detailed_status': False}))
     assert time.monotonic() - started < 0.7, "the two lookups ran one after the other"
-    assert lines[0].startswith('🎯 **BachelorLaming**') and 'Nobody is playing' in lines[1]
-    assert not any(line.startswith('📦') for line in lines), "details shown where they are switched off"
+    assert extras.game == ['🎯 **BachelorLaming**', '👥 **Players online: 0/10**']
+    assert not any(line.startswith('📦') for line in extras.docker), "details shown where they are switched off"
 
 
 def test_an_unraid_container_is_not_said_to_stay_down_after_a_reboot():
@@ -190,6 +190,8 @@ def test_a_plain_container_gets_the_docker_facts_and_nothing_about_games(monkeyp
                               version='v0.107.79', image_created=datetime(2026, 8, 18, tzinfo=timezone.utc),
                               restart_policy='no', network_mode='br0')
     monkeypatch.setattr(facts_mod, 'get_container_facts', _facts)
-    lines = asyncio.run(info_extras.info_extras({'docker_name': 'AdGuard-Home'}))
-    assert [line.split(' ')[0] for line in lines] == ['⏱️', '📦', '🔁'], lines
+    extras = asyncio.run(info_extras.info_extras({'docker_name': 'AdGuard-Home'}))
+    assert extras.game == [] and extras.port is None
+    lines = extras.docker
+    assert [line.split(' ')[0] for line in lines] == ['⏱️', '📦', '🔄'], lines
     assert 'v0.107.79' in lines[1]
