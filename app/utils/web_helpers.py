@@ -8,6 +8,7 @@
 import os
 import logging
 import time
+from typing import Optional
 import docker
 from utils.container_image import compose_project_of, image_name_of
 from threading import Thread
@@ -129,6 +130,37 @@ docker_cache = {
 }
 cache_lock = GLock()  # Use Gevent-compatible lock
 last_docker_query_time = 0
+
+# THE PANEL IS OPEN while somebody uses it (operator, 2026-09-28: the web panel
+# is rarely open compared to Discord - refresh on demand, and in the interval
+# while it is open). The panel's pages load the container list when they are
+# called up and do not poll it, so "open" is: a page was requested lately. The
+# worker refreshes only then; otherwise it asks Docker nothing at all.
+PANEL_ACTIVE_SECONDS = 300
+last_panel_request = 0.0
+# Requests that do not mean a person is looking: Docker's own healthcheck and files
+_NOT_A_PANEL_VISIT = ('/static/', '/health', '/favicon')
+
+
+def note_panel_request(path: str) -> None:
+    """Remember that the panel was used (called for every request, see register_panel_activity)."""
+    global last_panel_request
+    if not path.startswith(_NOT_A_PANEL_VISIT):
+        last_panel_request = time.time()
+
+
+def panel_is_active(now: Optional[float] = None) -> bool:
+    return ((now if now is not None else time.time()) - last_panel_request) < PANEL_ACTIVE_SECONDS
+
+
+def register_panel_activity(app) -> None:
+    """Hook every request into note_panel_request."""
+    from flask import request
+
+    @app.before_request
+    def _note_panel_request():
+        note_panel_request(request.path)
+        return None
 background_refresh_thread = None
 stop_background_thread = create_event()  # Use Gevent-compatible event
 
@@ -219,8 +251,11 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
         if not force_refresh and docker_cache['global_timestamp']:
             cache_age = current_time - docker_cache['global_timestamp']
 
-            # If the general cache is still fresh
-            if cache_age < DEFAULT_CACHE_DURATION:
+            # If the general cache is still fresh. While the panel is in use the worker keeps
+            # it younger than its interval; older means the worker was paused (nobody used
+            # the panel) and this request refreshes it. Up to 2026-09-28 a list between
+            # DEFAULT_CACHE_DURATION and MAX_CACHE_AGE old was handed out as it was.
+            if cache_age < min(DEFAULT_CACHE_DURATION, BACKGROUND_REFRESH_INTERVAL * 2):
                 # If a specific container was requested, just filter the output
                 if container_name:
                     matching_containers = [c for c in docker_cache['containers'] if c['name'] == container_name]
@@ -235,9 +270,8 @@ def get_docker_containers_live(logger, force_refresh=False, container_name=None)
                 if len(docker_cache['containers']) > MAX_CONTAINERS_DISPLAY:
                     logger.debug(f"Limiting display to {MAX_CONTAINERS_DISPLAY} containers (total: {len(docker_cache['containers'])})")
                 return list(containers_to_return), docker_cache['error']
-            # Force refresh if cache is too old
-            elif cache_age > MAX_CACHE_AGE:
-                logger.info(f"Cache too old ({cache_age:.1f}s > {MAX_CACHE_AGE}s), forcing refresh")
+            else:
+                logger.debug(f"Container list {cache_age:.1f}s old - refreshing for this page")
                 force_refresh = True
 
         # 2. Rate limiting check
@@ -518,10 +552,20 @@ def background_refresh_worker(logger):
         docker_cache['bg_refresh_running'] = True
 
     try:
+        paused = False
         while not stop_background_thread.is_set():
             try:
-                # Update the cache
-                update_docker_cache(logger)
+                # Update the cache - only while somebody uses the panel (PANEL_ACTIVE_SECONDS).
+                # Idle, it asks Docker nothing; the first page called up afterwards
+                # refreshes the list itself (get_docker_containers_live).
+                if panel_is_active():
+                    if paused:
+                        logger.info("Web panel in use again - container list refreshed in the interval")
+                        paused = False
+                    update_docker_cache(logger)
+                elif not paused:
+                    logger.info("Web panel not used for 5 minutes - container list refresh paused")
+                    paused = True
 
                 # Wait for the configured time, but check regularly for stop signal
                 # Shorten the interval to notice the stop signal faster

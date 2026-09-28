@@ -79,6 +79,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the one list answer now, which carries everything the panel shows; only a container whose image
   tag has moved on since it was created is looked up on its own, so the names shown stay the
   same. Checked live: 2 requests instead of 38, identical list.
+- **And only while somebody uses the panel.** The list is refreshed in its interval while pages
+  are being called up, and not at all after five minutes without one - Docker's own healthcheck
+  does not count as a visit. The first page after a pause fetches a fresh list itself (until now a
+  list up to five minutes old could be handed out as it was).
 
 ### ⏱️ One beat for everything that asks Docker
 

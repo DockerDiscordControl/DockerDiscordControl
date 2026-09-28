@@ -53,6 +53,9 @@ def register_background_services(app: Flask) -> None:
     global _shutdown_hook_registered
 
     apply_gevent_fork_workaround(app.logger)
+    # The worker refreshes the container list only while the panel is used
+    from app.utils.web_helpers import register_panel_activity
+    register_panel_activity(app)
 
     with app.app_context():
         app.logger.info("Starting Docker cache background refresh thread")

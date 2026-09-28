@@ -650,6 +650,8 @@ class TestBackgroundRefreshWorker:
                 raise RuntimeError("svc unavailable")
 
         monkeypatch.setattr(wh, "update_docker_cache", fake_update)
+        # The worker refreshes only while the panel is in use (since 2026-09-28)
+        monkeypatch.setattr(wh, "last_panel_request", wh.time.time())
         # Patch time.sleep to no-op to keep the test fast
         monkeypatch.setattr(wh.time, "sleep", lambda s: None)
         wh.stop_background_thread.clear()
