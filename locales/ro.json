@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Afișează informații despre donații pentru sprijinirea proiectului",
   "Showing first {count} of {total} tasks": "Se afișează primele {count} din {total} sarcini",
   "Shows admin control overview for all containers": "Afișează prezentarea generală de administrare pentru toate containerele",
-  "Shows container details (if configured)": "Afișează detaliile containerului (dacă sunt configurate)",
   "Shows detailed container information.": "Afișează informații detaliate despre container.",
   "Shows donation information to support the project.": "Afișează informații despre donații pentru sprijinirea proiectului.",
   "Shows the bot's latency": "Afișează latența bot-ului",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Un jucător a intrat pe {server}",
   "👋 {count} players joined {server}": "👋 {count} jucători au intrat pe {server}",
   "web.permissions.col_player_joins": "Intrări jucători",
-  "web.permissions.col_player_joins_tooltip": "Anunță aici cine intră pe un server de joc (containere cu coloana Jucători bifată). Anunțul dispare după 30 de minute."
+  "web.permissions.col_player_joins_tooltip": "Anunță aici cine intră pe un server de joc (containere cu coloana Jucători bifată). Anunțul dispare după 30 de minute.",
+  "Game not answering": "Jocul nu răspunde",
+  "Container runs, the game server in it does not answer": "Containerul rulează, serverul de joc din el nu răspunde",
+  "Shows container details and, on a game server, who plays": "Arată detaliile containerului și, la un server de joc, cine joacă"
 }

@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Показать информацию о пожертвованиях для поддержки проекта",
   "Showing first {count} of {total} tasks": "Показаны первые {count} из {total} задач",
   "Shows admin control overview for all containers": "Показывает обзор управления администратора для всех контейнеров",
-  "Shows container details (if configured)": "Показывает сведения о контейнере (если настроено)",
   "Shows detailed container information.": "Показывает подробную информацию о контейнере.",
   "Shows donation information to support the project.": "Показывает информацию о пожертвованиях для поддержки проекта.",
   "Shows the bot's latency": "Показывает задержку бота",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Игрок зашёл на {server}",
   "👋 {count} players joined {server}": "👋 Игроков зашло на {server}: {count}",
   "web.permissions.col_player_joins": "Входы игроков",
-  "web.permissions.col_player_joins_tooltip": "Сообщать здесь, кто заходит на игровой сервер (контейнеры с отмеченной колонкой «Игроки»). Сообщение исчезает через 30 минут."
+  "web.permissions.col_player_joins_tooltip": "Сообщать здесь, кто заходит на игровой сервер (контейнеры с отмеченной колонкой «Игроки»). Сообщение исчезает через 30 минут.",
+  "Game not answering": "Игра не отвечает",
+  "Container runs, the game server in it does not answer": "Контейнер работает, игровой сервер в нём не отвечает",
+  "Shows container details and, on a game server, who plays": "Показывает сведения о контейнере, а на игровом сервере — кто играет"
 }

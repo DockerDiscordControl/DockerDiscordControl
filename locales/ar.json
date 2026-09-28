@@ -280,7 +280,6 @@
   "Show donation information to support the project": "عرض معلومات التبرع لدعم المشروع",
   "Showing first {count} of {total} tasks": "عرض أول {count} من {total} مهمة",
   "Shows admin control overview for all containers": "يعرض نظرة عامة على تحكم المشرف لجميع الحاويات",
-  "Shows container details (if configured)": "يعرض تفاصيل الحاوية (إذا تم إعدادها)",
   "Shows detailed container information.": "يعرض معلومات تفصيلية عن الحاوية.",
   "Shows donation information to support the project.": "يعرض معلومات التبرع لدعم المشروع.",
   "Shows the bot's latency": "يعرض زمن استجابة البوت",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 انضم لاعب إلى {server}",
   "👋 {count} players joined {server}": "👋 انضم {count} لاعبين إلى {server}",
   "web.permissions.col_player_joins": "انضمام اللاعبين",
-  "web.permissions.col_player_joins_tooltip": "أعلن هنا عمّن ينضم إلى خادم لعبة (الحاويات المحدد لها عمود اللاعبين). يختفي الإشعار بعد 30 دقيقة."
+  "web.permissions.col_player_joins_tooltip": "أعلن هنا عمّن ينضم إلى خادم لعبة (الحاويات المحدد لها عمود اللاعبين). يختفي الإشعار بعد 30 دقيقة.",
+  "Game not answering": "اللعبة لا تستجيب",
+  "Container runs, the game server in it does not answer": "الحاوية تعمل، لكن خادم اللعبة فيها لا يستجيب",
+  "Shows container details and, on a game server, who plays": "يعرض تفاصيل الحاوية، ومن يلعب على خوادم الألعاب"
 }

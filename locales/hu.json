@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Adományozási információk megjelenítése a projekt támogatásához",
   "Showing first {count} of {total} tasks": "{total} feladatból az első {count} látható",
   "Shows admin control overview for all containers": "Admin vezérlési áttekintést mutat az összes konténerről",
-  "Shows container details (if configured)": "Megjeleníti a konténer részleteit (ha be van állítva)",
   "Shows detailed container information.": "Részletes konténerinformációkat mutat.",
   "Shows donation information to support the project.": "Adományozási információkat mutat a projekt támogatásához.",
   "Shows the bot's latency": "Megjeleníti a bot késleltetését",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Egy játékos csatlakozott: {server}",
   "👋 {count} players joined {server}": "👋 {count} játékos csatlakozott: {server}",
   "web.permissions.col_player_joins": "Csatlakozások",
-  "web.permissions.col_player_joins_tooltip": "Itt jelezze, ki csatlakozik egy játékszerverhez (a Játékosok oszlopban bejelölt konténerek). Az értesítés 30 perc után eltűnik."
+  "web.permissions.col_player_joins_tooltip": "Itt jelezze, ki csatlakozik egy játékszerverhez (a Játékosok oszlopban bejelölt konténerek). Az értesítés 30 perc után eltűnik.",
+  "Game not answering": "A játék nem válaszol",
+  "Container runs, the game server in it does not answer": "A konténer fut, a benne lévő játékszerver nem válaszol",
+  "Shows container details and, on a game server, who plays": "Megmutatja a konténer adatait, játékszervernél azt is, ki játszik"
 }

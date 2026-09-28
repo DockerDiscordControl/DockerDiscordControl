@@ -280,7 +280,6 @@
   "Show donation information to support the project": "プロジェクトを支援するための寄付情報を表示",
   "Showing first {count} of {total} tasks": "{total}件中最初の{count}件のタスクを表示",
   "Shows admin control overview for all containers": "すべてのコンテナの管理者コントロール概要を表示します",
-  "Shows container details (if configured)": "コンテナの詳細を表示します（設定されている場合）",
   "Shows detailed container information.": "コンテナの詳細情報を表示します。",
   "Shows donation information to support the project.": "プロジェクトを支援するための寄付情報を表示します。",
   "Shows the bot's latency": "Botのレイテンシを表示します",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 プレイヤーが {server} に参加しました",
   "👋 {count} players joined {server}": "👋 {count} 人のプレイヤーが {server} に参加しました",
   "web.permissions.col_player_joins": "プレイヤー参加",
-  "web.permissions.col_player_joins_tooltip": "ゲームサーバーに参加した人をここで知らせます（プレイヤー列にチェックのあるコンテナ）。通知は30分後に消えます。"
+  "web.permissions.col_player_joins_tooltip": "ゲームサーバーに参加した人をここで知らせます（プレイヤー列にチェックのあるコンテナ）。通知は30分後に消えます。",
+  "Game not answering": "ゲームが応答しません",
+  "Container runs, the game server in it does not answer": "コンテナは動作中ですが、ゲームサーバーが応答しません",
+  "Shows container details and, on a game server, who plays": "コンテナの詳細と、ゲームサーバーではプレイ中の人を表示します"
 }

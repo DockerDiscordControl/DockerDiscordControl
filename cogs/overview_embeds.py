@@ -226,6 +226,7 @@ class OverviewEmbedsMixin:
             # Process status and build field
             # NOW USING ContainerStatusResult Objects (not tuples)
             from services.docker_status.models import ContainerStatusResult
+            from services.discord.embed_helper_service import running_lamp
 
             if status_result and isinstance(status_result, ContainerStatusResult) and status_result.success:
                 # Extract data from ContainerStatusResult object
@@ -243,9 +244,9 @@ class OverviewEmbedsMixin:
                         status_text = translate("Pending")
                     else:
                         del self.pending_actions[docker_name]
-                        status_emoji = "🟢" if is_running else "🔴"
+                        status_emoji = running_lamp(status_result)
                 else:
-                    status_emoji = "🟢" if is_running else "🔴"
+                    status_emoji = running_lamp(status_result)
 
                 # Count online/offline. A container Docker says does not EXIST
                 # renders as "❓ ... not found" and is neither: counted as offline
@@ -447,6 +448,7 @@ class OverviewEmbedsMixin:
             # Process status result - NOW USING ContainerStatusResult Objects (not tuples)
             # Check if we have a successful ContainerStatusResult
             from services.docker_status.models import ContainerStatusResult
+            from services.discord.embed_helper_service import running_lamp
 
             if status_result and isinstance(status_result, ContainerStatusResult) and status_result.success:
                 is_running = status_result.is_running
@@ -461,9 +463,9 @@ class OverviewEmbedsMixin:
                         status_text = translate("Pending")
                     else:
                         del self.pending_actions[docker_name]
-                        status_emoji = "🟢" if is_running else "🔴"
+                        status_emoji = running_lamp(status_result)
                 else:
-                    status_emoji = "🟢" if is_running else "🔴"
+                    status_emoji = running_lamp(status_result)
 
                 # Truncate display name for mobile (max 20 chars)
                 truncated_name = display_name[:20] + "." if len(display_name) > 20 else display_name

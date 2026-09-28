@@ -120,15 +120,15 @@ cogs/docker_control.py	1259	passE:read-in-full-2026-09-21:loops,embeds,modals,in
 cogs/donation_ui.py	693	NONE
 cogs/enhanced_info_modal_simple.py	704	passE:E27+bothscans:519-700
 cogs/group_control.py	361	NONE
-cogs/help_embed.py	95	NONE
+cogs/help_embed.py	96	NONE
 cogs/info_extras.py	323	new 2026-09-28 (v3.0.2 game server, players and Docker facts in the info display), written with its tests
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/message_updates.py	728	v3rev2:1-791
-cogs/overview_embeds.py	610	v3rev2:1-964
+cogs/overview_embeds.py	612	v3rev2:1-964
 cogs/player_joins.py	161	new 2026-09-28 (v3.0.2 join announcements), written with its tests
 cogs/slash_commands.py	822	NONE
 cogs/stack_restart.py	325	v3rev:1-196
-cogs/status_handlers.py	1115	passE:E15,E16:80-200,560-700 v3rev2:1-1400
+cogs/status_handlers.py	1116	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1127	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1245	NONE
 cogs/task_player_options.py	124	new 2026-09-28 (v3.0.2 player options), written with its tests
@@ -164,7 +164,7 @@ services/config/server_config_service.py	233	passE:E33:read-in-full
 services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	509	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
 services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s14:1-169  [15 of 184 lines never in a package]
-services/discord/embed_helper_service.py	209	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
+services/discord/embed_helper_service.py	227	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
 services/discord/status_overview_service.py	374	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	368	v3rev:1-272
@@ -180,7 +180,7 @@ services/docker_service/server_order.py	111	pass1:s16:1-111
 services/docker_service/status_cache_runtime.py	101	pass1:s16:1-101
 services/docker_status/__init__.py	34	pass1:s16:1-34
 services/docker_status/fetch_service.py	251	pass1:s16:1-251
-services/docker_status/models.py	406	pass1:s17:plan pass2:s17:1-376
+services/docker_status/models.py	411	pass1:s17:plan pass2:s17:1-376
 services/docker_status/performance_service.py	234	pass1:s17:plan pass2:s17:1-234
 services/donation/__init__.py	24	pass2:s17:1-24
 services/donation/donation_config.py	50	pass1:s17:plan pass2:s17:1-41

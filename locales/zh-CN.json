@@ -280,7 +280,6 @@
   "Show donation information to support the project": "显示捐赠信息以支持项目",
   "Showing first {count} of {total} tasks": "显示 {total} 个任务中的前 {count} 个",
   "Shows admin control overview for all containers": "显示所有容器的管理员控制概览",
-  "Shows container details (if configured)": "显示容器详情（如已配置）",
   "Shows detailed container information.": "显示详细的容器信息。",
   "Shows donation information to support the project.": "显示捐赠信息以支持项目。",
   "Shows the bot's latency": "显示 Bot 延迟",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 一名玩家加入了 {server}",
   "👋 {count} players joined {server}": "👋 {count} 名玩家加入了 {server}",
   "web.permissions.col_player_joins": "玩家加入",
-  "web.permissions.col_player_joins_tooltip": "在这里通知谁加入了游戏服务器（勾选了“玩家”列的容器）。通知会在 30 分钟后消失。"
+  "web.permissions.col_player_joins_tooltip": "在这里通知谁加入了游戏服务器（勾选了“玩家”列的容器）。通知会在 30 分钟后消失。",
+  "Game not answering": "游戏无响应",
+  "Container runs, the game server in it does not answer": "容器正在运行，但其中的游戏服务器无响应",
+  "Shows container details and, on a game server, who plays": "显示容器详情，游戏服务器还会显示谁在玩"
 }

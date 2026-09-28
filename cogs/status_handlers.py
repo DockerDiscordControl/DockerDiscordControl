@@ -25,6 +25,7 @@ from utils.time_utils import format_datetime_with_timezone
 from services.config.server_config_service import get_server_config_service
 from services.docker_status import get_performance_service, get_fetch_service, ContainerStatusResult
 from services.discord import get_conditional_cache_service, get_embed_helper_service
+from services.discord.embed_helper_service import running_state
 
 # Import helper functions
 from .control_helpers import _channel_has_permission, _get_pending_embed
@@ -409,6 +410,7 @@ class StatusHandlersMixin:
                     # is re-checked through the manual "test now" button. An unknown container
                     # yields None here and is queried normally.
                     if support.is_supported(docker_name) is False:
+                        result.game_silent = True  # not asked again - and said: ⚠️ instead of 🟢
                         continue
                     if proto not in TOKEN_PROTOCOLS:
                         detected = support.get_protocol(docker_name)
@@ -883,8 +885,7 @@ class StatusHandlersMixin:
                 cached_translations = embed_helper.get_translations(lang)
                 online_text = cached_translations['online_text']
                 offline_text = cached_translations['offline_text']
-                status_text = online_text if running else offline_text
-                current_emoji = "🟢" if running else "🔴"
+                current_emoji, status_text = running_state(status_result, online_text, offline_text)
                 if status_result.not_found:
                     # Deleted/renamed container - own state instead of "offline"
                     status_text = _("Not found")

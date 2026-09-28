@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Rodyti aukojimo informaciją, kad paremtumėte projektą",
   "Showing first {count} of {total} tasks": "Rodomos pirmosios {count} iš {total} užduočių",
   "Shows admin control overview for all containers": "Rodo visų konteinerių administratoriaus valdymo apžvalgą",
-  "Shows container details (if configured)": "Rodo konteinerio informaciją (jei sukonfigūruota)",
   "Shows detailed container information.": "Rodo išsamią konteinerio informaciją.",
   "Shows donation information to support the project.": "Rodo aukojimo informaciją, kad paremtumėte projektą.",
   "Shows the bot's latency": "Rodo boto delsą",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Žaidėjas prisijungė prie {server}",
   "👋 {count} players joined {server}": "👋 {count} žaidėjai prisijungė prie {server}",
   "web.permissions.col_player_joins": "Žaidėjų prisijungimai",
-  "web.permissions.col_player_joins_tooltip": "Pranešti čia, kas prisijungia prie žaidimo serverio (konteineriai su pažymėtu stulpeliu Žaidėjai). Pranešimas dingsta po 30 minučių."
+  "web.permissions.col_player_joins_tooltip": "Pranešti čia, kas prisijungia prie žaidimo serverio (konteineriai su pažymėtu stulpeliu Žaidėjai). Pranešimas dingsta po 30 minučių.",
+  "Game not answering": "Žaidimas neatsako",
+  "Container runs, the game server in it does not answer": "Konteineris veikia, žaidimo serveris jame neatsako",
+  "Shows container details and, on a game server, who plays": "Rodo konteinerio informaciją ir žaidimo serveryje, kas žaidžia"
 }

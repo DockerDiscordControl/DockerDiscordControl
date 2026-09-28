@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Mostrar información de donación para apoyar el proyecto",
   "Showing first {count} of {total} tasks": "Mostrando las primeras {count} de {total} tareas",
   "Shows admin control overview for all containers": "Muestra el resumen de control de administración de todos los contenedores",
-  "Shows container details (if configured)": "Muestra los detalles del contenedor (si están configurados)",
   "Shows detailed container information.": "Muestra información detallada del contenedor.",
   "Shows donation information to support the project.": "Muestra información de donación para apoyar el proyecto.",
   "Shows the bot's latency": "Muestra la latencia del bot",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Un jugador entró en {server}",
   "👋 {count} players joined {server}": "👋 {count} jugadores entraron en {server}",
   "web.permissions.col_player_joins": "Entradas de jugadores",
-  "web.permissions.col_player_joins_tooltip": "Anunciar aquí quién entra en un servidor de juego (contenedores con la columna Jugadores marcada). El aviso desaparece a los 30 minutos."
+  "web.permissions.col_player_joins_tooltip": "Anunciar aquí quién entra en un servidor de juego (contenedores con la columna Jugadores marcada). El aviso desaparece a los 30 minutos.",
+  "Game not answering": "El juego no responde",
+  "Container runs, the game server in it does not answer": "El contenedor funciona, el servidor de juego no responde",
+  "Shows container details and, on a game server, who plays": "Muestra los detalles del contenedor y, en un servidor de juego, quién juega"
 }

@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Prikaži informacije o donaciji za podršku projekta",
   "Showing first {count} of {total} tasks": "Prikaz prvih {count} od {total} zadataka",
   "Shows admin control overview for all containers": "Prikazuje administratorski pregled upravljanja za sve kontejnere",
-  "Shows container details (if configured)": "Prikazuje detalje kontejnera (ako su konfigurirani)",
   "Shows detailed container information.": "Prikazuje detaljne informacije o kontejneru.",
   "Shows donation information to support the project.": "Prikazuje informacije o donaciji za podršku projekta.",
   "Shows the bot's latency": "Prikazuje kašnjenje bota",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Igrač se pridružio na {server}",
   "👋 {count} players joined {server}": "👋 {count} igrača se pridružilo na {server}",
   "web.permissions.col_player_joins": "Pridruživanja igrača",
-  "web.permissions.col_player_joins_tooltip": "Javi ovdje tko se pridruži poslužitelju igre (kontejneri s označenim stupcem Igrači). Obavijest nestaje nakon 30 minuta."
+  "web.permissions.col_player_joins_tooltip": "Javi ovdje tko se pridruži poslužitelju igre (kontejneri s označenim stupcem Igrači). Obavijest nestaje nakon 30 minuta.",
+  "Game not answering": "Igra ne odgovara",
+  "Container runs, the game server in it does not answer": "Kontejner radi, poslužitelj igre u njemu ne odgovara",
+  "Shows container details and, on a game server, who plays": "Prikazuje detalje kontejnera i, na poslužitelju igre, tko igra"
 }

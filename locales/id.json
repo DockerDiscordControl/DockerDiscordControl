@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Tampilkan informasi donasi untuk mendukung proyek",
   "Showing first {count} of {total} tasks": "Menampilkan {count} pertama dari {total} tugas",
   "Shows admin control overview for all containers": "Menampilkan ringkasan kontrol admin untuk semua kontainer",
-  "Shows container details (if configured)": "Menampilkan detail kontainer (jika dikonfigurasi)",
   "Shows detailed container information.": "Menampilkan informasi kontainer terperinci.",
   "Shows donation information to support the project.": "Menampilkan informasi donasi untuk mendukung proyek.",
   "Shows the bot's latency": "Menampilkan latensi bot",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Seorang pemain bergabung ke {server}",
   "👋 {count} players joined {server}": "👋 {count} pemain bergabung ke {server}",
   "web.permissions.col_player_joins": "Pemain bergabung",
-  "web.permissions.col_player_joins_tooltip": "Umumkan di sini siapa yang bergabung ke server game (container dengan kolom Pemain dicentang). Pemberitahuan hilang setelah 30 menit."
+  "web.permissions.col_player_joins_tooltip": "Umumkan di sini siapa yang bergabung ke server game (container dengan kolom Pemain dicentang). Pemberitahuan hilang setelah 30 menit.",
+  "Game not answering": "Game tidak menjawab",
+  "Container runs, the game server in it does not answer": "Container berjalan, server game di dalamnya tidak menjawab",
+  "Shows container details and, on a game server, who plays": "Menampilkan detail container dan, di server game, siapa yang bermain"
 }

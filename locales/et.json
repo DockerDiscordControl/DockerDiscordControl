@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Näita annetuste infot projekti toetamiseks",
   "Showing first {count} of {total} tasks": "Kuvatakse esimesed {count} ülesannet {total}-st",
   "Shows admin control overview for all containers": "Kuvab kõigi konteinerite administraatori juhtimise ülevaate",
-  "Shows container details (if configured)": "Kuvab konteineri üksikasjad (kui seadistatud)",
   "Shows detailed container information.": "Kuvab konteineri üksikasjaliku teabe.",
   "Shows donation information to support the project.": "Kuvab annetuste infot projekti toetamiseks.",
   "Shows the bot's latency": "Kuvab Bot'i latentsuse",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Mängija liitus serveriga {server}",
   "👋 {count} players joined {server}": "👋 {count} mängijat liitus serveriga {server}",
   "web.permissions.col_player_joins": "Mängijate liitumised",
-  "web.permissions.col_player_joins_tooltip": "Teata siin, kes mänguserveriga liitub (konteinerid, millel on veerg Mängijad märgitud). Teade kaob 30 minuti pärast."
+  "web.permissions.col_player_joins_tooltip": "Teata siin, kes mänguserveriga liitub (konteinerid, millel on veerg Mängijad märgitud). Teade kaob 30 minuti pärast.",
+  "Game not answering": "Mäng ei vasta",
+  "Container runs, the game server in it does not answer": "Konteiner töötab, mänguserver selles ei vasta",
+  "Shows container details and, on a game server, who plays": "Näitab konteineri üksikasju ja mänguserveris, kes mängib"
 }

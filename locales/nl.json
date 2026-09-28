@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Donatie-informatie tonen om het project te ondersteunen",
   "Showing first {count} of {total} tasks": "Eerste {count} van {total} taken worden getoond",
   "Shows admin control overview for all containers": "Toont het beheerdersoverzicht voor alle containers",
-  "Shows container details (if configured)": "Toont containerdetails (indien geconfigureerd)",
   "Shows detailed container information.": "Toont gedetailleerde containerinformatie.",
   "Shows donation information to support the project.": "Toont donatie-informatie om het project te ondersteunen.",
   "Shows the bot's latency": "Toont de latentie van de bot",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Een speler kwam op {server}",
   "👋 {count} players joined {server}": "👋 {count} spelers kwamen op {server}",
   "web.permissions.col_player_joins": "Spelers die binnenkomen",
-  "web.permissions.col_player_joins_tooltip": "Meld hier wie op een gameserver komt (containers met de kolom Spelers aangevinkt). De melding verdwijnt na 30 minuten."
+  "web.permissions.col_player_joins_tooltip": "Meld hier wie op een gameserver komt (containers met de kolom Spelers aangevinkt). De melding verdwijnt na 30 minuten.",
+  "Game not answering": "Spel antwoordt niet",
+  "Container runs, the game server in it does not answer": "De container draait, de gameserver erin antwoordt niet",
+  "Shows container details and, on a game server, who plays": "Toont containerdetails en, bij een gameserver, wie er speelt"
 }

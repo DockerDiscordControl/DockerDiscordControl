@@ -280,7 +280,6 @@
   "Show donation information to support the project": "نمایش اطلاعات کمک مالی برای حمایت از پروژه",
   "Showing first {count} of {total} tasks": "نمایش {count} وظیفه اول از {total}",
   "Shows admin control overview for all containers": "نمای کلی کنترل مدیریت را برای همه کانتینرها نمایش می‌دهد",
-  "Shows container details (if configured)": "جزئیات کانتینر را نمایش می‌دهد (در صورت پیکربندی)",
   "Shows detailed container information.": "اطلاعات دقیق کانتینر را نمایش می‌دهد.",
   "Shows donation information to support the project.": "اطلاعات کمک مالی برای حمایت از پروژه نمایش می‌دهد.",
   "Shows the bot's latency": "تأخیر بات را نمایش می‌دهد",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 یک بازیکن وارد {server} شد",
   "👋 {count} players joined {server}": "👋 {count} بازیکن وارد {server} شدند",
   "web.permissions.col_player_joins": "ورود بازیکنان",
-  "web.permissions.col_player_joins_tooltip": "اینجا اعلام کن چه کسی وارد سرور بازی می‌شود (کانتینرهایی که ستون بازیکنان آن‌ها تیک خورده). اعلان پس از ۳۰ دقیقه حذف می‌شود."
+  "web.permissions.col_player_joins_tooltip": "اینجا اعلام کن چه کسی وارد سرور بازی می‌شود (کانتینرهایی که ستون بازیکنان آن‌ها تیک خورده). اعلان پس از ۳۰ دقیقه حذف می‌شود.",
+  "Game not answering": "بازی پاسخ نمی‌دهد",
+  "Container runs, the game server in it does not answer": "کانتینر اجرا می‌شود، اما سرور بازی درون آن پاسخ نمی‌دهد",
+  "Shows container details and, on a game server, who plays": "جزئیات کانتینر و در سرورهای بازی، بازیکنان را نشان می‌دهد"
 }

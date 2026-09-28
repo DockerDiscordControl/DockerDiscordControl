@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Hiển thị thông tin đóng góp để hỗ trợ dự án",
   "Showing first {count} of {total} tasks": "Hiển thị {count} tác vụ đầu tiên trong tổng số {total}",
   "Shows admin control overview for all containers": "Hiển thị tổng quan điều khiển quản trị cho tất cả container",
-  "Shows container details (if configured)": "Hiển thị chi tiết container (nếu đã cấu hình)",
   "Shows detailed container information.": "Hiển thị thông tin container chi tiết.",
   "Shows donation information to support the project.": "Hiển thị thông tin đóng góp để hỗ trợ dự án.",
   "Shows the bot's latency": "Hiển thị độ trễ của bot",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Một người chơi đã vào {server}",
   "👋 {count} players joined {server}": "👋 {count} người chơi đã vào {server}",
   "web.permissions.col_player_joins": "Người chơi tham gia",
-  "web.permissions.col_player_joins_tooltip": "Thông báo tại đây ai vào máy chủ game (container có cột Người chơi được chọn). Thông báo biến mất sau 30 phút."
+  "web.permissions.col_player_joins_tooltip": "Thông báo tại đây ai vào máy chủ game (container có cột Người chơi được chọn). Thông báo biến mất sau 30 phút.",
+  "Game not answering": "Game không phản hồi",
+  "Container runs, the game server in it does not answer": "Container đang chạy, máy chủ game bên trong không phản hồi",
+  "Shows container details and, on a game server, who plays": "Hiển thị chi tiết container và, với máy chủ game, ai đang chơi"
 }

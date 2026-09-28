@@ -280,7 +280,6 @@
   "Show donation information to support the project": "परियोजना का समर्थन करने के लिए दान जानकारी दिखाएँ",
   "Showing first {count} of {total} tasks": "{total} कार्यों में से पहले {count} दिखाए जा रहे हैं",
   "Shows admin control overview for all containers": "सभी कंटेनरों के लिए व्यवस्थापक नियंत्रण अवलोकन दिखाता है",
-  "Shows container details (if configured)": "कंटेनर विवरण दिखाता है (यदि कॉन्फ़िगर किया गया हो)",
   "Shows detailed container information.": "विस्तृत कंटेनर जानकारी दिखाता है।",
   "Shows donation information to support the project.": "परियोजना का समर्थन करने के लिए दान जानकारी दिखाता है।",
   "Shows the bot's latency": "बॉट की विलंबता दिखाता है",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 एक खिलाड़ी {server} पर आया",
   "👋 {count} players joined {server}": "👋 {count} खिलाड़ी {server} पर आए",
   "web.permissions.col_player_joins": "खिलाड़ियों का आना",
-  "web.permissions.col_player_joins_tooltip": "यहाँ बताएं कि कौन गेम सर्वर पर आता है (जिन कंटेनरों में खिलाड़ी कॉलम चुना है)। सूचना 30 मिनट बाद हट जाती है।"
+  "web.permissions.col_player_joins_tooltip": "यहाँ बताएं कि कौन गेम सर्वर पर आता है (जिन कंटेनरों में खिलाड़ी कॉलम चुना है)। सूचना 30 मिनट बाद हट जाती है।",
+  "Game not answering": "गेम जवाब नहीं दे रहा",
+  "Container runs, the game server in it does not answer": "कंटेनर चल रहा है, उसमें गेम सर्वर जवाब नहीं दे रहा",
+  "Shows container details and, on a game server, who plays": "कंटेनर विवरण और गेम सर्वर पर कौन खेल रहा है दिखाता है"
 }

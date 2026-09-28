@@ -280,7 +280,6 @@
   "Show donation information to support the project": "הצג מידע על תרומות לתמיכה בפרויקט",
   "Showing first {count} of {total} tasks": "מוצגות {count} המשימות הראשונות מתוך {total}",
   "Shows admin control overview for all containers": "מציג סקירת בקרת מנהל עבור כל הקונטיינרים",
-  "Shows container details (if configured)": "מציג פרטי קונטיינר (אם הוגדרו)",
   "Shows detailed container information.": "מציג מידע מפורט על הקונטיינר.",
   "Shows donation information to support the project.": "מציג מידע על תרומות לתמיכה בפרויקט.",
   "Shows the bot's latency": "מציג את זמן התגובה של הבוט",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 שחקן הצטרף ל-{server}",
   "👋 {count} players joined {server}": "👋 {count} שחקנים הצטרפו ל-{server}",
   "web.permissions.col_player_joins": "הצטרפות שחקנים",
-  "web.permissions.col_player_joins_tooltip": "הודע כאן מי מצטרף לשרת משחק (קונטיינרים שעמודת השחקנים שלהם מסומנת). ההודעה נעלמת אחרי 30 דקות."
+  "web.permissions.col_player_joins_tooltip": "הודע כאן מי מצטרף לשרת משחק (קונטיינרים שעמודת השחקנים שלהם מסומנת). ההודעה נעלמת אחרי 30 דקות.",
+  "Game not answering": "המשחק לא עונה",
+  "Container runs, the game server in it does not answer": "הקונטיינר פועל, שרת המשחק בתוכו לא עונה",
+  "Shows container details and, on a game server, who plays": "מציג פרטי קונטיינר, ובשרת משחק מי משחק"
 }

@@ -224,6 +224,11 @@ class ContainerStatusResult:
     memory_limited: Optional[bool] = None
     # Compose stack (Phase 4c): com.docker.compose.project, None without one.
     compose_project: Optional[str] = None
+    # The container runs, but the game server in it does not answer its player query
+    # (v3.0.2). Set by the status loop from the support verdict; drawn as ⚠️ instead of 🟢.
+    # Found 2026-09-28: the operator's Enshrouded server had been dead for twelve days
+    # while its container ran on and the overview showed it green.
+    game_silent: bool = False
 
     @property
     def is_online(self) -> bool:

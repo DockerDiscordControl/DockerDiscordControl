@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Zobrazit informace o příspěvcích pro podporu projektu",
   "Showing first {count} of {total} tasks": "Zobrazeno prvních {count} z {total} úkolů",
   "Shows admin control overview for all containers": "Zobrazí přehled ovládání správce pro všechny kontejnery",
-  "Shows container details (if configured)": "Zobrazí podrobnosti kontejneru (pokud jsou nastaveny)",
   "Shows detailed container information.": "Zobrazí podrobné informace o kontejneru.",
   "Shows donation information to support the project.": "Zobrazí informace o příspěvcích pro podporu projektu.",
   "Shows the bot's latency": "Zobrazí latenci bota",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Na {server} se připojil hráč",
   "👋 {count} players joined {server}": "👋 Na {server} se připojilo {count} hráčů",
   "web.permissions.col_player_joins": "Připojení hráčů",
-  "web.permissions.col_player_joins_tooltip": "Oznamovat zde, kdo se připojí na herní server (kontejnery se zaškrtnutým sloupcem Hráči). Oznámení zmizí po 30 minutách."
+  "web.permissions.col_player_joins_tooltip": "Oznamovat zde, kdo se připojí na herní server (kontejnery se zaškrtnutým sloupcem Hráči). Oznámení zmizí po 30 minutách.",
+  "Game not answering": "Hra neodpovídá",
+  "Container runs, the game server in it does not answer": "Kontejner běží, herní server v něm neodpovídá",
+  "Shows container details and, on a game server, who plays": "Zobrazí detaily kontejneru a u herních serverů, kdo hraje"
 }

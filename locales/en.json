@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Show donation information to support the project",
   "Showing first {count} of {total} tasks": "Showing first {count} of {total} tasks",
   "Shows admin control overview for all containers": "Shows admin control overview for all containers",
-  "Shows container details (if configured)": "Shows container details (if configured)",
   "Shows detailed container information.": "Shows detailed container information.",
   "Shows donation information to support the project.": "Shows donation information to support the project.",
   "Shows the bot's latency": "Shows the bot's latency",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 A player joined {server}",
   "👋 {count} players joined {server}": "👋 {count} players joined {server}",
   "web.permissions.col_player_joins": "Player joins",
-  "web.permissions.col_player_joins_tooltip": "Announce here who joins a game server (containers with the Players box ticked). The notice disappears after 30 minutes."
+  "web.permissions.col_player_joins_tooltip": "Announce here who joins a game server (containers with the Players box ticked). The notice disappears after 30 minutes.",
+  "Game not answering": "Game not answering",
+  "Container runs, the game server in it does not answer": "Container runs, the game server in it does not answer",
+  "Shows container details and, on a game server, who plays": "Shows container details and, on a game server, who plays"
 }

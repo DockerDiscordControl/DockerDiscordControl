@@ -86,6 +86,15 @@ All notable changes to DockerDiscordControl will be documented in this file.
   does not count as a visit. The first page after a pause fetches a fresh list itself (until now a
   list up to five minutes old could be handed out as it was).
 
+### ⚠️ A dead game server is not shown green
+
+- A game server whose container runs but which does not answer its player query is drawn ⚠️
+  instead of 🟢 - in the admin overview, the server overview and its status message ("Game not
+  answering"). Found on the operator's host: an Enshrouded server had been dead for twelve days
+  while its container ran on, and every overview showed it online. The mark comes from the check
+  the status loop already makes, so it costs nothing. The help's legend explains the ⚠️, and the
+  ℹ️ button is no longer described as "if configured".
+
 ### 🗓️ The task forms, straightened out
 
 - **Editing a task works again.** Since the edit dialog moved into its own file (2026-09-23) it

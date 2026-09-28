@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Rādīt ziedojumu informāciju, lai atbalstītu projektu",
   "Showing first {count} of {total} tasks": "Tiek rādīti pirmie {count} no {total} uzdevumiem",
   "Shows admin control overview for all containers": "Parāda administratora vadības pārskatu visiem konteineriem",
-  "Shows container details (if configured)": "Parāda konteinera informāciju (ja konfigurēta)",
   "Shows detailed container information.": "Parāda detalizētu konteinera informāciju.",
   "Shows donation information to support the project.": "Parāda ziedojumu informāciju, lai atbalstītu projektu.",
   "Shows the bot's latency": "Parāda bota latentumu",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Spēlētājs pievienojās {server}",
   "👋 {count} players joined {server}": "👋 {count} spēlētāji pievienojās {server}",
   "web.permissions.col_player_joins": "Spēlētāju pievienošanās",
-  "web.permissions.col_player_joins_tooltip": "Paziņot šeit, kas pievienojas spēles serverim (konteineri ar atzīmētu kolonnu Spēlētāji). Paziņojums pazūd pēc 30 minūtēm."
+  "web.permissions.col_player_joins_tooltip": "Paziņot šeit, kas pievienojas spēles serverim (konteineri ar atzīmētu kolonnu Spēlētāji). Paziņojums pazūd pēc 30 minūtēm.",
+  "Game not answering": "Spēle neatbild",
+  "Container runs, the game server in it does not answer": "Konteiners darbojas, spēles serveris tajā neatbild",
+  "Shows container details and, on a game server, who plays": "Rāda konteinera informāciju un spēles serverī, kas spēlē"
 }

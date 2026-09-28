@@ -280,7 +280,6 @@
   "Show donation information to support the project": "프로젝트 지원을 위한 기부 정보 표시",
   "Showing first {count} of {total} tasks": "전체 {total}개 중 처음 {count}개 작업 표시",
   "Shows admin control overview for all containers": "모든 컨테이너의 관리자 제어 개요를 표시합니다",
-  "Shows container details (if configured)": "컨테이너 세부 정보를 표시합니다 (설정된 경우)",
   "Shows detailed container information.": "상세한 컨테이너 정보를 표시합니다.",
   "Shows donation information to support the project.": "프로젝트 지원을 위한 기부 정보를 표시합니다.",
   "Shows the bot's latency": "Bot의 지연 시간을 표시합니다",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 플레이어가 {server}에 접속했습니다",
   "👋 {count} players joined {server}": "👋 플레이어 {count}명이 {server}에 접속했습니다",
   "web.permissions.col_player_joins": "플레이어 접속",
-  "web.permissions.col_player_joins_tooltip": "게임 서버에 누가 접속하는지 여기에 알립니다(플레이어 열이 체크된 컨테이너). 알림은 30분 후 사라집니다."
+  "web.permissions.col_player_joins_tooltip": "게임 서버에 누가 접속하는지 여기에 알립니다(플레이어 열이 체크된 컨테이너). 알림은 30분 후 사라집니다.",
+  "Game not answering": "게임이 응답하지 않음",
+  "Container runs, the game server in it does not answer": "컨테이너는 실행 중이지만 게임 서버가 응답하지 않습니다",
+  "Shows container details and, on a game server, who plays": "컨테이너 정보와 게임 서버의 접속자를 보여줍니다"
 }

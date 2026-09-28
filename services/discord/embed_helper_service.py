@@ -54,6 +54,24 @@ def fit_lines(lines, *, separator: str = "\n", prefix: str = "", suffix: str = "
     return prefix + note[:room] + suffix
 
 
+def running_lamp(status_result) -> str:
+    """🟢 running, 🔴 not - and ⚠️ for a running container whose game server does not
+    answer (ContainerStatusResult.game_silent). One place for every panel that draws it."""
+    if not getattr(status_result, 'is_running', False):
+        return "🔴"
+    return "⚠️" if getattr(status_result, 'game_silent', False) else "🟢"
+
+
+def running_state(status_result, online_text: str, offline_text: str):
+    """(lamp, text) of a container's status line: "🟢 Online", "🔴 Offline", or
+    "⚠️ Game not answering" for a running container whose game server is silent."""
+    lamp = running_lamp(status_result)
+    if lamp == "⚠️":
+        from cogs.translation_manager import _
+        return lamp, _("Game not answering")
+    return lamp, (online_text if lamp == "🟢" else offline_text)
+
+
 def format_player_inline(players_online, max_players) -> str:
     """Compact live player count for the space-limited community overview list.
 

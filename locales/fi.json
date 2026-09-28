@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Näytä lahjoitustiedot projektin tukemiseksi",
   "Showing first {count} of {total} tasks": "Näytetään ensimmäiset {count} / {total} tehtävää",
   "Shows admin control overview for all containers": "Näyttää ylläpitäjän ohjausyleiskatsauksen kaikille säilöille",
-  "Shows container details (if configured)": "Näyttää säilön tiedot (jos määritetty)",
   "Shows detailed container information.": "Näyttää säilön yksityiskohtaiset tiedot.",
   "Shows donation information to support the project.": "Näyttää lahjoitustiedot projektin tukemiseksi.",
   "Shows the bot's latency": "Näyttää botin viiveen",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Pelaaja liittyi palvelimelle {server}",
   "👋 {count} players joined {server}": "👋 {count} pelaajaa liittyi palvelimelle {server}",
   "web.permissions.col_player_joins": "Liittyvät pelaajat",
-  "web.permissions.col_player_joins_tooltip": "Ilmoita täällä, kuka liittyy pelipalvelimelle (kontit, joissa Pelaajat-sarake on valittu). Ilmoitus katoaa 30 minuutin kuluttua."
+  "web.permissions.col_player_joins_tooltip": "Ilmoita täällä, kuka liittyy pelipalvelimelle (kontit, joissa Pelaajat-sarake on valittu). Ilmoitus katoaa 30 minuutin kuluttua.",
+  "Game not answering": "Peli ei vastaa",
+  "Container runs, the game server in it does not answer": "Kontti on käynnissä, pelipalvelin siinä ei vastaa",
+  "Shows container details and, on a game server, who plays": "Näyttää kontin tiedot ja pelipalvelimella, kuka pelaa"
 }

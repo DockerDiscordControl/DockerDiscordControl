@@ -45,13 +45,14 @@ def help_fields():
          f"`/help` - {_('Shows this help message.')}"),
         (_("Status Indicators"),
          f"🟢 {_('Container is online')}\n"
+         f"⚠️ {_('Container runs, the game server in it does not answer')}\n"
          f"🔴 {_('Container is offline')}\n"
          f"❓ {_('Container not found')}\n"
          f"🔄 {_('Container status loading')}\n"
          f"🟡 {_('Action pending (start, stop or restart)')}"),
         (_("Buttons"),
          f"**{_('Mech')}** - {_('Shows detailed mech stats and the donation system')}\n"
-         f"ℹ️ **{_('Info')}** - {_('Shows container details (if configured)')}\n"
+         f"ℹ️ **{_('Info')}** - {_('Shows container details and, on a game server, who plays')}\n"
          f"🛠️ **{_('Admin')}** - {_('Opens admin control panel')}\n"
          f"❓ **{_('Help')}** - {_('Shows this help message')}"),
         (_("Container Controls"),

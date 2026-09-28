@@ -280,7 +280,6 @@
   "Show donation information to support the project": "แสดงข้อมูลการบริจาคเพื่อสนับสนุนโครงการ",
   "Showing first {count} of {total} tasks": "แสดง {count} งานแรกจากทั้งหมด {total} งาน",
   "Shows admin control overview for all containers": "แสดงภาพรวมการควบคุมของผู้ดูแลระบบสำหรับ Container ทั้งหมด",
-  "Shows container details (if configured)": "แสดงรายละเอียด Container (หากกำหนดค่าไว้)",
   "Shows detailed container information.": "แสดงข้อมูล Container โดยละเอียด",
   "Shows donation information to support the project.": "แสดงข้อมูลการบริจาคเพื่อสนับสนุนโครงการ",
   "Shows the bot's latency": "แสดงค่าหน่วงของ Bot",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 มีผู้เล่นเข้าร่วม {server}",
   "👋 {count} players joined {server}": "👋 ผู้เล่น {count} คนเข้าร่วม {server}",
   "web.permissions.col_player_joins": "ผู้เล่นเข้าร่วม",
-  "web.permissions.col_player_joins_tooltip": "แจ้งที่นี่ว่าใครเข้าร่วมเซิร์ฟเวอร์เกม (คอนเทนเนอร์ที่ติ๊กคอลัมน์ผู้เล่น) ข้อความจะหายไปหลัง 30 นาที"
+  "web.permissions.col_player_joins_tooltip": "แจ้งที่นี่ว่าใครเข้าร่วมเซิร์ฟเวอร์เกม (คอนเทนเนอร์ที่ติ๊กคอลัมน์ผู้เล่น) ข้อความจะหายไปหลัง 30 นาที",
+  "Game not answering": "เกมไม่ตอบสนอง",
+  "Container runs, the game server in it does not answer": "คอนเทนเนอร์ทำงาน แต่เซิร์ฟเวอร์เกมข้างในไม่ตอบ",
+  "Shows container details and, on a game server, who plays": "แสดงรายละเอียดคอนเทนเนอร์ และผู้ที่กำลังเล่นบนเซิร์ฟเวอร์เกม"
 }

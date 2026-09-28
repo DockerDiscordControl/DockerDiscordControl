@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Visa donationsinformation för att stödja projektet",
   "Showing first {count} of {total} tasks": "Visar de första {count} av {total} uppgifter",
   "Shows admin control overview for all containers": "Visar administratörsöversikt för alla containrar",
-  "Shows container details (if configured)": "Visar containerdetaljer (om konfigurerat)",
   "Shows detailed container information.": "Visar detaljerad containerinformation.",
   "Shows donation information to support the project.": "Visar donationsinformation för att stödja projektet.",
   "Shows the bot's latency": "Visar botens latens",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 En spelare anslöt till {server}",
   "👋 {count} players joined {server}": "👋 {count} spelare anslöt till {server}",
   "web.permissions.col_player_joins": "Spelare som ansluter",
-  "web.permissions.col_player_joins_tooltip": "Meddela här vem som ansluter till en spelserver (containrar med kolumnen Spelare ikryssad). Meddelandet försvinner efter 30 minuter."
+  "web.permissions.col_player_joins_tooltip": "Meddela här vem som ansluter till en spelserver (containrar med kolumnen Spelare ikryssad). Meddelandet försvinner efter 30 minuter.",
+  "Game not answering": "Spelet svarar inte",
+  "Container runs, the game server in it does not answer": "Containern körs, spelservern i den svarar inte",
+  "Shows container details and, on a game server, who plays": "Visar containerdetaljer och, på en spelserver, vem som spelar"
 }

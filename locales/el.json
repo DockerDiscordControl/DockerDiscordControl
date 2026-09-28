@@ -280,7 +280,6 @@
   "Show donation information to support the project": "Εμφάνιση πληροφοριών δωρεάς για υποστήριξη του έργου",
   "Showing first {count} of {total} tasks": "Εμφανίζονται οι πρώτες {count} από {total} εργασίες",
   "Shows admin control overview for all containers": "Εμφανίζει την επισκόπηση ελέγχου διαχειριστή για όλα τα containers",
-  "Shows container details (if configured)": "Εμφανίζει λεπτομέρειες container (αν έχουν ρυθμιστεί)",
   "Shows detailed container information.": "Εμφανίζει λεπτομερείς πληροφορίες container.",
   "Shows donation information to support the project.": "Εμφανίζει πληροφορίες δωρεάς για υποστήριξη του έργου.",
   "Shows the bot's latency": "Εμφανίζει την καθυστέρηση του bot",
@@ -1670,5 +1669,8 @@
   "👋 A player joined {server}": "👋 Ένας παίκτης μπήκε στο {server}",
   "👋 {count} players joined {server}": "👋 {count} παίκτες μπήκαν στο {server}",
   "web.permissions.col_player_joins": "Είσοδοι παικτών",
-  "web.permissions.col_player_joins_tooltip": "Ανακοίνωση εδώ για όποιον μπαίνει σε διακομιστή παιχνιδιού (containers με επιλεγμένη τη στήλη Παίκτες). Η ειδοποίηση εξαφανίζεται μετά από 30 λεπτά."
+  "web.permissions.col_player_joins_tooltip": "Ανακοίνωση εδώ για όποιον μπαίνει σε διακομιστή παιχνιδιού (containers με επιλεγμένη τη στήλη Παίκτες). Η ειδοποίηση εξαφανίζεται μετά από 30 λεπτά.",
+  "Game not answering": "Το παιχνίδι δεν απαντά",
+  "Container runs, the game server in it does not answer": "Το container τρέχει, ο διακομιστής παιχνιδιού μέσα δεν απαντά",
+  "Shows container details and, on a game server, who plays": "Εμφανίζει λεπτομέρειες container και, σε διακομιστή παιχνιδιού, ποιος παίζει"
 }
