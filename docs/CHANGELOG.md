@@ -86,6 +86,16 @@ All notable changes to DockerDiscordControl will be documented in this file.
   does not count as a visit. The first page after a pause fetches a fresh list itself (until now a
   list up to five minutes old could be handed out as it was).
 
+### 🪵 Two log lines that said something else
+
+- **"Every minute" updated every two minutes.** The message edits tick once a minute, and the
+  time of the last update is taken after the edit, a second into the tick - so the next tick
+  found 59 seconds and waited another minute. The status messages and their "Last update" now
+  come every minute when set to every minute.
+- **Opening the web panel is no failed login.** A browser's first request carries no credentials
+  yet and was logged as "Failed login attempt for user: " each time; a real wrong name or password
+  still is.
+
 ### ⏱️ One beat for everything that asks Docker
 
 - The status loop was set to 120 s on the operator's installation, but Docker was polled every

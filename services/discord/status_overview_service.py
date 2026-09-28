@@ -26,6 +26,10 @@ import discord
 
 logger = get_module_logger('status_overview_service')
 
+# How much short of its interval a message still counts as due - the drift of the
+# once-a-minute edit loop (see UpdateDecision's time check)
+UPDATE_DUE_GRACE_SECONDS = 5
+
 @dataclass
 class StatusOverviewUpdateConfig:
     """Configuration for status overview updates from Web UI."""
@@ -114,7 +118,11 @@ class StatusOverviewService:
                 time_since_update = datetime.now(timezone.utc) - last_update_time
                 update_interval = timedelta(minutes=config.update_interval_minutes)
 
-                if time_since_update < update_interval:
+                # The edit loop ticks once a minute and the time of the last update is
+                # taken after the edit, a second or so into the tick - so the next tick
+                # found 59.x s and waited another minute. Measured on the operator's
+                # installation (2026-09-28): "every minute" updated every two minutes.
+                if time_since_update < update_interval - timedelta(seconds=UPDATE_DUE_GRACE_SECONDS):
                     remaining_seconds = (update_interval - time_since_update).total_seconds()
                     should_update_by_time = False
                     time_reason = f"interval_not_reached_({remaining_seconds:.1f}s_remaining)"

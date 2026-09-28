@@ -299,6 +299,12 @@ def verify_password(username, password):
         elif check_password_hash(stored_hash, password):
             # Non-string input (should not happen via flask_httpauth) - verify, but never cache.
             return username
+    if not username and not password:
+        # No credentials at all: a browser's first request, before the login
+        # prompt was answered - seen on the operator's log (2026-09-28) as
+        # "Failed login attempt for user: " each time the panel was opened.
+        # Nobody attempted anything; the prompt follows.
+        return None
     logger.warning(f"Failed login attempt for user: {username}")
     return None
 
