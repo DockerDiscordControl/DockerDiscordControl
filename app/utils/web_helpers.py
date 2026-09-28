@@ -564,7 +564,7 @@ def background_refresh_worker(logger):
                         paused = False
                     update_docker_cache(logger)
                 elif not paused:
-                    logger.info("Web panel not used for 5 minutes - container list refresh paused")
+                    logger.info("Web panel not in use - container list refresh paused until a page is called up")
                     paused = True
 
                 # Wait for the configured time, but check regularly for stop signal
