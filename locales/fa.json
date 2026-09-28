@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "فهرست بازیکنان اکنون قابل خواندن نیست.",
   "Nobody is playing right now.": "اکنون کسی بازی نمی‌کند.",
   "This game does not send player names.": "این بازی نام بازیکنان را ارسال نمی‌کند.",
-  "+{count} more": "+{count} نفر دیگر"
+  "+{count} more": "+{count} نفر دیگر",
+  "Password": "رمز عبور",
+  "Port {port}": "پورت {port}",
+  "Restarts on its own after a crash or a reboot": "پس از خرابی یا راه‌اندازی مجدد خودکار دوباره اجرا می‌شود",
+  "Restarts on its own after a crash": "پس از خرابی خودکار دوباره اجرا می‌شود",
+  "Docker does not restart it after a crash": "Docker پس از خرابی آن را دوباره اجرا نمی‌کند",
+  "Running since {moment}": "در حال اجرا از {moment}",
+  "Stopped since {moment}": "متوقف از {moment}",
+  "out of memory": "حافظه تمام شد",
+  "exit code {code}": "کد خروج {code}",
+  "image from {date}": "ایمیج از {date}",
+  "Memory limit: {size}": "محدودیت حافظه: {size}"
 }

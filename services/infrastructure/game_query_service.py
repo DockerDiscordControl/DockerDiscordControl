@@ -26,6 +26,7 @@ Design guarantees (mirrors the existing status-fetch services):
 """
 
 import asyncio
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple
@@ -107,6 +108,11 @@ class PlayerList:
     empty names (opengsq issue #44), Satisfactory's API has no list at all -
     so ``players_online`` can be larger than ``len(names)``; ``names_given``
     is False when the game named nobody it counted.
+
+    The same answer says what the server calls itself (the name players look
+    for in the server browser), the game and its version, whether it asks for
+    a password, and the game port INSIDE the container - which the caller maps
+    to the published one. Each is None when the game does not say.
     """
     success: bool
     players_online: Optional[int] = None
@@ -115,6 +121,34 @@ class PlayerList:
     names_given: bool = True
     # 'timeout' | 'unreachable' | 'no_query' | 'bad_config'
     error_type: Optional[str] = None
+    server_name: Optional[str] = None
+    game: Optional[str] = None
+    game_version: Optional[str] = None
+    password: Optional[bool] = None
+    game_port: Optional[int] = None
+
+
+# A2S carries a version field most servers fill with a placeholder ("1.0.0.0"
+# from Valheim, "0.0.0.1" from Icarus - measured 2026-09-28); the real one sits
+# in the keywords, spelt per game.
+_PLACEHOLDER_VERSION = re.compile(r'^[01](\.[01])*$')
+_KEYWORD_VERSION = (('g=', 'Valheim'), ('G_s:', 'Icarus'))
+
+
+def a2s_version(version: Optional[str], keywords: Optional[str]) -> Optional[str]:
+    """The game version an A2S answer carries, or None."""
+    for word in (keywords or '').split(','):
+        for prefix, _game in _KEYWORD_VERSION:
+            if word.startswith(prefix) and word[len(prefix):].strip():
+                return word[len(prefix):].split('-')[0].strip()
+    version = (version or '').strip()
+    return version if version and not _PLACEHOLDER_VERSION.match(version) else None
+
+
+def _count(value, positive: bool = False) -> Optional[int]:
+    if not isinstance(value, int) or (positive and value <= 0):
+        return None
+    return value
 
 
 class GameQueryService:
@@ -188,38 +222,64 @@ class GameQueryService:
     async def _query_players(self, protocol: str, host: str, port: int,
                              timeout: float, token: str = '') -> PlayerList:
         """The player list of one server on one port. Raises like _query_protocol."""
-        names: List[Tuple[str, Optional[float]]] = []
         if protocol == 'source':
             from opengsq.protocols.source import Source  # lazy import
             server = Source(host=host, port=port, timeout=timeout)
             info = await server.get_info()
-            online, max_players = getattr(info, 'players', None), getattr(info, 'max_players', None)
-            if online:
-                names = [(p.name.strip(), p.duration) for p in await server.get_players()
-                         if (p.name or '').strip()]
-        elif protocol == 'minecraft':
+            online = getattr(info, 'players', None)
+            names = [(p.name.strip(), p.duration) for p in await server.get_players()
+                     if (p.name or '').strip()] if online else []
+            folder = str(getattr(info, 'folder', '') or '')
+            return PlayerList(
+                success=True, players_online=online, max_players=getattr(info, 'max_players', None),
+                names=names, names_given=bool(names) or not online,
+                server_name=(str(getattr(info, 'name', '') or '').strip() or None),
+                game=(str(getattr(info, 'game', '') or '').strip() or folder.title() or None),
+                game_version=a2s_version(getattr(info, 'version', None), getattr(info, 'keywords', None)),
+                # Visibility 1 = private: the server asks for a password
+                password=getattr(getattr(info, 'visibility', None), 'value', getattr(info, 'visibility', None)) == 1,
+                game_port=_count(getattr(info, 'port', None), positive=True))
+        if protocol == 'minecraft':
             from opengsq.protocols.minecraft import Minecraft  # lazy import
-            players = ((await Minecraft(host=host, port=port, timeout=timeout).get_status()) or {}).get('players') or {}
-            online, max_players = players.get('online'), players.get('max')
+            status = (await Minecraft(host=host, port=port, timeout=timeout).get_status()) or {}
+            players = status.get('players') or {}
+            online = players.get('online')
             # The server sends a SAMPLE, at most twelve names; the rest is "+k more"
             names = [(str(p.get('name')).strip(), None) for p in (players.get('sample') or [])
                      if isinstance(p, dict) and str(p.get('name') or '').strip()]
-        elif protocol == 'palworld':
-            online, max_players = await self._query_protocol(protocol, host, port, timeout, token)
-            if online:
-                from opengsq.protocols.palworld import Palworld  # lazy import
-                server = Palworld(host=host, port=port, api_username='admin',
-                                  api_password=(token or ''), timeout=timeout)
-                names = [(p.name.strip(), None) for p in await server.get_players() if (p.name or '').strip()]
-        elif protocol == 'satisfactory':
-            # Its API counts players and names none
-            online, max_players = await self._query_protocol(protocol, host, port, timeout, token)
+            version = status.get('version') or {}
+            return PlayerList(success=True, players_online=online, max_players=players.get('max'),
+                              names=names, names_given=bool(names) or not online, game='Minecraft',
+                              game_version=(str(version.get('name') or '').strip() or None)
+                              if isinstance(version, dict) else None)
+        if protocol == 'palworld':
+            from opengsq.protocols.palworld import Palworld  # lazy import
+            # REST API: HTTP Basic auth, user "admin", the AdminPassword as the token
+            server = Palworld(host=host, port=port, api_username='admin',
+                              api_password=(token or ''), timeout=timeout)
+            status = await server.get_status()
+            online, max_players = _count(getattr(status, 'num_players', None)), \
+                _count(getattr(status, 'max_players', None), positive=True)
+            if max_players is None:
+                online = None
+            names = [(p.name.strip(), None) for p in await server.get_players()
+                     if (p.name or '').strip()] if online else []
             return PlayerList(success=True, players_online=online, max_players=max_players,
-                              names_given=not online)
-        else:
-            raise ValueError(f"unsupported protocol: {protocol}")
-        return PlayerList(success=True, players_online=online, max_players=max_players,
-                          names=names, names_given=bool(names) or not online)
+                              names=names, names_given=bool(names) or not online, game='Palworld',
+                              server_name=(str(getattr(status, 'server_name', '') or '').strip() or None))
+        if protocol == 'satisfactory':
+            from opengsq.protocols.satisfactory import Satisfactory  # lazy import
+            # Its API counts players and names none; the count only with a save loaded
+            status = await Satisfactory(host=host, port=port, app_token=(token or ''),
+                                        timeout=timeout).get_status()
+            online, max_players = _count(getattr(status, 'num_players', None)), \
+                _count(getattr(status, 'max_players', None), positive=True)
+            if max_players is None:
+                online = None
+            return PlayerList(success=True, players_online=online, max_players=max_players,
+                              names_given=not online, game='Satisfactory',
+                              server_name=(str(getattr(status, 'name', '') or '').strip() or None))
+        raise ValueError(f"unsupported protocol: {protocol}")
 
     async def get_player_list(self, request: GameQueryRequest) -> PlayerList:
         """Ask one server who is playing. Never raises; not cached.

@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Список гравців зараз не вдається прочитати.",
   "Nobody is playing right now.": "Зараз ніхто не грає.",
   "This game does not send player names.": "Ця гра не надсилає імена гравців.",
-  "+{count} more": "+{count} ще"
+  "+{count} more": "+{count} ще",
+  "Password": "Пароль",
+  "Port {port}": "Порт {port}",
+  "Restarts on its own after a crash or a reboot": "Сам перезапускається після збою або перезавантаження",
+  "Restarts on its own after a crash": "Сам перезапускається після збою",
+  "Docker does not restart it after a crash": "Docker не перезапускає його після збою",
+  "Running since {moment}": "Працює з {moment}",
+  "Stopped since {moment}": "Зупинено з {moment}",
+  "out of memory": "забракло пам’яті",
+  "exit code {code}": "код виходу {code}",
+  "image from {date}": "образ від {date}",
+  "Memory limit: {size}": "Ліміт пам’яті: {size}"
 }

@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Списак играча тренутно не може да се прочита.",
   "Nobody is playing right now.": "Тренутно нико не игра.",
   "This game does not send player names.": "Ова игра не шаље имена играча.",
-  "+{count} more": "+{count} још"
+  "+{count} more": "+{count} још",
+  "Password": "Лозинка",
+  "Port {port}": "Порт {port}",
+  "Restarts on its own after a crash or a reboot": "Сам се поново покреће после пада или рестарта",
+  "Restarts on its own after a crash": "Сам се поново покреће после пада",
+  "Docker does not restart it after a crash": "Docker га не покреће поново после пада",
+  "Running since {moment}": "Ради од {moment}",
+  "Stopped since {moment}": "Заустављен од {moment}",
+  "out of memory": "нестало меморије",
+  "exit code {code}": "излазни код {code}",
+  "image from {date}": "image од {date}",
+  "Memory limit: {size}": "Ограничење меморије: {size}"
 }

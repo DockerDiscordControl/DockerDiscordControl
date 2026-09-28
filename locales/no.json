@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Spillerlisten kan ikke leses akkurat nå.",
   "Nobody is playing right now.": "Ingen spiller akkurat nå.",
   "This game does not send player names.": "Dette spillet sender ikke spillernavn.",
-  "+{count} more": "+{count} til"
+  "+{count} more": "+{count} til",
+  "Password": "Passord",
+  "Port {port}": "Port {port}",
+  "Restarts on its own after a crash or a reboot": "Starter på nytt av seg selv etter krasj eller omstart",
+  "Restarts on its own after a crash": "Starter på nytt av seg selv etter krasj",
+  "Docker does not restart it after a crash": "Docker starter den ikke på nytt etter krasj",
+  "Running since {moment}": "Kjører siden {moment}",
+  "Stopped since {moment}": "Stoppet siden {moment}",
+  "out of memory": "tomt for minne",
+  "exit code {code}": "avslutningskode {code}",
+  "image from {date}": "image fra {date}",
+  "Memory limit: {size}": "Minnegrense: {size}"
 }

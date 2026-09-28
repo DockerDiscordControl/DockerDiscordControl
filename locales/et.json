@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Mängijate nimekirja ei saa praegu lugeda.",
   "Nobody is playing right now.": "Praegu ei mängi keegi.",
   "This game does not send player names.": "See mäng ei saada mängijate nimesid.",
-  "+{count} more": "+{count} veel"
+  "+{count} more": "+{count} veel",
+  "Password": "Parool",
+  "Port {port}": "Port {port}",
+  "Restarts on its own after a crash or a reboot": "Käivitub pärast kokkujooksmist või taaskäivitust ise uuesti",
+  "Restarts on its own after a crash": "Käivitub pärast kokkujooksmist ise uuesti",
+  "Docker does not restart it after a crash": "Docker ei käivita seda pärast kokkujooksmist uuesti",
+  "Running since {moment}": "Töötab alates {moment}",
+  "Stopped since {moment}": "Peatatud alates {moment}",
+  "out of memory": "mälu sai otsa",
+  "exit code {code}": "väljumiskood {code}",
+  "image from {date}": "tõmmis {date}",
+  "Memory limit: {size}": "Mälupiirang: {size}"
 }

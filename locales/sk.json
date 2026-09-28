@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Zoznam hráčov sa teraz nedá načítať.",
   "Nobody is playing right now.": "Práve nikto nehrá.",
   "This game does not send player names.": "Táto hra neposiela mená hráčov.",
-  "+{count} more": "+{count} ďalší"
+  "+{count} more": "+{count} ďalší",
+  "Password": "Heslo",
+  "Port {port}": "Port {port}",
+  "Restarts on its own after a crash or a reboot": "Po páde alebo reštarte sa spustí sám",
+  "Restarts on its own after a crash": "Po páde sa spustí sám",
+  "Docker does not restart it after a crash": "Docker ho po páde nereštartuje",
+  "Running since {moment}": "Beží od {moment}",
+  "Stopped since {moment}": "Zastavený od {moment}",
+  "out of memory": "došla pamäť",
+  "exit code {code}": "návratový kód {code}",
+  "image from {date}": "image z {date}",
+  "Memory limit: {size}": "Limit pamäte: {size}"
 }

@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "The player list cannot be read right now.",
   "Nobody is playing right now.": "Nobody is playing right now.",
   "This game does not send player names.": "This game does not send player names.",
-  "+{count} more": "+{count} more"
+  "+{count} more": "+{count} more",
+  "Password": "Password",
+  "Port {port}": "Port {port}",
+  "Restarts on its own after a crash or a reboot": "Restarts on its own after a crash or a reboot",
+  "Restarts on its own after a crash": "Restarts on its own after a crash",
+  "Docker does not restart it after a crash": "Docker does not restart it after a crash",
+  "Running since {moment}": "Running since {moment}",
+  "Stopped since {moment}": "Stopped since {moment}",
+  "out of memory": "out of memory",
+  "exit code {code}": "exit code {code}",
+  "image from {date}": "image from {date}",
+  "Memory limit: {size}": "Memory limit: {size}"
 }

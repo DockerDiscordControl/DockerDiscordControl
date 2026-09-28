@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Списъкът с играчи не може да бъде прочетен в момента.",
   "Nobody is playing right now.": "В момента никой не играе.",
   "This game does not send player names.": "Тази игра не изпраща имена на играчи.",
-  "+{count} more": "+{count} още"
+  "+{count} more": "+{count} още",
+  "Password": "Парола",
+  "Port {port}": "Порт {port}",
+  "Restarts on its own after a crash or a reboot": "Рестартира сам след срив или рестарт",
+  "Restarts on its own after a crash": "Рестартира сам след срив",
+  "Docker does not restart it after a crash": "Docker не го рестартира след срив",
+  "Running since {moment}": "Работи от {moment}",
+  "Stopped since {moment}": "Спрян от {moment}",
+  "out of memory": "няма памет",
+  "exit code {code}": "код на изход {code}",
+  "image from {date}": "образ от {date}",
+  "Memory limit: {size}": "Лимит на паметта: {size}"
 }

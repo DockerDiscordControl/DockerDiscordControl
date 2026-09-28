@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Lista jucătorilor nu poate fi citită acum.",
   "Nobody is playing right now.": "Nimeni nu joacă acum.",
   "This game does not send player names.": "Acest joc nu trimite numele jucătorilor.",
-  "+{count} more": "+{count} în plus"
+  "+{count} more": "+{count} în plus",
+  "Password": "Parolă",
+  "Port {port}": "Port {port}",
+  "Restarts on its own after a crash or a reboot": "Repornește singur după o cădere sau o repornire",
+  "Restarts on its own after a crash": "Repornește singur după o cădere",
+  "Docker does not restart it after a crash": "Docker nu îl repornește după o cădere",
+  "Running since {moment}": "Rulează din {moment}",
+  "Stopped since {moment}": "Oprit din {moment}",
+  "out of memory": "memorie epuizată",
+  "exit code {code}": "cod de ieșire {code}",
+  "image from {date}": "imagine din {date}",
+  "Memory limit: {size}": "Limită de memorie: {size}"
 }

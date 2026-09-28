@@ -1027,11 +1027,9 @@ class StatusInfoButton(discord.ui.Button):
                 description_parts.append("\n**🔐 Protected Information:**")
                 description_parts.append(protected_content)
 
-        # Who is playing, on a game server with the player count switched on
-        from .player_list_info import players_block
-        players = await players_block(self.server_config)
-        if players:
-            description_parts.append(players)
+        # The game server and who plays on it, Docker's facts (cogs/info_extras.py)
+        from .info_extras import info_extras
+        description_parts.extend(await info_extras(self.server_config))
 
         # Add container status info
         status_info = self._get_status_info()

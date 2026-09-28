@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Žaidėjų sąrašo šiuo metu nepavyksta nuskaityti.",
   "Nobody is playing right now.": "Šiuo metu niekas nežaidžia.",
   "This game does not send player names.": "Šis žaidimas nesiunčia žaidėjų vardų.",
-  "+{count} more": "+{count} daugiau"
+  "+{count} more": "+{count} daugiau",
+  "Password": "Slaptažodis",
+  "Port {port}": "Prievadas {port}",
+  "Restarts on its own after a crash or a reboot": "Po strigties ar perkrovimo pasileidžia pats",
+  "Restarts on its own after a crash": "Po strigties pasileidžia pats",
+  "Docker does not restart it after a crash": "Po strigties Docker jo nepaleidžia iš naujo",
+  "Running since {moment}": "Veikia nuo {moment}",
+  "Stopped since {moment}": "Sustabdytas nuo {moment}",
+  "out of memory": "baigėsi atmintis",
+  "exit code {code}": "išėjimo kodas {code}",
+  "image from {date}": "atvaizdas nuo {date}",
+  "Memory limit: {size}": "Atminties riba: {size}"
 }

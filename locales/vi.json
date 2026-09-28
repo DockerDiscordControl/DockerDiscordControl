@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Hiện không thể đọc danh sách người chơi.",
   "Nobody is playing right now.": "Hiện không có ai đang chơi.",
   "This game does not send player names.": "Trò chơi này không gửi tên người chơi.",
-  "+{count} more": "+{count} người khác"
+  "+{count} more": "+{count} người khác",
+  "Password": "Mật khẩu",
+  "Port {port}": "Cổng {port}",
+  "Restarts on its own after a crash or a reboot": "Tự khởi động lại sau sự cố hoặc khởi động lại máy",
+  "Restarts on its own after a crash": "Tự khởi động lại sau sự cố",
+  "Docker does not restart it after a crash": "Docker không khởi động lại sau sự cố",
+  "Running since {moment}": "Chạy từ {moment}",
+  "Stopped since {moment}": "Dừng từ {moment}",
+  "out of memory": "hết bộ nhớ",
+  "exit code {code}": "mã thoát {code}",
+  "image from {date}": "image từ {date}",
+  "Memory limit: {size}": "Giới hạn bộ nhớ: {size}"
 }

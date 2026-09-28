@@ -25,7 +25,8 @@ the port-order case went red; with the empty-name filter removed from the
 Source branch, the Icarus case did; with the `shown` gate removed from
 _generate_info_embed, the switched-off-text case did; with StatusInfoView
 back on `if info enabled`, the every-container case did; with the
-support-verdict skip removed from _request_for, the unreachable case did.
+support-verdict skip removed from _request_for, the unreachable case did; with
+the per-port wait back at the whole budget, the silent-first-port case did.
 """
 
 import asyncio
@@ -36,7 +37,7 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from cogs import player_list_info
+from cogs import info_extras
 from services.infrastructure.game_query_service import GameQueryRequest, GameQueryService, PlayerList
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -80,7 +81,7 @@ def test_a_game_that_sends_empty_names_is_said_to(monkeypatch):
     _fake_opengsq(monkeypatch, "opengsq.protocols.source", "Source", Source)
     result = asyncio.run(GameQueryService()._query_players("source", "h", 27015, 1.0))
     assert result.names == [] and result.names_given is False
-    assert "does not send player names" in player_list_info.format_players(result)
+    assert "does not send player names" in info_extras.format_players(result)
 
 
 def test_minecraft_sends_a_sample_and_the_rest_is_counted(monkeypatch):
@@ -93,18 +94,20 @@ def test_minecraft_sends_a_sample_and_the_rest_is_counted(monkeypatch):
                                 "sample": [{"name": f"p{i}", "id": str(i)} for i in range(12)]}}
     _fake_opengsq(monkeypatch, "opengsq.protocols.minecraft", "Minecraft", Minecraft)
     result = asyncio.run(GameQueryService()._query_players("minecraft", "h", 25565, 1.0))
-    block = player_list_info.format_players(result)
+    block = info_extras.format_players(result)
     assert "15/20" in block and "• p11" in block and "+3" in block
 
 
 def test_satisfactory_counts_and_names_nobody(monkeypatch):
-    service = GameQueryService()
+    class Satisfactory:
+        def __init__(self, host, port, app_token, timeout):
+            pass
 
-    async def _count(*args):
-        return 3, 4
-    monkeypatch.setattr(service, "_query_protocol", _count)
-    result = asyncio.run(service._query_players("satisfactory", "h", 7777, 1.0, "token"))
-    assert (result.players_online, result.names_given) == (3, False)
+        async def get_status(self):
+            return SimpleNamespace(state=3, num_players=3, max_players=4, name="Factory")
+    _fake_opengsq(monkeypatch, "opengsq.protocols.satisfactory", "Satisfactory", Satisfactory)
+    result = asyncio.run(GameQueryService()._query_players("satisfactory", "h", 7777, 1.0, "token"))
+    assert (result.players_online, result.names_given, result.server_name) == (3, False, "Factory")
 
 
 def test_the_ports_are_asked_in_the_learned_order_and_the_winner_is_kept():
@@ -139,7 +142,7 @@ def test_a_server_that_answers_nowhere_is_a_failure_not_an_exception():
 # --- the block ---------------------------------------------------------------
 
 def test_the_block_reads_as_a_list():
-    block = player_list_info.format_players(PlayerList(
+    block = info_extras.format_players(PlayerList(
         success=True, players_online=2, max_players=10,
         names=[("An*na", 4800.0), ("Bob", 30.0)]))
     lines = block.split("\n")
@@ -149,27 +152,27 @@ def test_the_block_reads_as_a_list():
 
 
 def test_nobody_and_unreadable_say_so():
-    assert "Nobody is playing" in player_list_info.format_players(
+    assert "Nobody is playing" in info_extras.format_players(
         PlayerList(success=True, players_online=0, max_players=10))
-    assert "cannot be read" in player_list_info.format_players(PlayerList(success=False))
+    assert "cannot be read" in info_extras.format_players(PlayerList(success=False))
 
 
 def test_no_block_without_the_player_count(monkeypatch):
     asked = []
-    monkeypatch.setattr(player_list_info, "_request_for", lambda cfg: asked.append(cfg))
-    assert asyncio.run(player_list_info.players_block({"docker_name": "nginx"})) is None
+    monkeypatch.setattr(info_extras, "_request_for", lambda cfg: asked.append(cfg))
+    assert asyncio.run(info_extras.player_list({"docker_name": "nginx"})) is None
     assert asked == [], "a container without the player count was queried"
 
 
 def test_the_block_keeps_to_its_budget(monkeypatch):
     async def _slow(cfg):
         await asyncio.sleep(10)
-    monkeypatch.setattr(player_list_info, "_request_for", _slow)
-    monkeypatch.setattr(player_list_info, "BUDGET_SECONDS", 0.05)
+    monkeypatch.setattr(info_extras, "_request_for", _slow)
+    monkeypatch.setattr(info_extras, "BUDGET_SECONDS", 0.05)
     started = time.monotonic()
-    block = asyncio.run(player_list_info.players_block({"docker_name": "valheim", "query_enabled": True}))
+    players = asyncio.run(info_extras.player_list({"docker_name": "valheim", "query_enabled": True}))
     assert time.monotonic() - started < 1.0
-    assert "cannot be read" in block
+    assert "cannot be read" in info_extras.format_players(players)
 
 
 def test_a_server_found_unreachable_is_not_asked(monkeypatch):
@@ -185,15 +188,33 @@ def test_a_server_found_unreachable_is_not_asked(monkeypatch):
         async def resolve_query_candidates(self, *args):
             raise AssertionError("an unreachable server was resolved and asked")
     monkeypatch.setattr(query_mod, "get_game_query_service", lambda: _NoResolve())
-    assert asyncio.run(player_list_info._request_for({"docker_name": "Enshrouded", "query_enabled": True})) is None
+    assert asyncio.run(info_extras._request_for({"docker_name": "Enshrouded", "query_enabled": True})) is None
+
+
+def test_a_silent_first_port_leaves_time_for_the_next(monkeypatch):
+    """Measured live: Valheim lists 2456 first and answers on 2457 only. With
+    one port allowed the whole budget, the display said "cannot be read"
+    until the status cycle had learned the order."""
+    import services.infrastructure.game_query_support_service as support_mod
+    import services.infrastructure.game_query_service as query_mod
+    monkeypatch.setattr(support_mod, "get_game_query_support_service",
+                        lambda: SimpleNamespace(is_supported=lambda name: True, get_protocol=lambda name: "source"))
+
+    class _Resolve:
+        async def resolve_query_candidates(self, *args):
+            return "h", [2456, 2457, 2458]
+    monkeypatch.setattr(query_mod, "get_game_query_service", lambda: _Resolve())
+    request = asyncio.run(info_extras._request_for({"docker_name": "Valheim", "query_enabled": True}))
+    assert request.timeout_seconds * 2 < info_extras.BUDGET_SECONDS, \
+        "a silent first port takes the whole budget"
 
 
 def test_a_stopped_server_gets_no_block(monkeypatch):
     async def _request(cfg):
         return GameQueryRequest(container_name="valheim", protocol="source", host="h", port=1)
-    monkeypatch.setattr(player_list_info, "_request_for", _request)
-    monkeypatch.setattr(player_list_info, "_is_running", lambda name: False)
-    assert asyncio.run(player_list_info.players_block({"docker_name": "valheim", "query_enabled": True})) is None
+    monkeypatch.setattr(info_extras, "_request_for", _request)
+    monkeypatch.setattr(info_extras, "_is_running", lambda name: False)
+    assert asyncio.run(info_extras.player_list({"docker_name": "valheim", "query_enabled": True})) is None
 
 
 # --- every container, nothing switched off shown -----------------------------
@@ -221,9 +242,9 @@ async def test_a_switched_off_text_stays_hidden_but_the_players_show(monkeypatch
     info = {"enabled": False, "custom_text": "Password: secret", "show_ip": True, "custom_ip": "1.2.3.4"}
     _info_service(monkeypatch, info)
 
-    async def _block(cfg):
-        return "👥 **Players online: 1/10**\n• Anna"
-    monkeypatch.setattr(player_list_info, "players_block", _block)
+    async def _extras(cfg):
+        return ["👥 **Players online: 1/10**\n• Anna"]
+    monkeypatch.setattr(info_extras, "info_extras", _extras)
     button = StatusInfoButton(None, {"docker_name": "valheim", "name": "Valheim"}, info)
     text = (await button._generate_info_embed(include_protected=False)).description
     assert "secret" not in text and "1.2.3.4" not in text

@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Spēlētāju sarakstu pašlaik nevar nolasīt.",
   "Nobody is playing right now.": "Pašlaik neviens nespēlē.",
   "This game does not send player names.": "Šī spēle nesūta spēlētāju vārdus.",
-  "+{count} more": "+{count} vēl"
+  "+{count} more": "+{count} vēl",
+  "Password": "Parole",
+  "Port {port}": "Ports {port}",
+  "Restarts on its own after a crash or a reboot": "Pēc avārijas vai pārstartēšanas startējas pats",
+  "Restarts on its own after a crash": "Pēc avārijas startējas pats",
+  "Docker does not restart it after a crash": "Docker pēc avārijas to nepārstartē",
+  "Running since {moment}": "Darbojas kopš {moment}",
+  "Stopped since {moment}": "Apturēts kopš {moment}",
+  "out of memory": "beidzās atmiņa",
+  "exit code {code}": "izejas kods {code}",
+  "image from {date}": "attēls no {date}",
+  "Memory limit: {size}": "Atmiņas limits: {size}"
 }

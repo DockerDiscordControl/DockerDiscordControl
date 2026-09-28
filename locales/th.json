@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "ไม่สามารถอ่านรายชื่อผู้เล่นได้ในขณะนี้",
   "Nobody is playing right now.": "ขณะนี้ไม่มีใครเล่นอยู่",
   "This game does not send player names.": "เกมนี้ไม่ส่งชื่อผู้เล่น",
-  "+{count} more": "+อีก {count} คน"
+  "+{count} more": "+อีก {count} คน",
+  "Password": "รหัสผ่าน",
+  "Port {port}": "พอร์ต {port}",
+  "Restarts on its own after a crash or a reboot": "เริ่มใหม่เองหลังล่มหรือรีบูต",
+  "Restarts on its own after a crash": "เริ่มใหม่เองหลังล่ม",
+  "Docker does not restart it after a crash": "Docker จะไม่เริ่มใหม่หลังล่ม",
+  "Running since {moment}": "ทำงานตั้งแต่ {moment}",
+  "Stopped since {moment}": "หยุดตั้งแต่ {moment}",
+  "out of memory": "หน่วยความจำหมด",
+  "exit code {code}": "รหัสออก {code}",
+  "image from {date}": "อิมเมจจาก {date}",
+  "Memory limit: {size}": "ขีดจำกัดหน่วยความจำ: {size}"
 }

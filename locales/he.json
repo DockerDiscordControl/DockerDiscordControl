@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "לא ניתן לקרוא את רשימת השחקנים כרגע.",
   "Nobody is playing right now.": "אף אחד לא משחק כרגע.",
   "This game does not send player names.": "המשחק הזה לא שולח שמות שחקנים.",
-  "+{count} more": "+{count} נוספים"
+  "+{count} more": "+{count} נוספים",
+  "Password": "סיסמה",
+  "Port {port}": "פורט {port}",
+  "Restarts on its own after a crash or a reboot": "מופעל מחדש מעצמו אחרי קריסה או אתחול",
+  "Restarts on its own after a crash": "מופעל מחדש מעצמו אחרי קריסה",
+  "Docker does not restart it after a crash": "Docker לא מפעיל אותו מחדש אחרי קריסה",
+  "Running since {moment}": "פועל מאז {moment}",
+  "Stopped since {moment}": "מופסק מאז {moment}",
+  "out of memory": "הזיכרון אזל",
+  "exit code {code}": "קוד יציאה {code}",
+  "image from {date}": "אימג׳ מ-{date}",
+  "Memory limit: {size}": "מגבלת זיכרון: {size}"
 }

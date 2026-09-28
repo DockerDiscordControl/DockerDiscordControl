@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Η λίστα παικτών δεν μπορεί να διαβαστεί αυτή τη στιγμή.",
   "Nobody is playing right now.": "Κανείς δεν παίζει αυτή τη στιγμή.",
   "This game does not send player names.": "Αυτό το παιχνίδι δεν στέλνει ονόματα παικτών.",
-  "+{count} more": "+{count} ακόμη"
+  "+{count} more": "+{count} ακόμη",
+  "Password": "Κωδικός",
+  "Port {port}": "Θύρα {port}",
+  "Restarts on its own after a crash or a reboot": "Επανεκκινείται μόνο του μετά από κατάρρευση ή επανεκκίνηση",
+  "Restarts on its own after a crash": "Επανεκκινείται μόνο του μετά από κατάρρευση",
+  "Docker does not restart it after a crash": "Το Docker δεν το επανεκκινεί μετά από κατάρρευση",
+  "Running since {moment}": "Σε λειτουργία από {moment}",
+  "Stopped since {moment}": "Σταματημένο από {moment}",
+  "out of memory": "εξαντλήθηκε η μνήμη",
+  "exit code {code}": "κωδικός εξόδου {code}",
+  "image from {date}": "image από {date}",
+  "Memory limit: {size}": "Όριο μνήμης: {size}"
 }

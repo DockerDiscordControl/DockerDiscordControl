@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "खिलाड़ियों की सूची अभी पढ़ी नहीं जा सकती।",
   "Nobody is playing right now.": "अभी कोई नहीं खेल रहा है।",
   "This game does not send player names.": "यह गेम खिलाड़ियों के नाम नहीं भेजता।",
-  "+{count} more": "+{count} और"
+  "+{count} more": "+{count} और",
+  "Password": "पासवर्ड",
+  "Port {port}": "पोर्ट {port}",
+  "Restarts on its own after a crash or a reboot": "क्रैश या रीबूट के बाद अपने आप फिर शुरू होता है",
+  "Restarts on its own after a crash": "क्रैश के बाद अपने आप फिर शुरू होता है",
+  "Docker does not restart it after a crash": "क्रैश के बाद Docker इसे फिर से शुरू नहीं करता",
+  "Running since {moment}": "{moment} से चल रहा है",
+  "Stopped since {moment}": "{moment} से बंद है",
+  "out of memory": "मेमोरी खत्म",
+  "exit code {code}": "एग्ज़िट कोड {code}",
+  "image from {date}": "इमेज {date} की",
+  "Memory limit: {size}": "मेमोरी सीमा: {size}"
 }

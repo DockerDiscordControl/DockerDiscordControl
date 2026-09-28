@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Senarai pemain tidak dapat dibaca sekarang.",
   "Nobody is playing right now.": "Tiada sesiapa bermain sekarang.",
   "This game does not send player names.": "Permainan ini tidak menghantar nama pemain.",
-  "+{count} more": "+{count} lagi"
+  "+{count} more": "+{count} lagi",
+  "Password": "Kata laluan",
+  "Port {port}": "Port {port}",
+  "Restarts on its own after a crash or a reboot": "Mula semula sendiri selepas ranap atau but semula",
+  "Restarts on its own after a crash": "Mula semula sendiri selepas ranap",
+  "Docker does not restart it after a crash": "Docker tidak memulakannya semula selepas ranap",
+  "Running since {moment}": "Berjalan sejak {moment}",
+  "Stopped since {moment}": "Dihentikan sejak {moment}",
+  "out of memory": "kehabisan memori",
+  "exit code {code}": "kod keluar {code}",
+  "image from {date}": "imej dari {date}",
+  "Memory limit: {size}": "Had memori: {size}"
 }

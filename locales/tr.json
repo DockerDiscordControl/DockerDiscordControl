@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Oyuncu listesi şu anda okunamıyor.",
   "Nobody is playing right now.": "Şu anda kimse oynamıyor.",
   "This game does not send player names.": "Bu oyun oyuncu adlarını göndermiyor.",
-  "+{count} more": "+{count} daha"
+  "+{count} more": "+{count} daha",
+  "Password": "Şifre",
+  "Port {port}": "Port {port}",
+  "Restarts on its own after a crash or a reboot": "Çökme veya yeniden başlatmadan sonra kendiliğinden yeniden başlar",
+  "Restarts on its own after a crash": "Çökmeden sonra kendiliğinden yeniden başlar",
+  "Docker does not restart it after a crash": "Docker çökmeden sonra onu yeniden başlatmaz",
+  "Running since {moment}": "{moment} tarihinden beri çalışıyor",
+  "Stopped since {moment}": "{moment} tarihinden beri durdu",
+  "out of memory": "bellek doldu",
+  "exit code {code}": "çıkış kodu {code}",
+  "image from {date}": "{date} tarihli imaj",
+  "Memory limit: {size}": "Bellek sınırı: {size}"
 }

@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "تعذّرت قراءة قائمة اللاعبين حاليًا.",
   "Nobody is playing right now.": "لا أحد يلعب الآن.",
   "This game does not send player names.": "هذه اللعبة لا ترسل أسماء اللاعبين.",
-  "+{count} more": "+{count} آخرين"
+  "+{count} more": "+{count} آخرين",
+  "Password": "كلمة مرور",
+  "Port {port}": "المنفذ {port}",
+  "Restarts on its own after a crash or a reboot": "يعيد التشغيل تلقائيًا بعد تعطل أو إعادة تشغيل",
+  "Restarts on its own after a crash": "يعيد التشغيل تلقائيًا بعد تعطل",
+  "Docker does not restart it after a crash": "لا يعيد Docker تشغيله بعد التعطل",
+  "Running since {moment}": "يعمل منذ {moment}",
+  "Stopped since {moment}": "متوقف منذ {moment}",
+  "out of memory": "نفدت الذاكرة",
+  "exit code {code}": "رمز الخروج {code}",
+  "image from {date}": "صورة من {date}",
+  "Memory limit: {size}": "حد الذاكرة: {size}"
 }

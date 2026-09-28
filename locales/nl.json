@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "De spelerslijst kan nu niet worden gelezen.",
   "Nobody is playing right now.": "Er speelt nu niemand.",
   "This game does not send player names.": "Dit spel stuurt geen spelersnamen mee.",
-  "+{count} more": "+{count} meer"
+  "+{count} more": "+{count} meer",
+  "Password": "Wachtwoord",
+  "Port {port}": "Poort {port}",
+  "Restarts on its own after a crash or a reboot": "Start vanzelf opnieuw na een crash of herstart",
+  "Restarts on its own after a crash": "Start vanzelf opnieuw na een crash",
+  "Docker does not restart it after a crash": "Docker start hem na een crash niet opnieuw",
+  "Running since {moment}": "Draait sinds {moment}",
+  "Stopped since {moment}": "Gestopt sinds {moment}",
+  "out of memory": "geheugen vol",
+  "exit code {code}": "exitcode {code}",
+  "image from {date}": "image van {date}",
+  "Memory limit: {size}": "Geheugenlimiet: {size}"
 }

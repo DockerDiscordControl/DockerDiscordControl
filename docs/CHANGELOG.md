@@ -33,6 +33,17 @@ All notable changes to DockerDiscordControl will be documented in this file.
   sends at most twelve names, the rest is counted as "+k more". Some games count players without
   naming them (Icarus, Satisfactory); the display says so. The names are asked for when the
   display is opened, not every status cycle.
+- **The game server itself**: the name it has in the server browser, game and version, whether
+  it asks for a password, and the port to connect to - "🎯 BachelorLaming · Valheim 1.0.16 ·
+  🔒 Password · Port 2456". The version comes from where the game really puts it (Valheim and
+  Icarus hide it in the query keywords). The port is shown only where a player can reach it: the
+  published one, or the same one on the host network or an Unraid network like br0.
+- **What Docker knows**: running since or stopped since - with the reason when it was not an
+  ordinary stop ("out of memory", "exit code 1") - as Discord timestamps in every viewer's own
+  time zone. With "details" allowed for the container, also the version, the image date, the
+  restart policy and the memory limit; a server that hides CPU and RAM hides these too. A
+  version is taken from the image labels only when it is the app's own (an image built on
+  ubuntu inherits "22.04"), then from the tag; otherwise only the image date is shown.
 - **The ℹ️ / ⓘ marker in the overviews is gone** - with every container having info it said
   nothing any more.
 

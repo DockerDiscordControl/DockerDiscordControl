@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "現在プレイヤー一覧を読み取れません。",
   "Nobody is playing right now.": "現在プレイ中の人はいません。",
   "This game does not send player names.": "このゲームはプレイヤー名を送信しません。",
-  "+{count} more": "他{count}人"
+  "+{count} more": "他{count}人",
+  "Password": "パスワード",
+  "Port {port}": "ポート {port}",
+  "Restarts on its own after a crash or a reboot": "クラッシュや再起動の後に自動で再起動",
+  "Restarts on its own after a crash": "クラッシュの後に自動で再起動",
+  "Docker does not restart it after a crash": "クラッシュ後に Docker は再起動しません",
+  "Running since {moment}": "{moment} から稼働中",
+  "Stopped since {moment}": "{moment} から停止中",
+  "out of memory": "メモリ不足",
+  "exit code {code}": "終了コード {code}",
+  "image from {date}": "{date} のイメージ",
+  "Memory limit: {size}": "メモリ上限: {size}"
 }

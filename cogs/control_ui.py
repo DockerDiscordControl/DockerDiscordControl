@@ -1288,11 +1288,11 @@ class ContainerInfoDropdown(discord.ui.Select):
                 display_name = display_name[0]
 
             embed = discord.Embed(title=f"ℹ️ {display_name}", color=discord.Color.blue())
-            # Who is playing, restarts, health - there for every container (v3.0.2)
-            from .player_list_info import players_block
+            # Game server, players, Docker's facts, restarts, health - for every container (v3.0.2)
+            from .info_extras import info_extras
             from .status_info_integration import StatusInfoButton
-            known = [await players_block(container_data),
-                     StatusInfoButton(self.cog, container_data, info_config)._get_status_info()]
+            known = await info_extras(container_data) + [
+                StatusInfoButton(self.cog, container_data, info_config)._get_status_info()]
             embed.description = "\n".join(part for part in known if part) or None
 
             # Add public info

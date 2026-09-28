@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "지금은 플레이어 목록을 읽을 수 없습니다.",
   "Nobody is playing right now.": "지금 플레이 중인 사람이 없습니다.",
   "This game does not send player names.": "이 게임은 플레이어 이름을 보내지 않습니다.",
-  "+{count} more": "+{count}명 더"
+  "+{count} more": "+{count}명 더",
+  "Password": "비밀번호",
+  "Port {port}": "포트 {port}",
+  "Restarts on its own after a crash or a reboot": "충돌이나 재부팅 후 자동으로 다시 시작",
+  "Restarts on its own after a crash": "충돌 후 자동으로 다시 시작",
+  "Docker does not restart it after a crash": "충돌 후 Docker가 다시 시작하지 않습니다",
+  "Running since {moment}": "{moment}부터 실행 중",
+  "Stopped since {moment}": "{moment}부터 중지됨",
+  "out of memory": "메모리 부족",
+  "exit code {code}": "종료 코드 {code}",
+  "image from {date}": "{date} 이미지",
+  "Memory limit: {size}": "메모리 한도: {size}"
 }

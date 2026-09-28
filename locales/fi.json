@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "Pelaajalistaa ei voi lukea juuri nyt.",
   "Nobody is playing right now.": "Kukaan ei pelaa juuri nyt.",
   "This game does not send player names.": "Tämä peli ei lähetä pelaajien nimiä.",
-  "+{count} more": "+{count} muuta"
+  "+{count} more": "+{count} muuta",
+  "Password": "Salasana",
+  "Port {port}": "Portti {port}",
+  "Restarts on its own after a crash or a reboot": "Käynnistyy itse uudelleen kaatumisen tai uudelleenkäynnistyksen jälkeen",
+  "Restarts on its own after a crash": "Käynnistyy itse uudelleen kaatumisen jälkeen",
+  "Docker does not restart it after a crash": "Docker ei käynnistä sitä uudelleen kaatumisen jälkeen",
+  "Running since {moment}": "Käynnissä {moment} alkaen",
+  "Stopped since {moment}": "Pysäytetty {moment} alkaen",
+  "out of memory": "muisti loppui",
+  "exit code {code}": "poistumiskoodi {code}",
+  "image from {date}": "image {date}",
+  "Memory limit: {size}": "Muistiraja: {size}"
 }

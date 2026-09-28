@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "A játékoslista most nem olvasható.",
   "Nobody is playing right now.": "Most senki sem játszik.",
   "This game does not send player names.": "Ez a játék nem küldi el a játékosok nevét.",
-  "+{count} more": "+{count} további"
+  "+{count} more": "+{count} további",
+  "Password": "Jelszó",
+  "Port {port}": "Port {port}",
+  "Restarts on its own after a crash or a reboot": "Összeomlás vagy újraindítás után magától újraindul",
+  "Restarts on its own after a crash": "Összeomlás után magától újraindul",
+  "Docker does not restart it after a crash": "A Docker összeomlás után nem indítja újra",
+  "Running since {moment}": "Fut ekkor óta: {moment}",
+  "Stopped since {moment}": "Leállítva ekkor óta: {moment}",
+  "out of memory": "elfogyott a memória",
+  "exit code {code}": "kilépési kód {code}",
+  "image from {date}": "image dátuma: {date}",
+  "Memory limit: {size}": "Memóriakorlát: {size}"
 }

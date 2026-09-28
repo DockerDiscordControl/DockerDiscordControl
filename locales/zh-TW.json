@@ -1653,5 +1653,16 @@
   "The player list cannot be read right now.": "目前無法讀取玩家列表。",
   "Nobody is playing right now.": "目前沒有人在玩。",
   "This game does not send player names.": "此遊戲不會傳送玩家名稱。",
-  "+{count} more": "另外 {count} 人"
+  "+{count} more": "另外 {count} 人",
+  "Password": "密碼",
+  "Port {port}": "連接埠 {port}",
+  "Restarts on its own after a crash or a reboot": "當機或重新開機後自動重新啟動",
+  "Restarts on its own after a crash": "當機後自動重新啟動",
+  "Docker does not restart it after a crash": "當機後 Docker 不會重新啟動它",
+  "Running since {moment}": "自 {moment} 起執行",
+  "Stopped since {moment}": "自 {moment} 起停止",
+  "out of memory": "記憶體不足",
+  "exit code {code}": "結束代碼 {code}",
+  "image from {date}": "映像日期 {date}",
+  "Memory limit: {size}": "記憶體限制：{size}"
 }
