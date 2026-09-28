@@ -38,6 +38,7 @@ COUNTER-CHECK (2026-09-24): red before - the module did not exist, and the
 behaviour it pins was a 26-second sleep.
 """
 
+from tests.spec import control_ui_source, CONTROL_UI_FILES
 import asyncio
 from types import SimpleNamespace
 
@@ -270,7 +271,7 @@ def test_there_is_no_second_refresh_left(world):
     from pathlib import Path as _Path
 
     root = _Path(__file__).resolve().parents[2]
-    for name in ("cogs/action_effect.py", "cogs/control_ui.py"):
+    for name in ("cogs/action_effect.py",) + CONTROL_UI_FILES:
         source = (root / name).read_text(encoding="utf-8")
         names = {node.name for node in ast.walk(ast.parse(source))
                  if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
@@ -285,8 +286,7 @@ def test_the_wait_left_control_ui(world):
     """It is not about a button, and control_ui.py is on the ceiling list."""
     from pathlib import Path
 
-    source = (Path(__file__).resolve().parents[2] / "cogs" / "control_ui.py").read_text(
-        encoding="utf-8")
+    source = control_ui_source()
 
     assert "wait_until_the_action_took_effect" in source
     assert "retry_delays = [3, 3, 5, 5, 5, 5]" not in source, (

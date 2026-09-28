@@ -75,6 +75,7 @@ that borrowed another channel's answer when this one was unknown passed. The
 missing case is now there, and that sabotage is red too.
 """
 
+from tests.spec import control_ui_source
 import json
 import re
 from pathlib import Path
@@ -200,7 +201,7 @@ def test_the_button_asks_the_message():
     not an id, or we are back at looking the panel up somewhere else."""
     import ast
 
-    source = (PROJECT / "cogs" / "control_ui.py").read_text(encoding="utf-8")
+    source = control_ui_source()
     calls = [node for node in ast.walk(ast.parse(source))
              if isinstance(node, ast.Call)
              and "is_private_panel_message" in ast.unparse(node.func)]

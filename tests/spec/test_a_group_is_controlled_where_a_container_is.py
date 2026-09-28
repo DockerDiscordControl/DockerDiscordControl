@@ -34,6 +34,7 @@ COUNTER-CHECK (2026-09-24): red before - the list held containers only, and
 the row still carried the stack button.
 """
 
+from tests.spec import control_ui_source
 import ast
 import json
 from pathlib import Path
@@ -128,7 +129,7 @@ def test_the_admin_list_asks_for_them(world):
     ask controllable_entries() - so this reads the two questions that are
     still control_ui's own, and the group half is checked where it lives."""
     calls = [ast.unparse(node.func) for node in
-             ast.walk(ast.parse((ROOT / "cogs" / "control_ui.py").read_text(encoding="utf-8")))
+             ast.walk(ast.parse(control_ui_source()))
              if isinstance(node, ast.Call)]
 
     assert any("controllable_entries" in call for call in calls), (
@@ -189,7 +190,8 @@ def test_both_buttons_ask_the_same_place(world):
     """One list, asked twice - not two lists that happen to agree."""
     import ast
 
-    for module in ("cogs/control_ui.py", "cogs/admin_overview.py"):
+    # The admin button's list: cogs/admin_ui.py since the split of 2026-09-28
+    for module in ("cogs/admin_ui.py", "cogs/admin_overview.py"):
         tree = ast.parse((ROOT / module).read_text(encoding="utf-8"))
         calls = [ast.unparse(node.func) for node in ast.walk(tree)
                  if isinstance(node, ast.Call)]

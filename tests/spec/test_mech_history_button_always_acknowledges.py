@@ -24,7 +24,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 import cogs.control_ui as cui
-from cogs.control_ui import MechHistoryButton
+from cogs.mech_ui import MechHistoryButton
 
 
 def _press(monkeypatch, *, spam_enabled):

@@ -26,6 +26,7 @@ COUNTER-CHECK (2026-09-24): red before - the enrichment called the service and
 the service logged the refusal.
 """
 
+from tests.spec import control_ui_source
 import logging
 from unittest.mock import patch
 
@@ -113,8 +114,7 @@ def test_the_group_panel_returns_before_the_lookup():
     import ast
     from pathlib import Path
 
-    source = (Path(__file__).resolve().parents[2] / "cogs" / "control_ui.py").read_text(
-        encoding="utf-8")
+    source = control_ui_source()
     tree = ast.parse(source)
     view = next(node for node in ast.walk(tree)
                 if isinstance(node, ast.ClassDef) and node.name == "ControlView")

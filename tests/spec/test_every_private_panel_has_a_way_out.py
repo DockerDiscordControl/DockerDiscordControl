@@ -323,7 +323,7 @@ def test_the_type_really_hands_the_button_over():
 
     from types import SimpleNamespace
 
-    from cogs.control_ui import MechDetailsView, MechSelectionView
+    from cogs.mech_ui import MechDetailsView, MechSelectionView
 
     async def build():
         cog = SimpleNamespace(pending_actions={})

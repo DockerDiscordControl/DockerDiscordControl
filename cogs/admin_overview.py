@@ -312,7 +312,7 @@ class AdminOverviewAdminButton(Button):
 
             # Import AdminContainerSelectView from control_ui
             try:
-                from .control_ui import AdminContainerSelectView
+                from .admin_ui import AdminContainerSelectView
             except ImportError as e:
                 logger.error(f"Failed to import AdminContainerSelectView: {e}")
                 await interaction.followup.send(

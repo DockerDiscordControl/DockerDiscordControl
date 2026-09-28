@@ -38,6 +38,7 @@ COUNTER-CHECK (2026-09-25): green here, and red when the ``or`` is taken off
 any one of the three sites - see the sabotage case below.
 """
 
+from tests.spec import control_ui_source
 import ast
 from pathlib import Path
 
@@ -87,7 +88,7 @@ def _sites_without_the_admin_alternative(source: str):
 def test_no_site_decides_the_control_right_on_the_channel_alone():
     """THE RULE: a registered admin may act where the channel does not."""
     found, seen = _sites_without_the_admin_alternative(
-        CONTROL_UI.read_text(encoding="utf-8"))
+        control_ui_source())
 
     assert seen >= 3, f"only {seen} sites found - the scan has lost its subject"
     assert found == [], (
@@ -138,7 +139,7 @@ def test_the_admin_answer_is_never_cached_per_channel():
     """The subtler half. A cache keyed by channel must hold the CHANNEL's
     answer only; an admin check inside it serves one user's rights to the
     next person in the same channel."""
-    tree = ast.parse(CONTROL_UI.read_text(encoding="utf-8"))
+    tree = ast.parse(control_ui_source())
     offenders = []
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):

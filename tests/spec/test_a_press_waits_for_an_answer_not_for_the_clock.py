@@ -42,6 +42,7 @@ COUNTER-CHECK (2026-09-24): red before - control_ui.py held asyncio.sleep(15)
 and the return value of the wait was assigned to nothing.
 """
 
+from tests.spec import control_ui_source
 import ast
 import json
 from pathlib import Path
@@ -69,7 +70,7 @@ def _catalogues():
 
 def test_no_press_sleeps_a_fixed_stretch():
     """THE FINDING: fifteen seconds of nothing, after the waiting was done."""
-    tree = ast.parse(CONTROL_UI.read_text(encoding="utf-8"))
+    tree = ast.parse(control_ui_source())
     fixed = []
     for node in ast.walk(tree):
         if (isinstance(node, ast.Call) and "sleep" in ast.unparse(node.func)
@@ -99,7 +100,7 @@ def test_the_wait_says_whether_it_worked():
 def test_the_button_reads_that_answer():
     """Assigned, not called and dropped - read from the syntax tree, because
     the call appears in a comment above it too."""
-    tree = ast.parse(CONTROL_UI.read_text(encoding="utf-8"))
+    tree = ast.parse(control_ui_source())
     assigned = []
     for node in ast.walk(tree):
         if (isinstance(node, ast.Assign)
@@ -141,7 +142,7 @@ def test_the_dropped_sentences_are_gone_everywhere(text):
     # sentence, and so does the docstring of the handler that used to be
     # stranded on it. What must be gone is the CALL - the literal handed to
     # the translator - which only the syntax tree can tell apart.
-    tree = ast.parse(CONTROL_UI.read_text(encoding="utf-8"))
+    tree = ast.parse(control_ui_source())
     translated = {node.args[0].value for node in ast.walk(tree)
                   if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
                   and node.func.id == "_" and node.args

@@ -29,7 +29,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cogs.control_ui import MechDetailsButton
+from cogs.mech_ui import MechDetailsButton
 from services.infrastructure.spam_protection_service import SpamProtectionService
 from tests.spec import is_not_awaitable_error
 

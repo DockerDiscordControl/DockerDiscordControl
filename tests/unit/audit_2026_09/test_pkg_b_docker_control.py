@@ -182,7 +182,7 @@ async def test_persistent_views_use_real_channel_and_message_ids():
     cog.bot = MagicMock()
     cog.channel_server_message_ids = {111: {"overview": 1001, "admin_overview": 1002}}
 
-    with patch("cogs.control_ui.is_donations_disabled", return_value=False):
+    with patch("cogs.mech_ui.is_donations_disabled", return_value=False):
         cog._register_persistent_mech_views()
 
     registered = []  # (custom_id, message_id, item)

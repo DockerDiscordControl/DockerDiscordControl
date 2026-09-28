@@ -44,6 +44,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+import cogs.admin_ui as admin_ui
 import cogs.control_ui as control_ui
 
 
@@ -59,7 +60,8 @@ def _containers(count):
 
 
 def _build(dropdown_name, extra, containers, page=0):
-    cls = getattr(control_ui, dropdown_name)
+    # The admin dropdown lives in admin_ui since the split of 2026-09-28
+    cls = getattr(control_ui, dropdown_name, None) or getattr(admin_ui, dropdown_name)
     return cls(None, containers, *extra, page=page)
 
 

@@ -28,7 +28,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cogs.control_ui import MechHistoryButton
+from cogs.mech_ui import MechHistoryButton
 from cogs.translation_manager import translation_manager
 from services.mech.mech_story_service import MechStoryService, get_mech_story_service
 

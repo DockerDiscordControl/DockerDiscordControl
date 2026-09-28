@@ -91,7 +91,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cogs.control_ui import AdminButton, HelpButton, InfoDropdownButton
+from cogs.control_ui import HelpButton, InfoDropdownButton
+from cogs.admin_ui import AdminButton
 from cogs.status_info_integration import TaskManagementButton
 from services.infrastructure.spam_protection_service import SpamProtectionService
 

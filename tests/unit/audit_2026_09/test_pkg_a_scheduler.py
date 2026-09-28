@@ -26,6 +26,7 @@ import pytz
 
 from services.scheduling import runtime as scheduler_runtime
 from services.scheduling import scheduler as scheduler_mod
+from services.scheduling import scheduled_task as scheduled_task_mod
 from services.scheduling import scheduler_service as ss
 from services.scheduling.scheduler import (
     CYCLE_DAILY,
@@ -46,6 +47,13 @@ from services.scheduling.scheduler import (
 
 BERLIN = pytz.timezone("Europe/Berlin")
 _REAL_DISALLOWED_REASON = scheduler_mod._get_disallowed_action_reason
+
+
+def _both(monkeypatch, name, value):
+    """Patch `name` where the scheduler uses it: scheduler.py and scheduled_task.py
+    (split 2026-09-28 - the task and its timing live in the second)."""
+    for module in (scheduler_mod, scheduled_task_mod):
+        monkeypatch.setattr(module, name, value)
 
 
 @pytest.fixture(autouse=True)
@@ -313,7 +321,7 @@ class TestA7DonationSystemTask:
     @pytest.fixture(autouse=True)
     def _donations_enabled(self, monkeypatch):
         monkeypatch.setattr("services.donation.donation_utils.is_donations_disabled", lambda: False)
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
     def test_next_run_stable_across_reloads(self):
         first = create_donation_system_task()

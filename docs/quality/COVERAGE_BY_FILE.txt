@@ -110,11 +110,12 @@ app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/action_effect.py	162	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
 cogs/admin_overview.py	1002	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/admin_ui.py	386	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	850	v3rev:1-652
 cogs/channel_lifecycle.py	631	v3rev2:1-646
 cogs/control_helpers.py	351	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
-cogs/control_ui.py	2608	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650
+cogs/control_ui.py	1405	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
 cogs/ddc_ui.py	261	passE:written-2026-09-21
 cogs/docker_control.py	1249	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	693	NONE
@@ -123,6 +124,7 @@ cogs/group_control.py	361	NONE
 cogs/help_embed.py	96	NONE
 cogs/info_extras.py	323	new 2026-09-28 (v3.0.2 game server, players and Docker facts in the info display), written with its tests
 cogs/loop_safety.py	103	v3rev2:1-98
+cogs/mech_ui.py	871	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
 cogs/message_updates.py	736	v3rev2:1-791
 cogs/overview_embeds.py	612	v3rev2:1-964
 cogs/player_joins.py	161	new 2026-09-28 (v3.0.2 join announcements), written with its tests
@@ -238,9 +240,11 @@ services/scheduling/donation_message_service.py	243	pass1:s25:1-196  [19 of 215 
 services/scheduling/group_tasks.py	96	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
-services/scheduling/scheduler.py	2243	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md]
+services/scheduling/scheduled_task.py	836	moved unchanged from scheduler.py 2026-09-28 (reviewed there: passE section26-by-hand)
+services/scheduling/scheduler.py	1220	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md; ScheduledTask and the input parsing moved to scheduled_task.py and task_input.py 2026-09-28]
 services/scheduling/scheduler_service.py	623	pass1:s27:1-539  [13 of 552 lines never in a package]
 services/scheduling/player_gate.py	310	new 2026-09-28 (v3.0.2 player options), written with its tests
+services/scheduling/task_input.py	246	moved unchanged from scheduler.py 2026-09-28 (reviewed there: passE section26-by-hand)
 services/scheduling/task_timezone.py	71	new 2026-09-23 (the panel's timezone question), written test-first
 services/scheduling/task_writeback.py	119	NONE
 services/status/__init__.py	13	pass1:s27:1-13

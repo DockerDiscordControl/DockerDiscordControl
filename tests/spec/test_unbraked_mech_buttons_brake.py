@@ -51,9 +51,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cogs.control_ui import (EpilogueButton, MechDisplayButton, MechDonateButton,
-                             MechPrivateDonateButton, MechPrivateHistoryButton,
-                             PlaySongButton, ReadStoryButton)
+from cogs.mech_ui import EpilogueButton, MechDisplayButton, MechDonateButton, MechPrivateDonateButton, MechPrivateHistoryButton, PlaySongButton, ReadStoryButton
 from services.infrastructure.spam_protection_service import SpamProtectionService
 from tests.spec import is_not_awaitable_error
 
@@ -114,7 +112,7 @@ def _interaction():
 async def _press(button, service, disabled=False):
     interaction = _interaction()
     with patch(SPAM_PATH, return_value=service), \
-            patch("cogs.control_ui.is_donations_disabled", return_value=disabled):
+            patch("cogs.mech_ui.is_donations_disabled", return_value=disabled):
         try:
             await button.callback(interaction)
         except TypeError as e:

@@ -533,7 +533,7 @@ class TestSchedulerGaps:
         )
         # Patch utcfromtimestamp to raise OSError - exercises catch block
         with patch(
-            "services.scheduling.scheduler.datetime"
+            "services.scheduling.scheduled_task.datetime"
         ) as mock_dt:
             mock_dt.utcfromtimestamp.side_effect = OSError("invalid")
             task.next_run_ts = 1_700_000_000.0
@@ -973,6 +973,9 @@ class TestSchedulerGaps:
             scheduler_mod,
             "load_config",
             return_value={"timezone": "Europe/Berlin"},
+        ), patch(
+            "services.scheduling.scheduled_task.load_config",
+            return_value={"timezone": "Europe/Berlin"},
         ):
             task = scheduler_mod.create_donation_system_task()
         assert task is not None
@@ -986,6 +989,9 @@ class TestSchedulerGaps:
         ), patch.object(
             scheduler_mod,
             "load_config",
+            return_value={"timezone": "Europe/Berlin"},
+        ), patch(
+            "services.scheduling.scheduled_task.load_config",
             return_value={"timezone": "Europe/Berlin"},
         ):
             task = scheduler_mod.create_donation_system_task()

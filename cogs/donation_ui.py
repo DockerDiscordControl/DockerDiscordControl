@@ -125,7 +125,7 @@ class DonationView(DDCView):
             # donate slider did not reach. Under mech_donate, the same bucket as
             # the Power/Donate button: get_button_cooldown derives the slider only
             # from a name starting with "mech_".
-            from cogs.control_ui import _mech_button_braked
+            from cogs.mech_ui import _mech_button_braked
 
             if await _mech_button_braked(interaction, f"mech_donate_{interaction.channel_id}"):
                 return

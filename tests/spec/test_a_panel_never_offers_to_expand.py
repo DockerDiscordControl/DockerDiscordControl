@@ -204,7 +204,7 @@ def test_the_controls_the_operator_actually_sees_are_intact():
 
     Built through the real classes, not looked up by name.
     """
-    from cogs.control_ui import MechDetailsView, MechView
+    from cogs.mech_ui import MechDetailsView, MechView
 
     async def build():
         # A view asks asyncio for the running loop in __init__, so both are

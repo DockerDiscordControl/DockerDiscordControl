@@ -58,7 +58,7 @@ def cog(monkeypatch):
     cog._persist_tracked_message_ids = MagicMock()
     cog.cleanup_service = _Cleanup()
     cog._create_overview_embed_collapsed = AsyncMock(return_value=("embed", None))
-    monkeypatch.setattr("cogs.control_ui.MechView", lambda *a: "view")
+    monkeypatch.setattr("cogs.mech_ui.MechView", lambda *a: "view")
     return cog
 
 

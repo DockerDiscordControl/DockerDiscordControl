@@ -504,7 +504,7 @@ class MessageUpdatesMixin:
                                 await message.delete()
 
                                 # Create new view
-                                from .control_ui import MechView
+                                from .mech_ui import MechView
                                 view = MechView(self, channel_id)
 
                                 # Send new message with fresh animation
@@ -519,7 +519,7 @@ class MessageUpdatesMixin:
                                 logger.info(f"🔄 AUTO-UPDATE: Successfully recreated /ss message in {channel.name} with new animation")
                         else:
                             # Just edit the embed (for expand/collapse - no new animation)
-                            from .control_ui import MechView
+                            from .mech_ui import MechView
                             view = MechView(self, channel_id)
                             await message.edit(embed=embed, view=view)
                             logger.info(f"✏️ AUTO-UPDATE: Successfully edited /ss message in {channel.name}")
@@ -569,7 +569,7 @@ class MessageUpdatesMixin:
                 else:
                     embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
                     # The overview's buttons: Mech, info, admin, help
-                    from .control_ui import MechView
+                    from .mech_ui import MechView
                     view = MechView(self, channel_id)
 
                 # Old bot messages before the new one - but NOT the operator's Live
@@ -700,7 +700,7 @@ class MessageUpdatesMixin:
 
                 embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config)
                 # Create MechView for standard overview
-                from .control_ui import MechView
+                from .mech_ui import MechView
                 view = MechView(self, channel_id)
 
             # Update the message (note: can't add files to edit, only embed)

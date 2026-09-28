@@ -16,7 +16,7 @@ cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-351
 cogs/action_effect.py:1-162
 
-## Section 02  (1457 lines, 1 piece)
+## Section 02  (1405 lines, 1 piece)
 # Cut moved up from 1991 to 1801 on 2026-09-21, to the class boundary at
 # PasswordProtectedView. Section 02 had reached 1,991 of the 2,000 lines a
 # section may hold and the next repair in this file (review D32) did not fit.
@@ -25,13 +25,17 @@ cogs/action_effect.py:1-162
 # already fully reviewed in both passes, and every finding of either pass in
 # this file is dealt with, so no finding label ends up naming a section that
 # no longer holds its lines.
-cogs/control_ui.py:1-1457
+cogs/control_ui.py:1-1405
 
-## Section 03  (1151 lines, 1 piece)
+## Section 03  (1257 lines, 2 pieces)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
-cogs/control_ui.py:1458-2608
+# 2026-09-28: control_ui.py split - the admin picker went to admin_ui.py, the
+# mech panel to mech_ui.py, unchanged; this section holds the moved code, and
+# control_ui.py (1,405 lines) fits into section 02 alone.
+cogs/admin_ui.py:1-386
+cogs/mech_ui.py:1-871
 
 ## Section 04  (1550 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -234,11 +238,17 @@ services/scheduling/task_writeback.py:1-119
 # size list and may only shrink); sections 26 and 27 are full.
 services/scheduling/group_tasks.py:1-96
 
-## Section 26  (1745 lines, 1 piece)
-services/scheduling/scheduler.py:1-1745
+## Section 26  (1220 lines, 1 piece)
+services/scheduling/scheduler.py:1-1220
 
-## Section 27  (1978 lines, 4 pieces)
-services/scheduling/scheduler.py:1746-2243
+## Section 26b  (1082 lines, 2 pieces)
+# 2026-09-28: scheduler.py split - the task and its cycles went to
+# scheduled_task.py, the input parsing to task_input.py, unchanged. Together
+# with scheduler.py they would exceed the 2000 lines a section may hold.
+services/scheduling/scheduled_task.py:1-836
+services/scheduling/task_input.py:1-246
+
+## Section 27  (1480 lines, 3 pieces)
 services/status/status_cache_service.py:1-225
 services/translation/translation_config_service.py:1-705
 

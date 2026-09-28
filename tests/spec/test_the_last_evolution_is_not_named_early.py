@@ -43,6 +43,7 @@ COUNTER-CHECK (2026-09-25): red before - the panel named the eleventh
 evolution at level 10.
 """
 
+from tests.spec import control_ui_source
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -108,7 +109,7 @@ def test_the_gallery_still_refuses_the_preview():
     """The rule this line keeps faith with. If the gallery ever starts
     showing level 11 in advance, the glitch is protecting nothing and this
     case should be re-read rather than quietly left."""
-    source = (PROJECT / "cogs" / "control_ui.py").read_text(encoding="utf-8")
+    source = control_ui_source()
 
     assert "next_level <= 11 and current_level < 10" in source, (
         "the gallery no longer stops previewing at level 10 - the reason for "

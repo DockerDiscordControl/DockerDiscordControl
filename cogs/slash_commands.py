@@ -189,7 +189,7 @@ class SlashCommandsMixin:
             embed, animation_file = await self._create_overview_embed_collapsed(ordered_servers, config, force_refresh=True)
 
             # The overview's buttons: Mech, info, admin, help
-            from .control_ui import MechView
+            from .mech_ui import MechView
             view = MechView(self, channel_id)
 
             # FIX B: serialize delete-old + post + track against other overview posters

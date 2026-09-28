@@ -20,9 +20,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import discord
 import pytest
 
-from cogs import control_ui
-from cogs.control_ui import (AdminButton, HelpButton, InfoDropdownButton, MechDisplayButton,
-                             _make_action_done_callback)
+from cogs import admin_ui, control_ui
+from cogs.control_ui import HelpButton, InfoDropdownButton, _make_action_done_callback
+from cogs.admin_ui import AdminButton
+from cogs.mech_ui import MechDisplayButton
 
 
 def _interaction(order=None):
@@ -75,7 +76,7 @@ async def test_admin_button_defers_before_io_and_replies_via_followup():
     ]
     button = AdminButton(MagicMock(), 5)
     with patch("services.admin.admin_service.get_admin_service", side_effect=_get_admin_service), \
-         _spam_off(), patch("cogs.control_ui.get_server_config_service", return_value=scs):
+         _spam_off(), patch("cogs.admin_ui.get_server_config_service", return_value=scs):
         await button.callback(interaction)
 
     assert order[:2] == ["defer", "admin_check"]
@@ -84,7 +85,7 @@ async def test_admin_button_defers_before_io_and_replies_via_followup():
     interaction.followup.send.assert_awaited_once()
     kwargs = interaction.followup.send.await_args.kwargs
     assert kwargs["ephemeral"] is True
-    assert isinstance(kwargs["view"], control_ui.AdminContainerSelectView)
+    assert isinstance(kwargs["view"], admin_ui.AdminContainerSelectView)
 
 
 @pytest.mark.asyncio

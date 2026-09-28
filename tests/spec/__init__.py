@@ -58,3 +58,17 @@ def listed_rows(containers):
                      "ImageID": attrs.get("Image") or "",
                      "Labels": config.get("Labels") or attrs.get("Labels") or {}})
     return rows
+
+
+# cogs/control_ui.py was split on 2026-09-28: the admin picker went to
+# admin_ui.py, the mech panel to mech_ui.py. A test that read control_ui.py's
+# source for a pattern - or for its ABSENCE - would now look at a third of the
+# code and pass for the wrong reason. They read all three.
+CONTROL_UI_FILES = ("cogs/control_ui.py", "cogs/admin_ui.py", "cogs/mech_ui.py")
+
+
+def control_ui_source():
+    """The source of the control UI as it was one file: control_ui, admin_ui, mech_ui."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    return "\n\n".join((root / name).read_text(encoding="utf-8") for name in CONTROL_UI_FILES)

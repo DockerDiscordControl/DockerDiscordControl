@@ -31,6 +31,7 @@ COUNTER-CHECK (2026-09-24): red before - there was no group panel at all, and
 the info button was added to every view.
 """
 
+from tests.spec import control_ui_source
 import json
 from types import SimpleNamespace
 
@@ -349,8 +350,7 @@ def test_both_places_ask_the_one_builder():
     import ast
     from pathlib import Path
 
-    source = (Path(__file__).resolve().parents[2] / "cogs" / "control_ui.py").read_text(
-        encoding="utf-8")
+    source = control_ui_source()
     calls = [ast.unparse(node.func) for node in ast.walk(ast.parse(source))
              if isinstance(node, ast.Call)]
 

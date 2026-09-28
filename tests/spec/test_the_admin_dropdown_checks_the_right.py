@@ -29,7 +29,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cogs.control_ui import AdminContainerDropdown
+from cogs.admin_ui import AdminContainerDropdown
 
 CONTAINER = {"docker_name": "vrising", "name": "V-Rising", "allowed_actions": ["start"]}
 REFUSAL = "This action is not allowed in this channel."
@@ -73,7 +73,13 @@ async def _press(has_channel_permission, is_admin):
         return_value=(MagicMock(), MagicMock(), None))
     cog.get_status = AsyncMock(return_value=SimpleNamespace(success=True, is_running=True))
     cog.expanded_states = {}
-    with patch("cogs.control_ui.get_server_config_service", return_value=servers), \
+    # The dropdown lives in admin_ui since 2026-09-28; the panel it opens is control_ui's
+    with patch("cogs.admin_ui.get_server_config_service", return_value=servers), \
+         patch("cogs.admin_ui.load_config", return_value={"servers": [CONTAINER]}), \
+         patch("cogs.admin_ui._channel_has_permission", return_value=has_channel_permission), \
+         patch("cogs.admin_ui._get_cached_channel_permission", return_value=has_channel_permission), \
+         patch("cogs.admin_ui._is_registered_admin", return_value=is_admin), \
+         patch("cogs.control_ui.get_server_config_service", return_value=servers), \
          patch("cogs.control_ui.load_config", return_value={"servers": [CONTAINER]}), \
          patch("cogs.control_ui._channel_has_permission",
                return_value=has_channel_permission), \

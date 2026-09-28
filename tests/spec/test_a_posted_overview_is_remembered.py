@@ -52,7 +52,7 @@ def cog(monkeypatch):
     monkeypatch.setattr(lifecycle, "get_server_config_service",
                         lambda: SimpleNamespace(get_all_servers=lambda: [dict(s) for s in SERVERS]))
     monkeypatch.setattr("cogs.admin_overview.AdminOverviewView", lambda *a: "admin-view")
-    monkeypatch.setattr("cogs.control_ui.MechView", lambda *a: "mech-view")
+    monkeypatch.setattr("cogs.mech_ui.MechView", lambda *a: "mech-view")
     cog = object.__new__(DockerControlCog)
     cog.channel_server_message_ids = {CHANNEL: {"overview": 1, "old": 2}}
     cog.last_message_update_time = {}

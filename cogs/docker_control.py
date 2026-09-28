@@ -960,7 +960,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
         a tracked overview (restored from disk before this runs), so the ids actually match.
         """
         try:
-            from .control_ui import (MechDonateButton, MechDisplayButton, ReadStoryButton,
+            from .mech_ui import (MechDonateButton, MechDisplayButton, ReadStoryButton,
                                    PlaySongButton, EpilogueButton, MechHistoryButton,
                                    MechView, MechDetailsView)
             from .admin_overview import AdminOverviewView

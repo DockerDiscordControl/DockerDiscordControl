@@ -186,9 +186,9 @@ def test_the_panel_uses_the_same_mark():
 
 def test_the_option_carries_it(world):
     """The entry is only half of it - the option Discord draws is the other."""
-    from cogs import control_ui
+    from cogs import admin_ui, control_ui
 
-    dropdown = control_ui.AdminContainerDropdown(
+    dropdown = admin_ui.AdminContainerDropdown(
         SimpleNamespace(), [{"name": "Valheim", "display": "Valheim",
                              "docker_name": "Valheim", "order": 1}]
         + control_ui.group_entries(), 42)

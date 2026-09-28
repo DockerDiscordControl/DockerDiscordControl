@@ -43,6 +43,7 @@ left with no way out but Discord's own wording.
 COUNTER-CHECK (2026-09-25): red before - no such button existed anywhere.
 """
 
+from tests.spec import control_ui_source
 import ast
 import asyncio
 import json
@@ -225,7 +226,7 @@ def test_the_admin_panel_does_ask_for_one():
 
     # ...and both private call sites go through that one factory, so the
     # button cannot go missing from the panel rebuilt after an action.
-    callers = CONTROL_UI.read_text(encoding="utf-8").count("admin_control_view(")
+    callers = control_ui_source().count("admin_control_view(")
 
     assert callers == 2, f"expected the two admin-panel sites, found {callers}"
 

@@ -78,7 +78,7 @@ reader is owed the reason the question closed.
 
 from unittest.mock import MagicMock
 
-from cogs.control_ui import MechHistoryButton
+from cogs.mech_ui import MechHistoryButton
 from services.infrastructure.spam_protection_service import SpamProtectionService
 
 CHANNEL = 77

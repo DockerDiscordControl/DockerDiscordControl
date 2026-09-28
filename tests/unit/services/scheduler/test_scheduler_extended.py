@@ -33,6 +33,7 @@ import pytz
 
 from services.scheduling import runtime as scheduler_runtime
 from services.scheduling import scheduler as scheduler_mod
+from services.scheduling import scheduled_task as scheduled_task_mod
 from services.scheduling.scheduler import (
     CYCLE_CRON,
     CYCLE_DAILY,
@@ -66,6 +67,13 @@ from services.scheduling.scheduler import (
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
+
+def _both(monkeypatch, name, value):
+    """Patch `name` where the scheduler uses it: scheduler.py and scheduled_task.py
+    (split 2026-09-28 - the task and its timing live in the second)."""
+    for module in (scheduler_mod, scheduled_task_mod):
+        monkeypatch.setattr(module, name, value)
 
 
 @pytest.fixture(autouse=True)
@@ -499,7 +507,7 @@ class TestGetNextRunDatetime:
         def _boom(_tz):
             raise AttributeError("bad tz")
 
-        monkeypatch.setattr(scheduler_mod, "_get_timezone", _boom)
+        monkeypatch.setattr(scheduled_task_mod, "_get_timezone", _boom)
         task.next_run_ts = _time.time() + 60
         assert task.get_next_run_datetime() is None
 
@@ -516,7 +524,7 @@ class TestDonationSystemTask:
             "services.donation.donation_utils.is_donations_disabled",
             lambda: False,
         )
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
         task = create_donation_system_task()
         assert task is not None
@@ -535,7 +543,7 @@ class TestDonationSystemTask:
             "services.donation.donation_utils.is_donations_disabled",
             lambda: True,
         )
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
         task = create_donation_system_task()
         assert task is not None
@@ -567,7 +575,7 @@ class TestDonationSystemTask:
                 raise IOError("config read failed")
             return {"timezone": "Europe/Berlin"}
 
-        monkeypatch.setattr(scheduler_mod, "load_config", _flaky)
+        _both(monkeypatch, "load_config", _flaky)
 
         task = create_donation_system_task()
         assert task is not None
@@ -584,7 +592,7 @@ class TestDonationSystemTask:
         assert result is None
 
     def test_calculate_next_donation_run_sets_second_sunday(self, monkeypatch):
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
         # Build a minimal task and run the donation calculation directly.
         task = ScheduledTask(
             task_id=DONATION_TASK_ID,
@@ -606,7 +614,7 @@ class TestDonationSystemTask:
     ):
         # If last_run_ts is in the current month, next run should be in a
         # later month.
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
         task = ScheduledTask(
             task_id=DONATION_TASK_ID,
             container_name="SYSTEM",
@@ -673,7 +681,7 @@ class TestUpdateAfterExecution:
     def test_donation_task_uses_donation_recalc(self, monkeypatch):
         # update_after_execution should route the donation task to its
         # bespoke calculation rather than the regular calculate_next_run.
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
         task = ScheduledTask(
             task_id=DONATION_TASK_ID,
@@ -736,7 +744,7 @@ class TestGetSystemTasks:
             "services.donation.donation_utils.is_donations_disabled",
             lambda: False,
         )
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
         tasks = _get_system_tasks()
         assert isinstance(tasks, list)
@@ -1221,7 +1229,7 @@ class TestExecuteTask:
         # Suppress update_task file IO.
         monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
         # Suppress the donation-task recalc to avoid touching load_config.
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
         task = ScheduledTask(
             task_id=DONATION_TASK_ID,
@@ -1258,7 +1266,7 @@ class TestExecuteTask:
         )
 
         monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
         task = ScheduledTask(
             task_id=DONATION_TASK_ID,
@@ -1290,7 +1298,7 @@ class TestExecuteTask:
         )
 
         monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
         task = ScheduledTask(
             task_id=DONATION_TASK_ID,
@@ -1315,7 +1323,7 @@ class TestExecuteTask:
             sys.modules, "services.scheduling.donation_message_service", None
         )
         monkeypatch.setattr(scheduler_mod, "update_task", lambda t, **kw: True)
-        monkeypatch.setattr(scheduler_mod, "load_config", lambda: {"timezone": "UTC"})
+        _both(monkeypatch, "load_config", lambda: {"timezone": "UTC"})
 
         task = ScheduledTask(
             task_id=DONATION_TASK_ID,

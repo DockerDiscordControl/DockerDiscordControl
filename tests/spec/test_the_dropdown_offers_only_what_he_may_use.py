@@ -24,8 +24,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import cogs.admin_ui as aui
 import cogs.control_ui as cui
-from cogs.control_ui import AdminContainerSelectView
+from cogs.admin_ui import AdminContainerSelectView
 
 ADMIN = 4711
 MINE, THEIRS = "valheim", "nginx"
@@ -36,9 +37,12 @@ CONTAINERS = [{"name": MINE, "display": "Valheim", "docker_name": MINE, "order":
 @pytest.fixture
 def world(monkeypatch):
     state = {"control_channel": False, "assigned": [MINE]}
-    monkeypatch.setattr(cui, "load_config", lambda: {"servers": []})
-    monkeypatch.setattr(cui, "_channel_has_permission",
-                        lambda channel_id, key, config=None: state["control_channel"])
+    # The dropdown lives in admin_ui since 2026-09-28; control_ui still decides the
+    # channel permission it borrows (_get_cached_channel_permission)
+    for module in (aui, cui):
+        monkeypatch.setattr(module, "load_config", lambda: {"servers": []})
+        monkeypatch.setattr(module, "_channel_has_permission",
+                            lambda channel_id, key, config=None: state["control_channel"])
 
     service = MagicMock()
     service.is_user_admin.side_effect = lambda user_id, **kw: str(user_id) == str(ADMIN)
