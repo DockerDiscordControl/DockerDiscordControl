@@ -115,7 +115,7 @@ def test_the_port_rule_counts_values_and_not_digits(port, expected):
 # --------------------------------------------------------------------------
 # And where it is actually shown. The two copies of _get_ip_info - plus the
 # overview dropdown's own, which validated nothing - became ONE function in
-# v3.0.2, cogs/info_extras.address_line, used by every path. It appends the
+# v3.1.0, cogs/info_extras.address_line, used by every path. It appends the
 # separate custom_port field, on two branches: the custom address and the
 # public IP. The public-IP branch is only reached when custom_ip is EMPTY -
 # which is how the first version of this repair broke it: the import sat

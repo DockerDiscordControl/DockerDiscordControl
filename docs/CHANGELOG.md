@@ -4,7 +4,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
-## v3.0.2 - unreleased
+## v3.1.0 - unreleased
 
 ### ✨ Restart only when nobody plays
 

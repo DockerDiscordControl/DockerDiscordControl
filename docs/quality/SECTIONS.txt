@@ -67,7 +67,7 @@ cogs/enhanced_info_modal_simple.py:1-704
 cogs/status_handlers.py:1-1116
 
 ## Section 09  (1611 lines, 3 pieces)
-# v3.0.2, 2026-09-28: every container has an info display; who plays on a
+# v3.1.0, 2026-09-28: every container has an info display; who plays on a
 # game server and Docker's facts come from info_extras.py, read with the display
 # it fills; player_joins.py announces who joins, from the same player list.
 cogs/status_info_integration.py:1-1127
@@ -495,7 +495,7 @@ services/automation/alert_webhook.py:1-104
 services/translation/translation_service.py:1-835
 
 ## Section 49  (1057 lines, 3 pieces)
-# v3.0.2, 2026-09-28: restart or stop only when nobody plays, and the warning
+# v3.1.0, 2026-09-28: restart or stop only when nobody plays, and the warning
 # before - the core, the scheduler that calls it and its Discord dropdowns,
 # read together.
 services/scheduling/scheduler_service.py:1-623

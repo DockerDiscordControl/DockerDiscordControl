@@ -1,5 +1,5 @@
 // Runs app/static/js/player_options.js in node: the three player-option fields
-// of the task form, the task edit dialog and the rule editor (v3.0.2). Called
+// of the task form, the task edit dialog and the rule editor (v3.1.0). Called
 // from tests/spec/test_the_player_options_fields_say_what_they_hold.py.
 'use strict';
 const fs = require('fs');

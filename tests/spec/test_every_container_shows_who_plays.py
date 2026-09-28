@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Every container has an info display, and a game server's names who plays (v3.0.2).
+"""Every container has an info display, and a game server's names who plays (v3.1.0).
 
 OPERATOR, 2026-09-28: every game server has an info display from now on,
 not only the ones with a text set - and then the ℹ️ marker in the overviews

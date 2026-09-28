@@ -7,7 +7,7 @@
 # ============================================================================ #
 """Restart or stop a game server only when nobody plays - and say so beforehand.
 
-THE OPERATOR'S IDEA (2026-09-28, v3.0.2): DDC has known the player counts since
+THE OPERATOR'S IDEA (2026-09-28, v3.1.0): DDC has known the player counts since
 v2.3, but neither scheduled tasks nor auto-actions used them. "Restart daily at
 4, but only once 0 players are online - at the latest at 6", and optionally a
 warning in Discord: "Valheim restarts in 10 minutes".

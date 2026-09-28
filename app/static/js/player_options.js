@@ -1,4 +1,4 @@
-// "Only when nobody plays" and the warning before a restart or stop (v3.0.2).
+// "Only when nobody plays" and the warning before a restart or stop (v3.1.0).
 //
 // The task form, the task edit dialog and the rule editor carry the same three
 // fields in a block. Each caller names its own fields - task_form.js, tasks.js

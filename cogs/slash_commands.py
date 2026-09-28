@@ -657,7 +657,7 @@ class SlashCommandsMixin:
                 return
 
             # No refusal for a container without a text: every container has an info
-            # display since v3.0.2 - restarts, health and, on a game server, players.
+            # display since v3.1.0 - restarts, health and, on a game server, players.
 
             # Convert ContainerInfo to dict for compatibility
             info_config = info_result.data.to_dict()

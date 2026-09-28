@@ -12,7 +12,7 @@ from app.auth import auth
 tasks_bp = Blueprint('tasks_bp', __name__, url_prefix='/tasks')
 
 
-# --- "Only when nobody plays" and the warning (v3.0.2, services/scheduling/player_gate.py).
+# --- "Only when nobody plays" and the warning (v3.1.0, services/scheduling/player_gate.py).
 # Checked here, where the request arrives: the service class is at its size ceiling.
 
 def _refused_player_options(data: dict):

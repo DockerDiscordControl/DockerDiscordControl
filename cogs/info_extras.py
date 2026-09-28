@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""What the info display knows beyond the operator's text (v3.0.2).
+"""What the info display knows beyond the operator's text (v3.1.0).
 
 Every container has an info display now, not only the ones with a text set
 (operator, 2026-09-28). Beyond the text it shows:

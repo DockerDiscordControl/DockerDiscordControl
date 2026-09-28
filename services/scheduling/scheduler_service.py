@@ -89,7 +89,7 @@ class SchedulerService:
         self._last_cycle_start_ts: Optional[float] = None
         self._last_cycle_end_ts: Optional[float] = None
         self._seen_due: Dict[str, float] = {}
-        # Player gate (v3.0.2, services/scheduling/player_gate.py): task_id -> the
+        # Player gate (v3.1.0, services/scheduling/player_gate.py): task_id -> the
         # occurrence already warned about / already reported as waiting
         self._warned: Dict[str, float] = {}
         self._waiting: Dict[str, float] = {}
@@ -412,7 +412,7 @@ class SchedulerService:
 
                 if not task.next_run_ts:
                     continue
-                # "Only when nobody plays" and the warning before (v3.0.2). The
+                # "Only when nobody plays" and the warning before (v3.1.0). The
                 # warning can be due before the occurrence is.
                 gated = bool(getattr(task, 'options', None)) and \
                     (task.action or '').lower() in player_gate.GATED_ACTIONS

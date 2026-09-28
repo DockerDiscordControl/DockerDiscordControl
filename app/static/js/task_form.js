@@ -9,7 +9,7 @@
 // _container_groups.html already hands DDC_GROUP_TEXTS to container_groups.js.
 // A translated string belongs to the catalogue; the code that shows it does not.
 
-// The player-option fields of this form (v3.0.2, player_options.js)
+// The player-option fields of this form (v3.1.0, player_options.js)
 const TASK_PLAYER_FIELDS = { PlayerGate: 'taskPlayerGate', WaitEmpty: 'taskWaitEmpty',
     MaxWait: 'taskMaxWait', WarnMinutes: 'taskWarnMinutes' };
 

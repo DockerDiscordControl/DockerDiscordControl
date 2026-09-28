@@ -839,7 +839,7 @@ class DebugLogsButton(discord.ui.Button):
 class StatusInfoView(DDCView):
     """
     View for status-only channels that provides info display without control buttons.
-    Every container has the info button (v3.0.2): restarts, health and, on a game
+    Every container has the info button (v3.1.0): restarts, health and, on a game
     server, who is playing are there even without a text set. A group has none.
     """
 
@@ -999,7 +999,7 @@ class StatusInfoButton(discord.ui.Button):
         own = []
 
         # Text and address only while the info is switched on: every container
-        # opens this display since v3.0.2, and a switched-off text stays hidden.
+        # opens this display since v3.1.0, and a switched-off text stays hidden.
         shown = bool(fresh_info_config.get('enabled', False))
         if shown and fresh_info_config.get('show_ip', False):
             address = await address_line(fresh_info_config, extras.port)

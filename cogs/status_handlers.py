@@ -1100,7 +1100,7 @@ class StatusHandlersMixin:
 
             if show_info_integration and not channel_has_control:
                 # STATUS-ONLY CHANNEL: StatusInfoView. The embed carries no "info
-                # available" marker any more - every container has info (v3.0.2).
+                # available" marker any more - every container has info (v3.1.0).
                 view = StatusInfoView(self, server_conf, running)
             else:
                 # CONTROL CHANNEL: Use standard ControlView

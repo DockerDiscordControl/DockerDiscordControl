@@ -101,7 +101,7 @@ class GameQueryResult:
 
 @dataclass
 class PlayerList:
-    """Who is on a server, asked when someone opens the info display (v3.0.2).
+    """Who is on a server, asked when someone opens the info display (v3.1.0).
 
     ``names`` holds (name, seconds on the server or None) for every player the
     game NAMED. A game may count players without naming them - Icarus sends

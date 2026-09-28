@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """A scheduled restart waits until nobody plays - at the latest until its deadline.
 
-THE OPERATOR'S IDEA (2026-09-28, v3.0.2): "Restart daily at 4, but only once 0
+THE OPERATOR'S IDEA (2026-09-28, v3.1.0): "Restart daily at 4, but only once 0
 players are online (at the latest at 6)", and optionally a warning in Discord,
 "Valheim restarts in 10 minutes". Decided with the operator: at the deadline
 the restart happens anyway (warned before), the warning goes to status and

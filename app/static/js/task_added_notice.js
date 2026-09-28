@@ -9,7 +9,7 @@
 // the page already had; the server's own message wins whenever the task came
 // back switched off.
 //
-// Warnings the server sends along (v3.0.2: "the player count cannot be read,
+// Warnings the server sends along (v3.1.0: "the player count cannot be read,
 // so the server counts as empty") turn the line yellow and are shown in full.
 function taskAddedNotice(body, added) {
     const task = body && body.task;

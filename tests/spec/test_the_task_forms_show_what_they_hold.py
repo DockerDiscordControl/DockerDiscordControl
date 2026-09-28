@@ -15,7 +15,7 @@ SEEN ON THE OPERATOR'S SCREEN (2026-09-28):
    d-flex, which is display:flex !important and beats any style.display.
 3. THE DATE FIELDS STOOD HIGHER than cycle and time beside them: their help text
    sat below the fields, the neighbours' above. And the player options block
-   (v3.0.2) sat in the middle of that row - appearing for restart or stop, it
+   (v3.1.0) sat in the middle of that row - appearing for restart or stop, it
    pushed the date fields onto a line of their own.
 
 COUNTER-CHECK (2026-09-28): without the with-block around the dialog's

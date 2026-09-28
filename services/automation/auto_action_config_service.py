@@ -340,7 +340,7 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
     if not isinstance(delay, int) or delay < MIN_DELAY_SECONDS or delay > MAX_DELAY_SECONDS:
         errors.append(f"Delay must be between {MIN_DELAY_SECONDS} and {MAX_DELAY_SECONDS} seconds")
 
-    # Only when nobody plays, and the warning (v3.0.2, services/scheduling/player_gate.py).
+    # Only when nobody plays, and the warning (v3.1.0, services/scheduling/player_gate.py).
     # A count that cannot be read counts as empty - said here, at saving time.
     raw_player_options = action.get('player_options')
     if raw_player_options:
@@ -505,7 +505,7 @@ class ActionConfig:
     delay_seconds: int = 0
     notification_channel_id: Optional[str] = None
     silent: bool = False
-    # v3.0.2: only when nobody plays, and a warning first (services/scheduling/player_gate.py)
+    # v3.1.0: only when nobody plays, and a warning first (services/scheduling/player_gate.py)
     player_options: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod

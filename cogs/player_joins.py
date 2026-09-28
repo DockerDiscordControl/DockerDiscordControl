@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Who joins a game server, announced where the operator asks for it (v3.0.2).
+"""Who joins a game server, announced where the operator asks for it (v3.1.0).
 
 OFF UNLESS A CHANNEL ASKS: the channel tables in the panel carry a "Player
 joins" box; with none ticked, nothing here runs a single query.

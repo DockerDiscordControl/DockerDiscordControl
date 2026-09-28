@@ -2,7 +2,7 @@
 """The container info shows the restart count and the health check (Phase 4e).
 
 Roadmap Phase 4e: "runtime and restart counter in the info modal". They came
-from the status cache through StatusInfoButton._get_status_info until v3.0.2;
+from the status cache through StatusInfoButton._get_status_info until v3.1.0;
 since then the info display reads the container from Docker when it is opened
 (services/infrastructure/container_facts_service.py) and the count, the health
 and the restart policy come from that one answer - the policy in the same line

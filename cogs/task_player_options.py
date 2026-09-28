@@ -5,7 +5,7 @@
 # Copyright (c) 2025 MAX                                                       #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
-"""The player options of a task created in Discord (v3.0.2).
+"""The player options of a task created in Discord (v3.1.0).
 
 A restart or stop task can wait until nobody plays and warn beforehand
 (services/scheduling/player_gate.py). In the web panel these are three fields;

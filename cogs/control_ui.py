@@ -864,7 +864,7 @@ class InfoButton(Button):
                     admin_view.message = message
                     admin_view.auto_delete_task = asyncio.create_task(admin_view.start_auto_delete_timer())
                     return
-                # Without control the display opens all the same: restarts, health, players (v3.0.2)
+                # Without control the display opens all the same: restarts, health, players (v3.1.0)
 
             # Use the same logic as StatusInfoButton for consistency
             from .status_info_integration import StatusInfoButton, ContainerInfoAdminView
@@ -1053,7 +1053,7 @@ class InfoDropdownButton(Button):
             server_config_service = get_server_config_service()
             all_servers = server_config_service.get_all_servers()
 
-            # Every container has an info display since v3.0.2, not only those with a text set
+            # Every container has an info display since v3.1.0, not only those with a text set
             containers_with_info = []
             for container_data in all_servers:
                 try:

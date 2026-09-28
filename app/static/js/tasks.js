@@ -1,4 +1,4 @@
-// The player-option fields of this form (v3.0.2, player_options.js)
+// The player-option fields of this form (v3.1.0, player_options.js)
 const EDIT_TASK_PLAYER_FIELDS = { PlayerGate: 'editTaskPlayerGate', WaitEmpty: 'editTaskWaitEmpty',
     MaxWait: 'editTaskMaxWait', WarnMinutes: 'editTaskWarnMinutes' };
 
@@ -245,7 +245,7 @@ class TaskManager {
         if (details.day) parts.push(`${t('tasks.day_label')}: ${this.escapeHtml(details.day)}`);
         if (details.month) parts.push(`${t('tasks.month_label')}: ${this.escapeHtml(details.month)}`);
         if (details.year) parts.push(`${t('tasks.year_label')}: ${this.escapeHtml(details.year)}`);
-        // "only when empty" and the warning (v3.0.2, player_options.js)
+        // "only when empty" and the warning (v3.1.0, player_options.js)
         const gate = describePlayerOptions(details.options, {
             whenEmpty: t('tasks.when_empty_short'), warning: t('tasks.warning_short') });
         if (gate) parts.push(this.escapeHtml(gate));

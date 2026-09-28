@@ -5,7 +5,7 @@
 # Copyright (c) 2025 MAX                                                       #
 # Licensed under the MIT License                                               #
 # ============================================================================ #
-"""What Docker knows about a container, for the info display (v3.0.2).
+"""What Docker knows about a container, for the info display (v3.1.0).
 
 Read when someone opens the display, not by the status cycle: one container
 inspect and one image inspect, both read-only calls the allowlist proxy lets

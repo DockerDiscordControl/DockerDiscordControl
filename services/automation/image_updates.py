@@ -163,7 +163,7 @@ CHECK_INTERVAL_SECONDS = 6 * 3600
 # An unknown answer (registry down, private image) is asked again sooner
 UNKNOWN_RETRY_SECONDS = 1800
 
-# For the info display (v3.0.2): tag -> (when asked, digest or None). Asking a
+# For the info display (v3.1.0): tag -> (when asked, digest or None). Asking a
 # registry takes a token round trip; a member opening the display five times
 # must not ask five times, and the check above runs only for operators with an
 # image_update rule.

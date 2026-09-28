@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""A silent game server, a newer image, and who joins - said, not hidden (v3.0.2).
+"""A silent game server, a newer image, and who joins - said, not hidden (v3.1.0).
 
 Agreed with the operator on 2026-09-28, in this order:
 

@@ -49,7 +49,7 @@ def create_rule():
     result = config_service.add_rule(data)
     if result.success:
         # The warnings were written into the rule and shown nowhere (protected
-        # containers; since v3.0.2 also an unreadable player count).
+        # containers; since v3.1.0 also an unreadable player count).
         answer = {'success': True, 'rule': result.data.to_dict()}
         if _rule_warnings(result.data):
             answer['warnings'] = _rule_warnings(result.data)

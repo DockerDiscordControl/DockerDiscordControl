@@ -1,4 +1,4 @@
-// The player-option fields of this form (v3.0.2, player_options.js)
+// The player-option fields of this form (v3.1.0, player_options.js)
 const RULE_PLAYER_FIELDS = { PlayerGate: 'aasRulePlayerGate', WaitEmpty: 'aasRuleWaitEmpty',
     MaxWait: 'aasRuleMaxWait', WarnMinutes: 'aasRuleWarnMinutes' };
 
@@ -352,7 +352,7 @@ async function openRuleEditor(ruleId = null) {
     form.reset();
     document.getElementById('aasTestResult').innerHTML = '';
     updateTriggerTypeFields();
-    // Player options (v3.0.2): off for a new rule, shown for restart/recreate/stop only
+    // Player options (v3.1.0): off for a new rule, shown for restart/recreate/stop only
     const actionTypeField = document.getElementById('aasRuleActionType');
     fillPlayerOptions(RULE_PLAYER_FIELDS, {});
     showPlayerOptions(RULE_PLAYER_FIELDS, playerGateActionOf(actionTypeField.value));

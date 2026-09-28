@@ -1027,7 +1027,7 @@ class CreateTaskButton(discord.ui.Button):
                     inline=True
                 )
 
-                # Restart and stop can wait for an empty server and warn first (v3.0.2);
+                # Restart and stop can wait for an empty server and warn first (v3.1.0);
                 # the options come as two dropdowns under the confirmation.
                 from services.scheduling.player_gate import GATED_ACTIONS
                 if task.action in GATED_ACTIONS:

@@ -32,7 +32,7 @@ from unittest.mock import patch
 
 
 # The status embed enrichment this file first pinned ("ℹ️ Additional info
-# available") is gone since v3.0.2 - every container has an info display, so
+# available") is gone since v3.1.0 - every container has an info display, so
 # there is nothing to announce. The status channel's info VIEW is the caller
 # handed whatever the panel shows now; the same guard sits there.
 

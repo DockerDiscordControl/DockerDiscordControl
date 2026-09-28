@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""The player-option fields send what they show (v3.0.2, app/static/js/player_options.js).
+"""The player-option fields send what they show (v3.1.0, app/static/js/player_options.js).
 
 The task form, the task edit dialog and the rule editor share three fields:
 "only when nobody plays", the longest wait, and the warning before. The server

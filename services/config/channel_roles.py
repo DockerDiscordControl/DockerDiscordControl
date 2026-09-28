@@ -42,7 +42,7 @@ def status_channel_ids(config: Dict[str, Any]) -> List[int]:
     """The channels with the serverstatus permission - where the players look.
 
     The same question the donation appeal and the member count ask; the player
-    warning of v3.0.2 (services/scheduling/player_gate.py) asks it here.
+    warning of v3.1.0 (services/scheduling/player_gate.py) asks it here.
     """
     channels: List[int] = []
     for channel_id, perms in (config.get('channel_permissions') or {}).items():

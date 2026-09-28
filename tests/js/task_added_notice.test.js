@@ -34,7 +34,7 @@ const cases = {
     assert.ok(notice.text.startsWith(ADDED), notice.text);
   },
   'a warning sent along turns the line yellow and is shown'() {
-    // v3.0.2: a task waiting for an empty server whose player count cannot be read.
+    // v3.1.0: a task waiting for an empty server whose player count cannot be read.
     const notice = taskAddedNotice({
       message: 'Task added successfully', task: { id: 'a', is_active: true },
       warnings: ['The player count cannot be read, so the server counts as empty: Valheim: off'],

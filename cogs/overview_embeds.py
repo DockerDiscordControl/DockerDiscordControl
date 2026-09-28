@@ -290,7 +290,7 @@ class OverviewEmbedsMixin:
                         ram_formatted = "—GB"
 
                     # Build single-line: "🟢 Name · cpu% • ramGB", middot (·) as separator.
-                    # No ⓘ marker since v3.0.2: every container has an info display.
+                    # No ⓘ marker since v3.1.0: every container has an info display.
                     # Details switched off for this container are NOT a failed
                     # measurement: "Hidden" does not parse as a number, so the row
                     # used to read "—% • —GB", which the operator reads as "DDC
@@ -472,7 +472,7 @@ class OverviewEmbedsMixin:
                 # Compact live player count (e.g. "  3/8") for running game servers with query data
                 from services.discord.embed_helper_service import format_player_inline
                 player_indicator = format_player_inline(status_result.players_online, status_result.max_players)
-                # Status line: emoji, name, player count (no ℹ️ since v3.0.2 - every container has info)
+                # Status line: emoji, name, player count (no ℹ️ since v3.1.0 - every container has info)
                 line = f"│ {status_emoji} {truncated_name}{player_indicator}"
                 if status_result.not_found:
                     # Deleted/renamed container: own state instead of 🔴 or an endless 🔄

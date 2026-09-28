@@ -539,7 +539,7 @@ class AutomationService:
         # group of 200 members was 200 messages into one channel, and Discord's
         # rate limit stops them long before the containers are done. The
         # only_if_running notices were consolidated for the same reason.
-        # Only when nobody plays, and a warning first (v3.0.2): once for all
+        # Only when nobody plays, and a warning first (v3.1.0): once for all
         # targets, before any of them is touched (services/scheduling/player_gate.py)
         gate_verb = player_gate.gated_verb(action_type)
         gated = bool(gate_verb and getattr(rule.action, 'player_options', None))
@@ -824,7 +824,7 @@ class AutomationService:
                                               f"🚨 {event.reason} → `{action_type}` — *{rule.name}*")
                 if delayed:
                     await asyncio.sleep(rule.action.delay_seconds)
-                    # Until nobody plays on it, or the wait is over - then look again (v3.0.2)
+                    # Until nobody plays on it, or the wait is over - then look again (v3.1.0)
                     gate_verb = player_gate.gated_verb(action_type)
                     if gate_verb and getattr(rule.action, 'player_options', None):
                         await player_gate.hold_until_empty(getattr(rule.action, 'player_options', None), [container],

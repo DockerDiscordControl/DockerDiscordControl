@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""The info display says what Docker and the game server know (v3.0.2).
+"""The info display says what Docker and the game server know (v3.1.0).
 
 OPERATOR, 2026-09-28: general container information - uptime, version where
 possible, and whatever else is worth knowing. Agreed:

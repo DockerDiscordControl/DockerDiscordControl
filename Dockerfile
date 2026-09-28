@@ -207,7 +207,7 @@ RUN mkdir -p /app/config /app/logs /app/scripts && \
 # DOCKER_HOST: the allowlist proxy the entrypoint starts (v3.0). Set for the whole
 # image, not only exported by the entrypoint, so docker exec sessions and
 # diagnostics take the same way as DDC instead of the raw socket.
-ENV DDC_VERSION="3.0.1" \
+ENV DDC_VERSION="3.1.0" \
     DOCKER_HOST="unix:///run/ddc-proxy/docker.sock" \
     PYTHONPATH="/app:/opt/runtime/site-packages" \
     PYTHONDONTWRITEBYTECODE=1 \
