@@ -23,7 +23,7 @@ from services.config.config_service import load_config
 from services.config.server_config_service import get_server_config_service
 from utils.logging_utils import setup_logger
 
-from .control_helpers import channel_was_built
+from .control_helpers import TRACKED_MESSAGE_KINDS, channel_was_built
 
 # Same logger name as the cog: log lines and log-based tests read as before the move.
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
@@ -500,7 +500,9 @@ class ChannelLifecycleMixin:
                             if channel.id in self.channel_server_message_ids:
                                 old_entries = list(self.channel_server_message_ids[channel.id].keys())
                                 for entry_key in old_entries:
-                                    if entry_key not in ["overview", "admin_overview"]:
+                                    # TRACKED_MESSAGE_KINDS, the one list: its own list here dropped the
+                                    # /donate panel id the restart clean-up needs (stage 4, section 04)
+                                    if entry_key not in TRACKED_MESSAGE_KINDS:
                                         logger.info(f"Clearing leftover individual server entry '{entry_key}' from channel {channel.id}")
                                         del self.channel_server_message_ids[channel.id][entry_key]
 
