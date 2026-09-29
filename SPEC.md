@@ -433,6 +433,10 @@ container-and-action — which actions are allowed stays with the container's ow
 Seeing is not narrowed: a status channel shows every container to everybody, and only the controls
 follow the assignment. The ephemeral admin dropdown offers only the assigned containers, because
 that message is per-user; the shared overview above it cannot be and is not.
+*Confirmed 2026-09-29 (operator):* "seeing" includes password-less protected info - every
+registered admin reads it for every container. A password still protects what has one, and
+editing the protected info is a control, so it follows the assignment.
+*Pinned by* `tests/spec/test_seeing_protected_info_is_not_narrowed_by_assignment.py`.
 *Covered by* `tests/spec/test_an_admin_may_be_scoped_to_containers.py`,
 `tests/spec/test_an_assigned_admin_controls_only_his_containers.py`,
 `tests/spec/test_the_dropdown_offers_only_what_he_may_use.py`.

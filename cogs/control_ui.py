@@ -848,7 +848,7 @@ class InfoButton(Button):
                 has_control = channel_control or _is_registered_admin(interaction.user.id)
                 # The CONTROLS follow an admin's assignment (B2); an assigned admin
                 # got the edit/logs/tasks view for every container (stage 4, section
-                # 02). What the embed shows (has_control) is an open operator question.
+                # 02). What the embed shows (has_control) is not narrowed (B2, 2026-09-29).
                 may_control = channel_control or _admin_may_control(interaction.user.id, self.docker_name)
 
                 if may_control:
