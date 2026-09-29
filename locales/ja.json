@@ -1666,5 +1666,6 @@
   "Not in DDC any more": "DDCにもう存在しません",
   "Not assigned to you": "あなたに割り当てられていません",
   "❌ None of the active containers is assigned to you.": "❌ 有効なコンテナはどれもあなたに割り当てられていません。",
-  "⚙️ Mech status temporarily unavailable": "⚙️ メックのステータスは一時的に利用できません"
+  "⚙️ Mech status temporarily unavailable": "⚙️ メックのステータスは一時的に利用できません",
+  "No channel takes donation announcements - nothing was posted.": "寄付のお知らせを受け付けるチャンネルがありません - 何も投稿されませんでした。"
 }

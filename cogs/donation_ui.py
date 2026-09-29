@@ -44,6 +44,14 @@ def donation_answer(share, too_soon, amount, booked, broadcast_allowed, sent, fa
     if share and not broadcast_allowed:
         return (_("⚠️ **Donation could not be recorded**") + "\n\n"
                 + _("Nothing was sent to any channel. Please try again later."))
+    if share and not sent:
+        # Nothing reached a channel: "broadcast sent" over "Sent to 0 channels"
+        # was a success header over an announcement nobody received (stage 4
+        # review before v3.1.0, section 06).
+        text = _("✅ **Donation recorded** - thank you!") + "\n\n"
+        if failed > 0:
+            return text + _("⚠️ Failed to send to {count} channels").format(count=failed)
+        return text + _("No channel takes donation announcements - nothing was posted.")
     if share:
         text = (_("✅ **Donation broadcast sent!**") + "\n\n"
                 + _("📢 Sent to **{count}** channels").format(count=sent) + "\n")

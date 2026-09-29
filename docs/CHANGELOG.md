@@ -269,6 +269,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - When the mech status could not be read, the /ss overview lost its mech without a word. The
   footer says "Mech status temporarily unavailable" now, as it already did when only the animation
   failed.
+- A donation broadcast that reached no channel, because every channel had opted out of donation
+  announcements, answered "Donation broadcast sent!" over "Sent to 0 channels". It says now that
+  the donation was recorded and that no channel posted it.
 
 ### 🐛 The mech's picture and gift, the update notice
 

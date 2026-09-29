@@ -1666,5 +1666,6 @@
   "Not in DDC any more": "Δεν υπάρχει πλέον στο DDC",
   "Not assigned to you": "Δεν σου έχουν ανατεθεί",
   "❌ None of the active containers is assigned to you.": "❌ Κανένα από τα ενεργά container δεν σου έχει ανατεθεί.",
-  "⚙️ Mech status temporarily unavailable": "⚙️ Η κατάσταση του mech δεν είναι προσωρινά διαθέσιμη"
+  "⚙️ Mech status temporarily unavailable": "⚙️ Η κατάσταση του mech δεν είναι προσωρινά διαθέσιμη",
+  "No channel takes donation announcements - nothing was posted.": "Κανένα κανάλι δεν δέχεται ανακοινώσεις δωρεών - δεν δημοσιεύτηκε τίποτα."
 }
