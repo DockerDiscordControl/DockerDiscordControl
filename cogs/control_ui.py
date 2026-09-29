@@ -553,7 +553,8 @@ class ActionButton(Button):
                             # SECOND: Update all Server Overview status messages for this container
                             # THIRD: Update Overview and Admin Overview messages
                             if hasattr(self.cog, 'channel_server_message_ids'):
-                                for channel_id, server_messages in self.cog.channel_server_message_ids.items():
+                                # A snapshot - see trigger_status_refresh (stage 4 review)
+                                for channel_id, server_messages in list(self.cog.channel_server_message_ids.items()):
                                     # Update Server Overview (collapsed view)
                                     if 'overview' in server_messages:
                                         try:

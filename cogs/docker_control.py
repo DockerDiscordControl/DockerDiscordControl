@@ -597,7 +597,9 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                 # Update tracked status messages (Server Overview individual containers)
                 # Update overview messages (Server Overview collapsed view)
                 if hasattr(self, 'channel_server_message_ids'):
-                    for channel_id, server_messages in self.channel_server_message_ids.items():
+                    # A snapshot: a /ss or a clean-up between two awaits changed the
+                    # live dict and ended the loop (stage 4 review before v3.1.0)
+                    for channel_id, server_messages in list(self.channel_server_message_ids.items()):
                         if 'overview' in server_messages:
                             try:
                                 await self._update_overview_message(channel_id, server_messages['overview'], 'overview')
