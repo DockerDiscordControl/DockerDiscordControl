@@ -360,7 +360,18 @@ class ConfigMigrationService:
             }
             save_json_func(self.web_ui_config_file, web_ui_config)
 
-            logger.info("✅ Migrated web configs (web_ui.json) - advanced_settings kept in web_config.json")
+            # The advanced settings go to config.json: web_config.json was their only
+            # home and the cleanup below deletes it - every one fell back to its
+            # default after the migration (stage 4 review before v3.1.0, section 12).
+            # A value already in config.json wins, as it does when the config is read.
+            legacy_advanced = web_data.get("advanced_settings") or {}
+            if legacy_advanced:
+                main_config = load_json_func(self.main_config_file, {})
+                main_config["advanced_settings"] = {**legacy_advanced,
+                                                    **(main_config.get("advanced_settings") or {})}
+                save_json_func(self.main_config_file, main_config)
+
+            logger.info("✅ Migrated web configs (web_ui.json; advanced_settings into config.json)")
 
         except (OSError, IOError, PermissionError, TypeError, ValueError, KeyError) as e:
             # Migration errors (file I/O, permissions, JSON serialization, data errors)
