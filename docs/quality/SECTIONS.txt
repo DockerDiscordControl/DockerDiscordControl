@@ -29,14 +29,14 @@ cogs/control_ui.py:1-1442
 # press in this panel did, and the IPv6/URL addresses put section 01 at 2,010.
 cogs/action_effect.py:1-179
 
-## Section 03  (1260 lines, 2 pieces)
+## Section 03  (1262 lines, 2 pieces)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
 # 2026-09-28: control_ui.py split - the admin picker went to admin_ui.py, the
 # mech panel to mech_ui.py, unchanged; this section holds the moved code, and
 # control_ui.py (1,405 lines) fits into section 02 alone.
-cogs/admin_ui.py:1-386
+cogs/admin_ui.py:1-388
 cogs/mech_ui.py:1-874
 
 ## Section 04  (1578 lines, 3 pieces)

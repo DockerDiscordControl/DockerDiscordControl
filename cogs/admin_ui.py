@@ -101,10 +101,12 @@ class AdminButton(Button):
                 await interaction.followup.send(_("📦 No active containers found."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
-            logger.info(f"AdminButton: {len(active_containers)} containers BEFORE sorting:")
+            # DEBUG, like the dropdown's loops since review E37: at INFO every
+            # press wrote 2 + 2N lines (stage 4 review before v3.1.0, section 03).
+            logger.debug(f"AdminButton: {len(active_containers)} containers BEFORE sorting:")
             for c in active_containers:
                 order_val = c.get('order', 999)
-                logger.info(f"  - {c['display']}: order={order_val} (type={type(order_val).__name__})")
+                logger.debug(f"  - {c['display']}: order={order_val} (type={type(order_val).__name__})")
 
             # Sort containers by the 'order' field (same as Admin Overview)
             # Handle both int and string values from Web UI
@@ -120,9 +122,9 @@ class AdminButton(Button):
             active_containers.sort(key=get_sort_key)
 
             # Log the sorted order for debugging
-            logger.info(f"AdminButton: Containers AFTER sorting:")
+            logger.debug(f"AdminButton: Containers AFTER sorting:")
             for c in active_containers:
-                logger.info(f"  - {c['display']}: order={c.get('order', 999)}")
+                logger.debug(f"  - {c['display']}: order={c.get('order', 999)}")
 
             # Create view with dropdown
             view = AdminContainerSelectView(self.cog, active_containers, interaction.channel.id,
