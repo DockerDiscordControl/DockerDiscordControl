@@ -163,6 +163,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   list - every overview and panel. It is skipped and reported now, like a file with invalid JSON.
 - A container whose image is pinned to a digest showed a piece of the hash as its version in the
   info display. It shows the tag, or no version.
+- A game server published on a different host port (for example `-p 27016:27015/udp`) never
+  showed a player count: DDC asked the container on the host's port. It asks the container on its
+  own port now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

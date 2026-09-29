@@ -594,9 +594,14 @@ class GameQueryService:
                 # Blocking SDK call - keep it off the event loop
                 attrs = (await asyncio.to_thread(client.containers.get, container_name)).attrs
                 net = attrs.get('NetworkSettings', {}) or {}
+                # The container's OWN IP is asked on the port the container listens
+                # on; paired with the published host port (-p 27016:27015), nothing
+                # answered and no player count ever showed (stage 4 review, 19b).
+                container_side = host is None
                 if host is None:
                     host = self._container_ip(net)
-                ports = [manual_port] if manual_port else self._candidate_ports(net.get('Ports', {}) or {}, protocol)
+                ports = [manual_port] if manual_port else self._candidate_ports(
+                    net.get('Ports', {}) or {}, protocol, container_side=container_side)
         except Exception as e:  # noqa: BLE001 - autodiscovery is best-effort
             logger.debug(f"[GAME_QUERY] Target autodiscovery failed for {container_name}: {e}")
             ports = [manual_port] if manual_port else []
@@ -630,7 +635,8 @@ class GameQueryService:
     _STEAM_QUERY_RANGE = (27000, 27100)
 
     @classmethod
-    def _candidate_ports(cls, ports: dict, protocol: str = 'source') -> List[int]:
+    def _candidate_ports(cls, ports: dict, protocol: str = 'source',
+                         container_side: bool = False) -> List[int]:
         """Ordered list of published host ports to try, most-likely-queryable first.
 
         Ports has the shape {"7777/udp": [{"HostIp": "...", "HostPort": "7777"}], ...}.
@@ -653,7 +659,12 @@ class GameQueryService:
         for spec, bindings in ports.items():
             p = _host_port(bindings)
             if p is None:
-                continue
+                continue          # not published: not a port DDC can know is served
+            if container_side:
+                try:
+                    p = int(str(spec).split('/', 1)[0])
+                except ValueError:
+                    continue
             (preferred if str(spec).endswith(preferred_suffix) else other).append(p)
 
         if protocol == 'source':

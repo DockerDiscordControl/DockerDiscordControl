@@ -202,13 +202,13 @@ services/exceptions.py	299	pass1:s18:plan pass2:s18:1-299
 services/infrastructure/__init__.py	0	pass2:s18:1-0
 services/infrastructure/action_log_service.py	387	pass1:s18:plan pass2:s18:1-376  [11 of 387 lines never in a package]
 services/infrastructure/action_logger.py	137	pass1:s18:plan pass2:s18:1-86  [17 of 103 lines never in a package]
-services/infrastructure/container_facts_service.py	179	new 2026-09-28 (v3.1.0 Docker facts for the info display), written with its tests
+services/infrastructure/container_facts_service.py	184	new 2026-09-28 (v3.1.0 Docker facts for the info display), written with its tests
 services/infrastructure/container_info_service.py	332	pass1:s18:plan pass2:s18:1-282  [44 of 326 lines never in a package]
 services/infrastructure/container_status_service.py	887	pass1:s19:1-816  [14 of 830 lines never in a package]
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239
 services/infrastructure/dynamic_cooldown_manager.py	191	pass1:s19:1-179  [12 of 191 lines never in a package]
 services/infrastructure/event_manager.py	119	pass1:s19:1-118
-services/infrastructure/game_query_service.py	698	pass1:s19:1-525  [28 of 553 lines never in a package; PlayerList, a2s_version and get_player_list new 2026-09-28 (v3.1.0), written with their tests]
+services/infrastructure/game_query_service.py	709	pass1:s19:1-525  [28 of 553 lines never in a package; PlayerList, a2s_version and get_player_list new 2026-09-28 (v3.1.0), written with their tests]
 services/infrastructure/game_query_support_service.py	357	pass1:s20:1-282  [59 of 341 lines never in a package]
 services/infrastructure/spam_protection_service.py	609	pass1:s20:1-504  [49 of 553 lines never in a package]
 services/infrastructure/update_notifier.py	324	pass1:s20:1-213  [22 of 235 lines never in a package]
