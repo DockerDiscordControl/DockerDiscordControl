@@ -243,6 +243,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the Microsoft region (a regional Azure key tested as "HTTP 401" while the bot translated fine)
   and with language codes cut to two letters (Chinese, Norwegian). It asks exactly as the bot does
   now.
+- A private panel that had been used - a container picked in the 🔧 maintenance panel, for example
+  - stayed after its timeout instead of going away, because it was deleted by a route Discord does
+  not offer for private messages. It goes away now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

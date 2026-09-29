@@ -153,6 +153,19 @@ class CloseButton(discord.ui.Button):
 class DDCView(discord.ui.View):
     """A view whose failing buttons answer the user, and which clears up after itself."""
 
+    def _dispatch_item(self, item, interaction):
+        # THE MESSAGE THE PANEL WAS SENT WITH, kept before py-cord replaces it.
+        # On every press py-cord sets view.message = interaction.message, a plain
+        # Message, whose delete() is the channel route - 404 for an ephemeral
+        # message - so every panel that had been used stayed after its timeout.
+        # The WebhookMessage DDC stored deletes through the interaction's own
+        # route (stage 4 review before v3.1.0, section 38).
+        sent = getattr(self, "message", None)
+        if (isinstance(sent, (discord.WebhookMessage, discord.InteractionMessage))
+                and getattr(self, "_sent_message", None) is None):
+            self._sent_message = sent
+        return super()._dispatch_item(item, interaction)
+
     async def on_timeout(self) -> None:
         """Take a finished private panel away instead of leaving a dead one.
 
@@ -168,7 +181,7 @@ class DDCView(discord.ui.View):
         change. The message itself is asked instead, by the same flag the
         admin-panel detection reads.
         """
-        message = getattr(self, "message", None)
+        message = getattr(self, "_sent_message", None) or getattr(self, "message", None)
         if message is None or not is_private_panel_message(message):
             return
         # A MESSAGE THAT HAS MOVED ON. The container picker becomes the
