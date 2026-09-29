@@ -1168,7 +1168,12 @@ def setup(bot):
                                     sent_count += 1
                                     logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel_id_str})")
                                 else:
-                                    if not channel:
+                                    if not channel and donation_broadcasts:
+                                        # WARNING: it wanted the thank-you and will not get it -
+                                        # the file is gone (stage 4 review before v3.1.0, 06)
+                                        logger.warning(f"🔔 Channel {channel_id_str} wants donation "
+                                                       f"announcements but was not found - it missed this one")
+                                    elif not channel:
                                         logger.debug(f"🔔 Channel {channel_id_str} not found")
                                     elif not donation_broadcasts:
                                         logger.debug(f"🔔 Donation broadcasts disabled for {channel_id_str}")
@@ -1177,6 +1182,9 @@ def setup(bot):
                                 logger.error(f"🔔 Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
                         logger.info(f"🔔 Processed Web UI donation: {donor_name} ${amount} - sent to {sent_count} channels")
+                        if 0 < sent_count < wanted_count:
+                            logger.warning(f"🔔 The thank-you for {donor_name} ${amount} reached "
+                                           f"{sent_count} of the {wanted_count} channel(s) that wanted it")
                         if sent_count == 0 and wanted_count:
                             # The notification file is already gone - reading it
                             # deletes it, so a crash cannot announce twice - and
