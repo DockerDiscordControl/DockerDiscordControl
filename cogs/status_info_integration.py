@@ -56,6 +56,27 @@ from .task_ui import (  # noqa: F401
 
 logger = get_module_logger('status_info_integration')
 
+
+async def _refused_at_the_press(interaction, container_name: str, *, deferred: bool = False) -> bool:
+    """True (and answered) when the presser may no longer act on this container.
+
+    Asked at the press (SPEC Z5), not when the panel was opened: the info admin
+    view lives 890 s. Only the 🔒 button asked (review F3); 📝 and 📋 edited the
+    info and showed the logs after the channel had lost 'control' or the admin
+    their assignment (stage 4 review before v3.1.0, section 09).
+    """
+    from .control_helpers import _channel_has_permission, _admin_may_control
+    from services.config.config_service import load_config as _load_config
+    if (_channel_has_permission(interaction.channel_id, 'control', _load_config())
+            or _admin_may_control(interaction.user.id, container_name)):
+        return False
+    text = f"❌ {_('This action is not allowed in this channel.')}"
+    if deferred:
+        await interaction.followup.send(text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+    else:
+        await interaction.response.send_message(text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+    return True
+
 async def container_logs_text(container_name: str) -> str:
     """Get the last N log lines for a container, ready for a Discord embed.
 
@@ -219,12 +240,7 @@ class ProtectedInfoEditButton(discord.ui.Button):
         # content AND the password, both in clear text, so opening it is
         # reading them. An assigned admin must not do that for somebody else's
         # container (review F3).
-        from .control_helpers import _channel_has_permission, _admin_may_control
-        from services.config.config_service import load_config as _load_config
-        if not (_channel_has_permission(interaction.channel_id, 'control', _load_config())
-                or _admin_may_control(interaction.user.id, self.container_name)):
-            await interaction.response.send_message(
-                f"❌ {_('This action is not allowed in this channel.')}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+        if await _refused_at_the_press(interaction, self.container_name):
             return
 
         try:
@@ -291,6 +307,9 @@ class EditInfoButton(discord.ui.Button):
                 spam_manager.add_user_cooldown(interaction.user.id, "edit_info")
             except (RuntimeError, AttributeError, KeyError) as e:
                 logger.error(f"Spam protection error for edit info button: {e}", exc_info=True)
+
+        if await _refused_at_the_press(interaction, self.container_name):
+            return
 
         try:
             # Import modal from enhanced_info_modal_simple
@@ -757,6 +776,9 @@ class DebugLogsButton(discord.ui.Button):
                     spam_manager.add_user_cooldown(interaction.user.id, "logs")
                 except (RuntimeError, AttributeError, KeyError) as e:
                     logger.error(f"Spam protection error for debug logs button: {e}", exc_info=True)
+
+            if await _refused_at_the_press(interaction, self.container_name, deferred=True):
+                return
 
             # Check if Live Logs feature is enabled
             from utils.settings import get_setting

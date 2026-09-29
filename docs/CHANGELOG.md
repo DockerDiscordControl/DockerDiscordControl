@@ -130,6 +130,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   was replaced by the ordinary status a moment after it appeared. It stays on the panel now.
 - A container action taken away in the settings could still be pressed on an admin panel that
   was opened before. The press asks the current settings now.
+- The "edit info" and "logs" buttons of an open info panel kept working after the channel lost its
+  control right or an admin's container assignment was narrowed. Like the protected-info button,
+  they ask at the press now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

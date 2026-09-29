@@ -125,7 +125,10 @@ def _build(button_class, cog):
 
 async def _press(button, service):
     interaction = _interaction()
-    with patch(SPAM_PATH, return_value=service):
+    # The press-time permission check (stage 4, section 09) is not what this
+    # file is about: the presser may act, so only the brakes decide.
+    with patch(SPAM_PATH, return_value=service), \
+            patch("cogs.status_info_integration._refused_at_the_press", AsyncMock(return_value=False)):
         await button.callback(interaction)
     return interaction
 
