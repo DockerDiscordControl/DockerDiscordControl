@@ -51,6 +51,31 @@ class ConfigUnreadableForWrite(RuntimeError):
     """config.json exists but cannot be read; a merging write would erase it."""
 
 
+def _read_config_strict(path: Path) -> Dict[str, Any]:
+    """config.json as a dict for a MERGING write; {} only when there is no file.
+
+    _load_json_file never raises - a broken or unreadable config.json comes
+    back as {} with the error only recorded. update_config_fields and
+    save_config merged their few keys into that {} and the atomic rename
+    then REPLACED config.json with them: bot token, guild id, password hash
+    and channel rights gone, answered success. The unguarded way in was
+    scripts/reset_password.py, run exactly when the panel says the
+    configuration is unreadable (stage 4 review before v3.1.0, section 13).
+    """
+    if not path.exists():
+        return {}
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except (OSError, ValueError, UnicodeDecodeError) as e:
+        raise ConfigUnreadableForWrite(
+            f"{path.name} exists but cannot be read ({e}); not writing over it - "
+            f"repair or remove the file first") from e
+    if not isinstance(data, dict):
+        raise ConfigUnreadableForWrite(f"{path.name} does not hold a JSON object; not writing over it")
+    return data
+
+
 # Token encryption constants
 _TOKEN_ENCRYPTION_SALT = b'ddc-salt-for-token-encryption-key-v1'
 _PBKDF2_ITERATIONS = 600000
@@ -430,13 +455,9 @@ class ConfigService:
                 # erase the copy. Preserved, never invented - see the spec test.
                 _critical_fields = ('bot_token', 'guild_id', 'encrypted_bot_token', 'web_ui_password_hash',
                                     'channel_permissions', ENV_PASSWORD_MARKER_KEY)
-                # Read STRICTLY: _load_json_file answers a broken file with {},
-                # and the merge against {} preserved nothing - the rename then
-                # replaced config.json with the few keys being saved (see
-                # _read_main_config_strict). A file that is there but unreadable
-                # is refused, not written over.
+                # Strictly: a file there but unreadable is refused (_read_config_strict)
                 try:
-                    existing = self._read_main_config_strict()
+                    existing = _read_config_strict(self.main_config_file)
                 except ConfigUnreadableForWrite as merge_err:
                     logger.error(f"Not saving: {merge_err}")
                     return ConfigServiceResult(success=False, message=str(merge_err))
@@ -565,9 +586,8 @@ class ConfigService:
             try:
                 import json
 
-                # Load existing config from disk (not from cache) - strictly, see
-                # _read_main_config_strict: a broken file is refused below
-                existing = self._read_main_config_strict()
+                # From disk, strictly (_read_config_strict): a broken file is refused
+                existing = _read_config_strict(self.main_config_file)
 
                 # Apply updates
                 existing.update(updates)
@@ -764,32 +784,6 @@ class ConfigService:
         entry = f"{file_path}: {reason}"
         if entry not in self._read_errors:
             self._read_errors.append(entry)
-
-    def _read_main_config_strict(self) -> Dict[str, Any]:
-        """config.json as a dict for a MERGING write; {} only when there is no file.
-
-        _load_json_file never raises - a broken or unreadable config.json comes
-        back as {} with the error only recorded. update_config_fields and
-        save_config merged their few keys into that {} and the atomic rename
-        then REPLACED config.json with them: bot token, guild id, password hash
-        and channel rights gone, answered success. The unguarded way in was
-        scripts/reset_password.py, run exactly when the panel says the
-        configuration is unreadable (stage 4 review before v3.1.0, section 13).
-        """
-        path = self.main_config_file
-        if not path.exists():
-            return {}
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except (OSError, ValueError, UnicodeDecodeError) as e:
-            raise ConfigUnreadableForWrite(
-                f"{path.name} exists but cannot be read ({e}); not writing over it - "
-                f"repair or remove the file first") from e
-        if not isinstance(data, dict):
-            raise ConfigUnreadableForWrite(
-                f"{path.name} does not hold a JSON object; not writing over it")
-        return data
 
     def _load_json_file(self, file_path: Path, default: Dict[str, Any]) -> Dict[str, Any]:
         """Load JSON file with fallback to defaults.
