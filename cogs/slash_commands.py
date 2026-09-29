@@ -97,6 +97,25 @@ class SlashCommandsMixin:
             if not await self._check_spam_protection(ctx, "serverstatus"):
                 return
 
+            # The channel check BEFORE the defer too, like the spam brake: after a
+            # public defer the first followup replaces the public "thinking..."
+            # message and ephemeral=True is ignored - the refusal stood in the
+            # channel for everybody (stage 4 review before v3.1.0, section 05).
+            from .translation_manager import _ as translate
+
+            # Status commands (/ss, /serverstatus) only work in status channels
+            channel_has_status_perm = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
+            channel_is_control = _channel_has_permission(ctx.channel.id, 'control', self.config)
+
+            if not channel_has_status_perm or channel_is_control:
+                embed = discord.Embed(
+                    title=translate("⚠️ Permission Denied"),
+                    description=translate("The /serverstatus command is only allowed in status channels, not in control channels."),
+                    color=discord.Color.red()
+                )
+                await ctx.respond(embed=embed, ephemeral=True)
+                return
+
             # CRITICAL: Defer early to prevent Discord timeout (must respond within 3 seconds)
             # ROBUST: Handle "Unknown interaction" gracefully (happens when bot is slow/overloaded)
             try:
@@ -108,23 +127,6 @@ class SlashCommandsMixin:
                     return
                 else:
                     raise  # Re-raise other NotFound errors
-
-            # Import translation function locally to ensure it's accessible
-            from .translation_manager import _ as translate
-
-            # Check if the channel has serverstatus permission AND is NOT a control channel
-            # Status commands (/ss, /serverstatus) should ONLY work in status channels
-            channel_has_status_perm = _channel_has_permission(ctx.channel.id, 'serverstatus', self.config)
-            channel_is_control = _channel_has_permission(ctx.channel.id, 'control', self.config)
-
-            if not channel_has_status_perm or channel_is_control:
-                embed = discord.Embed(
-                    title=translate("⚠️ Permission Denied"),
-                    description=translate("The /serverstatus command is only allowed in status channels, not in control channels."),
-                    color=discord.Color.red()
-                )
-                await ctx.followup.send(embed=embed, ephemeral=True)
-                return
 
             config = load_config()
             if not config:
@@ -268,13 +270,9 @@ class SlashCommandsMixin:
             if not await self._check_spam_protection(ctx, "control"):
                 return
 
-            # Defer the response to prevent timeout
-            await ctx.defer(ephemeral=False)  # Not ephemeral, like /ss
-
-            # Import translation function locally to ensure it's accessible
+            # Channel check before the defer - see serverstatus
             from .translation_manager import _ as translate
 
-            # Check if the channel has control permission
             # Control commands work in channels with control=True (regardless of serverstatus setting)
             channel_has_control_perm = _channel_has_permission(ctx.channel.id, 'control', self.config)
 
@@ -284,8 +282,11 @@ class SlashCommandsMixin:
                     description=translate("The /control command is only allowed in control channels, not in status channels."),
                     color=discord.Color.red()
                 )
-                await ctx.followup.send(embed=embed, ephemeral=True)
+                await ctx.respond(embed=embed, ephemeral=True)
                 return
+
+            # Defer the response to prevent timeout
+            await ctx.defer(ephemeral=False)  # Not ephemeral, like /ss
 
             # Load configuration
             config = load_config()

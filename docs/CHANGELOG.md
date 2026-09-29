@@ -138,6 +138,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The mech's 🎵 song disappeared 15 seconds into playing. The player stays now.
 - When nothing could be posted in a channel at startup, the log still said "Successfully
   regenerated" over an empty channel. It says the channel is empty now, as an error.
+- /ss in a control channel, or /control in a status channel, put its "Permission Denied" into
+  the channel for everybody, and it stayed. The refusal is private now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

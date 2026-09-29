@@ -51,7 +51,7 @@ cogs/loop_safety.py:1-103
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:827-844
 cogs/overview_embeds.py:1-626
-cogs/slash_commands.py:1-822
+cogs/slash_commands.py:1-823
 
 ## Section 06  (1849 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.

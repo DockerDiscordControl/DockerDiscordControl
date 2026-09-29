@@ -74,7 +74,11 @@ def _setup(tmp_path, blocked):
 
 
 async def _call(command, cog, ctx, service):
-    with patch(SPAM_PATH, return_value=service):
+    # A status channel: the channel check runs before the defer since the stage 4
+    # review (section 05), so the normal case needs a channel that allows /ss.
+    with patch(SPAM_PATH, return_value=service), \
+            patch("cogs.slash_commands._channel_has_permission",
+                  lambda cid, key, cfg: key == "serverstatus"):
         try:
             await command.callback(cog, ctx)
         except TypeError as e:
