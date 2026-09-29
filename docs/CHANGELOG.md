@@ -304,6 +304,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - An auto-action rule with a rule-wide cooldown that restarted one container and skipped a stopped
   one lost its cooldown through the skip, and could act again inside the window you set. The
   cooldown the restart set now holds.
+- A channel id made of look-alike digits (such as ①) was accepted by the configuration page, and
+  once its row was removed every later save reported that the channels could not be saved. Only
+  ordinary digits are accepted now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

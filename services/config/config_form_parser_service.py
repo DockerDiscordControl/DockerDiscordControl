@@ -13,6 +13,7 @@ Part of ConfigService refactoring for Single Responsibility Principle
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 
+from services.config.channel_config_service import is_discord_id
 from services.exceptions import ConfigServiceError
 
 logger = logging.getLogger('ddc.config_form_parser')
@@ -209,7 +210,7 @@ class ConfigFormParserService:
             channel_id = raw.strip() if isinstance(raw, str) else str(raw).strip()
 
             # Skip invalid Discord IDs (must be 17-19 digit numeric string)
-            if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
+            if channel_id and not is_discord_id(channel_id):
                 logger.warning(f"Skipping invalid {prefix} channel ID: {channel_id}")
                 continue
 
@@ -284,7 +285,7 @@ class ConfigFormParserService:
             for count in _submitted_rows(form_data, prefix):
                 raw = form_data.get(f'{prefix}_channel_id_{count}', '')
                 channel_id = raw.strip() if isinstance(raw, str) else str(raw).strip()
-                if channel_id and (not channel_id.isdigit() or not (17 <= len(channel_id) <= 19)):
+                if channel_id and not is_discord_id(channel_id):
                     unusable.append(channel_id)
         return sorted(set(unusable))
 

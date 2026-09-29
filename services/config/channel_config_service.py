@@ -19,7 +19,17 @@ import os
 
 logger = logging.getLogger('ddc.channel_config_service')
 
-_SAFE_DISCORD_ID_RE = re.compile(r'^\d{17,19}$')
+# [0-9], not \d or str.isdigit(): both take digits of other scripts, and
+# isdigit() circled or superscript ones too. An id like that was written as
+# <id>.json and then refused by the delete, and every save after it reported
+# the channels as not saved (stage 4 review before v3.1.0, section 11). One
+# rule for the form, the store and the delete.
+_SAFE_DISCORD_ID_RE = re.compile(r'^[0-9]{17,19}$')
+
+
+def is_discord_id(value) -> bool:
+    """17-19 ASCII digits - a Discord snowflake as a string."""
+    return isinstance(value, str) and bool(_SAFE_DISCORD_ID_RE.match(value))
 
 # Written into channels/ when the last channel was removed on purpose. Without it the config
 # loader would bring the channels back from a leftover legacy channels_config.json (or the
@@ -91,9 +101,7 @@ class ChannelConfigService:
         Returns:
             True if valid Discord ID format, False otherwise
         """
-        if not value or not isinstance(value, str):
-            return False
-        return value.isdigit() and 17 <= len(value) <= 19
+        return is_discord_id(value)
 
     def _extract_channel_id_from_data(self, channel_data: Dict[str, Any], filename: str) -> Optional[str]:
         """Try to extract a valid channel ID from channel data.

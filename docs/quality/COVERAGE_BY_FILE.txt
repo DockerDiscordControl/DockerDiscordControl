@@ -151,10 +151,10 @@ services/automation/maintenance.py	124	NONE
 services/automation/own_actions.py	93	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/backup_service.py	206	NONE
-services/config/channel_config_service.py	585	passE:E28+bothscans:126-300
+services/config/channel_config_service.py	593	passE:E28+bothscans:126-300
 services/config/channel_roles.py	55	NONE
 services/config/config_cache_service.py	177	passE:E29:read-in-full
-services/config/config_form_parser_service.py	633	pass1:s12:1-483  [23 of 625 lines never in a package] v3rev2:1-625
+services/config/config_form_parser_service.py	634	pass1:s12:1-483  [23 of 625 lines never in a package] v3rev2:1-625
 services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
 services/config/config_migration_service.py	483	pass1:s12:1-406  [60 of 466 lines never in a package]
 services/config/config_service.py	1305	passE:E26+bothscans:252-352,354-512,793-910
