@@ -234,6 +234,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   February) and a one-time date in the past, and said "updated successfully" - the task never ran.
   An unreadable expression is refused now, and a task without a next run is saved switched off
   with a message saying so, as when a task is added.
+- If the auto-action monitor failed to load at startup, the channel translation was not loaded
+  either. A failing extension is logged now and the others still load.
 
 ### 🐛 The mech's picture and gift, the update notice
 

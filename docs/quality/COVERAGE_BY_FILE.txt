@@ -73,7 +73,7 @@ app/bot/runtime.py	68	pass1:s33:1-62
 app/bot/startup.py	39	pass1:s33:1-39
 app/bot/startup_context.py	57	pass1:s33:1-57
 app/bot/startup_steps/__init__.py	56	pass1:s33:1-52
-app/bot/startup_steps/commands.py	120	pass1:s33:1-120
+app/bot/startup_steps/commands.py	126	pass1:s33:1-120
 app/bot/startup_steps/cooldowns.py	29	pass1:s33:1-29
 app/bot/startup_steps/diagnostics.py	26	pass1:s33:1-26
 app/bot/startup_steps/donation_panels.py	71	new 2026-09-23 (clears a donation panel a restart left behind), written test-first

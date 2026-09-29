@@ -43,7 +43,13 @@ async def load_extensions_step(context: StartupContext) -> None:
             else:
                 bot.load_extension(ext)
                 logger.info(f"Successfully loaded extension: {ext} (PyCord sync)")
-        except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
+        # discord.ExtensionError and ImportError too: what py-cord raises for an
+        # extension that fails (ExtensionFailed, ExtensionNotFound,
+        # NoEntryPointError) is none of the others, so a failing monitor escaped
+        # the loop and the translation was never loaded (stage 4 review before
+        # v3.1.0, section 33).
+        except (IOError, OSError, PermissionError, RuntimeError, ImportError,
+                discord.ExtensionError, docker.errors.APIError, docker.errors.DockerException) as e:
             logger.error(f"Failed to load extension '{ext}': {e}", exc_info=True)
             # We don't raise here to allow other extensions to load (e.g. if one fails)
             # But docker_control is critical, so we might want to re-evaluate
