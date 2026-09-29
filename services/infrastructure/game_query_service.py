@@ -130,8 +130,10 @@ class PlayerList:
 
 # A2S carries a version field most servers fill with a placeholder ("1.0.0.0"
 # from Valheim, "0.0.0.1" from Icarus - measured 2026-09-28); the real one sits
-# in the keywords, spelt per game.
-_PLACEHOLDER_VERSION = re.compile(r'^[01](\.[01])*$')
+# in the keywords, spelt per game. A placeholder is all zeros, or four or more
+# parts of 0s and 1s; "1.0" and "1.1" are real versions and are shown
+# (operator, 2026-09-29; stage 4 review before v3.1.0, section 19b).
+_PLACEHOLDER_VERSION = re.compile(r'^(0+(\.0+)*|[01](\.[01]){3,})$')
 _KEYWORD_VERSION = (('g=', 'Valheim'), ('G_s:', 'Icarus'))
 
 

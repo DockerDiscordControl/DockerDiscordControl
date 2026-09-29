@@ -196,6 +196,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The container's "Custom IP/URL" field refused IPv6 addresses and URLs such as
   https://example.com, and Discord showed "[Invalid Format]" instead. Both are shown now; a port
   from the info form is put in brackets behind an IPv6 address and never glued into a URL.
+- A game at version "1.0" or "1.1" showed no version, because every version made of ones and zeros
+  was taken for an engine placeholder. Only the placeholders themselves ("0.0.0.0", "1.0.0.0") are
+  hidden now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
