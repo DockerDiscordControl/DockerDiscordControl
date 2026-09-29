@@ -111,7 +111,7 @@ services/config/config_migration_service.py:1-483
 # neighbours sit, is at 1,920 and had no room either.
 
 ## Section 13  (1912 lines, 6 pieces)
-services/config/config_service.py:1-1295
+services/config/config_service.py:1-1305
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-241
@@ -391,7 +391,7 @@ utils/time_utils.py:1-387
 # the config loaders.
 utils/performance_metrics.py:1-419
 utils/key_crypto.py:1-84
-utils/token_security.py:1-279
+utils/token_security.py:1-283
 # group_references.py joined on 2026-09-24 (new: everything outside
 # groups.json that points at a group by name, moved by a rename).
 services/config/group_references.py:1-153

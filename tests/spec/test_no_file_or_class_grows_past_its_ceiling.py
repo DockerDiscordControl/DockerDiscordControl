@@ -44,7 +44,7 @@ FILE_EXCEPTIONS = {
 }
 CLASS_EXCEPTIONS = {
     "services/mech/animation_cache_service.py::AnimationCacheService": 1739,
-    "services/config/config_service.py::ConfigService": 1065,
+    "services/config/config_service.py::ConfigService": 1041,
 }
 
 

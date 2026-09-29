@@ -289,21 +289,20 @@ class TestTokenSecurityManager:
         assert isinstance(status, dict)
         assert status["token_exists"] is False
 
-    def test_auto_encrypt_on_startup_does_not_encrypt(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Was ..._triggers_encryption. Decided by the operator on 2026-09-22
-        (review E55): the token is encrypted when the Web UI button is pressed,
-        never on its own at startup. The startup reports; it writes nothing."""
+    def test_auto_encrypt_on_startup_encrypts(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Was ..._does_not_encrypt (review E55, 2026-09-22). The operator
+        reversed that on 2026-09-29: a plaintext token beside a password is
+        encrypted at the start (SPEC Z9 without an exception)."""
         import services.config.config_service as svc_mod  # type: ignore
 
         monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
         fake_svc = _svc(token="plain", password_hash="ph")
         monkeypatch.setattr(svc_mod, "get_config_service", lambda: fake_svc)
 
-        status = auto_encrypt_token_on_startup()
+        auto_encrypt_token_on_startup()
 
-        assert status["token_exists"] is True and status["is_encrypted"] is False
-        fake_svc.encrypt_token.assert_not_called()
-        fake_svc.update_config_fields.assert_not_called()
+        fake_svc.encrypt_token.assert_called_once_with("plain", "ph")
+        fake_svc.update_config_fields.assert_called_once_with({"bot_token": "gAAAAA-encrypted"})
 
 
 # ---------------------------------------------------------------------------

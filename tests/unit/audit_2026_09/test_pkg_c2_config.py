@@ -188,11 +188,15 @@ class TestC22ChangeWebUiPassword:
                 assert NEW_PASSWORD not in text
                 assert TOKEN not in text
 
-    def test_plaintext_token_is_left_unchanged(self, svc):
+    def test_plaintext_token_is_encrypted_with_the_new_password(self, svc):
+        # Was test_plaintext_token_is_left_unchanged (review E55). The operator
+        # decided on 2026-09-29 that a plaintext token is encrypted as soon as a
+        # password exists (SPEC Z9, stage 4 review section 13).
         _write_config(svc, {"bot_token": TOKEN, "web_ui_password_hash": _cheap_hash(OLD_PASSWORD)})
         change_web_ui_password(NEW_PASSWORD)
         on_disk = _read_config(svc)
-        assert on_disk["bot_token"] == TOKEN
+        assert on_disk["bot_token"] != TOKEN
+        assert svc.decrypt_token(on_disk["bot_token"], on_disk["web_ui_password_hash"]) == TOKEN
         assert check_password_hash(on_disk["web_ui_password_hash"], NEW_PASSWORD)
 
     def test_undecryptable_token_is_kept(self, svc):

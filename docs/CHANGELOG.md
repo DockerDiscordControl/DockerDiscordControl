@@ -187,6 +187,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A registered admin who pressed the public ℹ️ button in a status channel got only the plain info,
   without the admin buttons (edit info, tasks, logs) the admin panel offers. They get them now for
   the containers they are assigned to, and they see the protected info as in the admin panel.
+- A bot token stored in plain text stayed in plain text after a Web UI password was set, until the
+  "Encrypt token" button was pressed. It is now encrypted as soon as a password exists: when the
+  password is set, on every save and at the next start.
 
 ### 🐛 The mech's picture and gift, the update notice
 

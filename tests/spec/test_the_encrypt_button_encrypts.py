@@ -20,7 +20,8 @@ Decided by the operator on 2026-09-22: encryption happens when the button is
 pressed, NOT automatically. `auto_encrypt_token_on_startup` was meant to do it
 at every start, but it never saw a v2 token either - repairing the status would
 have switched it on for every installation at its first v2.4 start, silently.
-The last test here holds that decision.
+The operator reversed that on 2026-09-29 (SPEC Z9 without an exception): the
+start now encrypts, and the last test here says so.
 
 The guarantee that matters most is the second test: after the button, the bot
 still gets the same token. The key is derived from the password hash, so the
@@ -171,14 +172,14 @@ def test_an_encrypted_token_is_left_alone(svc):
     assert svc.get_config(force_reload=True)["bot_token_decrypted_for_usage"] == TOKEN
 
 
-def test_startup_does_not_encrypt(svc):
-    """THE OPERATOR'S DECISION: the token is encrypted when the button is
-    pressed, never silently at the first start after an upgrade."""
+def test_startup_encrypts_now(svc):
+    """THE DECISION CHANGED (operator, 2026-09-29): this test pinned E55's
+    "encrypted when the button is pressed, never at the start". SPEC Z9 holds
+    without an exception now, so the start encrypts a plaintext token beside a
+    password (test_a_plaintext_token_is_encrypted_once_a_password_exists.py)."""
     _v2_install(svc)
 
     auto_encrypt_token_on_startup()
 
-    assert _on_disk(svc)["bot_token"] == TOKEN, (
-        "the startup encrypted the token on its own - the operator decided "
-        "this happens only on request"
-    )
+    assert _on_disk(svc)["bot_token"] != TOKEN, "the start left the token in plain text"
+    assert svc.get_config(force_reload=True)["bot_token_decrypted_for_usage"] == TOKEN

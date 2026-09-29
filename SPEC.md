@@ -341,6 +341,11 @@ Not in `config.json`, not in its backup, not in logs.
 
 *Broken if:* the decrypted token appears in a file.
 **Today: holds** and is already tested (`tests/unit/audit_2026_09/test_pkg_c2_config.py`).
+*Clarified 2026-09-29 (operator):* a token that is in plain text is encrypted as soon as a Web UI
+password exists - when the password is set, on every save and at the next start. This reverses
+review E55 ("only when the button is pressed"). The one moment it can be plain is before any
+password exists: there is no key yet. *Covered by*
+`tests/spec/test_a_plaintext_token_is_encrypted_once_a_password_exists.py`.
 *Announced exception:* `GET /api/migration-help` deliberately returns the token over HTTP — see B5.
 
 ### Z10 — No image is shipped whose tests have not run green.

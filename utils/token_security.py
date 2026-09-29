@@ -15,6 +15,8 @@ import logging
 import os
 from typing import Dict, Any
 
+from services.exceptions import DDCBaseException
+
 logger = get_module_logger('token_security')
 
 
@@ -239,37 +241,39 @@ class TokenSecurityManager:
 
 def auto_encrypt_token_on_startup():
     """
-    Check the token's encryption status at startup and report it.
+    Encrypt a plaintext bot token at startup when a Web UI password exists.
 
-    Despite the name, this does not encrypt anything (review E55): the token is
-    encrypted when the Web UI button is pressed.
+    Review E55 (2026-09-22) had switched this off - the token was encrypted
+    only when the Web UI button was pressed. The operator reversed that on
+    2026-09-29: SPEC.md Z9 holds without an exception, so a token that lies
+    in plain text beside a password is encrypted at the next start (stage 4
+    review before v3.1.0, section 13). A token from DISCORD_BOT_TOKEN is not
+    on disk and is left alone.
     """
     try:
         security_manager = TokenSecurityManager()
-
-        # Check status first
         status = security_manager.verify_token_encryption_status()
 
-        # Report only - never encrypt here. This used to encrypt a plaintext
-        # token at every start; it never saw a v2 token, so it never did.
-        # Repairing the status (review E55) would have switched it on for every
-        # installation at its first v2.4 start, silently. Decided by the
-        # operator: the token is encrypted when the button is pressed.
         if (status['token_exists'] and
             not status['is_encrypted'] and
             status['can_encrypt'] and
             not status['environment_token_used']):
-            logger.info("Bot token is stored in plaintext - it can be encrypted in the "
-                        "Web UI (Security settings)")
+            if security_manager.encrypt_existing_plaintext_token():
+                logger.info("Bot token was stored in plaintext - encrypted with the Web UI password")
+                status = security_manager.verify_token_encryption_status()
+            else:
+                logger.error("Bot token is stored in plaintext and could not be encrypted")
 
         return status
 
-    except (OSError, ValueError, AttributeError, TypeError, RuntimeError) as e:
+    except (OSError, ValueError, AttributeError, TypeError, RuntimeError, DDCBaseException) as e:
+        # DDCBaseException too: the encryption now runs here, and its errors
+        # (TokenEncryptionError, ConfigServiceError) are none of the others -
+        # escaping, they would stop the start (review of section 33).
         logger.error(f"Error during token auto-encryption: {e}", exc_info=True)
         return None
 
 
-# For backwards compatibility
 def encrypt_existing_plaintext_token():
     """Wrapper function for backwards compatibility."""
     return TokenSecurityManager().encrypt_existing_plaintext_token()

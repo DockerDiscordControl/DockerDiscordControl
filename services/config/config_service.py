@@ -474,7 +474,7 @@ class ConfigService:
                                        existing.get('bot_token_decrypted_for_usage'))
 
                 # === Plaintext Token Protection ===
-                self._keep_bot_token_encrypted(main_config, existing)
+                _keep_bot_token_encrypted(self, main_config, existing)
 
                 logger.info(f"save_config called - saving main config with {len(main_config)} fields")
                 logger.debug(f"Main config keys: {list(main_config.keys())}")
@@ -904,30 +904,6 @@ class ConfigService:
             "page.")
         return None
 
-    def _keep_bot_token_encrypted(self, main_config: Dict[str, Any], existing: Dict[str, Any]) -> None:
-        """Never let a save replace an encrypted bot_token with a plaintext one."""
-        new_token = main_config.get('bot_token')
-        old_token = existing.get('bot_token')
-        if (not new_token or not old_token or new_token == old_token or
-                not isinstance(new_token, str) or not isinstance(old_token, str)):
-            return
-
-        # Only act when a plaintext token is about to overwrite an encrypted one
-        looks_plain = self._validation_service.looks_like_discord_token
-        if not looks_plain(new_token) or looks_plain(old_token):
-            return
-
-        password_hash = main_config.get('web_ui_password_hash') or existing.get('web_ui_password_hash')
-        if not password_hash:
-            logger.warning("Plaintext bot_token replaces an encrypted one but no password hash "
-                           "is available to encrypt it")
-            return
-
-        encrypted = self.encrypt_token(new_token, password_hash)
-        if encrypted:
-            main_config['bot_token'] = encrypted
-            logger.info("Encrypted plaintext bot_token before saving")
-
     def _repair_bot_token(self, main_config: Dict[str, Any], *plaintext_copies: Optional[str]) -> None:
         """Self-repair an encrypted ``bot_token`` that the current password hash cannot decrypt.
 
@@ -1252,6 +1228,40 @@ class ConfigService:
 # === Global Service Instance ===
 
 _config_service_instance = None
+
+def _keep_bot_token_encrypted(service: "ConfigService", main_config: Dict[str, Any],
+                              existing: Dict[str, Any]) -> None:
+    """Never write a plaintext bot_token while a Web UI password exists (SPEC.md Z9).
+
+    This used to act only when a plaintext token was about to REPLACE an
+    encrypted one; a token that was plain already stayed plain through every
+    save and every password change, and only the "Encrypt token" button
+    encrypted it (review E55). The operator decided on 2026-09-29: encrypt
+    it automatically (stage 4 review before v3.1.0, section 13). Without a
+    password there is no key, and the token stays as it is until one is set.
+    """
+    token = main_config.get('bot_token')
+    if not token or not isinstance(token, str):
+        return
+    if not service._validation_service.looks_like_discord_token(token):
+        return  # encrypted already (or damaged - _repair_bot_token's business)
+
+    password_hash = main_config.get('web_ui_password_hash') or existing.get('web_ui_password_hash')
+    if not password_hash:
+        return
+
+    try:
+        encrypted = service.encrypt_token(token, password_hash)
+        round_trip = service.decrypt_token(encrypted, password_hash) if encrypted else None
+    except TokenEncryptionError as e:
+        logger.error(f"Bot token could not be encrypted - saved as it was: {e.message}")
+        return
+    if round_trip != token:
+        logger.error("Bot token encryption did not round-trip - saved as it was")
+        return
+    main_config['bot_token'] = encrypted
+    logger.info("Encrypted plaintext bot_token before saving")
+
 
 def get_config_service() -> ConfigService:
     """Get the global configuration service instance."""
