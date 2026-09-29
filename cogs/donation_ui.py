@@ -282,9 +282,14 @@ class DonationBroadcastModal(DDCModal):
 
         # Send immediate acknowledgment to avoid timeout (will be replaced quickly)
         from .translation_manager import _
+        # No delete_after here: py-cord schedules it when the message is SENT and
+        # edits do not cancel it, and every answer below is an edit of this
+        # message - "your donation was recorded, do NOT submit again" stayed only
+        # for what was left of the 15 s. The deletion is scheduled once, after the
+        # last answer, in the finally below (stage 4 review before v3.1.0, 06).
         await interaction.response.send_message(
             _("⏳ Processing..."),  # Shortened processing message
-            ephemeral=True, delete_after=NOTICE_STAYS_FOR
+            ephemeral=True
         )
 
         # Bound before the try: the handler below reads both, and a notice that
@@ -631,6 +636,11 @@ class DonationBroadcastModal(DDCModal):
                 await interaction.edit_original_response(content=message)
             except (discord.errors.HTTPException, discord.errors.Forbidden) as edit_error:
                 logger.error(f"Could not send error response: {edit_error}", exc_info=True)
+        finally:
+            try:
+                await interaction.delete_original_response(delay=NOTICE_STAYS_FOR)
+            except Exception as delete_error:  # noqa: BLE001 - tidying up never raises over the answer
+                logger.debug(f"Could not schedule removal of the donation answer: {delete_error}")
 
 
 class AddAdminModal(DDCModal):

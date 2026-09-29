@@ -279,6 +279,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
   is now.
 - The amount field of the donation window ("Need $X for Level N") was English in every language.
   It is translated now.
+- The answer of the donation window - including "your donation was recorded, do NOT submit it
+  again" - disappeared 15 seconds after the window was sent rather than after the answer, and a
+  slow booking left the donor with no answer at all. The answer now stays 15 seconds from the
+  moment it appears.
 
 ### 🐛 The mech's picture and gift, the update notice
 

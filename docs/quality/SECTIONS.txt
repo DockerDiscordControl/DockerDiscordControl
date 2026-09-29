@@ -61,11 +61,11 @@ cogs/slash_commands.py:1-852
 cogs/docker_control.py:845-1259
 cogs/background_loops.py:1-868
 
-## Section 07  (1431 lines, 2 pieces)
+## Section 07  (1441 lines, 2 pieces)
 cogs/enhanced_info_modal_simple.py:1-704
 # donation_ui.py came over from section 06 on 2026-09-29: the inactivity
 # check's guard for empty channels put section 06 at 2,007.
-cogs/donation_ui.py:1-727
+cogs/donation_ui.py:1-737
 
 ## Section 08  (1116 lines, 1 piece)
 cogs/status_handlers.py:1-1116
