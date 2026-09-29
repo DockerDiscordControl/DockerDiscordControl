@@ -307,6 +307,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A channel id made of look-alike digits (such as ①) was accepted by the configuration page, and
   once its row was removed every later save reported that the channels could not be saved. Only
   ordinary digits are accepted now.
+- If DDC was stopped (an update, a restart) while an auto-action rule waited out its delay, a
+  container the rule had not yet touched stayed locked on disk and was refused for up to the
+  rule's cooldown after the restart. Only the containers actually acted on keep their cooldown
+  now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

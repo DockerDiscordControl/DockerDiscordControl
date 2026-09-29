@@ -289,6 +289,20 @@ class AutoActionStateService:
             self.container_cooldowns.pop(self.cooldown_key(rule_id, container), None)
             # Don't reset global_last_triggered as other rules may have set it
 
+    def outcomes_since(self, rule_id: str, since: float) -> Dict[str, str]:
+        """{container: result} recorded for this rule since ``since`` (newest wins)."""
+        outcomes: Dict[str, str] = {}
+        with self._lock:
+            for container, events in self.trigger_history.items():
+                for event in events:   # newest first
+                    if event.get('rule_id') == rule_id and event.get('timestamp', 0) >= since:
+                        outcomes.setdefault(container, event.get('result'))
+        return outcomes
+
+    def save(self) -> None:
+        """Write the state down now (a release is memory-only otherwise)."""
+        self._save_state()
+
     def release_rule_cooldown(self, rule_id: str) -> None:
         """Free the rule's own cooldown - only when the whole batch did nothing.
 

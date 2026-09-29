@@ -10,6 +10,7 @@ Handles message matching (keywords, regex, fuzzy), safety checks, and execution.
 import logging
 import re
 import asyncio
+import time
 import difflib
 import multiprocessing
 from typing import List, Optional, Dict, Any
@@ -278,6 +279,7 @@ class AutomationService:
                 logger.info(f"AAS Match: Rule '{rule.name}' matched on {match_reason}")
                 
                 # 4. Safety Checks (Cooldowns, Protected Containers)
+                run_started = time.time()
                 try:
                     if await self._execute_rule(rule, context, settings, bot_instance):
                         executed_rules.append(rule.name)
@@ -300,10 +302,18 @@ class AutomationService:
                     # The same list _execute_rule locked: groups resolved, or the
                     # release would look for a container named "group:<name>" and
                     # leave the real ones locked for the rule cooldown.
-                    # The rule's cooldown with them, as the lock release did before it
-                    # became per container (stage 4 review before v3.1.0, section 11).
-                    self.state_service.release_rule_cooldown(rule.id)
+                    # Only what this run has NOT recorded yet: a container already
+                    # acted on keeps the cooldown its record set, and the rule's own
+                    # cooldown goes only if nothing succeeded. And written down: an
+                    # earlier record had already saved the up-front locks, and a
+                    # release in memory only left an untouched container locked on
+                    # disk after a restart (stage 4 review before v3.1.0, section 11).
+                    recorded = self.state_service.outcomes_since(rule.id, run_started)
+                    if "SUCCESS" not in recorded.values():
+                        self.state_service.release_rule_cooldown(rule.id)
                     for container in containers_of_action(rule):
+                        if container in recorded:
+                            continue
                         try:
                             self.state_service.release_execution_lock(rule.id, container, success=False)
                         except Exception:  # never mask the original error
@@ -311,6 +321,10 @@ class AutomationService:
                             logger.error(f"AAS: could not release the cooldown of '{container}' - it stays "
                                          f"locked for rule '{rule.name}' until the cooldown runs out",
                                          exc_info=True)
+                    try:
+                        self.state_service.save()
+                    except Exception:  # noqa: BLE001 - never mask the original error
+                        logger.error("AAS: the released cooldowns could not be written down", exc_info=True)
                     outcome = ("released its container cooldowns" if not still_locked
                                else f"could NOT release the cooldowns of {', '.join(still_locked)}")
                     if isinstance(e, Exception):
@@ -882,6 +896,7 @@ class AutomationService:
             # the container - or the rule - locked for the whole cooldown.
             self.state_service.release_execution_lock(rule.id, container, success=False)
             self.state_service.release_rule_cooldown(rule.id)
+            self.state_service.save()   # on disk too - see process_message's handler
             raise
 
         self.state_service.record_trigger(rule.id, rule.name, container, action_type,
