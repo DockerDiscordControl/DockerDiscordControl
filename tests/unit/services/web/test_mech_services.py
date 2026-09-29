@@ -332,8 +332,9 @@ class TestGetEvolutionContext:
         info_next = _evolution_info_stub(level=4, base_cost=20, power_max=20)
 
         with patch(
-            "services.mech.mech_evolutions.get_evolution_level",
-            return_value=3,
+            # The ledger's level and goal (stage 4 review before v3.1.0, section 22)
+            "services.mech.progress_service.get_progress_service",
+            return_value=SimpleNamespace(get_state=lambda: SimpleNamespace(level=3, evo_max=30.0)),
         ), patch(
             "services.mech.mech_evolutions.get_evolution_level_info",
             side_effect=lambda lvl: info_current if lvl == 3 else (info_next if lvl == 4 else None),
@@ -517,8 +518,9 @@ class TestMechWebServiceDifficulty:
             "services.config.config_service.get_config_service",
             return_value=config_service,
         ), patch(
-            "services.mech.mech_evolutions.get_evolution_level",
-            return_value=3,
+            # The ledger's level and goal (stage 4 review before v3.1.0, section 22)
+            "services.mech.progress_service.get_progress_service",
+            return_value=SimpleNamespace(get_state=lambda: SimpleNamespace(level=3, evo_max=30.0)),
         ), patch(
             "services.mech.mech_evolutions.get_evolution_level_info",
             return_value=_evolution_info_stub(level=4, base_cost=20),
@@ -533,7 +535,7 @@ class TestMechWebServiceDifficulty:
         assert result.data["is_auto"] is False
         assert result.data["status"] == "manual"
         assert result.data["simple_evolution"]["current_level"] == 3
-        # base_cost (20) * multiplier (1.5) -> 30
+        # the ledger's goal for the next level (evo_max), not base_cost * multiplier
         assert result.data["simple_evolution"]["next_level_cost"] == 30
         # The mode really was handed to the persistence layer, as static with that multiplier.
         assert len(recorded) == 1
@@ -577,8 +579,9 @@ class TestMechWebServiceDifficulty:
             "services.config.config_service.get_config_service",
             return_value=config_service,
         ), patch(
-            "services.mech.mech_evolutions.get_evolution_level",
-            return_value=3,
+            # The ledger's level and goal (stage 4 review before v3.1.0, section 22)
+            "services.mech.progress_service.get_progress_service",
+            return_value=SimpleNamespace(get_state=lambda: SimpleNamespace(level=3, evo_max=30.0)),
         ), patch(
             "services.mech.mech_evolutions.get_evolution_level_info",
             return_value=_evolution_info_stub(level=4, base_cost=20),
@@ -608,8 +611,9 @@ class TestMechWebServiceDifficulty:
         ), patch(
             "services.mech.mech_evolutions.get_evolution_config_service",
         ), patch(
-            "services.mech.mech_evolutions.get_evolution_level",
-            return_value=3,
+            # The ledger's level and goal (stage 4 review before v3.1.0, section 22)
+            "services.mech.progress_service.get_progress_service",
+            return_value=SimpleNamespace(get_state=lambda: SimpleNamespace(level=3, evo_max=30.0)),
         ), patch(
             "services.mech.mech_evolutions.get_evolution_level_info",
             side_effect=lambda lvl: _evolution_info_stub(level=lvl, base_cost=lvl * 10),

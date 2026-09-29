@@ -166,6 +166,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A game server published on a different host port (for example `-p 27016:27015/udp`) never
   showed a player count: DDC asked the container on the host's port. It asks the container on its
   own port now.
+- The difficulty panel in the Advanced Settings named the wrong mech level and the wrong price for
+  the next one (it guessed from the lifetime total). It shows the mech's real level and goal now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

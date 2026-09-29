@@ -42,7 +42,9 @@ def mech_web_service(monkeypatch):
         data_store_module, "get_mech_data_store",
         lambda: SimpleNamespace(get_evolution_info=lambda request: evolution_info),
     )
-    monkeypatch.setattr(evolutions_module, "get_evolution_level", lambda total: 3)
+    # The ledger's level (stage 4 review before v3.1.0, section 22)
+    monkeypatch.setattr("services.mech.progress_service.get_progress_service",
+                        lambda *a: SimpleNamespace(get_state=lambda: SimpleNamespace(level=3, evo_max=40.0)))
     monkeypatch.setattr(
         evolutions_module, "get_evolution_level_info",
         lambda level: SimpleNamespace(name=f"LEVEL {level}", base_cost=10 * level) if level <= 11 else None,

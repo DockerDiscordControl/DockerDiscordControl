@@ -317,12 +317,25 @@ class MechWebService:
                 status_code=500
             )
 
+    @staticmethod
+    def _real_level_and_next_cost():
+        """(level, next level's price in dollars) from the progress ledger.
+
+        The preview guessed the level from the LIFETIME total against the base
+        costs (the ledger's evolution account restarts at every level-up) and
+        priced it without the community part: at $30 it said level 6 for a mech
+        at level 2 (stage 4 review before v3.1.0, section 22).
+        """
+        from services.mech.progress_service import get_progress_service
+        state = get_progress_service().get_state()
+        return state.level, (0 if state.level >= 11 else int(round(state.evo_max)))
+
     def _get_difficulty(self) -> MechConfigResult:
         """Get current mech evolution difficulty multiplier using MechDataStore and evolution config."""
         try:
             from services.mech.mech_data_store import get_mech_data_store, EvolutionDataRequest
             # FIX: Use mech_evolutions directly instead of missing simple_evolution_service
-            from services.mech.mech_evolutions import get_evolution_config_service, get_evolution_level, get_evolution_level_info
+            from services.mech.mech_evolutions import get_evolution_config_service, get_evolution_level_info
 
             data_store = get_mech_data_store()
             
@@ -342,18 +355,8 @@ class MechWebService:
             # We should use our internal helper or trust data store
             total_donated = self._get_total_donations()
 
-            # --- Reconstruct Simple Evolution State ---
-            current_level = get_evolution_level(total_donated)
-            
-            # Calculate next level cost
-            next_level_info = get_evolution_level_info(current_level + 1)
-            if next_level_info:
-                # Simple estimation: Base Cost * Multiplier
-                # Note: This ignores community size scaling for this specific view, 
-                # but provides a consistent baseline for difficulty settings.
-                next_level_cost = int(next_level_info.base_cost * multiplier)
-            else:
-                next_level_cost = 0 # Max level reached
+            # The ledger's level and goal, not a guess from the lifetime total
+            current_level, next_level_cost = self._real_level_and_next_cost()
 
             # Build achieved levels map
             achieved_levels = {}
@@ -415,7 +418,6 @@ class MechWebService:
                 )
 
             # FIX: Use mech_evolutions directly instead of missing simple_evolution_service
-            from services.mech.mech_evolutions import get_evolution_level, get_evolution_level_info
 
             # Set evolution mode to static with custom difficulty.
             # Until v2.4.1 this called mech_service.set_evolution_mode(), which does not exist on
@@ -429,13 +431,7 @@ class MechWebService:
 
             # Get updated simple evolution state (Reconstructed manually)
             total_donated = self._get_total_donations()
-            current_level = get_evolution_level(total_donated)
-            
-            next_level_info = get_evolution_level_info(current_level + 1)
-            if next_level_info:
-                next_level_cost = int(next_level_info.base_cost * multiplier)
-            else:
-                next_level_cost = 0
+            current_level, next_level_cost = self._real_level_and_next_cost()
 
             # Log the action
             self._log_user_action(
