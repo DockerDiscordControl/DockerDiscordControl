@@ -67,8 +67,8 @@ cogs/enhanced_info_modal_simple.py:1-704
 # check's guard for empty channels put section 06 at 2,007.
 cogs/donation_ui.py:1-737
 
-## Section 08  (1116 lines, 1 piece)
-cogs/status_handlers.py:1-1116
+## Section 08  (1127 lines, 1 piece)
+cogs/status_handlers.py:1-1127
 
 ## Section 09  (1643 lines, 3 pieces)
 # v3.1.0, 2026-09-28: every container has an info display; who plays on a

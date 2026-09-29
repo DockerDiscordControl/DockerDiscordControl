@@ -283,6 +283,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   again" - disappeared 15 seconds after the window was sent rather than after the answer, and a
   slow booking left the donor with no answer at all. The answer now stays 15 seconds from the
   moment it appears.
+- After a start, stop or restart from Discord the container showed "Uptime: N/A" until the next
+  regular refresh. It shows the real uptime straight away now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

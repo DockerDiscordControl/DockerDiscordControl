@@ -72,6 +72,30 @@ def _age_hint_threshold_seconds(handler) -> float:
     return interval * 1.5
 
 
+def uptime_of(info: Dict[str, Any], docker_name: str) -> str:
+    """A running container's uptime from its info dict, or "N/A".
+
+    The computed seconds first - what the bulk path reads. The SERVICE FIRST
+    dict leaves State.StartedAt None, so get_status, which read only that,
+    cached "Uptime: N/A" after every button press (stage 4 review before
+    v3.1.0, section 08). Outside StatusHandlersMixin, which is at its ceiling.
+    """
+    seconds = (info.get('_computed') or {}).get('uptime_seconds') or 0
+    if seconds > 0:
+        return format_uptime(seconds // 86400, seconds % 86400)
+    started_at_str = info.get('State', {}).get('StartedAt')
+    if not started_at_str:
+        return "N/A"
+    try:
+        # Docker's ISO 8601 with nanoseconds and Z
+        started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
+    except ValueError as e:
+        logger.error(f"Could not parse StartedAt timestamp '{started_at_str}' for {docker_name}: {e}")
+        return "Error"
+    delta = datetime.now(timezone.utc) - started_at
+    return format_uptime(delta.days, delta.seconds)
+
+
 def format_uptime(days: int, seconds: int) -> str:
     """"2d 3h 5m" from whole days and the seconds of the last day.
 
@@ -630,20 +654,7 @@ class StatusHandlersMixin:
             ram = "N/A"
 
             if is_running:
-                # Calculate uptime (requires the start date)
-                started_at_str = info.get('State', {}).get('StartedAt')
-                if started_at_str:
-                    try:
-                        # Adjust Docker time format (ISO 8601 with nanoseconds and Z)
-                        started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
-                        now = datetime.now(timezone.utc)
-                        delta = now - started_at
-
-                        uptime = format_uptime(delta.days, delta.seconds)
-
-                    except ValueError as e:
-                        logger.error(f"Could not parse StartedAt timestamp '{started_at_str}' for {docker_name}: {e}")
-                        uptime = "Error"
+                uptime = uptime_of(info, docker_name)
 
                 # Fetch CPU and RAM only if allowed (SERVICE FIRST)
                 if details_allowed:
