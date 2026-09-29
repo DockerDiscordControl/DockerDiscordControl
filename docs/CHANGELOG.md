@@ -95,6 +95,17 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the status loop already makes, so it costs nothing. The help's legend explains the ⚠️, and the
   ℹ️ button is no longer described as "if configured".
 
+### 🛡️ A file that cannot be read is not written over
+
+- **admins.json:** a file that exists but could not be read (broken JSON after a hand edit, a
+  file owned by root) was taken for "no admins". `/addadmin` then wrote a list with one admin
+  over it - every other admin, their notes and container assignments gone - and the panel showed
+  an empty list it would save the same way. The read now fails loudly and nothing is written.
+- **config.json:** the same for the main configuration. A partial save - the password reset
+  script run exactly when the panel reports the configuration unreadable - replaced the file
+  with the few keys it saved: bot token, server id, password and channel rights gone. It is
+  refused now, with a message to repair or remove the file first.
+
 ### 🐛 The mech's picture and gift, the update notice
 
 - The mech in the channel overview kept the picture it was posted with: out of power, it went on
