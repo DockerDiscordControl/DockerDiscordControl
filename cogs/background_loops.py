@@ -800,7 +800,13 @@ class BackgroundLoopsMixin:
                         logger.warning(f"Channel {channel_id} not found. Removing from activity tracking")
                         del self.last_channel_activity[channel_id]
                     except discord.Forbidden:
-                        logger.error(f"Cannot access channel {channel_id} (forbidden). Continuing tracking but regeneration not possible")
+                        # Backed off like a failed regeneration: changing nothing
+                        # asked Discord - and logged this ERROR - every 30 seconds
+                        # for ever (stage 4 review before v3.1.0, section 06).
+                        forbidden_delay = timedelta(minutes=30)
+                        self.last_channel_activity[channel_id] = now_utc - inactivity_threshold + forbidden_delay
+                        logger.error(f"Cannot access channel {channel_id} (forbidden). Continuing tracking "
+                                     f"but regeneration not possible - next try in {forbidden_delay}")
                     except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                         logger.error(f"Error during inactivity check for channel {channel_id}: {e}", exc_info=True)
                 else:
