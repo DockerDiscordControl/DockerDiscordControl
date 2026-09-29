@@ -275,14 +275,19 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
     if (trigger_type == TRIGGER_MESSAGE and not keywords and not required_keywords
             and not trigger.get('regex_pattern')):
         errors.append("At least one required keyword, trigger keyword, or regex pattern is required")
-    if len(keywords) > MAX_KEYWORDS:
-        errors.append(f"Too many keywords (max {MAX_KEYWORDS})")
-    for kw in keywords:
-        if len(str(kw)) > MAX_KEYWORD_LENGTH:
-            # str(kw), not kw: the length above is measured on str(kw) as well, so a
-            # keyword that is not text gets here - and slicing it raised TypeError out
-            # of the validator instead of reporting the keyword (review B33).
-            errors.append(f"Keyword too long (max {MAX_KEYWORD_LENGTH} chars): {str(kw)[:20]}...")
+    # All three lists, matched against every message alike: the limits held
+    # for the trigger keywords only, and required/ignore keywords were saved
+    # unbounded (stage 4 review before v3.1.0, section 10).
+    for field in ('keywords', 'required_keywords', 'ignore_keywords'):
+        words = trigger.get(field) or []
+        if len(words) > MAX_KEYWORDS:
+            errors.append(f"Too many {field.replace('_', ' ')} (max {MAX_KEYWORDS})")
+        for kw in words:
+            if len(str(kw)) > MAX_KEYWORD_LENGTH:
+                # str(kw), not kw: the length above is measured on str(kw) as well, so a
+                # keyword that is not text gets here - and slicing it raised TypeError out
+                # of the validator instead of reporting the keyword (review B33).
+                errors.append(f"Keyword too long (max {MAX_KEYWORD_LENGTH} chars): {str(kw)[:20]}...")
 
     # Regex pattern
     regex_pattern = trigger.get('regex_pattern')

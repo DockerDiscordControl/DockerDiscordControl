@@ -290,6 +290,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   working now.
 - An address entered with its own port, together with a value in the port field, was shown with
   two ports ("play.example.org:2456:2456"). The address keeps its own port now.
+- The limits of an auto-action rule (50 keywords, 100 characters each) applied to its trigger
+  keywords only; the required and ignore keywords could be as many and as long as anyone liked.
+  The same limits apply to all three lists now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
