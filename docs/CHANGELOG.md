@@ -230,6 +230,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - An unknown timezone in the configuration (a hand edit, or an empty value) stopped every
   scheduled task, because the monthly donation message could not work out its next run. It falls
   back to UTC now, like the rest of the scheduler.
+- Editing a task accepted an unreadable cron expression, one that never occurs (such as 31
+  February) and a one-time date in the past, and said "updated successfully" - the task never ran.
+  An unreadable expression is refused now, and a task without a next run is saved switched off
+  with a message saying so, as when a task is added.
 
 ### 🐛 The mech's picture and gift, the update notice
 

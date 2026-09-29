@@ -179,6 +179,57 @@ def _past_its_last_chance(task, current_time: float) -> bool:
     return current_time - task.next_run_ts > MISSED_RUN_GRACE_SECONDS + window
 
 
+def _apply_schedule_details(task, schedule_details: Dict[str, Any]) -> None:
+    """Update task schedule details based on cycle type.
+
+    Outside TaskManagementService, which is at the 1000-line class ceiling
+    (tests/spec/test_no_file_or_class_grows_past_its_ceiling.py).
+    """
+    # Clear existing schedule details
+    task.time_str = None
+    task.day_val = None
+    task.month_val = None
+    task.year_val = None
+    task.weekday_val = None
+    task.cron_string = None
+
+    # Set new schedule details based on cycle
+    if task.cycle == 'cron':
+        if 'cron_string' in schedule_details:
+            task.cron_string = schedule_details['cron_string']
+    else:
+        if 'time' in schedule_details:
+            task.time_str = schedule_details['time']
+
+        if 'day' in schedule_details:
+            if task.cycle == 'weekly':
+                # For weekly tasks, day is a weekday name ("Mon" from the form or
+                # "monday"). Keep the canonical name in day_val so it gets saved.
+                from services.scheduling.scheduler import normalize_weekday, DAYS_OF_WEEK
+                weekday_name = normalize_weekday(schedule_details['day'])
+                if weekday_name is not None:
+                    task.day_val = weekday_name
+                    task.weekday_val = DAYS_OF_WEEK.index(weekday_name)
+            else:
+                # For other cycles, day is a number
+                try:
+                    task.day_val = int(schedule_details['day'])
+                except (ValueError, TypeError):
+                    pass
+
+        if 'month' in schedule_details:
+            try:
+                task.month_val = int(schedule_details['month'])
+            except (ValueError, TypeError):
+                pass
+
+        if 'year' in schedule_details:
+            try:
+                task.year_val = int(schedule_details['year'])
+            except (ValueError, TypeError):
+                pass
+
+
 class TaskManagementService:
     """Service for comprehensive task management with complex business logic."""
 
@@ -1036,14 +1087,26 @@ class TaskManagementService:
                     error="Updated task data is invalid"
                 )
 
+            # The two checks adding a task makes. Without them an unreadable
+            # expression, one that never occurs, or a one-time date in the past
+            # was saved ACTIVE with no next run and "updated successfully"; the
+            # old check below could not fire for a past date, because
+            # calculate_next_run() already answers None for it (stage 4 review
+            # before v3.1.0, section 31).
+            cron_error = unreadable_cron_reason(task)
+            if cron_error:
+                return EditTaskResult(success=False, error=cron_error)
+
             # Recalculate next run time
             task.calculate_next_run()
 
-            # Check if task should be deactivated (once tasks in the past)
             from services.scheduling.scheduler import CYCLE_ONCE, is_upgrade_pause_note
-            if task.cycle == CYCLE_ONCE and task.next_run_ts and task.next_run_ts < time.time():
+            switched_off = False
+            if task.is_active and (task.next_run_ts is None
+                                   or (task.cycle == CYCLE_ONCE and task.next_run_ts < time.time())):
                 task.is_active = False
-                self.logger.info(f"Task {task.task_id} was automatically deactivated because the execution time is in the past.")
+                switched_off = True
+                self.logger.info(f"Task {task.task_id} was switched off: it has no next run.")
             # Re-enabled while editing: the upgrade pause note no longer applies
             if task.is_active and is_upgrade_pause_note(getattr(task, 'last_run_error', None)):
                 task.last_run_error = None
@@ -1056,6 +1119,10 @@ class TaskManagementService:
                 self._log_task_update(task, original_values)
 
                 message = f"Task {task.task_id} updated successfully"
+                if switched_off:
+                    message = (f"Task {task.task_id} saved, but switched off: the time given is "
+                               f"in the past or never occurs, so it will not run. Set a new "
+                               f"time to switch it on.")
                 if timezone_moved:
                     message = (
                         f"{message}. Note: the task was created in {timezone_before} "
@@ -1102,50 +1169,7 @@ class TaskManagementService:
             task.is_active = bool(data['is_active'])
 
     def _update_task_schedule_details(self, task, schedule_details: Dict[str, Any]):
-        """Update task schedule details based on cycle type."""
-        # Clear existing schedule details
-        task.time_str = None
-        task.day_val = None
-        task.month_val = None
-        task.year_val = None
-        task.weekday_val = None
-        task.cron_string = None
-
-        # Set new schedule details based on cycle
-        if task.cycle == 'cron':
-            if 'cron_string' in schedule_details:
-                task.cron_string = schedule_details['cron_string']
-        else:
-            if 'time' in schedule_details:
-                task.time_str = schedule_details['time']
-
-            if 'day' in schedule_details:
-                if task.cycle == 'weekly':
-                    # For weekly tasks, day is a weekday name ("Mon" from the form or
-                    # "monday"). Keep the canonical name in day_val so it gets saved.
-                    from services.scheduling.scheduler import normalize_weekday, DAYS_OF_WEEK
-                    weekday_name = normalize_weekday(schedule_details['day'])
-                    if weekday_name is not None:
-                        task.day_val = weekday_name
-                        task.weekday_val = DAYS_OF_WEEK.index(weekday_name)
-                else:
-                    # For other cycles, day is a number
-                    try:
-                        task.day_val = int(schedule_details['day'])
-                    except (ValueError, TypeError):
-                        pass
-
-            if 'month' in schedule_details:
-                try:
-                    task.month_val = int(schedule_details['month'])
-                except (ValueError, TypeError):
-                    pass
-
-            if 'year' in schedule_details:
-                try:
-                    task.year_val = int(schedule_details['year'])
-                except (ValueError, TypeError):
-                    pass
+        _apply_schedule_details(task, schedule_details)
 
     def _log_task_update(self, task, original_values: Dict[str, str]):
         """Log task update for audit trail."""
