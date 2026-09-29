@@ -566,6 +566,23 @@ the ledger did not record. The number lives in two places - `progress_service.MA
 the ledger and `unified/validation.MAX_DONATION_DOLLARS` so the panel can say it before the
 ledger is touched - and `tests/spec/test_a_donation_has_an_upper_limit.py` holds the two in step.
 
+**B15 — Where a group acts, the group's own Active and allowed actions decide, not its members'.**
+A group carries its own Active box and its own four actions. Wherever a group is the target - the
+Discord restart menu, a scheduled task, an auto-action rule - they decide, and where they disagree
+with a member's own settings, the group wins: a container switched off in DDC, or allowed only to
+be stopped on its own, is still restarted through a group that may restart. A group written before
+these boxes existed reads as Active with all four actions, so nothing that worked before breaks.
+*Decided by the operator on 2026-09-24*, shown that consequence in those words; recorded here on
+2026-09-29 because reviewers kept reporting it as a hole (stage 4 review before v3.1.0, section 01).
+*Pinned by* `tests/spec/test_a_group_decides_what_it_may_do.py`.
+
+**B16 — `POST /api/donation/submit` accepts a donation without `idempotency_key`.**
+The web panel always sends a key (`mech_panel.js`), so every DDC entry point is covered by Z4.
+A hand-made API call without one is still accepted, and the ledger falls back to a key made of
+donor, amount and time - a retried hand-made call can therefore book twice. *Decided by the
+operator on 2026-09-29* (stage 4 review before v3.1.0, section 32 pass 4 F3): the API stays open
+for such callers; refusing them was offered and declined.
+
 ---
 
 ## Rules of the quality programme
