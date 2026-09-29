@@ -272,6 +272,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A donation broadcast that reached no channel, because every channel had opted out of donation
   announcements, answered "Donation broadcast sent!" over "Sent to 0 channels". It says now that
   the donation was recorded and that no channel posted it.
+- When the donation window could not send its notice about an invalid amount, the donor got no
+  answer at all. They get the error answer now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

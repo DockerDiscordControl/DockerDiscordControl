@@ -284,6 +284,12 @@ class DonationBroadcastModal(DDCModal):
             ephemeral=True, delete_after=NOTICE_STAYS_FOR
         )
 
+        # Bound before the try: the handler below reads both, and a notice that
+        # failed before they were set (the invalid-amount followup) raised
+        # UnboundLocalError there instead of answering (stage 4 review before
+        # v3.1.0, section 06).
+        processing_msg = None
+        donation_booked = False
         try:
             # Get values from modal
             # Text, not markdown: the name goes into an embed in every DDC

@@ -55,12 +55,12 @@ cogs/docker_control.py:827-844
 cogs/overview_embeds.py:1-629
 cogs/slash_commands.py:1-852
 
-## Section 06  (1979 lines, 3 pieces)
+## Section 06  (1985 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:845-1251
 cogs/background_loops.py:1-854
-cogs/donation_ui.py:1-718
+cogs/donation_ui.py:1-724
 
 ## Section 07  (704 lines, 1 piece)
 cogs/enhanced_info_modal_simple.py:1-704
