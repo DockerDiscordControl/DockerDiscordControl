@@ -297,18 +297,20 @@ app/blueprints/automation_routes.py:1-334
 app/blueprints/login_routes.py:1-119
 app/blueprints/log_routes.py:1-242
 
-## Section 32  (1789 lines, 3 pieces)
+## Section 32  (1959 lines, 4 pieces)
 app/blueprints/main_routes.py:1-1309
 app/blueprints/tasks_bp.py:1-389
 app/blueprints/action_log_routes.py:1-91
+# group_routes.py came over from section 33 on 2026-09-29, beside the other
+# blueprints: the translation Test button's fix put section 33 at 2,007.
+app/blueprints/group_routes.py:1-170
 
-## Section 33  (1997 lines, 23 pieces)
+## Section 33  (1837 lines, 22 pieces)
 # group_routes.py joined on 2026-09-23 (new: the operator's container
 # groups) and moved on the same day: section 32 reached 2,019 lines when
 # tasks_bp.py grew with the timezone answer. It is the smallest piece
 # there, so moving it costs the least reading context.
-app/blueprints/group_routes.py:1-170
-app/blueprints/translation_routes.py:1-370
+app/blueprints/translation_routes.py:1-380
 app/bootstrap/__init__.py:1-34
 app/bootstrap/performance.py:1-55
 app/bootstrap/runtime.py:1-206

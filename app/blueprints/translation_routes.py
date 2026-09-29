@@ -281,11 +281,17 @@ def test_translation():
     try:
         provider = settings.provider
         timeout = 15
+        # The bot's own language rule, not "the first two letters": Microsoft has
+        # no "zh", Google calls Norwegian "no" (stage 4 review before v3.1.0,
+        # section 33 - the Test button disagreed with the bot it tests).
+        from services.translation.translation_service import _normalize_language_code
+        target_code = _normalize_language_code(target_lang, provider)
+        source_code = _normalize_language_code(source_lang, provider, source=True) if source_lang else None
 
         if provider == 'deepl':
-            payload = {"text": [text], "target_lang": target_lang.upper()}
-            if source_lang:
-                payload["source_lang"] = source_lang.upper()
+            payload = {"text": [text], "target_lang": target_code}
+            if source_code:
+                payload["source_lang"] = source_code
             status, resp_data = _api_post(
                 settings.deepl_api_url,
                 headers={"Authorization": f"DeepL-Auth-Key {api_key}"},
@@ -303,9 +309,9 @@ def test_translation():
             return jsonify({'success': False, 'error': f"DeepL API error: HTTP {status}"}), 400
 
         elif provider == 'google':
-            form = {"q": text, "target": target_lang.lower()[:2], "format": "text"}
-            if source_lang:
-                form["source"] = source_lang.lower()[:2]
+            form = {"q": text, "target": target_code, "format": "text"}
+            if source_code:
+                form["source"] = source_code
             status, resp_data = _api_post(
                 "https://translation.googleapis.com/language/translate/v2",
                 params={"key": api_key},
@@ -323,14 +329,18 @@ def test_translation():
             return jsonify({'success': False, 'error': f"Google API error: HTTP {status}"}), 400
 
         elif provider == 'microsoft':
-            ms_params = {"api-version": "3.0", "to": target_lang.lower()[:2]}
-            if source_lang:
-                ms_params["from"] = source_lang.lower()[:2]
+            ms_params = {"api-version": "3.0", "to": target_code}
+            if source_code:
+                ms_params["from"] = source_code
+            ms_headers = {"Ocp-Apim-Subscription-Key": api_key}
+            if settings.microsoft_region:
+                # As the bot sends it: a regional Azure key answers 401 without it
+                ms_headers["Ocp-Apim-Subscription-Region"] = settings.microsoft_region
             status, resp_data = _api_post(
                 "https://api.cognitive.microsofttranslator.com/translate",
                 params=ms_params,
                 json_body=[{"text": text}],
-                headers={"Ocp-Apim-Subscription-Key": api_key},
+                headers=ms_headers,
                 timeout=timeout
             )
             if status == 200 and resp_data:

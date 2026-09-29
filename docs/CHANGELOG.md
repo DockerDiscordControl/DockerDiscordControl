@@ -239,6 +239,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - When a slash command failed inside, Discord showed the raw technical error text (which can
   contain paths or addresses) and the DDC log lacked the traceback. The answer is the generic
   "could not be completed" now, and the log has the full error.
+- The Test button of the channel translation asked the provider differently from the bot: without
+  the Microsoft region (a regional Azure key tested as "HTTP 401" while the bot translated fine)
+  and with language codes cut to two letters (Chinese, Norwegian). It asks exactly as the bot does
+  now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
