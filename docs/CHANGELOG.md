@@ -296,6 +296,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - An auto-action rule written by hand into auto_actions.json without an id showed a different id
   on every page load, and could not be switched, edited or deleted in the panel ("Rule not found")
   although it fired. It gets a permanent id the first time it is read now.
+- An auto-action rule named only with angle brackets (such as "<>") was saved without a name, and
+  the panel said it was saved. It is refused as a rule without a name now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

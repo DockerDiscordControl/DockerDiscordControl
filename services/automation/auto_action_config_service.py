@@ -242,7 +242,9 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
 
     # --- Basic Info Validation ---
     name = rule_data.get('name', '')
-    if not name or not name.strip():
+    # Judged as it will be stored: "<>" passed the raw check, was cleaned to ""
+    # and saved as a nameless rule (stage 4 review before v3.1.0, section 10).
+    if not name or not sanitize_string(str(name), MAX_RULE_NAME_LENGTH):
         errors.append("Rule name is required")
     elif len(name) > MAX_RULE_NAME_LENGTH:
         errors.append(f"Rule name too long (max {MAX_RULE_NAME_LENGTH} chars)")
