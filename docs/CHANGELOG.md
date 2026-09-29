@@ -95,6 +95,13 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the status loop already makes, so it costs nothing. The help's legend explains the ⚠️, and the
   ℹ️ button is no longer described as "if configured".
 
+### 🐛 The overview's mech shows its current state
+
+- The mech in the channel overview kept the picture it was posted with: out of power, it went on
+  walking there while its details said OFFLINE, and a level-up or a new speed never showed
+  either. The minute edit now swaps the picture when level, speed or offline state change (and
+  once after a restart); an unchanged picture is not uploaded again.
+
 ### 🗓️ The task forms, straightened out
 
 - **Editing a task works again.** Since the edit dialog moved into its own file (2026-09-23) it

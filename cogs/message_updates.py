@@ -703,8 +703,22 @@ class MessageUpdatesMixin:
                 from .mech_ui import MechView
                 view = MechView(self, channel_id)
 
-            # Update the message (note: can't add files to edit, only embed)
-            await message.edit(embed=embed, view=view)
+            # The animation is posted with the message and an edit that only sends the
+            # embed keeps it: a mech that ran dry between two donations stayed walking in
+            # the overview while its details said OFFLINE (operator, 2026-09-29). The edit
+            # replaces the attachment when the picture changes - level, speed, offline -
+            # and once after a restart, when the shown one is not known. A partial
+            # message cannot carry files, so only then is the full message fetched.
+            key = getattr(self, '_collapsed_animation_key', None) if animation_file else None
+            shown = self.__dict__.setdefault('_shown_animation_keys', {})
+            if key is not None and shown.get(message_id) != key:
+                message = await channel.fetch_message(message_id)
+                await message.edit(embed=embed, view=view, file=animation_file, attachments=[])
+                shown[message_id] = key
+                logger.info(f"Overview animation in channel {channel_id} now shows level {key[0]}, "
+                            f"speed {key[1]}{', offline' if key[2] else ''}")
+            else:
+                await message.edit(embed=embed, view=view)
 
             # Update message update timestamp, but NOT channel activity
             now_utc = datetime.now(timezone.utc)

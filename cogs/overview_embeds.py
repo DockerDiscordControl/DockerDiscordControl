@@ -560,6 +560,10 @@ class OverviewEmbedsMixin:
                         speed_level=actual_speed_level,  # Use actual speed level (unified with Big Mech)
                         power_level=current_Power
                     )
+                    # What this picture shows - the periodic edit swaps the attachment when
+                    # it changes (message_updates._update_overview_message)
+                    self._collapsed_animation_key = (evolution_level, actual_speed_level,
+                                                     (current_Power or 0) <= 0)
 
                     # Convert to Discord File
                     buffer = BytesIO(animation_bytes)
