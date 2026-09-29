@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Gruppe",
   "js.aas.target_missing": "ikke fundet",
   "js.aas.confirm_widen_to_all": "Intet er valgt. Denne regel vil så overvåge ALLE containere. Fortsæt?",
-  "Not touched (not in DDC, or switched off): {names}": "Ikke berørt (ikke i DDC eller slået fra): {names}",
   "web.groups.edit": "Klik for at redigere denne gruppe",
   "web.groups.replace": "Gruppen {name} findes allerede med {count} container(e). Når du gemmer, erstattes dens containere af de valgte. Fortsæt?",
   "web.groups.confirm_delete": "Slet gruppen {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Hele udgivelsesnoterne:",
   "Could not save the change.": "Ændringen kunne ikke gemmes.",
   "Nothing was recorded - a donation needs an amount.": "Intet blev registreret - en donation kræver et beløb.",
-  "Please try again later.": "Prøv venligst igen senere."
+  "Please try again later.": "Prøv venligst igen senere.",
+  "Not in DDC any more": "Ikke længere i DDC",
+  "Not assigned to you": "Ikke tildelt dig"
 }

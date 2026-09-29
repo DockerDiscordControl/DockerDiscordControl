@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "مجموعة",
   "js.aas.target_missing": "غير موجود",
   "js.aas.confirm_widen_to_all": "لم يتم تحديد شيء. ستراقب هذه القاعدة حينها كل الحاويات. متابعة؟",
-  "Not touched (not in DDC, or switched off): {names}": "لم يتم المساس بها (ليست في DDC، أو معطّلة): {names}",
   "web.groups.edit": "انقر لتعديل هذه المجموعة",
   "web.groups.replace": "المجموعة {name} موجودة بالفعل وتضم {count} حاوية (حاويات). سيستبدل الحفظ حاوياتها بالحاويات المحددة. متابعة؟",
   "web.groups.confirm_delete": "حذف المجموعة {name}؟",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "ملاحظات الإصدار الكاملة:",
   "Could not save the change.": "تعذّر حفظ التغيير.",
   "Nothing was recorded - a donation needs an amount.": "لم يُسجَّل شيء - التبرع يحتاج إلى مبلغ.",
-  "Please try again later.": "يرجى المحاولة مرة أخرى لاحقًا."
+  "Please try again later.": "يرجى المحاولة مرة أخرى لاحقًا.",
+  "Not in DDC any more": "لم يعد في DDC",
+  "Not assigned to you": "غير مُسندة إليك"
 }

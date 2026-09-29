@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "समूह",
   "js.aas.target_missing": "नहीं मिला",
   "js.aas.confirm_widen_to_all": "कुछ भी चयनित नहीं है। तब यह नियम हर कंटेनर पर नज़र रखेगा। जारी रखें?",
-  "Not touched (not in DDC, or switched off): {names}": "छुआ नहीं गया (DDC में नहीं, या बंद): {names}",
   "web.groups.edit": "इस समूह को संपादित करने के लिए क्लिक करें",
   "web.groups.replace": "समूह {name} पहले से {count} कंटेनर के साथ मौजूद है। सहेजने से इसके कंटेनर चयनित कंटेनरों से बदल जाएँगे। जारी रखें?",
   "web.groups.confirm_delete": "समूह {name} हटाएँ?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "पूरे रिलीज़ नोट्स:",
   "Could not save the change.": "बदलाव सहेजा नहीं जा सका।",
   "Nothing was recorded - a donation needs an amount.": "कुछ भी दर्ज नहीं हुआ - दान के लिए राशि चाहिए।",
-  "Please try again later.": "कृपया बाद में पुनः प्रयास करें।"
+  "Please try again later.": "कृपया बाद में पुनः प्रयास करें।",
+  "Not in DDC any more": "अब DDC में नहीं",
+  "Not assigned to you": "तुम्हें सौंपे नहीं गए"
 }

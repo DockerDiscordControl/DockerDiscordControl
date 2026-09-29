@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Grupa",
   "js.aas.target_missing": "nije pronađeno",
   "js.aas.confirm_widen_to_all": "Ništa nije odabrano. Ovo pravilo tada će nadzirati SVE kontejnere. Nastaviti?",
-  "Not touched (not in DDC, or switched off): {names}": "Nije dirano (nije u DDC-u ili je isključeno): {names}",
   "web.groups.edit": "Klikni za uređivanje ove grupe",
   "web.groups.replace": "Grupa {name} već postoji s {count} kontejnera. Spremanje zamjenjuje njezine kontejnere odabranima. Nastaviti?",
   "web.groups.confirm_delete": "Obrisati grupu {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Potpune bilješke o izdanju:",
   "Could not save the change.": "Promjena nije mogla biti spremljena.",
   "Nothing was recorded - a donation needs an amount.": "Ništa nije zabilježeno - donacija treba iznos.",
-  "Please try again later.": "Pokušaj ponovno kasnije."
+  "Please try again later.": "Pokušaj ponovno kasnije.",
+  "Not in DDC any more": "Više nije u DDC-u",
+  "Not assigned to you": "Nije dodijeljeno tebi"
 }

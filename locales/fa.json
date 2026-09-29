@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "گروه",
   "js.aas.target_missing": "یافت نشد",
   "js.aas.confirm_widen_to_all": "چیزی انتخاب نشده است. در این صورت این قانون همه کانتینرها را زیر نظر خواهد داشت. ادامه می‌دهید؟",
-  "Not touched (not in DDC, or switched off): {names}": "دست‌نخورده (در DDC نیست یا خاموش است): {names}",
   "web.groups.edit": "برای ویرایش این گروه کلیک کنید",
   "web.groups.replace": "گروه {name} از قبل با {count} کانتینر وجود دارد. ذخیره کردن، کانتینرهای آن را با موارد انتخاب‌شده جایگزین می‌کند. ادامه می‌دهید؟",
   "web.groups.confirm_delete": "گروه {name} حذف شود؟",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "یادداشت‌های کامل انتشار:",
   "Could not save the change.": "ذخیره تغییر ممکن نشد.",
   "Nothing was recorded - a donation needs an amount.": "چیزی ثبت نشد - کمک مالی به مبلغ نیاز دارد.",
-  "Please try again later.": "لطفاً بعداً دوباره تلاش کنید."
+  "Please try again later.": "لطفاً بعداً دوباره تلاش کنید.",
+  "Not in DDC any more": "دیگر در DDC نیست",
+  "Not assigned to you": "به تو واگذار نشده"
 }

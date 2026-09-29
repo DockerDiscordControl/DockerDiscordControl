@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Groep",
   "js.aas.target_missing": "niet gevonden",
   "js.aas.confirm_widen_to_all": "Er is niets geselecteerd. Deze regel bewaakt dan ELKE container. Doorgaan?",
-  "Not touched (not in DDC, or switched off): {names}": "Niet aangeraakt (niet in DDC, of uitgeschakeld): {names}",
   "web.groups.edit": "Klik om deze groep te bewerken",
   "web.groups.replace": "De groep {name} bestaat al met {count} container(s). Opslaan vervangt de containers door de geselecteerde. Doorgaan?",
   "web.groups.confirm_delete": "De groep {name} verwijderen?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Volledige release notes:",
   "Could not save the change.": "De wijziging kon niet worden opgeslagen.",
   "Nothing was recorded - a donation needs an amount.": "Er is niets geregistreerd - een donatie heeft een bedrag nodig.",
-  "Please try again later.": "Probeer het later opnieuw."
+  "Please try again later.": "Probeer het later opnieuw.",
+  "Not in DDC any more": "Niet meer in DDC",
+  "Not assigned to you": "Niet aan jou toegewezen"
 }

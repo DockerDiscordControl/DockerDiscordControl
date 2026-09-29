@@ -246,6 +246,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A private panel that had been used - a container picked in the 🔧 maintenance panel, for example
   - stayed after its timeout instead of going away, because it was deleted by a route Discord does
   not offer for private messages. It goes away now.
+- After a stack restart from an old overview message, members that were left out were all listed
+  as "not in DDC, or switched off", and only the first 20 were named. The members DDC no longer
+  has and those not assigned to the admin now get separate lines, and a long list ends with "… and
+  N more".
 
 ### 🐛 The mech's picture and gift, the update notice
 

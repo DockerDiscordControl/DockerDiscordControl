@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Группа",
   "js.aas.target_missing": "не найдено",
   "js.aas.confirm_widen_to_all": "Ничего не выбрано. Тогда это правило будет следить за КАЖДЫМ контейнером. Продолжить?",
-  "Not touched (not in DDC, or switched off): {names}": "Не затронуты (нет в DDC или отключены): {names}",
   "web.groups.edit": "Нажмите, чтобы изменить эту группу",
   "web.groups.replace": "Группа {name} уже существует, контейнеров в ней: {count}. При сохранении её контейнеры будут заменены выбранными. Продолжить?",
   "web.groups.confirm_delete": "Удалить группу {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Полные примечания к выпуску:",
   "Could not save the change.": "Не удалось сохранить изменение.",
   "Nothing was recorded - a donation needs an amount.": "Ничего не записано - для пожертвования нужна сумма.",
-  "Please try again later.": "Пожалуйста, попробуйте позже."
+  "Please try again later.": "Пожалуйста, попробуйте позже.",
+  "Not in DDC any more": "Больше нет в DDC",
+  "Not assigned to you": "Не назначены тебе"
 }

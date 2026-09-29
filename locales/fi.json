@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Ryhmä",
   "js.aas.target_missing": "ei löydy",
   "js.aas.confirm_widen_to_all": "Mitään ei ole valittu. Tämä sääntö valvoo silloin JOKAISTA säilöä. Jatketaanko?",
-  "Not touched (not in DDC, or switched off): {names}": "Ei käsitelty (ei DDC:ssä tai pois käytöstä): {names}",
   "web.groups.edit": "Napsauta muokataksesi ryhmää",
   "web.groups.replace": "Ryhmä {name} on jo olemassa ({count} säilö(ä)). Tallennus korvaa sen säilöt valituilla. Jatketaanko?",
   "web.groups.confirm_delete": "Poistetaanko ryhmä {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Koko julkaisutiedot:",
   "Could not save the change.": "Muutosta ei voitu tallentaa.",
   "Nothing was recorded - a donation needs an amount.": "Mitään ei kirjattu - lahjoitus tarvitsee summan.",
-  "Please try again later.": "Yritä myöhemmin uudelleen."
+  "Please try again later.": "Yritä myöhemmin uudelleen.",
+  "Not in DDC any more": "Ei enää DDC:ssä",
+  "Not assigned to you": "Ei sinulle määritetty"
 }

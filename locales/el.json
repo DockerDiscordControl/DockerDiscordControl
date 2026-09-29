@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Ομάδα",
   "js.aas.target_missing": "δεν βρέθηκε",
   "js.aas.confirm_widen_to_all": "Δεν έχει επιλεγεί τίποτα. Αυτός ο κανόνας θα παρακολουθεί τότε ΚΑΘΕ container. Συνέχεια;",
-  "Not touched (not in DDC, or switched off): {names}": "Δεν αγγίχτηκαν (δεν είναι στο DDC ή είναι απενεργοποιημένα): {names}",
   "web.groups.edit": "Κάνε κλικ για επεξεργασία αυτής της ομάδας",
   "web.groups.replace": "Η ομάδα {name} υπάρχει ήδη με {count} containers. Η αποθήκευση αντικαθιστά τα containers της με τα επιλεγμένα. Συνέχεια;",
   "web.groups.confirm_delete": "Διαγραφή της ομάδας {name};",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Πλήρεις σημειώσεις έκδοσης:",
   "Could not save the change.": "Δεν ήταν δυνατή η αποθήκευση της αλλαγής.",
   "Nothing was recorded - a donation needs an amount.": "Δεν καταγράφηκε τίποτα - μια δωρεά χρειάζεται ποσό.",
-  "Please try again later.": "Παρακαλώ δοκιμάστε ξανά αργότερα."
+  "Please try again later.": "Παρακαλώ δοκιμάστε ξανά αργότερα.",
+  "Not in DDC any more": "Δεν υπάρχει πλέον στο DDC",
+  "Not assigned to you": "Δεν σου έχουν ανατεθεί"
 }

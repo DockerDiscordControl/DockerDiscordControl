@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "组",
   "js.aas.target_missing": "未找到",
   "js.aas.confirm_widen_to_all": "未选择任何内容。此规则将监视所有容器。是否继续？",
-  "Not touched (not in DDC, or switched off): {names}": "未处理（不在 DDC 中或已关闭）：{names}",
   "web.groups.edit": "点击编辑此组",
   "web.groups.replace": "组 {name} 已存在，包含 {count} 个容器。保存将用所选容器替换其容器。是否继续？",
   "web.groups.confirm_delete": "删除组 {name}？",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "完整发布说明：",
   "Could not save the change.": "无法保存更改。",
   "Nothing was recorded - a donation needs an amount.": "未记录任何内容 - 捐赠需要金额。",
-  "Please try again later.": "请稍后再试。"
+  "Please try again later.": "请稍后再试。",
+  "Not in DDC any more": "已不在 DDC 中",
+  "Not assigned to you": "未分配给你"
 }

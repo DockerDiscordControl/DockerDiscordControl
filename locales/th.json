@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "กลุ่ม",
   "js.aas.target_missing": "ไม่พบ",
   "js.aas.confirm_widen_to_all": "ไม่ได้เลือกอะไรเลย กฎนี้จะเฝ้าดู Container ทุกตัว ดำเนินการต่อหรือไม่?",
-  "Not touched (not in DDC, or switched off): {names}": "ไม่ได้แตะต้อง (ไม่อยู่ใน DDC หรือปิดอยู่): {names}",
   "web.groups.edit": "คลิกเพื่อแก้ไขกลุ่มนี้",
   "web.groups.replace": "กลุ่ม {name} มีอยู่แล้วพร้อม {count} Container การบันทึกจะแทนที่ Container ในกลุ่มด้วยรายการที่เลือก ดำเนินการต่อหรือไม่?",
   "web.groups.confirm_delete": "ลบกลุ่ม {name} หรือไม่?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "บันทึกประจำรุ่นฉบับเต็ม:",
   "Could not save the change.": "ไม่สามารถบันทึกการเปลี่ยนแปลงได้",
   "Nothing was recorded - a donation needs an amount.": "ไม่มีการบันทึก - การบริจาคต้องมีจำนวนเงิน",
-  "Please try again later.": "โปรดลองอีกครั้งในภายหลัง"
+  "Please try again later.": "โปรดลองอีกครั้งในภายหลัง",
+  "Not in DDC any more": "ไม่อยู่ใน DDC แล้ว",
+  "Not assigned to you": "ไม่ได้มอบหมายให้คุณ"
 }

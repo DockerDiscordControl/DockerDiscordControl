@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Skupina",
   "js.aas.target_missing": "nenalezeno",
   "js.aas.confirm_widen_to_all": "Nic není vybráno. Toto pravidlo pak bude hlídat KAŽDÝ kontejner. Pokračovat?",
-  "Not touched (not in DDC, or switched off): {names}": "Nedotčeno (není v DDC nebo je vypnuto): {names}",
   "web.groups.edit": "Kliknutím upravíte tuto skupinu",
   "web.groups.replace": "Skupina {name} už existuje (kontejnery: {count}). Uložením se její kontejnery nahradí vybranými. Pokračovat?",
   "web.groups.confirm_delete": "Smazat skupinu {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Úplné poznámky k vydání:",
   "Could not save the change.": "Změnu se nepodařilo uložit.",
   "Nothing was recorded - a donation needs an amount.": "Nic nebylo zaznamenáno - dar potřebuje částku.",
-  "Please try again later.": "Zkuste to prosím později znovu."
+  "Please try again later.": "Zkuste to prosím později znovu.",
+  "Not in DDC any more": "Už není v DDC",
+  "Not assigned to you": "Nepřiřazeno tobě"
 }

@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Grupp",
   "js.aas.target_missing": "hittades inte",
   "js.aas.confirm_widen_to_all": "Inget är valt. Regeln kommer då att övervaka ALLA containrar. Fortsätta?",
-  "Not touched (not in DDC, or switched off): {names}": "Inte berörda (inte i DDC eller avstängda): {names}",
   "web.groups.edit": "Klicka för att redigera gruppen",
   "web.groups.replace": "Gruppen {name} finns redan med {count} container(ar). Att spara ersätter dess containrar med de valda. Fortsätta?",
   "web.groups.confirm_delete": "Ta bort gruppen {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Fullständig versionsinformation:",
   "Could not save the change.": "Ändringen kunde inte sparas.",
   "Nothing was recorded - a donation needs an amount.": "Inget registrerades - en donation behöver ett belopp.",
-  "Please try again later.": "Försök igen senare."
+  "Please try again later.": "Försök igen senare.",
+  "Not in DDC any more": "Inte längre i DDC",
+  "Not assigned to you": "Inte tilldelade dig"
 }

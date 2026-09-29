@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Rühm",
   "js.aas.target_missing": "ei leitud",
   "js.aas.confirm_widen_to_all": "Midagi pole valitud. See reegel jälgib siis KÕIKI konteinereid. Kas jätkata?",
-  "Not touched (not in DDC, or switched off): {names}": "Puutumata (pole DDC-s või on välja lülitatud): {names}",
   "web.groups.edit": "Klõpsa selle rühma muutmiseks",
   "web.groups.replace": "Rühm {name} on juba olemas {count} konteineriga. Salvestamine asendab selle konteinerid valitutega. Kas jätkata?",
   "web.groups.confirm_delete": "Kas kustutada rühm {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Täielikud väljalaskemärkmed:",
   "Could not save the change.": "Muudatust ei õnnestunud salvestada.",
   "Nothing was recorded - a donation needs an amount.": "Midagi ei registreeritud - annetus vajab summat.",
-  "Please try again later.": "Palun proovi hiljem uuesti."
+  "Please try again later.": "Palun proovi hiljem uuesti.",
+  "Not in DDC any more": "Pole enam DDC-s",
+  "Not assigned to you": "Sulle määramata"
 }

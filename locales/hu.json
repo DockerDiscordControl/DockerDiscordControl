@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Csoport",
   "js.aas.target_missing": "nem található",
   "js.aas.confirm_widen_to_all": "Semmi sincs kiválasztva. Ez a szabály így MINDEN konténert figyelni fog. Folytatod?",
-  "Not touched (not in DDC, or switched off): {names}": "Nem érintett (nincs a DDC-ben, vagy ki van kapcsolva): {names}",
   "web.groups.edit": "Kattints a csoport szerkesztéséhez",
   "web.groups.replace": "A(z) {name} csoport már létezik {count} konténerrel. A mentés a kiválasztottakra cseréli a konténereit. Folytatod?",
   "web.groups.confirm_delete": "Törlöd a(z) {name} csoportot?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "A teljes kiadási megjegyzések:",
   "Could not save the change.": "A módosítást nem sikerült menteni.",
   "Nothing was recorded - a donation needs an amount.": "Semmi sem lett rögzítve - az adományhoz összeg kell.",
-  "Please try again later.": "Kérlek, próbáld újra később."
+  "Please try again later.": "Kérlek, próbáld újra később.",
+  "Not in DDC any more": "Már nincs a DDC-ben",
+  "Not assigned to you": "Nincs hozzád rendelve"
 }

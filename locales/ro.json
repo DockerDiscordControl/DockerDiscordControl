@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Grup",
   "js.aas.target_missing": "negăsit",
   "js.aas.confirm_widen_to_all": "Nu este selectat nimic. Această regulă va supraveghea atunci FIECARE container. Continuați?",
-  "Not touched (not in DDC, or switched off): {names}": "Neatinse (nu sunt în DDC sau sunt dezactivate): {names}",
   "web.groups.edit": "Clic pentru a edita acest grup",
   "web.groups.replace": "Grupul {name} există deja cu {count} container(e). Salvarea îi înlocuiește containerele cu cele selectate. Continuați?",
   "web.groups.confirm_delete": "Ștergeți grupul {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Notele complete de lansare:",
   "Could not save the change.": "Modificarea nu a putut fi salvată.",
   "Nothing was recorded - a donation needs an amount.": "Nu s-a înregistrat nimic - o donație are nevoie de o sumă.",
-  "Please try again later.": "Te rog încearcă din nou mai târziu."
+  "Please try again later.": "Te rog încearcă din nou mai târziu.",
+  "Not in DDC any more": "Nu mai este în DDC",
+  "Not assigned to you": "Nu îți sunt atribuite"
 }

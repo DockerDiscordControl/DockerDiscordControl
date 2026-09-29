@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Nhóm",
   "js.aas.target_missing": "không tìm thấy",
   "js.aas.confirm_widen_to_all": "Chưa chọn gì. Khi đó quy tắc này sẽ theo dõi MỌI container. Tiếp tục?",
-  "Not touched (not in DDC, or switched off): {names}": "Không tác động (không có trong DDC hoặc đã tắt): {names}",
   "web.groups.edit": "Nhấp để sửa nhóm này",
   "web.groups.replace": "Nhóm {name} đã tồn tại với {count} container. Lưu sẽ thay các container của nhóm bằng những container đã chọn. Tiếp tục?",
   "web.groups.confirm_delete": "Xóa nhóm {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Ghi chú phát hành đầy đủ:",
   "Could not save the change.": "Không thể lưu thay đổi.",
   "Nothing was recorded - a donation needs an amount.": "Không có gì được ghi nhận - khoản quyên góp cần có số tiền.",
-  "Please try again later.": "Vui lòng thử lại sau."
+  "Please try again later.": "Vui lòng thử lại sau.",
+  "Not in DDC any more": "Không còn trong DDC",
+  "Not assigned to you": "Không được giao cho bạn"
 }

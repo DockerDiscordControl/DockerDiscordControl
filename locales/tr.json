@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Grup",
   "js.aas.target_missing": "bulunamadı",
   "js.aas.confirm_widen_to_all": "Hiçbir şey seçilmedi. Bu kural bu durumda HER konteyneri izleyecek. Devam edilsin mi?",
-  "Not touched (not in DDC, or switched off): {names}": "Dokunulmadı (DDC'de değil veya kapalı): {names}",
   "web.groups.edit": "Bu grubu düzenlemek için tıklayın",
   "web.groups.replace": "{name} grubu zaten {count} konteynerle mevcut. Kaydetmek, konteynerlerini seçilenlerle değiştirir. Devam edilsin mi?",
   "web.groups.confirm_delete": "{name} grubu silinsin mi?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Tüm sürüm notları:",
   "Could not save the change.": "Değişiklik kaydedilemedi.",
   "Nothing was recorded - a donation needs an amount.": "Hiçbir şey kaydedilmedi - bağış için bir tutar gerekir.",
-  "Please try again later.": "Lütfen daha sonra tekrar dene."
+  "Please try again later.": "Lütfen daha sonra tekrar dene.",
+  "Not in DDC any more": "Artık DDC'de değil",
+  "Not assigned to you": "Sana atanmamış"
 }

@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "グループ",
   "js.aas.target_missing": "見つかりません",
   "js.aas.confirm_widen_to_all": "何も選択されていません。このルールはすべてのコンテナを監視します。続行しますか？",
-  "Not touched (not in DDC, or switched off): {names}": "対象外（DDCにない、またはオフ）: {names}",
   "web.groups.edit": "クリックしてこのグループを編集",
   "web.groups.replace": "グループ {name} はすでに{count}個のコンテナで存在します。保存すると、そのコンテナが選択したものに置き換えられます。続行しますか？",
   "web.groups.confirm_delete": "グループ {name} を削除しますか？",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "リリースノート全文:",
   "Could not save the change.": "変更を保存できませんでした。",
   "Nothing was recorded - a donation needs an amount.": "何も記録されていません - 寄付には金額が必要です。",
-  "Please try again later.": "後でもう一度お試しください。"
+  "Please try again later.": "後でもう一度お試しください。",
+  "Not in DDC any more": "DDCにもう存在しません",
+  "Not assigned to you": "あなたに割り当てられていません"
 }

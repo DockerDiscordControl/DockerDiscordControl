@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Group",
   "js.aas.target_missing": "not found",
   "js.aas.confirm_widen_to_all": "Nothing is selected. This rule will then watch EVERY container. Continue?",
-  "Not touched (not in DDC, or switched off): {names}": "Not touched (not in DDC, or switched off): {names}",
   "web.groups.edit": "Click to edit this group",
   "web.groups.replace": "The group {name} already exists with {count} container(s). Saving replaces its containers with the ones selected. Continue?",
   "web.groups.confirm_delete": "Delete the group {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Full release notes:",
   "Could not save the change.": "Could not save the change.",
   "Nothing was recorded - a donation needs an amount.": "Nothing was recorded - a donation needs an amount.",
-  "Please try again later.": "Please try again later."
+  "Please try again later.": "Please try again later.",
+  "Not in DDC any more": "Not in DDC any more",
+  "Not assigned to you": "Not assigned to you"
 }

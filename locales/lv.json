@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Grupa",
   "js.aas.target_missing": "nav atrasts",
   "js.aas.confirm_widen_to_all": "Nekas nav atlasīts. Tad šis noteikums uzraudzīs KATRU konteineru. Turpināt?",
-  "Not touched (not in DDC, or switched off): {names}": "Neskarti (nav DDC vai ir izslēgti): {names}",
   "web.groups.edit": "Noklikšķiniet, lai rediģētu šo grupu",
   "web.groups.replace": "Grupa {name} jau pastāv ar {count} konteineru(-iem). Saglabāšana aizstās tās konteinerus ar atlasītajiem. Turpināt?",
   "web.groups.confirm_delete": "Dzēst grupu {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Pilnas laidiena piezīmes:",
   "Could not save the change.": "Izmaiņas neizdevās saglabāt.",
   "Nothing was recorded - a donation needs an amount.": "Nekas netika reģistrēts - ziedojumam vajadzīga summa.",
-  "Please try again later.": "Lūdzu, mēģini vēlreiz vēlāk."
+  "Please try again later.": "Lūdzu, mēģini vēlreiz vēlāk.",
+  "Not in DDC any more": "Vairs nav DDC",
+  "Not assigned to you": "Tev nav piešķirts"
 }

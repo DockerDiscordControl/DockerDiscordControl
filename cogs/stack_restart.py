@@ -286,11 +286,11 @@ class ConfirmRestartStackButton(Button):
             # Both sources, like the menu: a group the operator defined is not in
             # current_stacks(), and looking only there told the admin "the stack
             # has no active containers any more" about a group full of them.
-            members, not_touched = _servers_of(self.stack)
+            members, gone = _servers_of(self.stack)
             # An assigned admin restarts only the members assigned to them
             # (operator, 2026-09-26); the others are named as not touched.
             allowed = ao.get_admin_service().controllable(str(interaction.user.id), members)
-            not_touched = list(not_touched) + [m.get('docker_name') for m in members if m not in allowed]
+            not_assigned = [m.get('docker_name') for m in members if m not in allowed]
             members = allowed
             if not members:
                 await interaction.followup.send(
@@ -301,12 +301,19 @@ class ConfirmRestartStackButton(Button):
             logger.info(f"Restart stack {self.stack}: {[m['docker_name'] for m in members]}")
             counts = await ao._restart_running_servers(members, docker_action_service_first)
             summary = ao._restart_summary(counts)
-            if not_touched:
-                # Named, not swallowed: the same group in a scheduled task is a
-                # failure when a member is gone, and a green embed over four of
-                # seven is the "act on fewer and say done" this feature forbids.
-                summary += "\n" + _("Not touched (not in DDC, or switched off): {names}").format(
-                    names=", ".join(f"`{name}`" for name in not_touched[:20]))
+            # Named, not swallowed: the same group in a scheduled task is a
+            # failure when a member is gone, and a green embed over four of
+            # seven is the "act on fewer and say done" this feature forbids.
+            # Two lists, two reasons, every name or a count: one line said "not
+            # in DDC, or switched off" for both - switched-off members ARE
+            # restarted through a group - and cut at 20 names without a word
+            # (stage 4 review before v3.1.0, section 01).
+            more = lambda count: _("… and {count} more").format(count=count)  # noqa: E731
+            for names, label in ((gone, _("Not in DDC any more")),
+                                 (not_assigned, _("Not assigned to you"))):
+                if names:
+                    summary += "\n" + label + ": " + fit_lines(
+                        [f"`{name}`" for name in names], separator=", ", limit=1200, more=more)
             embed = discord.Embed(
                 title=_("🔄 Stack {stack} restarted").format(
                     stack=discord.utils.escape_markdown(self.stack)[:180]),

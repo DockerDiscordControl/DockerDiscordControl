@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Grupo",
   "js.aas.target_missing": "no encontrado",
   "js.aas.confirm_widen_to_all": "No hay nada seleccionado. Esta regla vigilará entonces TODOS los contenedores. ¿Continuar?",
-  "Not touched (not in DDC, or switched off): {names}": "Sin tocar (no están en DDC o están desactivados): {names}",
   "web.groups.edit": "Haga clic para editar este grupo",
   "web.groups.replace": "El grupo {name} ya existe con {count} contenedor(es). Al guardar, sus contenedores se sustituyen por los seleccionados. ¿Continuar?",
   "web.groups.confirm_delete": "¿Eliminar el grupo {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Notas completas de la versión:",
   "Could not save the change.": "No se pudo guardar el cambio.",
   "Nothing was recorded - a donation needs an amount.": "No se registró nada: una donación necesita un importe.",
-  "Please try again later.": "Vuelve a intentarlo más tarde."
+  "Please try again later.": "Vuelve a intentarlo más tarde.",
+  "Not in DDC any more": "Ya no está en DDC",
+  "Not assigned to you": "No asignados a ti"
 }

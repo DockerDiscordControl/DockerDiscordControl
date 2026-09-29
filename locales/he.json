@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "קבוצה",
   "js.aas.target_missing": "לא נמצא",
   "js.aas.confirm_widen_to_all": "לא נבחר דבר. כלל זה ינטר אז את כל הקונטיינרים. להמשיך?",
-  "Not touched (not in DDC, or switched off): {names}": "לא טופלו (לא ב-DDC, או כבויים): {names}",
   "web.groups.edit": "לחץ לעריכת קבוצה זו",
   "web.groups.replace": "הקבוצה {name} כבר קיימת עם {count} קונטיינרים. השמירה תחליף את הקונטיינרים שלה בנבחרים. להמשיך?",
   "web.groups.confirm_delete": "למחוק את הקבוצה {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "הערות השחרור המלאות:",
   "Could not save the change.": "לא ניתן היה לשמור את השינוי.",
   "Nothing was recorded - a donation needs an amount.": "שום דבר לא נרשם - תרומה צריכה סכום.",
-  "Please try again later.": "נא לנסות שוב מאוחר יותר."
+  "Please try again later.": "נא לנסות שוב מאוחר יותר.",
+  "Not in DDC any more": "כבר לא ב-DDC",
+  "Not assigned to you": "לא הוקצו לך"
 }

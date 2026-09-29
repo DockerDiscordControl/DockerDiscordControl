@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "그룹",
   "js.aas.target_missing": "찾을 수 없음",
   "js.aas.confirm_widen_to_all": "선택된 항목이 없습니다. 이 규칙은 모든 컨테이너를 감시하게 됩니다. 계속하시겠습니까?",
-  "Not touched (not in DDC, or switched off): {names}": "처리되지 않음(DDC에 없거나 꺼져 있음): {names}",
   "web.groups.edit": "클릭하여 이 그룹 편집",
   "web.groups.replace": "{name} 그룹이 이미 컨테이너 {count}개로 존재합니다. 저장하면 해당 컨테이너가 선택한 컨테이너로 교체됩니다. 계속하시겠습니까?",
   "web.groups.confirm_delete": "{name} 그룹을 삭제하시겠습니까?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "전체 릴리스 노트:",
   "Could not save the change.": "변경 사항을 저장할 수 없습니다.",
   "Nothing was recorded - a donation needs an amount.": "아무것도 기록되지 않았습니다 - 기부에는 금액이 필요합니다.",
-  "Please try again later.": "나중에 다시 시도해 주세요."
+  "Please try again later.": "나중에 다시 시도해 주세요.",
+  "Not in DDC any more": "더 이상 DDC에 없음",
+  "Not assigned to you": "나에게 할당되지 않음"
 }

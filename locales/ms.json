@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Kumpulan",
   "js.aas.target_missing": "tidak dijumpai",
   "js.aas.confirm_widen_to_all": "Tiada apa-apa dipilih. Peraturan ini akan memantau SETIAP bekas. Teruskan?",
-  "Not touched (not in DDC, or switched off): {names}": "Tidak disentuh (tiada dalam DDC, atau dimatikan): {names}",
   "web.groups.edit": "Klik untuk menyunting kumpulan ini",
   "web.groups.replace": "Kumpulan {name} sudah wujud dengan {count} bekas. Menyimpan akan menggantikan bekasnya dengan yang dipilih. Teruskan?",
   "web.groups.confirm_delete": "Padam kumpulan {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Nota keluaran penuh:",
   "Could not save the change.": "Perubahan tidak dapat disimpan.",
   "Nothing was recorded - a donation needs an amount.": "Tiada apa yang direkodkan - derma memerlukan jumlah.",
-  "Please try again later.": "Sila cuba lagi kemudian."
+  "Please try again later.": "Sila cuba lagi kemudian.",
+  "Not in DDC any more": "Tidak lagi dalam DDC",
+  "Not assigned to you": "Tidak diberikan kepada anda"
 }

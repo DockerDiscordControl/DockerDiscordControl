@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Skupina",
   "js.aas.target_missing": "ni najdeno",
   "js.aas.confirm_widen_to_all": "Nič ni izbrano. To pravilo bo potem spremljalo VSE vsebnike. Želite nadaljevati?",
-  "Not touched (not in DDC, or switched off): {names}": "Ni obdelano (ni v DDC ali je izklopljeno): {names}",
   "web.groups.edit": "Kliknite za urejanje te skupine",
   "web.groups.replace": "Skupina {name} že obstaja (vsebnikov: {count}). Shranjevanje zamenja njene vsebnike z izbranimi. Želite nadaljevati?",
   "web.groups.confirm_delete": "Želite izbrisati skupino {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Celotne opombe ob izdaji:",
   "Could not save the change.": "Spremembe ni bilo mogoče shraniti.",
   "Nothing was recorded - a donation needs an amount.": "Nič ni bilo zabeleženo - donacija potrebuje znesek.",
-  "Please try again later.": "Poskusi znova pozneje."
+  "Please try again later.": "Poskusi znova pozneje.",
+  "Not in DDC any more": "Ni več v DDC",
+  "Not assigned to you": "Ni dodeljeno tebi"
 }

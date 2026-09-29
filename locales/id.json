@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Grup",
   "js.aas.target_missing": "tidak ditemukan",
   "js.aas.confirm_widen_to_all": "Tidak ada yang dipilih. Aturan ini akan mengawasi SEMUA kontainer. Lanjutkan?",
-  "Not touched (not in DDC, or switched off): {names}": "Tidak disentuh (tidak ada di DDC, atau dinonaktifkan): {names}",
   "web.groups.edit": "Klik untuk mengedit grup ini",
   "web.groups.replace": "Grup {name} sudah ada dengan {count} kontainer. Menyimpan akan mengganti kontainernya dengan yang dipilih. Lanjutkan?",
   "web.groups.confirm_delete": "Hapus grup {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Catatan rilis lengkap:",
   "Could not save the change.": "Perubahan tidak dapat disimpan.",
   "Nothing was recorded - a donation needs an amount.": "Tidak ada yang dicatat - donasi memerlukan jumlah.",
-  "Please try again later.": "Silakan coba lagi nanti."
+  "Please try again later.": "Silakan coba lagi nanti.",
+  "Not in DDC any more": "Tidak lagi ada di DDC",
+  "Not assigned to you": "Tidak ditugaskan kepadamu"
 }

@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Група",
   "js.aas.target_missing": "не е намерен",
   "js.aas.confirm_widen_to_all": "Нищо не е избрано. Тогава това правило ще следи ВСЕКИ контейнер. Продължаване?",
-  "Not touched (not in DDC, or switched off): {names}": "Не са засегнати (не са в DDC или са изключени): {names}",
   "web.groups.edit": "Натисни, за да редактираш тази група",
   "web.groups.replace": "Групата {name} вече съществува (контейнери: {count}). Запазването заменя контейнерите ѝ с избраните. Продължаване?",
   "web.groups.confirm_delete": "Да се изтрие ли групата {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Пълните бележки към изданието:",
   "Could not save the change.": "Промяната не можа да бъде запазена.",
   "Nothing was recorded - a donation needs an amount.": "Нищо не беше записано - дарението изисква сума.",
-  "Please try again later.": "Моля, опитайте отново по-късно."
+  "Please try again later.": "Моля, опитайте отново по-късно.",
+  "Not in DDC any more": "Вече не е в DDC",
+  "Not assigned to you": "Не са ти възложени"
 }

@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Grupė",
   "js.aas.target_missing": "nerasta",
   "js.aas.confirm_widen_to_all": "Nieko nepasirinkta. Tada ši taisyklė stebės KIEKVIENĄ konteinerį. Tęsti?",
-  "Not touched (not in DDC, or switched off): {names}": "Nepaliesta (nėra DDC arba išjungta): {names}",
   "web.groups.edit": "Spustelėkite, kad redaguotumėte šią grupę",
   "web.groups.replace": "Grupė {name} jau egzistuoja su {count} konteineriu(-iais). Išsaugojus jos konteineriai bus pakeisti pasirinktais. Tęsti?",
   "web.groups.confirm_delete": "Ištrinti grupę {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Visos leidimo pastabos:",
   "Could not save the change.": "Nepavyko išsaugoti pakeitimo.",
   "Nothing was recorded - a donation needs an amount.": "Nieko neužregistruota - aukai reikia sumos.",
-  "Please try again later.": "Bandykite dar kartą vėliau."
+  "Please try again later.": "Bandykite dar kartą vėliau.",
+  "Not in DDC any more": "Nebėra DDC",
+  "Not assigned to you": "Tau nepriskirta"
 }

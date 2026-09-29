@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Gruppe",
   "js.aas.target_missing": "ikke funnet",
   "js.aas.confirm_widen_to_all": "Ingenting er valgt. Denne regelen vil da overvåke ALLE containere. Fortsette?",
-  "Not touched (not in DDC, or switched off): {names}": "Ikke berørt (ikke i DDC, eller slått av): {names}",
   "web.groups.edit": "Klikk for å redigere denne gruppen",
   "web.groups.replace": "Gruppen {name} finnes allerede med {count} container(e). Lagring erstatter containerne med de valgte. Fortsette?",
   "web.groups.confirm_delete": "Slette gruppen {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Fullstendige utgivelsesnotater:",
   "Could not save the change.": "Endringen kunne ikke lagres.",
   "Nothing was recorded - a donation needs an amount.": "Ingenting ble registrert - en donasjon trenger et beløp.",
-  "Please try again later.": "Prøv igjen senere."
+  "Please try again later.": "Prøv igjen senere.",
+  "Not in DDC any more": "Ikke lenger i DDC",
+  "Not assigned to you": "Ikke tildelt deg"
 }

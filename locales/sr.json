@@ -1534,7 +1534,6 @@
   "js.tasks.group_badge": "Група",
   "js.aas.target_missing": "није пронађено",
   "js.aas.confirm_widen_to_all": "Ништа није изабрано. Ово правило ће онда пратити СВАКИ контејнер. Наставити?",
-  "Not touched (not in DDC, or switched off): {names}": "Није дирано (није у DDC-у или је искључено): {names}",
   "web.groups.edit": "Кликните да уредите ову групу",
   "web.groups.replace": "Група {name} већ постоји са контејнера: {count}. Чување замењује њене контејнере изабранима. Наставити?",
   "web.groups.confirm_delete": "Обрисати групу {name}?",
@@ -1663,5 +1662,7 @@
   "Full release notes:": "Потпуне белешке о издању:",
   "Could not save the change.": "Promena nije mogla da se sačuva.",
   "Nothing was recorded - a donation needs an amount.": "Ništa nije zabeleženo - donacija zahteva iznos.",
-  "Please try again later.": "Pokušaj ponovo kasnije."
+  "Please try again later.": "Pokušaj ponovo kasnije.",
+  "Not in DDC any more": "Više nije u DDC-u",
+  "Not assigned to you": "Nije dodeljeno tebi"
 }
