@@ -140,6 +140,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   regenerated" over an empty channel. It says the channel is empty now, as an error.
 - /ss in a control channel, or /control in a status channel, put its "Permission Denied" into
   the channel for everybody, and it stayed. The refusal is private now.
+- When the mech animation could not be built, a fresh /ss overview pointed at a picture it did
+  not carry: a broken image, or no overview at all. It goes out without the picture now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

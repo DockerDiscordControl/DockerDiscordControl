@@ -39,6 +39,18 @@ from .translation_manager import _
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
+def without_dangling_image(embed):
+    """The embed without an attachment:// image, for a send WITHOUT a file.
+
+    The overview builder sets attachment://mech_animation.webp so an EDIT keeps
+    the picture already on the message; on a fresh send without a file that is
+    a broken image or a refused payload (stage 4 review before v3.1.0, section 05).
+    """
+    if embed is not None and embed.image and (embed.image.url or "").startswith("attachment://"):
+        embed.set_image(url=None)
+    return embed
+
+
 class SlashCommandsMixin:
     """Slash commands, mixed into DockerControlCog."""
 
@@ -165,7 +177,7 @@ class SlashCommandsMixin:
                 )
                 embed.set_footer(text=embed_result.footer_text)
 
-                await ctx.followup.send(embed=embed)
+                await ctx.followup.send(embed=without_dangling_image(embed))
                 return
 
             # Get all servers and sort them by the 'order' field from container configurations
@@ -218,15 +230,15 @@ class SlashCommandsMixin:
                             logger.info("✅ Sent /ss with animation and Mechonate button")
                         else:
                             logger.warning("Animation file invalid, sending without animation")
-                            message = await ctx.followup.send(embed=embed, view=view)
+                            message = await ctx.followup.send(embed=without_dangling_image(embed), view=view)
                     else:
                         logger.warning("No animation file attached, sending embed only")
-                        message = await ctx.followup.send(embed=embed, view=view)
+                        message = await ctx.followup.send(embed=without_dangling_image(embed), view=view)
                 except discord.HTTPException as e:
                     logger.error(f"Discord error sending animation: {e}", exc_info=True)
                     # Fallback: Send without animation but with button
                     try:
-                        message = await ctx.followup.send(embed=embed, view=view)
+                        message = await ctx.followup.send(embed=without_dangling_image(embed), view=view)
                     except (RuntimeError, OSError, ValueError) as fallback_error:
                         logger.error(f"Critical: Could not send embed at all: {fallback_error}")
                         await ctx.followup.send(_("Error generating server status overview."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
@@ -742,8 +754,7 @@ class SlashCommandsMixin:
             # builder sets attachment://mech_animation.webp so an EDIT keeps the
             # attachment already on the message; on a fresh send without a file
             # that is a broken image (the first /ss in a channel).
-            if embed.image and (embed.image.url or "").startswith("attachment://"):
-                embed.set_image(url=None)
+            without_dangling_image(embed)
             if view:
                 return await target.send(embed=embed, view=view)
             else:
