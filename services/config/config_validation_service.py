@@ -11,7 +11,7 @@ Part of ConfigService refactoring for Single Responsibility Principle
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 logger = logging.getLogger('ddc.config_validation')
 
@@ -31,6 +31,30 @@ class ConfigValidationService:
     _ALLOWED_QUERY_PROTOCOLS = ('source', 'minecraft', 'satisfactory', 'palworld')
     # Max stored length for a per-server access token (e.g. Satisfactory app token).
     _MAX_QUERY_TOKEN_LEN = 1024
+
+    @staticmethod
+    def query_port_problems(form_data) -> List[str]:
+        """``["name: value", ...]`` for every query port in the form that is no port.
+
+        A whole number from 0 to 65535, or empty; 0 and empty mean auto-discover.
+        Asked BEFORE the save writes anything: an impossible port used to be
+        saved as 0 in silence (sanitize_query_config below) while the panel said
+        "saved" (operator, 2026-09-29; stage 4 review before v3.1.0, section 13).
+        """
+        problems = []
+        for key in form_data.keys():
+            if not key.startswith('query_port_'):
+                continue
+            raw = str(form_data.get(key) or '').strip()
+            if not raw:
+                continue
+            try:
+                port = int(raw)
+            except ValueError:
+                port = -1
+            if not 0 <= port <= 65535:
+                problems.append(f"{key[len('query_port_'):]}: {raw}")
+        return problems
 
     @staticmethod
     def sanitize_query_config(query_enabled, query_protocol, query_host, query_port,

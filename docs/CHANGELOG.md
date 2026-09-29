@@ -190,6 +190,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A bot token stored in plain text stayed in plain text after a Web UI password was set, until the
   "Encrypt token" button was pressed. It is now encrypted as soon as a password exists: when the
   password is set, on every save and at the next start.
+- A game query port outside 1-65535 (e.g. 70000) was saved as 0, "find it automatically", while
+  the panel said "saved". Such a port is refused now, with the container and the value named, and
+  nothing is saved.
 
 ### 🐛 The mech's picture and gift, the update notice
 

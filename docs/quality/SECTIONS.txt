@@ -91,11 +91,14 @@ services/automation/automation_service.py:1-1026
 # followed it on 2026-09-26: automation_service.py grew by the group check of
 # the watchdog rules and put this section at 2,029.
 
-## Section 11b  (601 lines, 2 pieces)
+## Section 11b  (837 lines, 3 pieces)
 # Cut out of section 11 on 2026-09-29: the review fixes before v3.1.0 put it
 # at 2,010. The channel configuration is its own subject, and small enough.
 services/config/__init__.py:1-16
 services/config/channel_config_service.py:1-585
+# config_validation_service.py came over from section 13 on 2026-09-29: the
+# refusal of an impossible query port put that section at 2,007.
+services/config/config_validation_service.py:1-236
 
 ## Section 12  (1847 lines, 5 pieces)
 # config_cache_service.py followed on 2026-09-23: section 11 went over 2,000
@@ -110,9 +113,8 @@ services/config/config_migration_service.py:1-483
 # this section at 2,039 of the 2,000 a section may hold. Section 13, where its
 # neighbours sit, is at 1,920 and had no room either.
 
-## Section 13  (1912 lines, 6 pieces)
+## Section 13  (1771 lines, 5 pieces)
 services/config/config_service.py:1-1305
-services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-241
 # channel_roles.py moved on from section 11 on 2026-09-23: the memory
@@ -261,7 +263,7 @@ services/translation/translation_config_service.py:1-705
 # check before the provider call (audit #4, #5) took this section past 2,000.
 services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-555
-services/web/configuration_save_service.py:1-653
+services/web/configuration_save_service.py:1-663
 
 ## Section 29  (1923 lines, 7 pieces)
 services/web/container_log_service.py:1-459

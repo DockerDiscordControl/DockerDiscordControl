@@ -101,6 +101,16 @@ class ConfigurationSaveService:
             # Step 2: Clean and process form data
             cleaned_form_data = self._clean_form_data(request.form_data)
 
+            # An impossible game-query port stops the save before anything is
+            # written, with what was wrong (stage 4 review before v3.1.0, section 13).
+            from services.config.config_validation_service import ConfigValidationService
+            bad_ports = ConfigValidationService.query_port_problems(cleaned_form_data)
+            if bad_ports:
+                return ConfigurationSaveResult(
+                    success=False,
+                    message=("Nothing was saved: a game query port must be a number from 1 to "
+                             "65535, or 0/empty for auto-discover - " + ", ".join(bad_ports)))
+
             # What is on disk BEFORE the write below. Step 4 used to read it
             # afterwards and compare the new configuration with itself, so a
             # changed language or timezone was never noticed and the caches were
