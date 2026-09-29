@@ -533,6 +533,12 @@ class ChannelLifecycleMixin:
                         logger.warning(f"Missing permissions for channel {channel_id}")
                     except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                         logger.error(f"Error processing channel {channel_id}: {e}", exc_info=True)
+                    except Exception as e:  # noqa: BLE001 - one channel must not stop the others
+                        # e.g. aiohttp.ServerDisconnectedError from a send: not an OSError,
+                        # so it ended the loop for every later channel, unlogged (stage 4,
+                        # section 04). A cancellation is a BaseException and still goes through.
+                        logger.error(f"Error processing channel {channel_id}: {type(e).__name__}: {e}",
+                                     exc_info=True)
 
                 except (discord.errors.DiscordException, RuntimeError, OSError) as e:
                     logger.error(f"Error processing channel config {channel_id_str}: {e}", exc_info=True)
