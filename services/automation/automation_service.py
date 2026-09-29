@@ -372,7 +372,18 @@ class AutomationService:
             if ignore.lower() in search_text:
                 return False, f"Ignored keyword: {ignore}"
 
-        # 2. Regex Match (Question 3: Security via Threading + Timeout)
+        # 2. Required keywords - ALL must be there - BEFORE the regex, like the
+        # ignore list: a regex hit returned before they were read, so a rule
+        # fired on a message without the keyword the operator had made
+        # required, while the panel's rule tester said NO MATCH (stage 4
+        # review before v3.1.0, section 11).
+        if rule.trigger.required_keywords:
+            missing_required = [kw for kw in rule.trigger.required_keywords
+                                if kw.lower() not in search_text]
+            if missing_required:
+                return False, f"Missing required keyword(s): {', '.join(missing_required)}"
+
+        # 3. Regex Match (Question 3: Security via Threading + Timeout)
         if rule.trigger.regex_pattern:
             try:
                 # The real budget is enforced inside _safe_regex_search by killing the worker
@@ -399,16 +410,6 @@ class AutomationService:
             except Exception as e:
                 logger.error(f"Regex error in rule '{rule.name}': {e}")
                 # Don't fail the whole rule if keywords exist, try them next
-
-        # 3. Required Keywords - ALL must match (AND logic)
-        if rule.trigger.required_keywords:
-            missing_required = []
-            for req_kw in rule.trigger.required_keywords:
-                if req_kw.lower() not in search_text:
-                    missing_required.append(req_kw)
-
-            if missing_required:
-                return False, f"Missing required keyword(s): {', '.join(missing_required)}"
 
         # 4. Trigger Keywords - At least one must match (based on match_mode)
         # If no trigger keywords defined but required keywords matched, that's enough

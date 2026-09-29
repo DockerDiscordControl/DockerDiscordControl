@@ -114,6 +114,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A scheduled task that DDC was stopped in the middle of (an image update, a container stop)
   was never run again: it was skipped every minute as "already begun". It is still not repeated,
   but it is now marked as interrupted and moved to its next run; a one-time task is switched off.
+- An auto-action rule with a regex and required keywords fired on a message the regex matched
+  even when a required keyword was missing; the panel's rule tester said "no match" for the same
+  message. Required keywords are checked first now, like the ignore keywords.
 
 ### 🐛 The mech's picture and gift, the update notice
 
