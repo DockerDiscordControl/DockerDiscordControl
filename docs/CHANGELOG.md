@@ -178,6 +178,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   at that moment, although it can normally be read (a hanging server, a failed status read). It
   keeps waiting now, at the latest until its latest time, and the log says why. A container
   without player counting still counts as empty, as the save already tells you.
+- The 10-minute clash check for tasks counted paused tasks, which never run, and compared only
+  each task's next run: a daily restart at 04:00 and a weekly stop at 04:05 were both accepted. It
+  ignores paused tasks now and compares the later runs as well.
 
 ### 🐛 The mech's picture and gift, the update notice
 

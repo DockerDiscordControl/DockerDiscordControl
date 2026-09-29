@@ -569,25 +569,56 @@ def get_tasks_for_container(container_name: str) -> List[ScheduledTask]:
 
     return container_tasks
 
+# How far ahead the collision check compares runs: a year and a bit, so a
+# yearly task meets every daily one once.
+COLLISION_HORIZON_SECONDS = 400 * 24 * 3600
+
+
+def _first_clash(runs_a: List[float], runs_b: List[float]) -> Optional[tuple]:
+    """The first pair of runs (both lists sorted) less than 10 minutes apart."""
+    i = j = 0
+    while i < len(runs_a) and j < len(runs_b):
+        if abs(runs_a[i] - runs_b[j]) < MIN_TASK_INTERVAL_SECONDS:
+            return runs_a[i], runs_b[j]
+        if runs_a[i] < runs_b[j]:
+            i += 1
+        else:
+            j += 1
+    return None
+
+
 def check_task_time_collision(container_name: str, new_task_next_run_ts: float,
                                 existing_tasks_for_container: Optional[List[ScheduledTask]] = None,
-                                task_id_to_ignore: Optional[str] = None) -> bool:
+                                task_id_to_ignore: Optional[str] = None,
+                                new_task: Optional[ScheduledTask] = None) -> bool:
     """
     Checks if a new or updated task conflicts with existing tasks for the same container
     within a 10-minute window.
+
+    Paused tasks never run, so they collide with nothing; and with ``new_task``
+    the later runs of recurring tasks are compared too, not only the next ones
+    (operator, 2026-09-29; stage 4 review, section 26).
     """
+    if new_task is not None and not new_task.is_active:
+        return False
     if existing_tasks_for_container is None:
         existing_tasks_for_container = get_tasks_for_container(container_name)
 
+    horizon = time.time() + COLLISION_HORIZON_SECONDS
+    if new_task is not None:
+        new_runs = new_task.runs_until(horizon)
+    else:
+        new_runs = [new_task_next_run_ts] if new_task_next_run_ts is not None else []
     for existing_task in existing_tasks_for_container:
         if task_id_to_ignore and existing_task.task_id == task_id_to_ignore:
             continue # Ignore the task being updated
+        if not existing_task.is_active:
+            continue  # paused: it never runs
 
-        if existing_task.next_run_ts is not None and new_task_next_run_ts is not None:
-            time_difference = abs(existing_task.next_run_ts - new_task_next_run_ts)
-            if time_difference < MIN_TASK_INTERVAL_SECONDS:
-                logger.warning(f"Task time collision for container '{container_name}'. New at {new_task_next_run_ts} vs existing {existing_task.task_id} at {existing_task.next_run_ts}")
-                return True
+        clash = _first_clash(new_runs, existing_task.runs_until(horizon))
+        if clash:
+            logger.warning(f"Task time collision for container '{container_name}'. New at {clash[0]} vs existing {existing_task.task_id} at {clash[1]}")
+            return True
     return False
 
 @_with_tasks_lock
@@ -615,7 +646,8 @@ def add_task(task: ScheduledTask) -> bool:
     if task.next_run_ts is not None:
         # Get only tasks for the same container for collision check
         existing_tasks_for_same_container = [t for t in tasks if t.container_name == task.container_name]
-        if check_task_time_collision(task.container_name, task.next_run_ts, existing_tasks_for_container=existing_tasks_for_same_container):
+        if check_task_time_collision(task.container_name, task.next_run_ts, existing_tasks_for_container=existing_tasks_for_same_container,
+                                     new_task=task):
             logger.warning(f"Failed to add task {task.task_id} due to time collision with another task for container '{task.container_name}'.")
             return False
 
@@ -662,7 +694,8 @@ def update_task(task_to_update: ScheduledTask, check_collision: bool = True) -> 
                                                    if ex_task.container_name == task_to_update.container_name
                                                    and ex_task.task_id != task_to_update.task_id]
                 if check_task_time_collision(task_to_update.container_name, task_to_update.next_run_ts,
-                                           existing_tasks_for_container=existing_tasks_for_same_container):
+                                           existing_tasks_for_container=existing_tasks_for_same_container,
+                                           new_task=task_to_update):
                     logger.warning(f"Update for task {task_to_update.task_id} aborted due to time collision with another task for container '{task_to_update.container_name}'.")
                     return False
             tasks[i] = task_to_update

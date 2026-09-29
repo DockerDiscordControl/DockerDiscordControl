@@ -723,6 +723,51 @@ class ScheduledTask:
             self.next_run_ts = None
             return None
 
+    def runs_until(self, end_ts: float, limit: int = 400) -> list:
+        """This task's runs from its next one up to ``end_ts``, at most ``limit``.
+
+        For the collision check: a daily task at 04:00 and a weekly one at 04:05
+        clash on the weekly one's day, which the NEXT runs alone do not show
+        (stage 4 review before v3.1.0, section 26 pass 4 F11).
+        """
+        if not self.next_run_ts:
+            return []
+        runs = [self.next_run_ts]
+        if self.cycle == CYCLE_ONCE or self.is_donation_task():
+            return runs
+        tz = _get_timezone(self.timezone_str)
+        if self.cycle == CYCLE_CRON:
+            try:
+                from croniter import croniter
+                runs_iter = croniter(self.cron_string, datetime.fromtimestamp(self.next_run_ts, tz))
+                while len(runs) < limit:
+                    following = runs_iter.get_next(datetime).timestamp()
+                    if following > end_ts:
+                        break
+                    runs.append(following)
+            except (ImportError, ValueError, TypeError, AttributeError) as e:
+                logger.debug(f"Later runs of cron task {self.task_id}: {e}")
+            return runs
+        time_tuple = self._parse_task_time()
+        if time_tuple is None:
+            return runs
+        hour, minute = time_tuple
+        step = {
+            CYCLE_DAILY: lambda now: self._calculate_daily_next_run(now, hour, minute, tz),
+            CYCLE_WEEKLY: lambda now: self._calculate_weekly_next_run(tz, now, hour, minute),
+            CYCLE_MONTHLY: lambda now: self._calculate_monthly_next_run(tz, now, hour, minute),
+            CYCLE_YEARLY: lambda now: self._calculate_yearly_next_run(tz, now, hour, minute),
+        }.get(self.cycle)
+        while step is not None and len(runs) < limit:
+            following_dt = step(datetime.fromtimestamp(runs[-1], tz))
+            if following_dt is None:
+                break
+            following = following_dt.timestamp()
+            if following <= runs[-1] or following > end_ts:
+                break
+            runs.append(following)
+        return runs
+
     def get_next_run_datetime(self) -> Optional[datetime]:
         if self.next_run_ts is None: return None
         try:
