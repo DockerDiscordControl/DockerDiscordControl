@@ -25,7 +25,10 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parents[2]
 SECTIONS = PROJECT / "docs" / "quality" / "SECTIONS.txt"
 PLAN = PROJECT / "docs" / "quality" / "CHECK_PLAN.txt"
-HEADER = re.compile(r"^## Section (\d+)\s")
+# A section is a name, not a number: the ones cut out later carry a letter
+# (19b, 26b, 31b, 33b). "(\d+)" did not match them, and their pieces were
+# appended silently to the section before (test_the_review_tools_know_every_section.py).
+HEADER = re.compile(r"^## Section (\d+[a-z]?)\s")
 PIECE = re.compile(r"^(?P<path>[^:#\s]+\.py):(?P<start>\d+)-(?P<end>\d+)\s*$")
 
 PREAMBLE = """\
@@ -43,12 +46,12 @@ PREAMBLE = """\
 
 
 def read_sections():
-    """{section number: [(path, start, end), ...]} in file order."""
+    """{section name as written, e.g. "07" or "19b": [(path, start, end), ...]} in file order."""
     sections, current = {}, None
     for line in SECTIONS.read_text(encoding="utf-8").splitlines():
         header = HEADER.match(line)
         if header:
-            current = int(header.group(1))
+            current = header.group(1)
             sections[current] = []
             continue
         piece = PIECE.match(line)
@@ -104,7 +107,7 @@ def render(sections):
     for number, pieces in sections.items():
         names = section_plan(pieces)
         size = sum(end - start + 1 for _p, start, end in pieces)
-        out.append(f"## Section {number:02d}  ({size} lines, {len(names)} public names)")
+        out.append(f"## Section {number}  ({size} lines, {len(names)} public names)")
         out += [f"[ ] {name}" for name in names]
         out.append("")
     return "\n".join(out)
@@ -112,7 +115,7 @@ def render(sections):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", type=int, help="print the plan of one section only")
+    parser.add_argument("--section", help="print the plan of one section only, e.g. 07 or 19b")
     args = parser.parse_args()
     sections = read_sections()
     if args.section is not None:

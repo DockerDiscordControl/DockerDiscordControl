@@ -49,18 +49,18 @@ def build(number, target):
                             capture_output=True, text=True).stdout.strip()
     task = TASK.read_text(encoding="utf-8")
     (target / "TASK.md").write_text(
-        task.replace("{SECTION}", f"{number:02d}").replace("{COMMIT}", commit)
+        task.replace("{SECTION}", number).replace("{COMMIT}", commit)
             .replace("{NAMES}", str(len(plan))), encoding="utf-8")
     return len(pieces), len(plan)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("section", type=int)
+    parser.add_argument("section", help='as written in SECTIONS.txt, e.g. "07" or "19b"')
     parser.add_argument("target", type=Path)
     args = parser.parse_args()
     pieces, names = build(args.section, args.target)
-    print(f"section {args.section:02d}: {pieces} pieces, {names} names -> {args.target}")
+    print(f"section {args.section}: {pieces} pieces, {names} names -> {args.target}")
     return 0
 
 
