@@ -679,25 +679,22 @@ class ReadStoryButton(Button):
             if chapter_key and chapter_key in story_chapters:
                 chapter_content = story_chapters[chapter_key]
 
-                # Get chapter info
-                chapter_info = {
-                    "prologue1": ("Prologue I: The Dying Light", 0x2b2b2b),
-                    "prologue2": ("Prologue II: Scars That Walk", 0x444444),
-                    "chapter1": ("Chapter I: The Standard", 0x888888),
-                    "chapter2": ("Chapter II: The Hunger", 0x0099cc),
-                    "chapter3": ("Chapter III: The Pulse", 0x00ccff),
-                    "chapter4": ("Chapter IV: The Abyss", 0xffcc00),
-                    "chapter5": ("Chapter V: The Rift", 0xff6600),
-                    "chapter6": ("Chapter VI: Radiance", 0xcc00ff),
-                    "chapter7": ("Chapter VII: The Idols of Steel", 0x00ffff),
-                    "chapter8": ("Chapter VIII: The Exarchs", 0xffff00),
-                    "chapter9": ("Chapter IX: The Prayer of the Omega", 0xff00ff),
-                    "epilogue": ("Epilogue: W#!sp*r of th3 [ERROR_CODE_11]", 0x330033)
+                # The colour per chapter; the TITLE is the chapter's own first
+                # line, in the chapter's language. A table of English titles
+                # put "Prologue I: The Dying Light" above "Prolog I: Das
+                # sterbende Licht" (stage 4 review before v3.1.0, section 03).
+                colors = {
+                    "prologue1": 0x2b2b2b, "prologue2": 0x444444, "chapter1": 0x888888,
+                    "chapter2": 0x0099cc, "chapter3": 0x00ccff, "chapter4": 0xffcc00,
+                    "chapter5": 0xff6600, "chapter6": 0xcc00ff, "chapter7": 0x00ffff,
+                    "chapter8": 0xffff00, "chapter9": 0xff00ff, "epilogue": 0x330033,
                 }
+                color = colors.get(chapter_key, 0x666666)
+                title, _sep, chapter_content = chapter_content.strip().partition("\n")
+                title = title.strip()[:256]
+                chapter_content = chapter_content.strip()
 
-                title, color = chapter_info.get(chapter_key, ("Story Chapter", 0x666666))
-
-                # Split if too long
+                # Discord's limit; the longest shipped chapter has 2,590 characters
                 if len(chapter_content) > 4000:
                     chapter_content = chapter_content[:4000] + "..."
 

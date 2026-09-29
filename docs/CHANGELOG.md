@@ -259,6 +259,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The result of Restart All, Stop All or a stack restart was lost when the connection dropped
   while it was being sent to the person who pressed. It is posted in the channel instead, as it
   already was for other failures.
+- The title of a mech story chapter in Discord was always English ("Prologue I: The Dying Light")
+  above a German or French chapter. It is the chapter's own heading now, in its language.
 
 ### 🐛 The mech's picture and gift, the update notice
 
