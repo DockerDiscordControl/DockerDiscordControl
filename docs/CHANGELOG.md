@@ -157,6 +157,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   to the new configuration layout deleted the file they were kept in. They are carried over now.
 - On an installation still carrying its v1 channel file, removing the last channel brought all
   removed channels back at the next start, with their old rights. They stay removed now.
+- Unticking "Active" for every container and saving changed nothing - all stayed active - while
+  the panel said "saved". It saves them inactive now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -503,7 +503,10 @@ class ConfigFormParserService:
 
             # Parse servers
             servers = ConfigFormParserService.parse_servers_from_form(form_data)
-            if servers:
+            # An empty selection is only "all inactive" when the form carried the
+            # container table - like channel_tables_submitted below. It was always
+            # dropped, so unticking every box saved nothing (stage 4, section 12).
+            if servers or ConfigFormParserService._parse_form_checkbox(form_data, 'servers_table_submitted'):
                 updated_config['servers'] = servers
             else:
                 logger.warning("No servers parsed from form data!")

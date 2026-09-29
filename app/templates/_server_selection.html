@@ -1,5 +1,7 @@
 <hr class="my-4">
 <div id="server-selection" class="mb-3 card p-3">
+    {# The table was in the form: with no box ticked, "none active" (config_form_parser_service) #}
+    <input type="hidden" name="servers_table_submitted" value="1">
     <h4>{{ _t('web.server.title') }}</h4>
     <p class="form-text">{{ _t('web.server.description') }}</p>
     {# Offered only when a container is in a Compose stack (app/static/js/stack_order.js) #}
