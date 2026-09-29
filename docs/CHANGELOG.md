@@ -314,6 +314,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A notify-only auto-action rule that still named containers which no longer exist sent its notice
   plus "Container not found" on every matching message, because the "not found" undid its
   cooldown. It notifies once and keeps its cooldown now.
+- An auto-action rule with a delay waited that delay once per container: with three containers and
+  60 seconds, the last one was acted on after three minutes, although the notice said "60s delay".
+  The rule waits once now, before the first container.
 
 ### 🐛 The mech's picture and gift, the update notice
 

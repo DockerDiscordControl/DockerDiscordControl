@@ -2,10 +2,11 @@
 """A rule cancelled mid-batch (DDC shutting down) leaves no lock on disk for an untouched container.
 
 THE FINDING (stage 4 review before v3.1.0, section 11 pass 4 F4 + F6): a
-message rule on [A, B] with a delay locks both up front. A is acted on and
-recorded - and the record saves the whole state, B's up-front lock with it.
-If DDC is stopped during B's delay (an update, a restart), the cancellation
-handler released B in memory only. After the restart B was refused with
+message rule on [A, B] locks both up front. A is acted on and recorded - and
+the record saves the whole state, B's up-front lock with it. If DDC is
+stopped before B is done (an update, a restart - the review's case was B's
+delay; since the delay is waited once for the whole rule, it is B's own
+action), the cancellation handler released B in memory only. After the restart B was refused with
 "cooldown active" for up to the rule cooldown (24 h by default), although
 nothing had been done to it.
 
@@ -44,15 +45,13 @@ async def test_the_untouched_container_is_free_after_a_restart(monkeypatch, tmp_
     service.config_service.get_rules.return_value = [RULE]
     service.state_service = AutoActionStateService()
     monkeypatch.setattr(auto_mod, "is_container_exists", AsyncMock(return_value=True))
-    monkeypatch.setattr(auto_mod, "docker_action", AsyncMock(return_value=True))
-    monkeypatch.setattr(service, "_trigger_status_refresh", AsyncMock())
-    naps = {"n": 0}
-
-    async def _sleep(seconds):
-        naps["n"] += 1
-        if naps["n"] == 2:                      # during beta's delay: DDC stops
+    async def _docker(name, verb):
+        if name == "beta":                      # while beta is being restarted: DDC stops
             raise asyncio.CancelledError()
-    monkeypatch.setattr(auto_mod.asyncio, "sleep", _sleep)
+        return True
+    monkeypatch.setattr(auto_mod, "docker_action", _docker)
+    monkeypatch.setattr(service, "_trigger_status_refresh", AsyncMock())
+    monkeypatch.setattr(auto_mod.asyncio, "sleep", AsyncMock())
     context = auto_mod.TriggerContext(message_id="1", channel_id="123456789012345678",
                                       guild_id="2", user_id="3", username="w",
                                       is_webhook=False, content="update now", embeds_text="")
@@ -62,6 +61,6 @@ async def test_the_untouched_container_is_free_after_a_restart(monkeypatch, tmp_
 
     after_restart = AutoActionStateService()     # reads the file, as the next start does
     assert after_restart.acquire_execution_locks("r1", ["beta"], 0, 60)[0], (
-        "beta was never touched, and is locked on disk for the whole cooldown")
+        "beta's restart never completed, and it is locked on disk for the whole cooldown")
     assert not after_restart.acquire_execution_locks("r1", ["alpha"], 0, 60)[0], (
         "alpha was restarted - its cooldown must stand")

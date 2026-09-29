@@ -593,6 +593,13 @@ class AutomationService:
             await player_gate.hold_until_empty(getattr(rule.action, 'player_options', None), list(target_containers),
                                                gate_verb, ", ".join(target_containers[:3]), bot)
 
+        # The delay once, before the first container: slept per container, a rule
+        # with a delay of N on k containers acted on the last one k x N seconds
+        # after the message, while it announced one delay (stage 4 review before
+        # v3.1.0, section 11). The checks below then see the state after the wait.
+        if rule.action.delay_seconds > 0 and action_type != 'NOTIFY' and target_containers:
+            await asyncio.sleep(rule.action.delay_seconds)
+
         for container in target_containers:
             logger.info(f"AAS: Executing {action_type} on {container}...")
             
@@ -640,10 +647,6 @@ class AutomationService:
                     continue
 
             notification_channel_id = rule.action.notification_channel_id or ctx.channel_id
-
-            # Handle Delay
-            if rule.action.delay_seconds > 0:
-                await asyncio.sleep(rule.action.delay_seconds)
 
             # Docker Action
             result = False
