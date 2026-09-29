@@ -831,8 +831,8 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
     # _handle_donate_interaction lived here twice: this first version was dead,
     # Python keeps the last definition (review B13). The live one is below. They
     # were NOT the same: this one asked is_donations_disabled(), the live one
-    # treats any value in donation_disable_key as 'donations off' - noted for the
-    # operator, behaviour unchanged.
+    # treated any value in donation_disable_key as 'donations off'. Since the
+    # stage 4 review before v3.1.0 (section 05) both ask is_donations_disabled().
 
 
 

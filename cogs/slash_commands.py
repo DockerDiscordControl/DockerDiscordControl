@@ -786,13 +786,15 @@ class SlashCommandsMixin:
                 mech_service_available = False
                 logger.warning(f"MechService not available: {e}")
 
-            # Check if donations are disabled by premium key (now use config service)
+            # The rule /donate and the /ss mech section use: a key that VALIDATES.
+            # "Any stored key" made this button say "Premium Features Active"
+            # where /donate showed the panel (stage 4 review before v3.1.0,
+            # section 05).
             try:
-                from services.config.config_service import get_config_service
-                config_service = get_config_service()
-                config = config_service.get_config()
-                donations_disabled = bool(config.get('donation_disable_key'))
-            except Exception:
+                from services.donation.donation_utils import is_donations_disabled
+                donations_disabled = is_donations_disabled()
+            except (ImportError, AttributeError, RuntimeError) as e:
+                logger.debug(f"Donation check failed: {e}")
                 donations_disabled = False
 
             if donations_disabled:
