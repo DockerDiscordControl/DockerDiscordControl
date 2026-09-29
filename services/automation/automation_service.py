@@ -603,7 +603,11 @@ class AutomationService:
             # THROUGH to the action, exactly as an unknown running state does
             # below (review E25): if the container really is gone, the Docker
             # call says so with Docker's own reason.
-            exists = await is_container_exists(container)
+            # A NOTIFY rule does not ask: the notice IS the action and went out
+            # above. Asking made every message send it again, plus "not found",
+            # and the failure freed both cooldowns (stage 4 review before v3.1.0,
+            # section 11).
+            exists = True if action_type == 'NOTIFY' else await is_container_exists(container)
             if exists is None:
                 logger.warning(f"AAS: could not check whether '{container}' exists - "
                                f"attempting {action_type} anyway")

@@ -311,6 +311,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   container the rule had not yet touched stayed locked on disk and was refused for up to the
   rule's cooldown after the restart. Only the containers actually acted on keep their cooldown
   now.
+- A notify-only auto-action rule that still named containers which no longer exist sent its notice
+  plus "Container not found" on every matching message, because the "not found" undid its
+  cooldown. It notifies once and keeps its cooldown now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
