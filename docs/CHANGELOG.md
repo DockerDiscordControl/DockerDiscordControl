@@ -159,6 +159,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   removed channels back at the next start, with their old rights. They stay removed now.
 - Unticking "Active" for every container and saving changed nothing - all stayed active - while
   the panel said "saved". It saves them inactive now.
+- One broken container file (not text, or not a JSON object) took down the whole container
+  list - every overview and panel. It is skipped and reported now, like a file with invalid JSON.
 
 ### 🐛 The mech's picture and gift, the update notice
 

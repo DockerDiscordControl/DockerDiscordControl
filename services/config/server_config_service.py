@@ -57,8 +57,16 @@ class ServerConfigService:
             for json_file in containers_dir.glob('*.json'):
                 total_containers += 1
                 try:
-                    with open(json_file, 'r') as f:
+                    with open(json_file, 'r', encoding='utf-8') as f:
                         container_data = json.load(f)
+
+                        # Not an object (null, a number, true): counted like invalid
+                        # JSON. It raised TypeError past both handlers and took the
+                        # whole container list down (stage 4 review, section 13).
+                        if not isinstance(container_data, dict):
+                            unreadable.append(json_file.name)
+                            logger.error(f"Container config {json_file.name} does not hold a JSON object")
+                            continue
 
                         # Map container_name to docker_name for compatibility
                         if 'container_name' in container_data:
@@ -96,7 +104,7 @@ class ServerConfigService:
                         else:
                             logger.debug(f"Skipped INACTIVE container config: {json_file.name}")
 
-                except json.JSONDecodeError as e:
+                except (json.JSONDecodeError, UnicodeDecodeError) as e:
                     unreadable.append(json_file.name)
                     logger.error(f"Invalid JSON in {json_file}: {e}")
                 except (IOError, OSError, PermissionError, RuntimeError, docker.errors.APIError, docker.errors.DockerException) as e:
