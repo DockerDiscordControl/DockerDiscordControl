@@ -161,6 +161,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the panel said "saved". It saves them inactive now.
 - One broken container file (not text, or not a JSON object) took down the whole container
   list - every overview and panel. It is skipped and reported now, like a file with invalid JSON.
+- A container whose image is pinned to a digest showed a piece of the hash as its version in the
+  info display. It shows the tag, or no version.
 
 ### 🐛 The mech's picture and gift, the update notice
 

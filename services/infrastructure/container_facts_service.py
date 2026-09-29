@@ -87,7 +87,12 @@ def version_of(labels: Dict[str, str], reference: str) -> Optional[str]:
         value = str(labels.get(key) or '').strip()
         if value and any(ch.isdigit() for ch in value):
             return value
-    tag = reference.rsplit(':', 1)[1] if ':' in reference.rsplit('/', 1)[-1] else ''
+    # The digest is not a tag: 'redis@sha256:<hex>' and a bare 'sha256:<hex>' id
+    # showed the hash's tail as the version (stage 4 review before v3.1.0, 19b)
+    name = reference.split('@', 1)[0]
+    if name.startswith('sha256:'):
+        name = ''
+    tag = name.rsplit(':', 1)[1] if ':' in name.rsplit('/', 1)[-1] else ''
     if tag and tag != 'latest' and any(ch.isdigit() for ch in tag):
         return tag
     return None
