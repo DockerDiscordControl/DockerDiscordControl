@@ -1082,7 +1082,7 @@
   "web.server.description": "Vali konteinerid (märgi 'Aktiivne') ja määra kuvanimi ning lubatud boti toimingud.",
   "web.server.display_name_placeholder": "Kuvanimi boti jaoks",
   "web.server.edit_info": "Muuda infot",
-  "web.server.enable_info_btn": "Luba infonupp",
+  "web.server.enable_info_btn": "Näita oma teksti ja aadressi",
   "web.server.enable_protected_help": "Sisu, mille vaatamiseks on Discordis vaja parooli",
   "web.server.enable_protected_label": "Luba parooliga kaitstud sisu",
   "web.server.image_label": "Tõmmis",

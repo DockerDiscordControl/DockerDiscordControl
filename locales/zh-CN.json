@@ -1082,7 +1082,7 @@
   "web.server.description": "选择容器（勾选“活动”），定义显示名称和允许的 Bot 操作。",
   "web.server.display_name_placeholder": "Bot 显示名称",
   "web.server.edit_info": "编辑信息",
-  "web.server.enable_info_btn": "启用信息按钮",
+  "web.server.enable_info_btn": "显示我自己的文字和地址",
   "web.server.enable_protected_help": "在 Discord 中需要密码才能查看的内容",
   "web.server.enable_protected_label": "启用密码保护内容",
   "web.server.image_label": "镜像",

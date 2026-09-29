@@ -1082,7 +1082,7 @@
   "web.server.description": "컨테이너를 선택하고('활성' 체크) 표시 이름과 허용된 Bot 액션을 정의하세요.",
   "web.server.display_name_placeholder": "Bot의 표시 이름",
   "web.server.edit_info": "정보 편집",
-  "web.server.enable_info_btn": "정보 버튼 활성화",
+  "web.server.enable_info_btn": "내 텍스트와 주소 표시",
   "web.server.enable_protected_help": "Discord에서 비밀번호가 필요한 콘텐츠",
   "web.server.enable_protected_label": "비밀번호 보호 콘텐츠 활성화",
   "web.server.image_label": "이미지",

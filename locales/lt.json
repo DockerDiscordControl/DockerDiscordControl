@@ -1082,7 +1082,7 @@
   "web.server.description": "Pasirinkite konteinerius (pažymėkite 'Aktyvus') ir nustatykite rodomą pavadinimą bei leidžiamus boto veiksmus.",
   "web.server.display_name_placeholder": "Rodomas pavadinimas bote",
   "web.server.edit_info": "Redaguoti informaciją",
-  "web.server.enable_info_btn": "Įjungti informacijos mygtuką",
+  "web.server.enable_info_btn": "Rodyti savo tekstą ir adresą",
   "web.server.enable_protected_help": "Turinys, kuriam reikia slaptažodžio peržiūrai Discord",
   "web.server.enable_protected_label": "Įjungti slaptažodžiu apsaugotą turinį",
   "web.server.image_label": "Atvaizdas",

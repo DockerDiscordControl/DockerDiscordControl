@@ -1082,7 +1082,7 @@
   "web.server.description": "Seleccione contenedores (marque 'Activo') y defina el nombre visible y las acciones permitidas del bot.",
   "web.server.display_name_placeholder": "Nombre visible para el bot",
   "web.server.edit_info": "Editar info",
-  "web.server.enable_info_btn": "Activar botón de información",
+  "web.server.enable_info_btn": "Mostrar mi propio texto y dirección",
   "web.server.enable_protected_help": "Contenido que requiere contraseña para verse en Discord",
   "web.server.enable_protected_label": "Activar contenido protegido con contraseña",
   "web.server.image_label": "Imagen",

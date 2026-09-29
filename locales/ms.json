@@ -1082,7 +1082,7 @@
   "web.server.description": "Pilih bekas (tanda 'Aktif') dan tentukan nama paparan serta tindakan bot yang dibenarkan.",
   "web.server.display_name_placeholder": "Nama Paparan untuk Bot",
   "web.server.edit_info": "Sunting Info",
-  "web.server.enable_info_btn": "Aktifkan Butang Info",
+  "web.server.enable_info_btn": "Tunjukkan teks dan alamat saya sendiri",
   "web.server.enable_protected_help": "Kandungan yang memerlukan kata laluan untuk dilihat di Discord",
   "web.server.enable_protected_label": "Aktifkan Kandungan Dilindungi Kata Laluan",
   "web.server.image_label": "Imej",

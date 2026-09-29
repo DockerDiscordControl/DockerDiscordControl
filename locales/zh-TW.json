@@ -1082,7 +1082,7 @@
   "web.server.description": "選擇容器（勾選「啟用」）並定義顯示名稱和允許的 Bot 操作。",
   "web.server.display_name_placeholder": "Bot 的顯示名稱",
   "web.server.edit_info": "編輯資訊",
-  "web.server.enable_info_btn": "啟用資訊按鈕",
+  "web.server.enable_info_btn": "顯示我自己的文字與地址",
   "web.server.enable_protected_help": "需要密碼才能在 Discord 中查看的內容",
   "web.server.enable_protected_label": "啟用密碼保護內容",
   "web.server.image_label": "映像檔",

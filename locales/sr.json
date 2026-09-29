@@ -1082,7 +1082,7 @@
   "web.server.description": "Изаберите контејнере (означите 'Активно') и одредите приказно име и дозвољене акције бота.",
   "web.server.display_name_placeholder": "Приказно име за бота",
   "web.server.edit_info": "Уреди инфо",
-  "web.server.enable_info_btn": "Омогући дугме за информације",
+  "web.server.enable_info_btn": "Prikaži sopstveni tekst i adresu",
   "web.server.enable_protected_help": "Садржај који захтева лозинку за преглед у Discord",
   "web.server.enable_protected_label": "Омогући садржај заштићен лозинком",
   "web.server.image_label": "Слика",

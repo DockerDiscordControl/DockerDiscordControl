@@ -1082,7 +1082,7 @@
   "web.server.description": "Vælg containere (sæt flueben ved 'Aktiv'), og angiv visningsnavn og tilladte bothandlinger.",
   "web.server.display_name_placeholder": "Visningsnavn i botten",
   "web.server.edit_info": "Rediger info",
-  "web.server.enable_info_btn": "Aktiver info-knap",
+  "web.server.enable_info_btn": "Vis min egen tekst og adresse",
   "web.server.enable_protected_help": "Indhold, der kræver en adgangskode for at blive vist i Discord",
   "web.server.enable_protected_label": "Aktiver adgangskodebeskyttet indhold",
   "web.server.image_label": "Image",

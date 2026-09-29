@@ -1082,7 +1082,7 @@
   "web.server.description": "Izberite vsebnike (označite 'Aktivno') in določite prikazno ime ter dovoljena dejanja bota.",
   "web.server.display_name_placeholder": "Prikazno ime za bota",
   "web.server.edit_info": "Uredi info",
-  "web.server.enable_info_btn": "Omogoči gumb za informacije",
+  "web.server.enable_info_btn": "Prikaži lastno besedilo in naslov",
   "web.server.enable_protected_help": "Vsebina, ki za ogled v Discordu zahteva geslo",
   "web.server.enable_protected_label": "Omogoči z geslom zaščiteno vsebino",
   "web.server.image_label": "Slika",

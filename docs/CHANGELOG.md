@@ -209,6 +209,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   live logs, auto-action notices and the tracked messages stay.
 - The French mech story found no prologue and no epilogue, and several chapters showed the text of
   another ("Chapitre I" also matched II to IX). Every chapter is found in every language now.
+- The container form's checkbox "Enable Info Button" no longer said what it does: every container
+  has an info display now. It is called "Show my own text and address" (in all 40 languages),
+  which is what it switches.
 
 ### 🐛 The mech's picture and gift, the update notice
 

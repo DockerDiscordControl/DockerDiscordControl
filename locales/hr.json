@@ -1082,7 +1082,7 @@
   "web.server.description": "Odaberi kontejnere (označi 'Aktivan') i definiraj prikazni naziv i dopuštene radnje bota.",
   "web.server.display_name_placeholder": "Prikazni naziv za bota",
   "web.server.edit_info": "Uredi info",
-  "web.server.enable_info_btn": "Omogući info gumb",
+  "web.server.enable_info_btn": "Prikaži vlastiti tekst i adresu",
   "web.server.enable_protected_help": "Sadržaj koji zahtijeva lozinku za pregled u Discordu",
   "web.server.enable_protected_label": "Omogući sadržaj zaštićen lozinkom",
   "web.server.image_label": "Slika",

@@ -1082,7 +1082,7 @@
   "web.server.description": "Επίλεξε containers (σημείωσε 'Ενεργό') και όρισε το εμφανιζόμενο όνομα και τις επιτρεπόμενες ενέργειες του bot.",
   "web.server.display_name_placeholder": "Εμφανιζόμενο όνομα για Bot",
   "web.server.edit_info": "Επεξεργασία πληροφοριών",
-  "web.server.enable_info_btn": "Ενεργοποίηση κουμπιού πληροφοριών",
+  "web.server.enable_info_btn": "Εμφάνιση του δικού μου κειμένου και διεύθυνσης",
   "web.server.enable_protected_help": "Περιεχόμενο που απαιτεί κωδικό για προβολή στο Discord",
   "web.server.enable_protected_label": "Ενεργοποίηση προστατευμένου περιεχομένου",
   "web.server.image_label": "Εικόνα",

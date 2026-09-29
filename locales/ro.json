@@ -1082,7 +1082,7 @@
   "web.server.description": "Selectați containerele (bifați 'Activ') și definiți numele afișat și acțiunile permise bot-ului.",
   "web.server.display_name_placeholder": "Nume Afișat pentru Bot",
   "web.server.edit_info": "Editare Info",
-  "web.server.enable_info_btn": "Activează Butonul Info",
+  "web.server.enable_info_btn": "Afișează textul și adresa proprie",
   "web.server.enable_protected_help": "Conținut care necesită o parolă pentru vizualizare în Discord",
   "web.server.enable_protected_label": "Activează Conținut Protejat cu Parolă",
   "web.server.image_label": "Imagine",

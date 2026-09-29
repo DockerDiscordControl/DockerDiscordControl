@@ -1082,7 +1082,7 @@
   "web.server.description": "コンテナを選択し（'アクティブ'をチェック）、表示名と許可するBotアクションを定義してください。",
   "web.server.display_name_placeholder": "Botの表示名",
   "web.server.edit_info": "情報を編集",
-  "web.server.enable_info_btn": "情報ボタンを有効化",
+  "web.server.enable_info_btn": "独自のテキストとアドレスを表示",
   "web.server.enable_protected_help": "Discordで表示するためにパスワードが必要なコンテンツ",
   "web.server.enable_protected_label": "パスワード保護コンテンツを有効化",
   "web.server.image_label": "イメージ",

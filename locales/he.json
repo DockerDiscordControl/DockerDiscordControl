@@ -1082,7 +1082,7 @@
   "web.server.description": "בחר קונטיינרים (סמן 'פעיל') והגדר את שם התצוגה ופעולות הבוט המותרות.",
   "web.server.display_name_placeholder": "שם תצוגה לבוט",
   "web.server.edit_info": "ערוך מידע",
-  "web.server.enable_info_btn": "הפעל כפתור מידע",
+  "web.server.enable_info_btn": "הצג את הטקסט והכתובת שלי",
   "web.server.enable_protected_help": "תוכן שדורש סיסמה לצפייה ב-Discord",
   "web.server.enable_protected_label": "הפעל תוכן מוגן בסיסמה",
   "web.server.image_label": "אימג'",

@@ -1082,7 +1082,7 @@
   "web.server.description": "Selecteer containers (vink 'Actief' aan) en definieer de weergavenaam en toegestane botacties.",
   "web.server.display_name_placeholder": "Weergavenaam voor bot",
   "web.server.edit_info": "Info bewerken",
-  "web.server.enable_info_btn": "Infoknop inschakelen",
+  "web.server.enable_info_btn": "Eigen tekst en adres tonen",
   "web.server.enable_protected_help": "Inhoud waarvoor een wachtwoord nodig is om te bekijken in Discord",
   "web.server.enable_protected_label": "Wachtwoordbeveiligde inhoud inschakelen",
   "web.server.image_label": "Image",

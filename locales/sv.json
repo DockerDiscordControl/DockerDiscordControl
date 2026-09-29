@@ -1082,7 +1082,7 @@
   "web.server.description": "Välj containrar (kryssa i 'Aktiv') och definiera visningsnamn och tillåtna botåtgärder.",
   "web.server.display_name_placeholder": "Visningsnamn för boten",
   "web.server.edit_info": "Redigera info",
-  "web.server.enable_info_btn": "Aktivera info-knapp",
+  "web.server.enable_info_btn": "Visa min egen text och adress",
   "web.server.enable_protected_help": "Innehåll som kräver lösenord för att visa i Discord",
   "web.server.enable_protected_label": "Aktivera lösenordsskyddat innehåll",
   "web.server.image_label": "Image",

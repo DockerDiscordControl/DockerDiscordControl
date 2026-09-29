@@ -1082,7 +1082,7 @@
   "web.server.description": "Válassz konténereket (jelöld be az 'Aktív'-ot) és határozd meg a megjelenítési nevet és az engedélyezett bot műveleteket.",
   "web.server.display_name_placeholder": "Megjelenítési név a botban",
   "web.server.edit_info": "Infó szerkesztése",
-  "web.server.enable_info_btn": "Infógomb engedélyezése",
+  "web.server.enable_info_btn": "Saját szöveg és cím megjelenítése",
   "web.server.enable_protected_help": "Tartalom, amelynek megtekintéséhez jelszó szükséges a Discordban",
   "web.server.enable_protected_label": "Jelszóval védett tartalom engedélyezése",
   "web.server.image_label": "Image",

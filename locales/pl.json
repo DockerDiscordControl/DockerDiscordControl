@@ -1082,7 +1082,7 @@
   "web.server.description": "Wybierz kontenery (zaznacz 'Aktywne') i zdefiniuj wyświetlaną nazwę oraz dozwolone akcje bota.",
   "web.server.display_name_placeholder": "Wyświetlana nazwa dla bota",
   "web.server.edit_info": "Edytuj info",
-  "web.server.enable_info_btn": "Włącz przycisk Info",
+  "web.server.enable_info_btn": "Pokaż własny tekst i adres",
   "web.server.enable_protected_help": "Treść wymagająca hasła do wyświetlenia w Discord",
   "web.server.enable_protected_label": "Włącz treść chronioną hasłem",
   "web.server.image_label": "Obraz",

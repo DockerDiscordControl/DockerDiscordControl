@@ -1082,7 +1082,7 @@
   "web.server.description": "Pilih kontainer (centang 'Aktif') dan tentukan nama tampilan serta aksi bot yang diizinkan.",
   "web.server.display_name_placeholder": "Nama Tampilan untuk Bot",
   "web.server.edit_info": "Edit Info",
-  "web.server.enable_info_btn": "Aktifkan Tombol Info",
+  "web.server.enable_info_btn": "Tampilkan teks dan alamat saya sendiri",
   "web.server.enable_protected_help": "Konten yang memerlukan kata sandi untuk dilihat di Discord",
   "web.server.enable_protected_label": "Aktifkan Konten Dilindungi Kata Sandi",
   "web.server.image_label": "Image",

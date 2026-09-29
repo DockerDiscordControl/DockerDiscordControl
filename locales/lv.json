@@ -1082,7 +1082,7 @@
   "web.server.description": "Atlasiet konteinerus (atzīmējiet 'Aktīvs') un definējiet attēlojamo nosaukumu un atļautās bota darbības.",
   "web.server.display_name_placeholder": "Attēlojamais nosaukums botā",
   "web.server.edit_info": "Rediģēt informāciju",
-  "web.server.enable_info_btn": "Iespējot info pogu",
+  "web.server.enable_info_btn": "Rādīt savu tekstu un adresi",
   "web.server.enable_protected_help": "Saturs, kura skatīšanai Discord nepieciešama parole",
   "web.server.enable_protected_label": "Iespējot ar paroli aizsargātu saturu",
   "web.server.image_label": "Attēls",

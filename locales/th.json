@@ -1082,7 +1082,7 @@
   "web.server.description": "เลือก Container (เลือก 'ใช้งาน') และกำหนดชื่อที่แสดงและการดำเนินการ Bot ที่อนุญาต",
   "web.server.display_name_placeholder": "ชื่อที่แสดงสำหรับ Bot",
   "web.server.edit_info": "แก้ไขข้อมูล",
-  "web.server.enable_info_btn": "เปิดใช้งานปุ่มข้อมูล",
+  "web.server.enable_info_btn": "แสดงข้อความและที่อยู่ของฉันเอง",
   "web.server.enable_protected_help": "เนื้อหาที่ต้องใช้รหัสผ่านเพื่อดูใน Discord",
   "web.server.enable_protected_label": "เปิดใช้งานเนื้อหาที่ป้องกันด้วยรหัสผ่าน",
   "web.server.image_label": "Image",

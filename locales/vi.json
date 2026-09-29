@@ -1082,7 +1082,7 @@
   "web.server.description": "Chọn container (đánh dấu 'Hoạt động') và xác định tên hiển thị và hành động bot được phép.",
   "web.server.display_name_placeholder": "Tên hiển thị cho Bot",
   "web.server.edit_info": "Chỉnh sửa thông tin",
-  "web.server.enable_info_btn": "Bật nút thông tin",
+  "web.server.enable_info_btn": "Hiển thị văn bản và địa chỉ của riêng tôi",
   "web.server.enable_protected_help": "Nội dung yêu cầu mật khẩu để xem trong Discord",
   "web.server.enable_protected_label": "Bật nội dung được bảo vệ bằng mật khẩu",
   "web.server.image_label": "Image",

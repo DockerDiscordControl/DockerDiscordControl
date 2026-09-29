@@ -1082,7 +1082,7 @@
   "web.server.description": "कंटेनर चुनें ('सक्रिय' चेक करें) और प्रदर्शन नाम और अनुमत बॉट कार्रवाइयाँ परिभाषित करें।",
   "web.server.display_name_placeholder": "बॉट के लिए प्रदर्शन नाम",
   "web.server.edit_info": "जानकारी संपादित करें",
-  "web.server.enable_info_btn": "जानकारी बटन सक्षम करें",
+  "web.server.enable_info_btn": "मेरा अपना पाठ और पता दिखाएँ",
   "web.server.enable_protected_help": "Discord में देखने के लिए पासवर्ड आवश्यक सामग्री",
   "web.server.enable_protected_label": "पासवर्ड-संरक्षित सामग्री सक्षम करें",
   "web.server.image_label": "इमेज",

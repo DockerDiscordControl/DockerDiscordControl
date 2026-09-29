@@ -1082,7 +1082,7 @@
   "web.server.description": "اختر الحاويات (حدد 'نشط') وحدد اسم العرض وإجراءات البوت المسموح بها.",
   "web.server.display_name_placeholder": "اسم العرض للبوت",
   "web.server.edit_info": "تعديل المعلومات",
-  "web.server.enable_info_btn": "تفعيل زر المعلومات",
+  "web.server.enable_info_btn": "عرض النص والعنوان الخاصين بي",
   "web.server.enable_protected_help": "محتوى يتطلب كلمة مرور لعرضه في Discord",
   "web.server.enable_protected_label": "تفعيل المحتوى المحمي بكلمة مرور",
   "web.server.image_label": "الصورة",

@@ -1082,7 +1082,7 @@
   "web.server.description": "Оберіть контейнери (позначте 'Активний') та визначте відображуване ім'я і дозволені дії бота.",
   "web.server.display_name_placeholder": "Відображуване ім'я для бота",
   "web.server.edit_info": "Редагувати інфо",
-  "web.server.enable_info_btn": "Увімкнути кнопку інформації",
+  "web.server.enable_info_btn": "Показувати власний текст і адресу",
   "web.server.enable_protected_help": "Вміст, що потребує пароль для перегляду в Discord",
   "web.server.enable_protected_label": "Увімкнути захищений паролем вміст",
   "web.server.image_label": "Образ",

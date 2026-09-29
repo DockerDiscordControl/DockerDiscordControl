@@ -1082,7 +1082,7 @@
   "web.server.description": "کانتینرها را انتخاب کنید ('فعال' را علامت بزنید) و نام نمایشی و عملیات مجاز بات را تعریف کنید.",
   "web.server.display_name_placeholder": "نام نمایشی برای بات",
   "web.server.edit_info": "ویرایش اطلاعات",
-  "web.server.enable_info_btn": "فعال‌سازی دکمه اطلاعات",
+  "web.server.enable_info_btn": "نمایش متن و نشانی خودم",
   "web.server.enable_protected_help": "محتوایی که برای مشاهده در Discord نیاز به رمز عبور دارد",
   "web.server.enable_protected_label": "فعال‌سازی محتوای محافظت‌شده با رمز عبور",
   "web.server.image_label": "ایمیج",

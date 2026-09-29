@@ -1082,7 +1082,7 @@
   "web.server.description": "Konteynerleri seçin ('Aktif' işaretleyin) ve görüntüleme adı ile izin verilen bot eylemlerini tanımlayın.",
   "web.server.display_name_placeholder": "Bot için Görüntüleme Adı",
   "web.server.edit_info": "Bilgiyi Düzenle",
-  "web.server.enable_info_btn": "Bilgi Düğmesini Etkinleştir",
+  "web.server.enable_info_btn": "Kendi metnimi ve adresimi göster",
   "web.server.enable_protected_help": "Discord'da görüntülemek için şifre gerektiren içerik",
   "web.server.enable_protected_label": "Şifre Korumalı İçeriği Etkinleştir",
   "web.server.image_label": "İmaj",

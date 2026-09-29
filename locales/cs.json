@@ -1082,7 +1082,7 @@
   "web.server.description": "Vyberte kontejnery (zaškrtněte 'Aktivní') a definujte zobrazované jméno a povolené akce bota.",
   "web.server.display_name_placeholder": "Zobrazované jméno pro bota",
   "web.server.edit_info": "Upravit info",
-  "web.server.enable_info_btn": "Povolit tlačítko Info",
+  "web.server.enable_info_btn": "Zobrazit vlastní text a adresu",
   "web.server.enable_protected_help": "Obsah, který vyžaduje heslo pro zobrazení v Discordu",
   "web.server.enable_protected_label": "Povolit heslem chráněný obsah",
   "web.server.image_label": "Obraz",
