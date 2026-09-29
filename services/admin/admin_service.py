@@ -210,6 +210,10 @@ class AdminService:
             logger.debug("Loading admin users from file")
             self._admin_users_cache = self._load_admin_users()
             self._cache_timestamp = datetime.now()
+            # The assignments go with the list: this stamp made their cache look
+            # fresh for good, and a scope narrowed on disk never took effect
+            # (stage 4 review before v3.1.0, section 10).
+            self._admin_containers_cache = None
             return self._admin_users_cache or []
 
     def is_user_admin(self, user_id: Union[str, int], force_refresh: bool = False) -> bool:

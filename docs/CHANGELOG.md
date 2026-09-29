@@ -148,6 +148,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   booked (no amount given, or the booking failed). It says what really happened now.
 - /addadmin said "This user is already an admin" when saving the admin list had failed. It says
   the save failed now.
+- An admin's container assignment changed directly in admins.json took effect only after a
+  restart. It is read again after the usual five minutes now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

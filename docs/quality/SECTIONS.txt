@@ -79,7 +79,7 @@ cogs/translation_manager.py:1-149
 cogs/translation_monitor.py:1-112
 services/__init__.py:1-51
 services/admin/__init__.py:1-5
-services/admin/admin_service.py:1-444
+services/admin/admin_service.py:1-452
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-927
 
