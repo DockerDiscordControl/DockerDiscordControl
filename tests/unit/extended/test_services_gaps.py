@@ -1811,7 +1811,9 @@ class TestSchedulerGaps:
 
         with patch.object(scheduler_mod, "load_config",
                           return_value={"timezone": "Europe/Berlin"}), \
-                patch("pytz.timezone", return_value=tz):
+                patch("services.scheduling.scheduled_task._get_timezone", return_value=tz):
+            # _get_timezone since 2026-09-29 (it falls back to UTC and caches):
+            # a patch of pytz.timezone no longer reaches a zone already cached.
             task._calculate_next_donation_run()
 
         assert task.next_run_ts, "a failed calculation left the task without a date"
@@ -1837,7 +1839,9 @@ class TestSchedulerGaps:
 
         with patch.object(scheduler_mod, "load_config",
                           return_value={"timezone": "Europe/Berlin"}), \
-                patch("pytz.timezone", return_value=tz):
+                patch("services.scheduling.scheduled_task._get_timezone", return_value=tz):
+            # _get_timezone since 2026-09-29 (it falls back to UTC and caches):
+            # a patch of pytz.timezone no longer reaches a zone already cached.
             task._calculate_next_donation_run()
 
         assert task.next_run_ts
@@ -1853,7 +1857,9 @@ class TestSchedulerGaps:
 
         with patch.object(scheduler_mod, "load_config",
                           return_value={"timezone": "Europe/Berlin"}), \
-                patch("pytz.timezone", return_value=tz):
+                patch("services.scheduling.scheduled_task._get_timezone", return_value=tz):
+            # _get_timezone since 2026-09-29 (it falls back to UTC and caches):
+            # a patch of pytz.timezone no longer reaches a zone already cached.
             task._calculate_next_donation_run()
 
         # READ BACK IN THE TIMEZONE IT WAS COMPUTED FOR. fromtimestamp()
