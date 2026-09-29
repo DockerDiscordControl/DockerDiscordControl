@@ -1082,6 +1082,11 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             return False
 
     if task.target_is_group:
+        # Written down BEFORE the group is touched, like the single container
+        # below: returning first, a DDC restart during a group action ran the
+        # whole group action again (stage 4 review before v3.1.0, section 26).
+        task.last_run_ts = time.time()
+        await _persist_async(task)
         # Imported here: group_tasks needs names from this module
         from services.scheduling.group_tasks import execute_group_task
         return await execute_group_task(task, timeout)

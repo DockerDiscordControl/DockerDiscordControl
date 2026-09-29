@@ -224,6 +224,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - When the scheduled donation message failed with an unexpected error (a full disk, for example),
   it was tried again every minute without end and the panel kept showing the previous result. It
   is recorded as failed now and waits for its next run.
+- A scheduled task for a group that was running when DDC restarted (an image update, or a group
+  containing DDC itself) ran the whole group action a second time after the restart. Like a single
+  container, it is written down as begun before it acts now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
