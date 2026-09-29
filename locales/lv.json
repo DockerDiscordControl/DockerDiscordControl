@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC ir atjaunināts uz versiju {version}. Jaunumi ir laidiena piezīmēs:",
   "Full release notes:": "Pilnas laidiena piezīmes:",
-  "Could not save the change.": "Izmaiņas neizdevās saglabāt."
+  "Could not save the change.": "Izmaiņas neizdevās saglabāt.",
+  "Nothing was recorded - a donation needs an amount.": "Nekas netika reģistrēts - ziedojumam vajadzīga summa.",
+  "Please try again later.": "Lūdzu, mēģini vēlreiz vēlāk."
 }

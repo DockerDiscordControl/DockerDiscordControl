@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC je posodobljen na različico {version}. Novosti so v opombah ob izdaji:",
   "Full release notes:": "Celotne opombe ob izdaji:",
-  "Could not save the change.": "Spremembe ni bilo mogoče shraniti."
+  "Could not save the change.": "Spremembe ni bilo mogoče shraniti.",
+  "Nothing was recorded - a donation needs an amount.": "Nič ni bilo zabeleženo - donacija potrebuje znesek.",
+  "Please try again later.": "Poskusi znova pozneje."
 }

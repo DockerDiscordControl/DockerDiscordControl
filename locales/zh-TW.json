@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC 已更新至 {version} 版。更新內容請見發行說明：",
   "Full release notes:": "完整發行說明：",
-  "Could not save the change.": "無法儲存變更。"
+  "Could not save the change.": "無法儲存變更。",
+  "Nothing was recorded - a donation needs an amount.": "未記錄任何內容 - 捐贈需要金額。",
+  "Please try again later.": "請稍後再試。"
 }

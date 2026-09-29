@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC telah diperbarui ke versi {version}. Yang baru ada di catatan rilis:",
   "Full release notes:": "Catatan rilis lengkap:",
-  "Could not save the change.": "Perubahan tidak dapat disimpan."
+  "Could not save the change.": "Perubahan tidak dapat disimpan.",
+  "Nothing was recorded - a donation needs an amount.": "Tidak ada yang dicatat - donasi memerlukan jumlah.",
+  "Please try again later.": "Silakan coba lagi nanti."
 }

@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "Το DDC ενημερώθηκε στην έκδοση {version}. Τα νέα θα τα βρείτε στις σημειώσεις έκδοσης:",
   "Full release notes:": "Πλήρεις σημειώσεις έκδοσης:",
-  "Could not save the change.": "Δεν ήταν δυνατή η αποθήκευση της αλλαγής."
+  "Could not save the change.": "Δεν ήταν δυνατή η αποθήκευση της αλλαγής.",
+  "Nothing was recorded - a donation needs an amount.": "Δεν καταγράφηκε τίποτα - μια δωρεά χρειάζεται ποσό.",
+  "Please try again later.": "Παρακαλώ δοκιμάστε ξανά αργότερα."
 }

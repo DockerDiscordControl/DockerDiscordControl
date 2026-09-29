@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC er opdateret til version {version}. Det nye står i udgivelsesnoterne:",
   "Full release notes:": "Hele udgivelsesnoterne:",
-  "Could not save the change.": "Ændringen kunne ikke gemmes."
+  "Could not save the change.": "Ændringen kunne ikke gemmes.",
+  "Nothing was recorded - a donation needs an amount.": "Intet blev registreret - en donation kræver et beløb.",
+  "Please try again later.": "Prøv venligst igen senere."
 }

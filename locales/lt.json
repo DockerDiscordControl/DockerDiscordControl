@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC atnaujintas į {version} versiją. Kas naujo – leidimo pastabose:",
   "Full release notes:": "Visos leidimo pastabos:",
-  "Could not save the change.": "Nepavyko išsaugoti pakeitimo."
+  "Could not save the change.": "Nepavyko išsaugoti pakeitimo.",
+  "Nothing was recorded - a donation needs an amount.": "Nieko neužregistruota - aukai reikia sumos.",
+  "Please try again later.": "Bandykite dar kartą vėliau."
 }

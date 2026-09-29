@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC bol aktualizovaný na verziu {version}. Čo je nové, nájdete v poznámkach k vydaniu:",
   "Full release notes:": "Úplné poznámky k vydaniu:",
-  "Could not save the change.": "Zmenu sa nepodarilo uložiť."
+  "Could not save the change.": "Zmenu sa nepodarilo uložiť.",
+  "Nothing was recorded - a donation needs an amount.": "Nič nebolo zaznamenané - dar potrebuje sumu.",
+  "Please try again later.": "Skúste to prosím neskôr znova."
 }

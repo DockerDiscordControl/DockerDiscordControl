@@ -118,7 +118,7 @@ cogs/control_helpers.py	351	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines nev
 cogs/control_ui.py	1433	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
 cogs/ddc_ui.py	261	passE:written-2026-09-21
 cogs/docker_control.py	1251	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
-cogs/donation_ui.py	693	NONE
+cogs/donation_ui.py	710	NONE
 cogs/enhanced_info_modal_simple.py	704	passE:E27+bothscans:519-700
 cogs/group_control.py	361	NONE
 cogs/help_embed.py	96	NONE

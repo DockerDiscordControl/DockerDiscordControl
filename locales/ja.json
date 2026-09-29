@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC がバージョン {version} に更新されました。新機能はリリースノートをご覧ください:",
   "Full release notes:": "リリースノート全文:",
-  "Could not save the change.": "変更を保存できませんでした。"
+  "Could not save the change.": "変更を保存できませんでした。",
+  "Nothing was recorded - a donation needs an amount.": "何も記録されていません - 寄付には金額が必要です。",
+  "Please try again later.": "後でもう一度お試しください。"
 }

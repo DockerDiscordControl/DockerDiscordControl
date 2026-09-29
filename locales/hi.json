@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC को संस्करण {version} पर अपडेट किया गया। नया क्या है, रिलीज़ नोट्स में देखें:",
   "Full release notes:": "पूरे रिलीज़ नोट्स:",
-  "Could not save the change.": "बदलाव सहेजा नहीं जा सका।"
+  "Could not save the change.": "बदलाव सहेजा नहीं जा सका।",
+  "Nothing was recorded - a donation needs an amount.": "कुछ भी दर्ज नहीं हुआ - दान के लिए राशि चाहिए।",
+  "Please try again later.": "कृपया बाद में पुनः प्रयास करें।"
 }

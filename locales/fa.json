@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC به نسخه {version} به‌روز شد. تغییرات جدید در یادداشت‌های انتشار آمده است:",
   "Full release notes:": "یادداشت‌های کامل انتشار:",
-  "Could not save the change.": "ذخیره تغییر ممکن نشد."
+  "Could not save the change.": "ذخیره تغییر ممکن نشد.",
+  "Nothing was recorded - a donation needs an amount.": "چیزی ثبت نشد - کمک مالی به مبلغ نیاز دارد.",
+  "Please try again later.": "لطفاً بعداً دوباره تلاش کنید."
 }

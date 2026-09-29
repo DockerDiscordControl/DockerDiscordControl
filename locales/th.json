@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC ได้อัปเดตเป็นเวอร์ชัน {version} แล้ว ดูสิ่งใหม่ในบันทึกประจำรุ่น:",
   "Full release notes:": "บันทึกประจำรุ่นฉบับเต็ม:",
-  "Could not save the change.": "ไม่สามารถบันทึกการเปลี่ยนแปลงได้"
+  "Could not save the change.": "ไม่สามารถบันทึกการเปลี่ยนแปลงได้",
+  "Nothing was recorded - a donation needs an amount.": "ไม่มีการบันทึก - การบริจาคต้องมีจำนวนเงิน",
+  "Please try again later.": "โปรดลองอีกครั้งในภายหลัง"
 }

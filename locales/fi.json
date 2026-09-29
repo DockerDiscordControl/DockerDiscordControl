@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC on päivitetty versioon {version}. Uutuudet löytyvät julkaisutiedoista:",
   "Full release notes:": "Koko julkaisutiedot:",
-  "Could not save the change.": "Muutosta ei voitu tallentaa."
+  "Could not save the change.": "Muutosta ei voitu tallentaa.",
+  "Nothing was recorded - a donation needs an amount.": "Mitään ei kirjattu - lahjoitus tarvitsee summan.",
+  "Please try again later.": "Yritä myöhemmin uudelleen."
 }

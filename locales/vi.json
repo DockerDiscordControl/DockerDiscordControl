@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC đã được cập nhật lên phiên bản {version}. Xem điểm mới trong ghi chú phát hành:",
   "Full release notes:": "Ghi chú phát hành đầy đủ:",
-  "Could not save the change.": "Không thể lưu thay đổi."
+  "Could not save the change.": "Không thể lưu thay đổi.",
+  "Nothing was recorded - a donation needs an amount.": "Không có gì được ghi nhận - khoản quyên góp cần có số tiền.",
+  "Please try again later.": "Vui lòng thử lại sau."
 }

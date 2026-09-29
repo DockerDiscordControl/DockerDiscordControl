@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC uuendati versioonile {version}. Mis on uut, on kirjas väljalaskemärkmetes:",
   "Full release notes:": "Täielikud väljalaskemärkmed:",
-  "Could not save the change.": "Muudatust ei õnnestunud salvestada."
+  "Could not save the change.": "Muudatust ei õnnestunud salvestada.",
+  "Nothing was recorded - a donation needs an amount.": "Midagi ei registreeritud - annetus vajab summat.",
+  "Please try again later.": "Palun proovi hiljem uuesti."
 }

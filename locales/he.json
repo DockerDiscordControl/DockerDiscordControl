@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC עודכן לגרסה {version}. מה חדש – בהערות השחרור:",
   "Full release notes:": "הערות השחרור המלאות:",
-  "Could not save the change.": "לא ניתן היה לשמור את השינוי."
+  "Could not save the change.": "לא ניתן היה לשמור את השינוי.",
+  "Nothing was recorded - a donation needs an amount.": "שום דבר לא נרשם - תרומה צריכה סכום.",
+  "Please try again later.": "נא לנסות שוב מאוחר יותר."
 }

@@ -28,6 +28,37 @@ from .translation_manager import _
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
+def donation_answer(share, too_soon, amount, booked, broadcast_allowed, sent, failed, donor_name) -> str:
+    """What the donor is told at the end of the donation modal.
+
+    The private branch said "recorded ... has been recorded" without asking
+    whether anything was booked - with no amount nothing ever is, and a failed
+    booking was swallowed before it (stage 4 review before v3.1.0, section 06).
+    """
+    if share and too_soon:
+        return (_("✅ **Donation recorded** - thank you!") + "\n\n"
+                + _("No broadcast this time: one per person every five minutes."))
+    if share and not amount:
+        return (_("✅ Thank you!") + "\n\n"
+                + _("A broadcast needs an amount - nothing was sent to the channels."))
+    if share and not broadcast_allowed:
+        return (_("⚠️ **Donation could not be recorded**") + "\n\n"
+                + _("Nothing was sent to any channel. Please try again later."))
+    if share:
+        text = (_("✅ **Donation broadcast sent!**") + "\n\n"
+                + _("📢 Sent to **{count}** channels").format(count=sent) + "\n")
+        if failed > 0:
+            text += _("⚠️ Failed to send to {count} channels").format(count=failed) + "\n"
+        return text + "\n" + _("Thank you **{donor_name}** for your generosity! 🙏").format(donor_name=donor_name)
+    if not amount:
+        return _("✅ Thank you!") + "\n\n" + _("Nothing was recorded - a donation needs an amount.")
+    if not booked:
+        return _("⚠️ **Donation could not be recorded**") + "\n\n" + _("Please try again later.")
+    return (_("✅ **Donation recorded privately!**") + "\n\n"
+            + _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
+            + _("Your donation has been recorded and helps power the Donation Engine."))
+
+
 class DonationView(DDCView):
     """View with donation buttons that track clicks."""
 
@@ -530,30 +561,16 @@ class DonationBroadcastModal(DDCModal):
                         failed_count += 1
                         logger.error(f"Error sending to channel {channel_id_str}: {channel_error}", exc_info=True)
 
-            # Respond to user
-            if should_share_publicly and too_soon:
-                response_text = _("✅ **Donation recorded** - thank you!") + "\n\n"
-                response_text += _("No broadcast this time: one per person every five minutes.")
-            elif should_share_publicly and not amount:
-                response_text = _("✅ Thank you!") + "\n\n"
-                response_text += _("A broadcast needs an amount - nothing was sent to the channels.")
-            elif should_share_publicly and not broadcast_allowed:
-                response_text = _("⚠️ **Donation could not be recorded**") + "\n\n"
-                response_text += _("Nothing was sent to any channel. Please try again later.")
-            elif should_share_publicly:
+            # Respond to user - composed in one place (donation_answer)
+            if should_share_publicly and amount and broadcast_allowed and not too_soon:
                 # Channels that opted out are neither a delivery nor a failure, so
                 # they appear in the log and not in this summary (review B36).
                 logger.info(f"Donation broadcast: {sent_count} sent, {failed_count} failed, "
                             f"{opted_out_count} opted out")
-                response_text = _("✅ **Donation broadcast sent!**") + "\n\n"
-                response_text += _("📢 Sent to **{count}** channels").format(count=sent_count) + "\n"
-                if failed_count > 0:
-                    response_text += _("⚠️ Failed to send to {count} channels").format(count=failed_count) + "\n"
-                response_text += "\n" + _("Thank you **{donor_name}** for your generosity! 🙏").format(donor_name=donor_name)
-            else:
-                response_text = _("✅ **Donation recorded privately!**") + "\n\n"
-                response_text += _("Thank you **{donor_name}** for your generous support! 🙏").format(donor_name=donor_name) + "\n"
-                response_text += _("Your donation has been recorded and helps power the Donation Engine.")
+            response_text = donation_answer(
+                share=should_share_publicly, too_soon=too_soon, amount=amount,
+                booked=donation_booked, broadcast_allowed=broadcast_allowed,
+                sent=sent_count, failed=failed_count, donor_name=donor_name)
 
             # Replace the processing message with the final result
             await interaction.edit_original_response(content=response_text)

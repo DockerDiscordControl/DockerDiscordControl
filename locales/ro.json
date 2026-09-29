@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC a fost actualizat la versiunea {version}. Noutățile sunt în notele de lansare:",
   "Full release notes:": "Notele complete de lansare:",
-  "Could not save the change.": "Modificarea nu a putut fi salvată."
+  "Could not save the change.": "Modificarea nu a putut fi salvată.",
+  "Nothing was recorded - a donation needs an amount.": "Nu s-a înregistrat nimic - o donație are nevoie de o sumă.",
+  "Please try again later.": "Te rog încearcă din nou mai târziu."
 }

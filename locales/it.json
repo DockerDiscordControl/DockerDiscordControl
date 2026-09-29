@@ -1661,5 +1661,7 @@
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC è stato aggiornato alla versione {version}. Le novità sono nelle note di rilascio:",
   "Full release notes:": "Note di rilascio complete:",
-  "Could not save the change.": "Impossibile salvare la modifica."
+  "Could not save the change.": "Impossibile salvare la modifica.",
+  "Nothing was recorded - a donation needs an amount.": "Non è stato registrato nulla: una donazione richiede un importo.",
+  "Please try again later.": "Riprova più tardi."
 }
