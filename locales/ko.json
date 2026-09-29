@@ -1665,5 +1665,6 @@
   "Please try again later.": "나중에 다시 시도해 주세요.",
   "Not in DDC any more": "더 이상 DDC에 없음",
   "Not assigned to you": "나에게 할당되지 않음",
-  "❌ None of the active containers is assigned to you.": "❌ 활성 컨테이너 중 나에게 할당된 것이 없습니다."
+  "❌ None of the active containers is assigned to you.": "❌ 활성 컨테이너 중 나에게 할당된 것이 없습니다.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ 메크 상태를 일시적으로 사용할 수 없음"
 }

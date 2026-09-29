@@ -1665,5 +1665,6 @@
   "Please try again later.": "Bitte versuche es später noch einmal.",
   "Not in DDC any more": "Nicht mehr in DDC",
   "Not assigned to you": "Dir nicht zugewiesen",
-  "❌ None of the active containers is assigned to you.": "❌ Keiner der aktiven Container ist dir zugewiesen."
+  "❌ None of the active containers is assigned to you.": "❌ Keiner der aktiven Container ist dir zugewiesen.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ Mech-Status vorübergehend nicht verfügbar"
 }

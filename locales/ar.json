@@ -1665,5 +1665,6 @@
   "Please try again later.": "يرجى المحاولة مرة أخرى لاحقًا.",
   "Not in DDC any more": "لم يعد في DDC",
   "Not assigned to you": "غير مُسندة إليك",
-  "❌ None of the active containers is assigned to you.": "❌ لم يُسند إليك أي من الحاويات النشطة."
+  "❌ None of the active containers is assigned to you.": "❌ لم يُسند إليك أي من الحاويات النشطة.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ حالة الميك غير متاحة مؤقتًا"
 }

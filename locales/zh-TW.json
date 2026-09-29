@@ -1665,5 +1665,6 @@
   "Please try again later.": "請稍後再試。",
   "Not in DDC any more": "已不在 DDC 中",
   "Not assigned to you": "未分配給你",
-  "❌ None of the active containers is assigned to you.": "❌ 沒有任何啟用中的容器分配給你。"
+  "❌ None of the active containers is assigned to you.": "❌ 沒有任何啟用中的容器分配給你。",
+  "⚙️ Mech status temporarily unavailable": "⚙️ 機甲狀態暫時無法使用"
 }

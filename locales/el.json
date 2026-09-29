@@ -1665,5 +1665,6 @@
   "Please try again later.": "Παρακαλώ δοκιμάστε ξανά αργότερα.",
   "Not in DDC any more": "Δεν υπάρχει πλέον στο DDC",
   "Not assigned to you": "Δεν σου έχουν ανατεθεί",
-  "❌ None of the active containers is assigned to you.": "❌ Κανένα από τα ενεργά container δεν σου έχει ανατεθεί."
+  "❌ None of the active containers is assigned to you.": "❌ Κανένα από τα ενεργά container δεν σου έχει ανατεθεί.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ Η κατάσταση του mech δεν είναι προσωρινά διαθέσιμη"
 }

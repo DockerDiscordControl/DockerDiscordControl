@@ -1665,5 +1665,6 @@
   "Please try again later.": "Lütfen daha sonra tekrar dene.",
   "Not in DDC any more": "Artık DDC'de değil",
   "Not assigned to you": "Sana atanmamış",
-  "❌ None of the active containers is assigned to you.": "❌ Etkin konteynerlerin hiçbiri sana atanmamış."
+  "❌ None of the active containers is assigned to you.": "❌ Etkin konteynerlerin hiçbiri sana atanmamış.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ Mech durumu geçici olarak kullanılamıyor"
 }

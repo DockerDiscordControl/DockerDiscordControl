@@ -603,6 +603,12 @@ class OverviewEmbedsMixin:
 
             except Exception as e:  # noqa: BLE001 - same as the expanded builder (E20)
                 logger.error(f"Could not load collapsed mech status for /ss: {e}", exc_info=True)
+                # Said where the mech would have been, like the animation failure
+                # above: the section vanished and the reason was only in the log
+                # (stage 4 review before v3.1.0, section 05).
+                existing = embed.footer.text if embed.footer and embed.footer.text else ""
+                note = translate("⚙️ Mech status temporarily unavailable")
+                embed.set_footer(text=f"{existing} | {note}" if existing else note)
         else:
             # Donations disabled - no mech components
             animation_files = None

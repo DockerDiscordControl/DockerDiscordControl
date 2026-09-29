@@ -1665,5 +1665,6 @@
   "Please try again later.": "कृपया बाद में पुनः प्रयास करें।",
   "Not in DDC any more": "अब DDC में नहीं",
   "Not assigned to you": "तुम्हें सौंपे नहीं गए",
-  "❌ None of the active containers is assigned to you.": "❌ सक्रिय कंटेनरों में से कोई भी तुम्हें सौंपा नहीं गया है।"
+  "❌ None of the active containers is assigned to you.": "❌ सक्रिय कंटेनरों में से कोई भी तुम्हें सौंपा नहीं गया है।",
+  "⚙️ Mech status temporarily unavailable": "⚙️ मेक की स्थिति अस्थायी रूप से उपलब्ध नहीं है"
 }

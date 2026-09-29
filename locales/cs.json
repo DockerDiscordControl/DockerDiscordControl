@@ -1665,5 +1665,6 @@
   "Please try again later.": "Zkuste to prosím později znovu.",
   "Not in DDC any more": "Už není v DDC",
   "Not assigned to you": "Nepřiřazeno tobě",
-  "❌ None of the active containers is assigned to you.": "❌ Žádný z aktivních kontejnerů ti není přiřazen."
+  "❌ None of the active containers is assigned to you.": "❌ Žádný z aktivních kontejnerů ti není přiřazen.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ Stav mecha dočasně nedostupný"
 }

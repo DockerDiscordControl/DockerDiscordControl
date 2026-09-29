@@ -1665,5 +1665,6 @@
   "Please try again later.": "Prøv venligst igen senere.",
   "Not in DDC any more": "Ikke længere i DDC",
   "Not assigned to you": "Ikke tildelt dig",
-  "❌ None of the active containers is assigned to you.": "❌ Ingen af de aktive containere er tildelt dig."
+  "❌ None of the active containers is assigned to you.": "❌ Ingen af de aktive containere er tildelt dig.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ Mech-status midlertidigt utilgængelig"
 }

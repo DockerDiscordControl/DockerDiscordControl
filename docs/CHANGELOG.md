@@ -266,6 +266,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   privately now that the panel could not be shown, and the reason is in the log.
 - With a stored premium key that is not valid, the Mechonate button said "Premium Features Active"
   while /donate showed the donation panel. The button asks the same rule as /donate now.
+- When the mech status could not be read, the /ss overview lost its mech without a word. The
+  footer says "Mech status temporarily unavailable" now, as it already did when only the animation
+  failed.
 
 ### 🐛 The mech's picture and gift, the update notice
 

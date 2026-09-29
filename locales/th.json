@@ -1665,5 +1665,6 @@
   "Please try again later.": "โปรดลองอีกครั้งในภายหลัง",
   "Not in DDC any more": "ไม่อยู่ใน DDC แล้ว",
   "Not assigned to you": "ไม่ได้มอบหมายให้คุณ",
-  "❌ None of the active containers is assigned to you.": "❌ ไม่มีคอนเทนเนอร์ที่ใช้งานอยู่รายการใดที่มอบหมายให้คุณ"
+  "❌ None of the active containers is assigned to you.": "❌ ไม่มีคอนเทนเนอร์ที่ใช้งานอยู่รายการใดที่มอบหมายให้คุณ",
+  "⚙️ Mech status temporarily unavailable": "⚙️ สถานะเมคไม่พร้อมใช้งานชั่วคราว"
 }

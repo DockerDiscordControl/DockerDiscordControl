@@ -1665,5 +1665,6 @@
   "Please try again later.": "Vui lòng thử lại sau.",
   "Not in DDC any more": "Không còn trong DDC",
   "Not assigned to you": "Không được giao cho bạn",
-  "❌ None of the active containers is assigned to you.": "❌ Không có container đang hoạt động nào được giao cho bạn."
+  "❌ None of the active containers is assigned to you.": "❌ Không có container đang hoạt động nào được giao cho bạn.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ Trạng thái mech tạm thời không khả dụng"
 }

@@ -1665,5 +1665,6 @@
   "Please try again later.": "Yritä myöhemmin uudelleen.",
   "Not in DDC any more": "Ei enää DDC:ssä",
   "Not assigned to you": "Ei sinulle määritetty",
-  "❌ None of the active containers is assigned to you.": "❌ Yhtään aktiivisista konteista ei ole määritetty sinulle."
+  "❌ None of the active containers is assigned to you.": "❌ Yhtään aktiivisista konteista ei ole määritetty sinulle.",
+  "⚙️ Mech status temporarily unavailable": "⚙️ Mechin tila tilapäisesti poissa käytöstä"
 }
