@@ -20,6 +20,14 @@ It goes through ConfigurationSaveService.save_configuration, the panel's
 save, on a temp config directory.
 
 COUNTER-CHECK (2026-09-29): written before the fix and red then.
+
+RED IN THE FULL RUN, GREEN ALONE (found 2026-09-29 in the per-commit runs of
+c0805112 and e8329134): the container files are written by a singleton,
+ContainerConfigSaveService, which keeps the folder it was first built for.
+An earlier test in the group built it for its own config folder, so this
+save marked the container inactive THERE, and this test read its own
+untouched file. The singleton is reset here, like ConfigService above. The
+production code is unaffected: its config folder never changes at run time.
 """
 
 import importlib
@@ -37,6 +45,8 @@ def test_an_empty_selection_saves_every_container_inactive(tmp_path, monkeypatch
     (tmp_path / "config.json").write_text(json.dumps({"guild_id": "1"}), encoding="utf-8")
     config_module = importlib.import_module("services.config.config_service")
     monkeypatch.setattr(config_module.ConfigService, "_instance", None)
+    save_module = importlib.import_module("services.config.container_config_save_service")
+    monkeypatch.setattr(save_module, "_container_config_save_service_instance", None)
     from services.web.configuration_save_service import (ConfigurationSaveRequest,
                                                          ConfigurationSaveService)
 
