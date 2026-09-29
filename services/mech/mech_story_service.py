@@ -122,21 +122,15 @@ class MechStoryService:
         current_chapter = None
         current_content = []
 
-        # Language-independent header patterns (should work for EN/DE/FR files)
-        header_patterns = {
-            'prologue1': ['Prologue I:', 'Prolog I:'],
-            'prologue2': ['Prologue II:', 'Prolog II:'],
-            'chapter1': ['Chapter I:', 'Kapitel I:', 'Chapitre I'],
-            'chapter2': ['Chapter II:', 'Kapitel II:', 'Chapitre II'],
-            'chapter3': ['Chapter III:', 'Kapitel III:', 'Chapitre III'],
-            'chapter4': ['Chapter IV:', 'Kapitel IV:', 'Chapitre IV'],
-            'chapter5': ['Chapter V:', 'Kapitel V:', 'Chapitre V'],
-            'chapter6': ['Chapter VI:', 'Kapitel VI:', 'Chapitre VI'],
-            'chapter7': ['Chapter VII:', 'Kapitel VII:', 'Chapitre VII'],
-            'chapter8': ['Chapter VIII:', 'Kapitel VIII:', 'Chapitre VIII'],
-            'chapter9': ['Chapter IX:', 'Kapitel IX:', 'Chapitre IX'],
-            'epilogue': ['Epilogue:', 'Epilog:', 'Épilogue:', '3p!l0gu3:']
-        }
+        # A header is a word, a Roman numeral and a colon - with or without a
+        # space before it, as French writes it ("Prologue I : ..."). Prefixes did
+        # this before: they missed the French prologues and epilogue, and
+        # "Chapitre I" also matched II, III, IV and IX (stage 4 review before
+        # v3.1.0, section 03).
+        import re
+        header = re.compile(r'^(Prologue|Prolog|Chapter|Kapitel|Chapitre)\s+([IVX]+)\s*:')
+        epilogue = re.compile(r'^(Epilogue|Epilog|Épilogue|3p!l0gu3)\s*:')
+        numerals = {'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9}
 
         for section in sections:
             section = section.strip()
@@ -145,10 +139,15 @@ class MechStoryService:
 
             # Check if this section starts a new chapter
             new_chapter_key = None
-            for chapter_key, patterns in header_patterns.items():
-                if any(section.startswith(pattern) for pattern in patterns):
-                    new_chapter_key = chapter_key
-                    break
+            match = header.match(section)
+            if match and match.group(2) in numerals:
+                number = numerals[match.group(2)]
+                if match.group(1) in ('Prologue', 'Prolog'):
+                    new_chapter_key = f'prologue{number}' if number <= 2 else None
+                else:
+                    new_chapter_key = f'chapter{number}'
+            elif epilogue.match(section):
+                new_chapter_key = 'epilogue'
 
             if new_chapter_key:
                 # Save previous chapter

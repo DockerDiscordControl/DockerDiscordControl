@@ -207,6 +207,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The cleanup at startup removed an old stray bot message only when a younger one happened to be
   in the channel too, and left it otherwise. It removes the bot's stray messages of any age now;
   live logs, auto-action notices and the tracked messages stay.
+- The French mech story found no prologue and no epilogue, and several chapters showed the text of
+  another ("Chapitre I" also matched II to IX). Every chapter is found in every language now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
