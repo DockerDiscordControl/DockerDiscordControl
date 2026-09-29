@@ -111,6 +111,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Clearing the "Global cooldown" field of the auto-actions was saved as "nothing", and from then
   on every message rule failed in silence while the panel had said "saved". The field now has to
   hold a whole number of seconds, and a value already stored that way no longer stops the rules.
+- A scheduled task that DDC was stopped in the middle of (an image update, a container stop)
+  was never run again: it was skipped every minute as "already begun". It is still not repeated,
+  but it is now marked as interrupted and moved to its next run; a one-time task is switched off.
 
 ### 🐛 The mech's picture and gift, the update notice
 

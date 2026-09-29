@@ -695,16 +695,24 @@ def _format_task_time(task: ScheduledTask, timestamp: Optional[float]) -> str:
     except (ValueError, TypeError, AttributeError, OSError):
         return str(timestamp)
 
-def reschedule_missed_task(task: ScheduledTask) -> bool:
+def reschedule_missed_task(task: ScheduledTask, interrupted: bool = False) -> bool:
     """Handle a task whose scheduled time passed longer ago than the grace period.
 
     Missed runs are not executed retroactively, and BOTH kinds are marked
     not-successful with the reason (last_run_ts stays put - no run happened):
     the last REAL result otherwise kept a green badge on a week-dead task.
+
+    ``interrupted``: the run was BEGUN (last_run_ts written) and DDC was
+    stopped before it finished. It is not repeated either - but it must move
+    on: the scheduler's "already begun" guard skipped it with a bare
+    ``continue`` every cycle, so a daily task never ran again (stage 4 review
+    before v3.1.0, section 49).
     """
     missed_at = _format_task_time(task, task.next_run_ts)
     task.last_run_success = False
-    task.last_run_error = f"Missed scheduled time {missed_at} (scheduler not running); not executed"
+    task.last_run_error = (
+        f"Begun at {missed_at}, DDC was stopped before it finished; not repeated" if interrupted
+        else f"Missed scheduled time {missed_at} (scheduler not running); not executed")
     if task.cycle == CYCLE_ONCE:
         task.is_active = False
         logger.warning(f"One-time task {task.task_id} ({task.container_name} {task.action}) missed its time {missed_at}; deactivated")

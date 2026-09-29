@@ -243,7 +243,7 @@ services/scheduling/task_writeback.py:1-119
 services/scheduling/group_tasks.py:1-96
 
 ## Section 26  (1220 lines, 1 piece)
-services/scheduling/scheduler.py:1-1220
+services/scheduling/scheduler.py:1-1228
 
 ## Section 26b  (1082 lines, 2 pieces)
 # 2026-09-28: scheduler.py split - the task and its cycles went to
@@ -502,6 +502,6 @@ services/translation/translation_service.py:1-835
 # v3.1.0, 2026-09-28: restart or stop only when nobody plays, and the warning
 # before - the core, the scheduler that calls it and its Discord dropdowns,
 # read together.
-services/scheduling/scheduler_service.py:1-632
+services/scheduling/scheduler_service.py:1-641
 services/scheduling/player_gate.py:1-310
 cogs/task_player_options.py:1-137

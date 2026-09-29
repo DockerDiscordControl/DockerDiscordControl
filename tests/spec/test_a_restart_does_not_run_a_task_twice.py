@@ -48,7 +48,7 @@ def world(monkeypatch):
         started.extend(t.task_id for t in tasks)
 
     monkeypatch.setattr(scheduler_service, "load_tasks", lambda: list(service._tasks_for_test))
-    monkeypatch.setattr(scheduler_service, "reschedule_missed_task", lambda task: None)
+    monkeypatch.setattr(scheduler_service, "reschedule_missed_task", lambda task, *_a: None)
     monkeypatch.setattr(service, "_check_system_tasks", no_system_tasks)
     monkeypatch.setattr(service, "_execute_task_batch", batch)
     service.started = started

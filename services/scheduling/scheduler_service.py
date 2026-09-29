@@ -442,10 +442,18 @@ class SchedulerService:
                 # occurrence down before it acts, so a last run at or after the
                 # due time means this one was already taken on - by a DDC that
                 # was restarted mid-action, for instance.
+                # Not repeated - but moved on: next_run_ts was never advanced
+                # (DDC stopped mid-action), and a bare `continue` here skipped
+                # the task every cycle for good (stage 4, section 49).
                 if task.last_run_ts and task.last_run_ts >= task.next_run_ts:
-                    logger.info(f"Task {task.task_id} was already begun at "
-                                f"{task.last_run_ts} for {task.next_run_ts}; not repeating it")
+                    logger.warning(f"Task {task.task_id} was already begun at "
+                                   f"{task.last_run_ts} for {task.next_run_ts}; not repeating it, "
+                                   f"moving it to its next run")
                     self.task_execution_stats['total_skipped'] += 1
+                    try:
+                        await asyncio.to_thread(reschedule_missed_task, task, True)
+                    except (RuntimeError, OSError, AttributeError, TypeError, ValueError, KeyError) as e:
+                        logger.error(f"Error moving on interrupted task {task.task_id}: {e}", exc_info=True)
                     continue
 
                 # Skip if this occurrence already ran (its reschedule could not be saved)
@@ -534,8 +542,9 @@ class SchedulerService:
             # it as executed only once the execution has actually returned. Marking
             # it beforehand wrote down a run that had not happened: execute_task
             # advances next_run_ts itself on every path it handles, yet EVERY DDC
-            # exception escapes it (DDCBaseException derives from Exception, not
-            # from RuntimeError). next_run_ts then stays where it was, and the guard
+            # exception escaped it then (DDCBaseException derives from Exception,
+            # not from RuntimeError; execute_task has caught them all since, so
+            # today only a stop mid-action gets here). next_run_ts stayed, and the guard
             # in _check_and_execute_tasks skipped the occurrence as "already
             # executed" - a silently dropped run for a recurring task, and a
             # one-time task written off as "scheduler not running" (review C6).
