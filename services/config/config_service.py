@@ -375,34 +375,34 @@ class ConfigService:
         # of serving the (possibly stale) result cached below.
         load_mtime = self._cache_service.get_config_dir_mtime(self.config_dir)
 
-        # Collect the read errors of THIS load (see _record_read_error).
-        # The reset is the point: a fixed permission problem must reopen the
-        # login instead of keeping it locked for the lifetime of the process.
-        self._read_errors = []
+        # Under the lock: a second load's reset wiped this one's read errors, which then
+        # never locked the login (stage 4, section 13). The reset reopens it once fixed.
+        with self._save_lock:
+            self._read_errors = []
 
-        # Check for v1.1.3D migration first
-        self._migrate_legacy_config_if_needed()
+            # Check for v1.1.3D migration first
+            self._migrate_legacy_config_if_needed()
 
-        # Load all config files using loader service
-        config = self._loader_service.load_modular_config()
+            # Load all config files using loader service
+            config = self._loader_service.load_modular_config()
 
-        # Decrypt bot token if needed
-        if 'bot_token' in config and config['bot_token']:
-            logger.debug("Attempting to decrypt the stored bot token")
-            decrypted_token = self._decrypt_token_if_needed(config['bot_token'],
-                                                          config.get('web_ui_password_hash'))
-            if decrypted_token:
-                logger.info("Successfully decrypted token for usage")
-                config['bot_token_decrypted_for_usage'] = decrypted_token
-            else:
-                logger.error("Token decryption failed in get_config()")
+            # Decrypt bot token if needed
+            if 'bot_token' in config and config['bot_token']:
+                logger.debug("Attempting to decrypt the stored bot token")
+                decrypted_token = self._decrypt_token_if_needed(config['bot_token'],
+                                                              config.get('web_ui_password_hash'))
+                if decrypted_token:
+                    logger.info("Successfully decrypted token for usage")
+                    config['bot_token_decrypted_for_usage'] = decrypted_token
+                else:
+                    logger.error("Token decryption failed in get_config()")
 
-        # Attach the read errors to the result so they are cached with it and
-        # reach every caller - without a caller having to ask (and so construct)
-        # the service. The key is in _RUNTIME_ONLY_CONFIG_KEYS and is therefore
-        # never saved.
-        if self._read_errors:
-            config['config_read_errors'] = list(self._read_errors)
+            # Attach the read errors to the result so they are cached with it and
+            # reach every caller - without a caller having to ask (and so construct)
+            # the service. The key is in _RUNTIME_ONLY_CONFIG_KEYS and is therefore
+            # never saved.
+            if self._read_errors:
+                config['config_read_errors'] = list(self._read_errors)
 
         # Cache the result using cache service
         self._cache_service.set_cached_config(cache_key, config, self.config_dir, mtime=load_mtime)
