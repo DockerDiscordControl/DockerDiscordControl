@@ -184,6 +184,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Channel translation: if a translated post was published from an announcement channel that a
   source channel follows, it came back and was translated again, round after round. DDC recognises
   its own translations in such copies now and leaves them alone.
+- A registered admin who pressed the public ℹ️ button in a status channel got only the plain info,
+  without the admin buttons (edit info, tasks, logs) the admin panel offers. They get them now for
+  the containers they are assigned to, and they see the protected info as in the admin panel.
 
 ### 🐛 The mech's picture and gift, the update notice
 

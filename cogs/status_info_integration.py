@@ -943,11 +943,18 @@ class StatusInfoButton(discord.ui.Button):
         try:
             await interaction.response.defer(ephemeral=True)
 
-            # Check if this is a control channel
-            from .control_helpers import _channel_has_permission
+            # The channel's control permission - or a registered admin (SPEC.md
+            # B2: the admin list exists for the status channels, and this button
+            # sits in them). As on the admin panel's info button
+            # (control_ui.InfoButton): what the embed SHOWS is not narrowed, the
+            # CONTROLS follow the admin's container assignment (operator,
+            # 2026-09-29; stage 4 review before v3.1.0, section 09).
+            from .control_helpers import _admin_may_control, _channel_has_permission, _is_registered_admin
 
             config = load_config()
-            has_control = _channel_has_permission(interaction.channel_id, 'control', config) if config else False
+            channel_control = _channel_has_permission(interaction.channel_id, 'control', config) if config else False
+            has_control = channel_control or _is_registered_admin(interaction.user.id)
+            may_control = channel_control or _admin_may_control(interaction.user.id, self.container_name)
 
             # Generate info embed (with protected info if in control channel)
             embed = await self._generate_info_embed(include_protected=has_control)
@@ -966,11 +973,11 @@ class StatusInfoButton(discord.ui.Button):
 
             # Create view with admin buttons if in control channel
             view = None
-            if has_control:
+            if may_control:
                 logger.info(f"Creating ContainerInfoAdminView for {self.container_name}")
                 view = ContainerInfoAdminView(self.cog, self.server_config, self.info_config)
             else:
-                logger.info(f"Not creating admin view - has_control is False")
+                logger.info(f"Not creating admin view - no control here and no admin of it")
 
             # Send with or without view based on availability
             if view:
