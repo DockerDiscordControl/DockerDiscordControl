@@ -302,7 +302,7 @@ app/blueprints/main_routes.py:1-1309
 app/blueprints/tasks_bp.py:1-389
 app/blueprints/action_log_routes.py:1-91
 
-## Section 33  (1989 lines, 23 pieces)
+## Section 33  (1997 lines, 23 pieces)
 # group_routes.py joined on 2026-09-23 (new: the operator's container
 # groups) and moved on the same day: section 32 reached 2,019 lines when
 # tasks_bp.py grew with the timezone answer. It is the smallest piece
@@ -315,7 +315,7 @@ app/bootstrap/runtime.py:1-206
 app/bot/__init__.py:1-13
 app/bot/commands.py:1-47
 app/bot/dependencies.py:1-62
-app/bot/events.py:1-140
+app/bot/events.py:1-148
 app/bot/factory.py:1-54
 app/bot/runtime.py:1-68
 app/bot/startup.py:1-39

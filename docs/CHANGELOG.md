@@ -236,6 +236,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   with a message saying so, as when a task is added.
 - If the auto-action monitor failed to load at startup, the channel translation was not loaded
   either. A failing extension is logged now and the others still load.
+- When a slash command failed inside, Discord showed the raw technical error text (which can
+  contain paths or addresses) and the DDC log lacked the traceback. The answer is the generic
+  "could not be completed" now, and the log has the full error.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -111,10 +111,18 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
                                  exc_info=True)
             return
 
-        if isinstance(error, discord.ApplicationCommandError):
+        # py-cord wraps whatever a command BODY raises in
+        # ApplicationCommandInvokeError, which is an ApplicationCommandError too:
+        # unwrapped here, or every such error took the readable branch below and
+        # handed its raw text to the user without a traceback in the log (stage
+        # 4 review before v3.1.0, section 33).
+        original = getattr(error, 'original', None) if isinstance(
+            error, discord.ApplicationCommandInvokeError) else None
+        if isinstance(error, discord.ApplicationCommandError) and original is None:
             logger.error("Command Error in '%s': %s", ctx.command, error)
             await answer(_("Error during execution: {error}").format(error=error))
         else:
+            error = original or error
             # This branch used to log and print a traceback and stop there,
             # which was defensible while it could only be reached by a prefix
             # command nobody has. On the slash path it is the branch a DDC
@@ -122,7 +130,7 @@ def register_event_handlers(bot: discord.Bot, runtime: BotRuntime) -> None:
             # command, say - and leaving the interaction unanswered is the one
             # thing the user always notices (review E14).
             logger.error("Unexpected Command Error in '%s': %s", ctx.command, error,
-                         exc_info=True)
+                         exc_info=error)
             # Generic on purpose, unlike the branch above. An ApplicationCommandError
             # carries a message written to be read; an arbitrary exception carries
             # whatever it happens to carry - a path, a URL with a query string, the
