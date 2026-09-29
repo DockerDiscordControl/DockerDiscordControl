@@ -663,7 +663,7 @@ class AddAdminModal(DDCModal):
                 return
 
             # Get admin service and current admins
-            from services.admin.admin_service import get_admin_service
+            from services.admin.admin_service import AdminDataUnreadable, get_admin_service
             admin_service = get_admin_service()
             # ONE step: read, check and write under the file lock. Doing the
             # cycle here meant a panel save could land between the read and the
@@ -672,7 +672,16 @@ class AddAdminModal(DDCModal):
             # False when the user is already there, which is the same check,
             # only inside the lock where it cannot go stale.
             note = f"Added via Discord by {interaction.user.name}"
-            if not admin_service.add_admin_user(user_id, note):
+            try:
+                added = admin_service.add_admin_user(user_id, note)
+            except AdminDataUnreadable as e:
+                logger.error(f"Failed to save admin data when adding {user_id}: {e}")
+                await interaction.response.send_message(
+                    _("❌ Failed to save admin data. Please try again."),
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
+                )
+                return
+            if not added:
                 await interaction.response.send_message(
                     _("⚠️ This user is already an admin."),
                     ephemeral=True, delete_after=NOTICE_STAYS_FOR
@@ -680,23 +689,14 @@ class AddAdminModal(DDCModal):
                 return
             current_admins = admin_service.get_admin_data(
                 force_refresh=True).get('discord_admin_users', [])
-            success = True
-
-            if success:
-                logger.info(f"Admin added successfully: {user_id} by {interaction.user.id}")
-                await interaction.response.send_message(
-                    _("✅ Admin added successfully!\n\nUser ID: `{user_id}`\nTotal admins: {count}").format(
-                        user_id=user_id,
-                        count=len(current_admins)
-                    ),
-                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
-                )
-            else:
-                logger.error(f"Failed to save admin data when adding {user_id}")
-                await interaction.response.send_message(
-                    _("❌ Failed to save admin data. Please try again."),
-                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
-                )
+            logger.info(f"Admin added successfully: {user_id} by {interaction.user.id}")
+            await interaction.response.send_message(
+                _("✅ Admin added successfully!\n\nUser ID: `{user_id}`\nTotal admins: {count}").format(
+                    user_id=user_id,
+                    count=len(current_admins)
+                ),
+                ephemeral=True, delete_after=NOTICE_STAYS_FOR
+            )
 
         except Exception as e:
             logger.error(f"Error in AddAdminModal callback: {e}", exc_info=True)

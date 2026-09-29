@@ -146,6 +146,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   e.g. right after a start), and could show 🟢 over expired data. It shows 🔄 as well now.
 - A donation kept private was answered "Donation recorded privately!" even when nothing had been
   booked (no amount given, or the booking failed). It says what really happened now.
+- /addadmin said "This user is already an admin" when saving the admin list had failed. It says
+  the save failed now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

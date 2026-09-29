@@ -16,7 +16,7 @@ from threading import Lock
 logger = logging.getLogger('ddc.admin_service')
 
 class AdminDataUnreadable(RuntimeError):
-    """admins.json exists but cannot be read; writing over it would erase it."""
+    """admins.json cannot be read (writing over it would erase it) or written."""
 
 
 def _admins_file() -> Path:
@@ -313,8 +313,12 @@ class AdminService:
             if note:
                 notes[user_id] = note
             current.append(user_id)
-            return self._save_admin_data_unlocked(
-                current, notes, data.get('admin_containers'))
+            # A failed save is not "already there": both were False, and
+            # /addadmin said "already an admin" for an admin never added
+            # (stage 4 review before v3.1.0, sections 06 and 10).
+            if not self._save_admin_data_unlocked(current, notes, data.get('admin_containers')):
+                raise AdminDataUnreadable("admins.json could not be written")
+            return True
 
     def save_admin_data(self, admin_users: List[str], admin_notes: Dict[str, str] = None,
                         admin_containers: Optional[Dict[str, List[str]]] = None) -> bool:
