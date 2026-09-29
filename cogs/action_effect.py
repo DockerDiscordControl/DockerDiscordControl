@@ -143,6 +143,18 @@ async def wait_until_the_action_took_effect(cog, docker_name: str, display_name:
     return False if last_seen is not None else None
 
 
+def panel_embed_after(took_effect, status_embed, display_name: str, action: str):
+    """The embed a panel is redrawn with after an action.
+
+    The notice when the action was not confirmed: the redraw used to take the
+    status embed regardless and replaced the notice a moment after it was
+    shown (stage 4 review before v3.1.0, section 02).
+    """
+    if took_effect is False:
+        return not_confirmed_embed(display_name, action)
+    return status_embed
+
+
 def not_confirmed_embed(display_name: str, action: str) -> discord.Embed:
     """What a press says when Docker took it but nothing confirmed it.
 

@@ -14,7 +14,7 @@ cogs/admin_overview.py:1-1002
 cogs/stack_restart.py:1-325
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-351
-cogs/action_effect.py:1-167
+cogs/action_effect.py:1-179
 
 ## Section 02  (1405 lines, 1 piece)
 # Cut moved up from 1991 to 1801 on 2026-09-21, to the class boundary at
@@ -25,7 +25,7 @@ cogs/action_effect.py:1-167
 # already fully reviewed in both passes, and every finding of either pass in
 # this file is dealt with, so no finding label ends up naming a section that
 # no longer holds its lines.
-cogs/control_ui.py:1-1415
+cogs/control_ui.py:1-1421
 
 ## Section 03  (1257 lines, 2 pieces)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of

@@ -126,6 +126,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Starting or stopping a group counted as confirmed when one member's state could not be read
   and the others looked right, so the "Not confirmed yet" notice was left out. Every member has to
   be read now.
+- When a started or stopped container did not come up as expected, the "Not confirmed yet" notice
+  was replaced by the ordinary status a moment after it appeared. It stays on the panel now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

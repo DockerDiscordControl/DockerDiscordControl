@@ -24,7 +24,7 @@ from utils.time_utils import format_datetime_with_timezone
 from .control_helpers import (_admin_may_control, _admin_may_control_task, refused_while_busy,
                               _channel_has_permission, _get_pending_embed,
                               _is_registered_admin, is_private_panel_message)
-from .action_effect import not_confirmed_embed, wait_until_the_action_took_effect
+from .action_effect import not_confirmed_embed, panel_embed_after, wait_until_the_action_took_effect
 from utils.logging_utils import get_module_logger
 from services.infrastructure.container_info_service import MAX_CUSTOM_TEXT
 from services.infrastructure.action_logger import log_user_action
@@ -517,7 +517,10 @@ class ActionButton(Button):
                                         self.cog, self.server_config, is_running)
 
                                     if admin_embed:
-                                        await interaction.edit_original_response(embed=admin_embed, view=admin_view)
+                                        await interaction.edit_original_response(
+                                            embed=panel_embed_after(took_effect, admin_embed,
+                                                                    self.display_name, self.action),
+                                            view=admin_view)
                                         logger.info(f"[ACTION_BTN] Updated Admin Control message for {self.display_name}")
 
                                     self.server_config.pop('_is_admin_control', None)
@@ -533,7 +536,10 @@ class ActionButton(Button):
                                         config
                                     )
                                     if normal_embed:
-                                        await interaction.edit_original_response(embed=normal_embed, view=normal_view)
+                                        await interaction.edit_original_response(
+                                            embed=panel_embed_after(took_effect, normal_embed,
+                                                                    self.display_name, self.action),
+                                            view=normal_view)
                                         logger.info(f"[ACTION_BTN] Updated control message for {self.display_name}")
                                 except (discord.errors.DiscordException, RuntimeError) as e:
                                     logger.error(f"[ACTION_BTN] Failed to update control message: {e}", exc_info=True)
