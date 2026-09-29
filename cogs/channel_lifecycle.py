@@ -515,6 +515,16 @@ class ChannelLifecycleMixin:
                         self.last_channel_activity[channel.id] = datetime.now(timezone.utc)
                         logger.info(f"Set initial channel activity time for {channel.name} ({channel.id})")
 
+                        # Asked, like _setup_channel does: the posting helpers catch a
+                        # Discord error and return, and this logged "Successfully
+                        # regenerated" over a blank channel (stage 4, section 04). The
+                        # activity time above stays, so the inactivity loop retries.
+                        if not channel_was_built(self.channel_server_message_ids.get(channel.id)):
+                            if not self.channel_server_message_ids.get(channel.id):
+                                self.channel_server_message_ids.pop(channel.id, None)
+                            logger.error(f"Nothing could be posted in {channel.name} ({channel.id}) "
+                                         f"at startup - the channel is empty")
+                            continue
                         logger.info(f"Successfully regenerated channel {channel.name}")
                         initial_send_successful = True
                     except discord.NotFound:
