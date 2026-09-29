@@ -601,6 +601,11 @@ class TaskManager {
             taskId,
             data: {
                 container,
+                // Computed above since 82fea523 but never sent: edit_task only
+                // changes the flag when the key is there, so a task moved from a
+                // group to a container kept looking for a group
+                // (tests/spec/test_the_task_edit_dialog_sends_what_kind_of_target_it_is.py)
+                target_is_group: targetIsGroup,
                 action,
                 cycle,
                 is_active: isActive,
