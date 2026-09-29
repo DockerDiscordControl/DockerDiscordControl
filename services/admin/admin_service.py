@@ -15,6 +15,10 @@ from threading import Lock
 
 logger = logging.getLogger('ddc.admin_service')
 
+class AdminDataUnreadable(RuntimeError):
+    """admins.json exists but cannot be read; writing over it would erase it."""
+
+
 def _admins_file() -> Path:
     """admins.json in the config directory - DDC_CONFIG_DIR, else <project>/config.
 
@@ -255,21 +259,32 @@ class AdminService:
             if not admins_file.exists():
                 return {'discord_admin_users': [], 'admin_notes': {}, 'admin_containers': {}}
 
+            # A file that EXISTS but cannot be read is not "no admins". It was
+            # answered with the same empty document as a missing file, and every
+            # writer builds on this read: /addadmin wrote a one-admin list over
+            # the unreadable one - all other admins, notes and assignments gone -
+            # and the panel showed an empty list with 200, its 500 branch (E22)
+            # dead (stage 4 review before v3.1.0, section 10). It raises now;
+            # add_admin_user and the panel route let it through, nothing writes.
             try:
                 with open(admins_file, 'r') as f:
                     admin_data = json.load(f)
-                    return {
-                        'discord_admin_users': admin_data.get('discord_admin_users', []),
-                        'admin_notes': admin_data.get('admin_notes', {}),
-                        'admin_containers': admin_data.get('admin_containers', {})
-                    }
-            except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
-                logger.error(f"Error reading admin data: {e}", exc_info=True)
-                return {'discord_admin_users': [], 'admin_notes': {}, 'admin_containers': {}}
+            except (IOError, OSError, json.JSONDecodeError, UnicodeDecodeError) as e:
+                logger.error(f"admins.json exists but cannot be read - not treating it as empty: {e}")
+                raise AdminDataUnreadable(f"admins.json cannot be read: {e}") from e
+            if not isinstance(admin_data, dict):
+                raise AdminDataUnreadable("admins.json does not hold a JSON object")
+            return {
+                'discord_admin_users': admin_data.get('discord_admin_users', []),
+                'admin_notes': admin_data.get('admin_notes', {}),
+                'admin_containers': admin_data.get('admin_containers', {})
+            }
 
+        except AdminDataUnreadable:
+            raise
         except (IOError, OSError, PermissionError, RuntimeError) as e:
             logger.error(f"Error in get_admin_data: {e}", exc_info=True)
-            return {'discord_admin_users': [], 'admin_notes': {}, 'admin_containers': {}}
+            raise AdminDataUnreadable(f"admin data could not be read: {e}") from e
 
     def add_admin_user(self, user_id: str, note: str = "") -> bool:
         """Add one admin, reading and writing as ONE step. False if already there.

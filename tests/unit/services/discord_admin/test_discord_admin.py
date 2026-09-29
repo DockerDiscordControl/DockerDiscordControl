@@ -1110,16 +1110,16 @@ class TestAdminServiceFileIO:
         assert data["discord_admin_users"] == ["1", "2"]
         assert data["admin_notes"] == {"1": "owner"}
 
-    def test_get_admin_data_invalid_json_returns_default(self, monkeypatch, tmp_path):
+    def test_get_admin_data_invalid_json_raises(self, monkeypatch, tmp_path):
+        # Was "returns the empty default" - the answer every writer then built
+        # on and wrote over the unreadable list with (stage 4, section 10;
+        # tests/spec/test_an_unreadable_admin_list_is_never_overwritten.py).
+        from services.admin.admin_service import AdminDataUnreadable
         admins_file = self._patch_admins_path(monkeypatch, tmp_path)
         admins_file.write_text("{nope", encoding="utf-8")
         svc = AdminService()
-        data = svc.get_admin_data()
-        # admin_containers came with the per-admin container assignment: a
-        # user with no entry keeps every container, so an empty mapping
-        # is the same default this test always meant (review F1).
-        assert data == {"discord_admin_users": [], "admin_notes": {},
-                        "admin_containers": {}}
+        with pytest.raises(AdminDataUnreadable):
+            svc.get_admin_data()
 
     def test_save_admin_data_writes_file(self, monkeypatch, tmp_path):
         admins_file = self._patch_admins_path(monkeypatch, tmp_path)
