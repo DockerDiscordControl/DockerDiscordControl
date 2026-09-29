@@ -174,6 +174,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The confirmation of a new restart or stop task created in Discord closed itself after one
   minute, too short to choose "wait until nobody plays" and the warning. It stays for five minutes
   now.
+- A task set to "only when nobody plays" restarted at once when the player count could not be read
+  at that moment, although it can normally be read (a hanging server, a failed status read). It
+  keeps waiting now, at the latest until its latest time, and the log says why. A container
+  without player counting still counts as empty, as the save already tells you.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -376,9 +376,17 @@ class SchedulerService:
         if self._waiting.get(task.task_id) != task.next_run_ts:
             self._waiting[task.task_id] = task.next_run_ts
             latest = datetime.fromtimestamp(player_gate.acting_at(task.options, task.next_run_ts))
-            logger.info(f"Task {task.task_id} ({task.action} {task.container_name}) waits: "
-                        f"{sum((c or 0) for c in counts.values())} player(s) online, "
-                        f"at the latest {latest:%H:%M}")
+            unread = player_gate.unread(counts)
+            if unread:
+                # Set up, but not readable just now: waiting is the safe side
+                # (operator, 2026-09-29) - and the operator should know why.
+                logger.warning(f"Task {task.task_id} ({task.action} {task.container_name}) waits: "
+                               f"the player count of {', '.join(unread)} could not be read, "
+                               f"at the latest {latest:%H:%M}")
+            else:
+                logger.info(f"Task {task.task_id} ({task.action} {task.container_name}) waits: "
+                            f"{sum((c or 0) for c in counts.values())} player(s) online, "
+                            f"at the latest {latest:%H:%M}")
         return False
 
     def _lateness(self, task: ScheduledTask, current_ts: float) -> float:

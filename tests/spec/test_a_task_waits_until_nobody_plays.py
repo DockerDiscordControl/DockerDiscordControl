@@ -5,15 +5,17 @@ THE OPERATOR'S IDEA (2026-09-28, v3.1.0): "Restart daily at 4, but only once 0
 players are online (at the latest at 6)", and optionally a warning in Discord,
 "Valheim restarts in 10 minutes". Decided with the operator: at the deadline
 the restart happens anyway (warned before), the warning goes to status and
-control channels, and an unreadable player count counts as empty (checked and
-reported when the task is saved - see the save test).
+control channels, and a player count its set-up cannot deliver counts as
+empty (checked and reported when the task is saved - see the save test). A
+count that is set up but fails at the moment keeps the task waiting (operator,
+2026-09-29; test_an_unreadable_count_keeps_a_task_waiting.py).
 
 HOW THIS TEST CAN FAIL (services/scheduling/player_gate.py and its call sites
 in scheduler_service._check_and_execute_tasks):
 * a restart runs while players are online, before its deadline;
 * it does not run the moment the server is empty, or not at the deadline;
 * the missed-run grace writes a waiting occurrence off as "missed";
-* an unknown count holds the task back (it must count as empty);
+* a count its set-up cannot deliver holds the task back (it counts as empty);
 * the warning is not posted, posted twice, posted to a waiting task on an
   empty server, or posted before a task that does not wait at the wrong time;
 * the options do not survive a save of the task;
@@ -123,8 +125,9 @@ async def test_waiting_is_not_written_off_as_missed(world):
     assert world["rescheduled"] == [], "a task waiting for an empty server was written off as missed"
 
 
-async def test_an_unknown_count_counts_as_empty(world):
+async def test_a_count_that_is_not_set_up_counts_as_empty(world, monkeypatch):
     world["players"] = None
+    monkeypatch.setattr(player_gate, "setup_problem", lambda name: "the Players column is off")
     _store(world, WAIT)
     await _cycle(ss.SchedulerService(), world)
     assert world["ran"] == ["t1"]

@@ -16,9 +16,13 @@ DECIDED WITH THE OPERATOR:
 * At the latest moment the action happens anyway, with the warning before it -
   a daily restart stays guaranteed.
 * The warning goes to the status channels AND the control channels.
-* A player count that cannot be read counts as EMPTY. Whether it CAN be read is
-  checked when the task or rule is saved, and the operator is told there if not
+* A player count that cannot be read BY ITS SET-UP counts as EMPTY (the Players
+  column off, player counts switched off, a game that does not answer). That is
+  checked when the task or rule is saved, and the operator is told there
   (query_problem) - so "treated as empty" is never a surprise.
+* A count that IS set up but fails at the moment (the server hangs, the status
+  read failed) counts as OCCUPIED: the action waits, at the latest until its
+  deadline (operator, 2026-09-29; before, it went through at once).
 
 THE OPTIONS (one dict, stored with the task or the auto-action rule):
     wait_for_empty    bool  - act only while no player is online
@@ -98,8 +102,14 @@ def window_seconds(options: Dict[str, Any]) -> int:
 # ---------------------------------------------------------------- decisions
 
 def occupied(counts: Dict[str, Optional[int]]) -> bool:
-    """Someone plays on at least one of the containers. Unknown counts as empty."""
-    return any((count or 0) > 0 for count in counts.values())
+    """Someone plays on at least one of the containers - or may: None is a count
+    that is set up but could not be read just now (see counts_for)."""
+    return any(count is None or count > 0 for count in counts.values())
+
+
+def unread(counts: Dict[str, Optional[int]]) -> List[str]:
+    """The containers whose count is set up but could not be read just now."""
+    return [name for name, count in counts.items() if count is None]
 
 
 def acting_at(options: Dict[str, Any], due_ts: float) -> float:
@@ -166,7 +176,15 @@ def target_containers(name: str, is_group: bool) -> List[str]:
 
 
 def counts_for(names: Iterable[str]) -> Dict[str, Optional[int]]:
-    return {name: players_online(name) for name in names}
+    """The player count per container; 0 where its set-up cannot deliver one,
+    None where it is set up but failed just now."""
+    counts: Dict[str, Optional[int]] = {}
+    for name in names:
+        count = players_online(name)
+        if count is None and setup_problem(name):
+            count = 0
+        counts[name] = count
+    return counts
 
 
 def query_problem(docker_name: str) -> Optional[str]:
@@ -175,6 +193,16 @@ def query_problem(docker_name: str) -> Optional[str]:
     Asked when a task or rule with wait_for_empty is saved; the answer is shown
     to the operator, because the count then counts as "empty".
     """
+    problem = setup_problem(docker_name)
+    if problem:
+        return problem
+    if players_online(docker_name) is None:
+        return "no player count has been read for it yet"
+    return None
+
+
+def setup_problem(docker_name: str) -> Optional[str]:
+    """Why this container's set-up delivers no player count - None if it is set up."""
     try:
         from app.utils.web_helpers import _get_advanced_setting
         if not _get_advanced_setting("DDC_ENABLE_OPENGSQ", True, bool):
@@ -194,8 +222,6 @@ def query_problem(docker_name: str) -> Optional[str]:
             return "the game server does not answer the player query"
     except (ImportError, RuntimeError, AttributeError):
         pass
-    if players_online(docker_name) is None:
-        return "no player count has been read for it yet"
     return None
 
 
@@ -298,9 +324,14 @@ async def hold_until_empty(options: Dict[str, Any], containers: List[str], actio
     warn = int(options.get("warn_minutes") or 0)
     due = clock() + (0 if options.get("wait_for_empty") else warn * 60)
     warned = False
+    reported_unread = False
     while True:
         now = clock()
         counts = counts_for(containers)
+        if unread(counts) and not reported_unread:
+            reported_unread = True
+            logger.warning(f"{label}: player count of {', '.join(unread(counts))} could not be read - "
+                           f"the {action} waits, at the latest until its deadline")
         if not warned and warning_due(options, due, now, counts):
             warned = True
             minutes = max(1, round((acting_at(options, due) - now) / 60))
