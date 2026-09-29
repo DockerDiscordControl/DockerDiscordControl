@@ -46,11 +46,16 @@ def _run(monkeypatch, success):
         "services.infrastructure.spam_protection_service.get_spam_protection_service",
         lambda: spam)
     monkeypatch.setattr(cui, "load_config", lambda: {"servers": []})
+    from tests.spec import configured_as_drawn
+    configured_as_drawn(monkeypatch, cui)  # asked at the press (stage 4, section 02)
     monkeypatch.setattr(cui, "_get_cached_channel_permission",
                         lambda channel_id, key, config=None: True)
     monkeypatch.setattr(cui, "log_user_action", MagicMock())
     servers = MagicMock()
     servers.get_all_servers.return_value = []
+    # asked at the press since stage 4, section 02
+    servers.get_server_by_docker_name.side_effect = lambda name: {
+        "docker_name": name, "allowed_actions": ["start", "stop", "restart"]}
     monkeypatch.setattr(cui, "get_server_config_service", lambda: servers)
     monkeypatch.setattr(
         "services.docker_service.docker_action_service.docker_action_service_first",

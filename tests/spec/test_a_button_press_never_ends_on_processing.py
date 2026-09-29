@@ -92,6 +92,8 @@ def environment(monkeypatch):
         "services.infrastructure.spam_protection_service.get_spam_protection_service",
         lambda: spam)
     monkeypatch.setattr(cui, "load_config", lambda: {"servers": []})
+    from tests.spec import configured_as_drawn
+    configured_as_drawn(monkeypatch, cui)  # asked at the press (stage 4, section 02)
     monkeypatch.setattr(cui, "_get_cached_channel_permission",
                         lambda channel_id, key, config=None: True)
     monkeypatch.setattr(cui, "log_user_action", lambda **kwargs: None)
@@ -99,7 +101,10 @@ def environment(monkeypatch):
                         lambda name: SimpleNamespace(title="⏳ Pending", description=""))
     monkeypatch.setattr(cui, "get_server_config_service",
                         lambda: SimpleNamespace(get_all_servers=lambda: [
-                            {"docker_name": "nginx", "display_name": "nginx"}]))
+                            {"docker_name": "nginx", "display_name": "nginx"}],
+                            # asked at the press since stage 4, section 02
+                            get_server_by_docker_name=lambda name: {
+                                "docker_name": name, "allowed_actions": ["start", "stop", "restart"]}))
     monkeypatch.setattr(
         "services.infrastructure.container_status_service.get_container_status_service",
         lambda: SimpleNamespace(invalidate_container=lambda name: None))

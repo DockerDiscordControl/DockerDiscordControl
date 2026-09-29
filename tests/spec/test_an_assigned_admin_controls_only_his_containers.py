@@ -70,6 +70,8 @@ def status_channel(monkeypatch):
     config = {"servers": [], "channel_permissions": {
         "300": {"commands": {"info": True, "control": False, "schedule": False}}}}
     monkeypatch.setattr(cui, "load_config", lambda: config)
+    from tests.spec import configured_as_drawn
+    configured_as_drawn(monkeypatch, cui)  # asked at the press (stage 4, section 02)
     monkeypatch.setattr("cogs.status_info_integration.load_config", lambda: config)
     monkeypatch.setattr("cogs.task_ui.load_config", lambda: config)  # moved there (Phase 3)
     monkeypatch.setattr("cogs.control_helpers.load_config", lambda: config)

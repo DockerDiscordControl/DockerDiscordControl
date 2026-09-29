@@ -61,6 +61,8 @@ def environment(monkeypatch):
     monkeypatch.setattr("services.infrastructure.spam_protection_service.get_spam_protection_service",
                         lambda: spam)
     monkeypatch.setattr(cui, "load_config", lambda: {"servers": []})
+    from tests.spec import configured_as_drawn
+    configured_as_drawn(monkeypatch, cui)  # asked at the press (stage 4, section 02)
     monkeypatch.setattr(cui, "_get_cached_channel_permission", lambda *a, **k: True)
 
     def _tripwire(*_a, **_k):

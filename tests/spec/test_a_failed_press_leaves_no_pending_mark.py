@@ -67,6 +67,8 @@ def button(monkeypatch):
     monkeypatch.setattr(spam_module, "get_spam_protection_service",
                         lambda: SimpleNamespace(is_enabled=lambda: False))
     monkeypatch.setattr(control_ui, "load_config", lambda: {"servers": [], "language": "en"})
+    from tests.spec import configured_as_drawn
+    configured_as_drawn(monkeypatch, control_ui)  # asked at the press (stage 4, section 02)
     monkeypatch.setattr(control_ui, "_get_cached_channel_permission",
                         lambda channel_id, key, config: True)
     monkeypatch.setattr(control_ui, "_is_registered_admin", lambda user_id: False)

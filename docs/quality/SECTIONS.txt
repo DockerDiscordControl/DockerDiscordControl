@@ -25,7 +25,7 @@ cogs/action_effect.py:1-179
 # already fully reviewed in both passes, and every finding of either pass in
 # this file is dealt with, so no finding label ends up naming a section that
 # no longer holds its lines.
-cogs/control_ui.py:1-1421
+cogs/control_ui.py:1-1427
 
 ## Section 03  (1257 lines, 2 pieces)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of

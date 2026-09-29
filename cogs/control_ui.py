@@ -371,7 +371,13 @@ class ActionButton(Button):
             await interaction.followup.send(_("This action is not allowed in this channel."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
             return
 
-        allowed_actions = self.server_config.get('allowed_actions', [])
+        # From the CURRENT configuration, like the channel check above: the dict
+        # this button was drawn with let a panel that is not redrawn (the private
+        # admin panel) run an action taken away since (stage 4, section 02).
+        from .group_control import group_config_for
+        current = (group_config_for(self.docker_name)
+                   or get_server_config_service().get_server_by_docker_name(self.docker_name) or {})
+        allowed_actions = current.get('allowed_actions', [])
         if self.action not in allowed_actions:
             await interaction.followup.send(
                 _("❌ Action '{action}' is not allowed for container '{container}'.").format(

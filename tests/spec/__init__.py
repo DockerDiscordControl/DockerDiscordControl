@@ -72,3 +72,17 @@ def control_ui_source():
     from pathlib import Path
     root = Path(__file__).resolve().parents[2]
     return "\n\n".join((root / name).read_text(encoding="utf-8") for name in CONTROL_UI_FILES)
+
+
+def configured_as_drawn(monkeypatch, module, allowed=("start", "stop", "restart")):
+    """The current configuration answers for every container with ``allowed``.
+
+    ActionButton asks the CURRENT configuration at the press since the stage 4
+    review before v3.1.0 (section 02); tests that draw a button for a container
+    the test config does not hold state here what the configuration allows.
+    """
+    from types import SimpleNamespace
+    monkeypatch.setattr(module, "get_server_config_service", lambda: SimpleNamespace(
+        get_server_by_docker_name=lambda name: {"docker_name": name,
+                                                "allowed_actions": list(allowed)}))
+

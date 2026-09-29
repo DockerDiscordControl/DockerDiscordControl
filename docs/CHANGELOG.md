@@ -128,6 +128,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   be read now.
 - When a started or stopped container did not come up as expected, the "Not confirmed yet" notice
   was replaced by the ordinary status a moment after it appeared. It stays on the panel now.
+- A container action taken away in the settings could still be pressed on an admin panel that
+  was opened before. The press asks the current settings now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
