@@ -78,14 +78,14 @@ cogs/status_info_integration.py:1-1162
 cogs/info_extras.py:1-326
 cogs/player_joins.py:1-161
 
-## Section 10  (1736 lines, 7 pieces)
+## Section 10  (1759 lines, 7 pieces)
 cogs/translation_manager.py:1-149
 cogs/translation_monitor.py:1-124
 services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-461
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-932
+services/automation/auto_action_config_service.py:1-955
 
 ## Section 11  (1415 lines, 2 pieces)
 services/automation/auto_action_state_service.py:1-389

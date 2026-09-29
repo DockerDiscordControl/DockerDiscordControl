@@ -719,9 +719,32 @@ class AutoActionConfigService:
 
     # --- Public API ---
 
+    @_under_lock
+    def _give_rules_an_id(self) -> None:
+        """Write a stable id into every rule that has none (a hand-written one).
+
+        from_dict invented a new uuid on every read: the panel showed a changing
+        id, and toggle/edit/delete answered "Rule not found" for a rule that
+        fired all the same (stage 4 review before v3.1.0, section 10).
+        """
+        try:
+            config = self._load_config_file()
+        except ConfigUnreadable:
+            return
+        named = 0
+        for rule in config.get('auto_actions', []):
+            if isinstance(rule, dict) and not rule.get('id'):
+                rule['id'] = str(uuid.uuid4())
+                named += 1
+        if named and self._save_config_file(config):
+            logger.warning(f"AAS: gave {named} rule(s) without an id a permanent one")
+
     def get_rules(self) -> List[AutoActionRule]:
         """Get all configured rules as objects."""
         data = self._load_for_reading()
+        if any(isinstance(r, dict) and not r.get('id') for r in data.get('auto_actions', [])):
+            self._give_rules_an_id()
+            data = self._load_for_reading()
         rules = []
         for rule_data in data.get('auto_actions', []):
             try:

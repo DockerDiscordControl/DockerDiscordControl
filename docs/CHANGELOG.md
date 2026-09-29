@@ -293,6 +293,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The limits of an auto-action rule (50 keywords, 100 characters each) applied to its trigger
   keywords only; the required and ignore keywords could be as many and as long as anyone liked.
   The same limits apply to all three lists now.
+- An auto-action rule written by hand into auto_actions.json without an id showed a different id
+  on every page load, and could not be switched, edited or deleted in the panel ("Rule not found")
+  although it fired. It gets a permanent id the first time it is read now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
