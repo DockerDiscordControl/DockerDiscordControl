@@ -301,6 +301,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - An auto-action rule with an empty section in auto_actions.json (a hand edit such as "safety":
   null) disappeared from the panel and never ran, with only a line in the log. Such a section
   counts as empty now and its defaults apply.
+- An auto-action rule with a rule-wide cooldown that restarted one container and skipped a stopped
+  one lost its cooldown through the skip, and could act again inside the window you set. The
+  cooldown the restart set now holds.
 
 ### 🐛 The mech's picture and gift, the update notice
 

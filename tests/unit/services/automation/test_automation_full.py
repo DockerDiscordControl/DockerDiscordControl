@@ -673,7 +673,11 @@ class TestStateService:
         state_service.acquire_execution_lock("r1", "nginx", 30, 60)
         state_service.release_execution_lock("r1", "nginx", success=False)
         assert AutoActionStateService.cooldown_key("r1", "nginx") not in state_service.container_cooldowns
-        assert "r1" not in state_service.rule_cooldowns
+        # The rule's own cooldown is freed by release_rule_cooldown, once per batch
+        # (stage 4 review before v3.1.0, section 11) - no longer by this release.
+        assert "r1" in state_service.rule_cooldowns
+        state_service.release_rule_cooldown("r1")
+        assert state_service.rule_cooldowns.get("r1", 0) == 0
 
     def test_release_execution_lock_keeps_on_success(
         self, state_service: AutoActionStateService

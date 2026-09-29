@@ -281,12 +281,11 @@ class AutoActionStateService:
         if success:
             return  # Cooldowns stay set
 
-        # Reset cooldowns if execution failed
+        # Only this container's cooldown. The RULE's is freed once per batch by
+        # release_rule_cooldown, and only when nothing succeeded (review B10): a
+        # container skipped after another had been restarted deleted the rule
+        # cooldown that restart had just set (stage 4 review before v3.1.0, 11).
         with self._lock:
-            # We could reset to previous values, but for simplicity we just reset to 0
-            # This allows immediate retry after failure
-            if rule_id in self.rule_cooldowns:
-                del self.rule_cooldowns[rule_id]
             self.container_cooldowns.pop(self.cooldown_key(rule_id, container), None)
             # Don't reset global_last_triggered as other rules may have set it
 

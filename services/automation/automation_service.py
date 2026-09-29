@@ -300,6 +300,9 @@ class AutomationService:
                     # The same list _execute_rule locked: groups resolved, or the
                     # release would look for a container named "group:<name>" and
                     # leave the real ones locked for the rule cooldown.
+                    # The rule's cooldown with them, as the lock release did before it
+                    # became per container (stage 4 review before v3.1.0, section 11).
+                    self.state_service.release_rule_cooldown(rule.id)
                     for container in containers_of_action(rule):
                         try:
                             self.state_service.release_execution_lock(rule.id, container, success=False)
@@ -859,6 +862,7 @@ class AutomationService:
                         logger.info(f"AAS: '{container}' recovered during the {rule.action.delay_seconds}s "
                                     f"delay of '{rule.name}' - {action_type} not carried out")
                         self.state_service.release_execution_lock(rule.id, container, success=False)
+                        self.state_service.release_rule_cooldown(rule.id)  # nothing was done
                         self.state_service.record_trigger(rule.id, rule.name, container, action_type,
                                                           "SKIPPED", f"{event.kind}: recovered during the delay")
                         if not rule.action.silent:
@@ -875,8 +879,9 @@ class AutomationService:
                                               f"⚠️ `{action_type}` **{container}** failed — *{rule.name}*")
         except BaseException:
             # The lock was taken above; an error or a cancellation must not leave
-            # the container locked for the whole cooldown.
+            # the container - or the rule - locked for the whole cooldown.
             self.state_service.release_execution_lock(rule.id, container, success=False)
+            self.state_service.release_rule_cooldown(rule.id)
             raise
 
         self.state_service.record_trigger(rule.id, rule.name, container, action_type,
