@@ -128,6 +128,7 @@ def environment(monkeypatch):
 
     admin = MagicMock()
     admin.is_user_admin.return_value = False
+    admin.may_control.return_value = False  # the same "not an admin" for the scoped check
     monkeypatch.setattr("services.admin.admin_service.get_admin_service", lambda: admin)
 
     # Channel has 'info' (otherwise it already ends at :1005), but NOT 'control'.
@@ -196,6 +197,7 @@ async def test_with_channel_permission_the_view_is_built(monkeypatch):
     )
     admin = MagicMock()
     admin.is_user_admin.return_value = False
+    admin.may_control.return_value = False  # the same "not an admin" for the scoped check
     monkeypatch.setattr("services.admin.admin_service.get_admin_service", lambda: admin)
     monkeypatch.setattr(cui, "load_config", lambda: {
         "servers": [],

@@ -843,10 +843,14 @@ class InfoButton(Button):
                 # delete_task() - so this was not display, it granted a right.
                 # Same correction as :304. See SPEC.md Z5.
                 # A registered admin counts as well (SPEC.md B2) - see :304.
-                has_control = ((_channel_has_permission(channel_id, 'control', config) if config else False)
-                               or _is_registered_admin(interaction.user.id))
+                channel_control = _channel_has_permission(channel_id, 'control', config) if config else False
+                has_control = channel_control or _is_registered_admin(interaction.user.id)
+                # The CONTROLS follow an admin's assignment (B2); an assigned admin
+                # got the edit/logs/tasks view for every container (stage 4, section
+                # 02). What the embed shows (has_control) is an open operator question.
+                may_control = channel_control or _admin_may_control(interaction.user.id, self.docker_name)
 
-                if has_control:
+                if may_control:
                     # Create empty info template with Edit/Log buttons
                     display_name = self.server_config.get('display_name', 'Unknown')
 
@@ -887,14 +891,15 @@ class InfoButton(Button):
 
             # The CURRENT channel permission or a registered admin decides - see the
             # note above and :304. SPEC.md Z5 and B2.
-            has_control = ((_channel_has_permission(channel_id, 'control', config) if config else False)
-                           or _is_registered_admin(interaction.user.id))
+            channel_control = _channel_has_permission(channel_id, 'control', config) if config else False
+            has_control = channel_control or _is_registered_admin(interaction.user.id)
+            may_control = channel_control or _admin_may_control(interaction.user.id, self.docker_name)
 
             # Generate embed with protected info if in control channel
             embed = await info_button._generate_info_embed(include_protected=has_control)
 
             view = None
-            if has_control:
+            if may_control:
                 view = ContainerInfoAdminView(self.cog, self.server_config, info_config)
                 logger.info(f"InfoButton (ControlView) created admin view for {docker_name} in control channel {channel_id}")
 

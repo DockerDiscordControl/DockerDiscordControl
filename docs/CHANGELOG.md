@@ -133,6 +133,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The "edit info" and "logs" buttons of an open info panel kept working after the channel lost its
   control right or an admin's container assignment was narrowed. Like the protected-info button,
   they ask at the press now.
+- An admin assigned to certain containers got the info panel's admin buttons (edit info, logs,
+  tasks) for every container in a status channel. They follow the assignment now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
