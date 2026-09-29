@@ -974,7 +974,8 @@ class TestUpdateNotifier:
     @pytest.mark.asyncio
     async def test_send_update_notification_no_control_channels(self, tmp_path):
         notifier = UpdateNotifier(config_dir=str(tmp_path))
-        # No control channels in config -> should return False but mark as shown
+        # No control channels -> False, and NOT marked as shown: a control
+        # channel added later still gets it (operator, 2026-09-29)
         with patch(
             "services.infrastructure.update_notifier.load_config",
             return_value={"channel_permissions": {}, "channels": []},
@@ -982,9 +983,9 @@ class TestUpdateNotifier:
             bot = MagicMock()
             result = await notifier.send_update_notification(bot)
         assert result is False
-        # Marked as shown
-        status = notifier.get_update_status()
-        assert status["last_notified_version"] == notifier.current_version
+        assert notifier.should_show_update_notification() is bool(notifier.current_version)
+        assert notifier.get_update_status().get("last_notified_version") != notifier.current_version \
+            or not notifier.current_version
 
     @pytest.mark.asyncio
     async def test_send_update_notification_sends_to_channel(self, tmp_path):

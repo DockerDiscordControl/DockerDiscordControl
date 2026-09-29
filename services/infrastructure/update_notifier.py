@@ -271,9 +271,11 @@ class UpdateNotifier:
             control_channels = control_channel_ids(config)
 
             if not control_channels:
-                logger.info("No control channels configured - skipping update notification")
-                # Mark as shown anyway to avoid repeated attempts
-                self.mark_notification_shown()
+                # NOT marked as shown: a control channel added later still gets
+                # this version's notice at the next start (operator, 2026-09-29;
+                # stage 4 review before v3.1.0, section 20). Marking it here
+                # shut that channel out for the whole version.
+                logger.info("No control channels configured - the update notice waits for one")
                 return False
 
             pending = self.channels_still_to_tell(control_channels)

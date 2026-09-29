@@ -190,7 +190,7 @@ services/infrastructure/container_facts_service.py:1-184
 ## Section 20  (1654 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-357
 services/infrastructure/spam_protection_service.py:1-609
-services/infrastructure/update_notifier.py:1-324
+services/infrastructure/update_notifier.py:1-326
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-388
 

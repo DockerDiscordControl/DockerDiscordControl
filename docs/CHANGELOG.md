@@ -199,6 +199,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A game at version "1.0" or "1.1" showed no version, because every version made of ones and zeros
   was taken for an engine placeholder. Only the placeholders themselves ("0.0.0.0", "1.0.0.0") are
   hidden now.
+- If a new version first started without a control channel, its "DDC has been updated" notice was
+  marked as shown, and a control channel added later never got it. It waits for the first control
+  channel now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
