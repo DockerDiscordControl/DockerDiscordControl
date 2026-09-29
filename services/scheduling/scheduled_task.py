@@ -806,13 +806,18 @@ class ScheduledTask:
 
     def _calculate_next_donation_run(self) -> None:
         """Calculate next run for donation task - always 2nd Sunday at 13:37."""
+        # Bound before the try: the fallbacks below read them.
+        tz = pytz.UTC
+        now = datetime.now(tz)
         try:
-            # Get configured timezone
+            # Get configured timezone - through _get_timezone, which falls back
+            # to UTC like everywhere else in this class. A raw pytz.timezone()
+            # raised on an unknown zone (a KeyError nothing caught), and since
+            # load_tasks() builds this task, the scheduler ran nothing at all
+            # (stage 4 review before v3.1.0, section 26b).
             config = load_config()
-            timezone_str = config.get('timezone', 'Europe/Berlin')
-
-            import pytz
-            tz = pytz.timezone(timezone_str)
+            timezone_str = config.get('timezone') or 'Europe/Berlin'
+            tz = _get_timezone(timezone_str)
             now = datetime.now(tz)
 
             # Start with current month

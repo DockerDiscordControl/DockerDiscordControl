@@ -227,6 +227,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A scheduled task for a group that was running when DDC restarted (an image update, or a group
   containing DDC itself) ran the whole group action a second time after the restart. Like a single
   container, it is written down as begun before it acts now.
+- An unknown timezone in the configuration (a hand edit, or an empty value) stopped every
+  scheduled task, because the monthly donation message could not work out its next run. It falls
+  back to UTC now, like the rest of the scheduler.
 
 ### 🐛 The mech's picture and gift, the update notice
 

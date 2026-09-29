@@ -249,11 +249,11 @@ services/scheduling/group_tasks.py:1-96
 ## Section 26  (1287 lines, 1 piece)
 services/scheduling/scheduler.py:1-1287
 
-## Section 26b  (1127 lines, 2 pieces)
+## Section 26b  (1132 lines, 2 pieces)
 # 2026-09-28: scheduler.py split - the task and its cycles went to
 # scheduled_task.py, the input parsing to task_input.py, unchanged. Together
 # with scheduler.py they would exceed the 2000 lines a section may hold.
-services/scheduling/scheduled_task.py:1-881
+services/scheduling/scheduled_task.py:1-886
 services/scheduling/task_input.py:1-246
 
 ## Section 27  (930 lines, 2 pieces)
