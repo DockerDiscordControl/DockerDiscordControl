@@ -181,6 +181,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The 10-minute clash check for tasks counted paused tasks, which never run, and compared only
   each task's next run: a daily restart at 04:00 and a weekly stop at 04:05 were both accepted. It
   ignores paused tasks now and compares the later runs as well.
+- Channel translation: if a translated post was published from an announcement channel that a
+  source channel follows, it came back and was translated again, round after round. DDC recognises
+  its own translations in such copies now and leaves them alone.
 
 ### 🐛 The mech's picture and gift, the update notice
 

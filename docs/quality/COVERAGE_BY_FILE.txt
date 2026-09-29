@@ -135,7 +135,7 @@ cogs/status_info_integration.py	1149	passE:buttons+loops+bothscans:32-76,159-225
 cogs/task_ui.py	1250	NONE
 cogs/task_player_options.py	139	new 2026-09-28 (v3.1.0 player options), written with its tests
 cogs/translation_manager.py	149	passE:E30:read-in-full
-cogs/translation_monitor.py	112	passE:E32:read-in-full
+cogs/translation_monitor.py	124	passE:E32:read-in-full
 cogs/watchdog_maintenance.py	262	NONE
 services/__init__.py	51	passE:E31:read-in-full
 services/admin/__init__.py	5	passE:read-in-full

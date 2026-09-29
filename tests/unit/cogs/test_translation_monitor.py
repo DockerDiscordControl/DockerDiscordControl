@@ -51,6 +51,9 @@ def _make_message(*, author=None, guild=True, content="hello", embeds=(), attach
         author.bot = False  # a person - other bots are ignored since 2026-09-26
     msg.author = author
     msg.webhook_id = None
+    # A person's post is no crosspost. Left a MagicMock, the flag read as true
+    # and sent the message through the crosspost check (2026-09-29).
+    msg.flags.is_crossposted = False
     msg.guild = MagicMock() if guild else None
     if guild:
         msg.guild.id = 4242

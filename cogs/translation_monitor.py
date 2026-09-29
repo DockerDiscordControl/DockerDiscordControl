@@ -55,6 +55,18 @@ class TranslationMonitor(commands.Cog):
         if self.translation_service.is_translated_message(str(message.id)):
             return
 
+        # 3b. ...or a copy of one. When a target channel is an announcement
+        # channel whose posts get published and a source channel follows it,
+        # DDC's translation comes back as a crosspost with a NEW id - and was
+        # translated again, round after round. A crosspost refers to the message
+        # it copies; if that is ours, it is dropped (operator, 2026-09-29;
+        # stage 4 review before v3.1.0, section 10).
+        if message.flags.is_crossposted:
+            original = getattr(message.reference, 'message_id', None)
+            if original is not None and self.translation_service.is_translated_message(str(original)):
+                logger.debug(f"Crosspost {message.id} copies our translation {original} - not translated again")
+                return
+
         try:
             # 4. Extract embed content and images
             embed_texts = []
