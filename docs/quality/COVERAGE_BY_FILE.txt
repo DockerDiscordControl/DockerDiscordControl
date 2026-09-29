@@ -164,7 +164,7 @@ services/config/group_references.py	153	NONE
 services/config/group_service.py	416	NONE
 services/config/server_config_service.py	241	passE:E33:read-in-full
 services/discord/__init__.py	20	passE:read-in-full
-services/discord/channel_cleanup_service.py	509	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
+services/discord/channel_cleanup_service.py	515	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
 services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s14:1-169  [15 of 184 lines never in a package]
 services/discord/embed_helper_service.py	227	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
 services/discord/status_overview_service.py	389	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]

@@ -204,6 +204,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   channel now.
 - After every DDC restart the notice "A newer image for ... is in the registry" came again for
   every container still behind. It comes once per new image now, remembered across restarts.
+- The cleanup at startup removed an old stray bot message only when a younger one happened to be
+  in the channel too, and left it otherwise. It removes the bot's stray messages of any age now;
+  live logs, auto-action notices and the tracked messages stay.
 
 ### 🐛 The mech's picture and gift, the update notice
 

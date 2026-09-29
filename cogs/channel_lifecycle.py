@@ -599,7 +599,7 @@ class ChannelLifecycleMixin:
         """Delete the bot's own tracked overview / admin_overview messages by ID.
 
         Individual delete-by-ID has neither the 14-day bulk-delete limit nor the
-        30-day age cutoff that the generic cleanup (delete_bot_messages) applies.
+        30-day age cutoff the generic cleanup applied until 2026-09-29.
         An overview that is edited in place keeps its original created_at, so after
         ~30 days the age-limited cleanup silently skips it and a fresh overview gets
         posted on top of the stale one -> duplicate message. Removing the tracked
@@ -608,8 +608,8 @@ class ChannelLifecycleMixin:
         # Messages an earlier round could not delete. Keeping their id in the
         # tracking map was meant to retry them, but the caller's next step posts
         # the replacement and overwrites it - so the old overview stayed in the
-        # channel, untracked, and after 30 days the age-limited cleanup skips it
-        # too. They are remembered here and tried again.
+        # channel, untracked (and until 2026-09-29 the cleanup skipped anything over
+        # 30 days old). They are remembered here and tried again.
         pending = self.__dict__.setdefault('_undeleted_messages', {})
         still_there = set()
         for message_id in pending.get(channel.id, set()):

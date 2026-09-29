@@ -38,7 +38,7 @@ class ChannelCleanupRequest:
         channel: discord.TextChannel,
         reason: str,
         message_limit: int = 100,
-        max_age_days: int = 30,
+        max_age_days: Optional[int] = 30,   # None: any age
         bot_only: bool = True,
         target_author: Optional[discord.User] = None,
         custom_filter: Optional[Callable[[discord.Message], bool]] = None,
@@ -191,7 +191,12 @@ class ChannelCleanupService:
             target_author=self.bot.user,
             custom_filter=is_bot_but_not_preserved,
             use_purge=True,  # Use purge for efficiency like original method
-            purge_timeout=30.0
+            purge_timeout=30.0,
+            # Any age. The purge below never had an age bound, but the 30 days
+            # decided whether it ran at all: an old stray message went when a
+            # young one happened to be there and stayed when none was
+            # (operator, 2026-09-29; stage 4 review before v3.1.0, section 14).
+            max_age_days=None,
         )
 
         return await self.cleanup_channel(request)
@@ -288,11 +293,12 @@ class ChannelCleanupService:
     ) -> List[discord.Message]:
         """Collect messages that match the cleanup criteria."""
         messages_to_delete = []
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=request.max_age_days)
+        cutoff_date = (None if request.max_age_days is None
+                       else datetime.now(timezone.utc) - timedelta(days=request.max_age_days))
 
         async for message in request.channel.history(limit=request.message_limit):
             # Check age limit
-            if message.created_at < cutoff_date:
+            if cutoff_date is not None and message.created_at < cutoff_date:
                 continue
 
             # Filter by author
