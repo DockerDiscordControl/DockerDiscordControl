@@ -104,8 +104,11 @@ def _members_of_group(name: str, action: Optional[str] = None) -> list:
         service = get_group_service()
         members = service.members_of(name)
         group = service.find(name) if action is not None else None
-    except OSError as e:
-        logger.error(f"Groups could not be read for a rule: {e}")
+    except (OSError, TypeError, ValueError, KeyError, AttributeError) as e:
+        # Not only OSError: a groups.json of the wrong shape ("containers": null,
+        # a hand edit) raised TypeError here, and every watchdog event of the
+        # poll was lost for every rule (stage 4 review before v3.1.0, section 11).
+        logger.error(f"Groups could not be read for a rule: {type(e).__name__}: {e}")
         return []
     if not members.exists:
         logger.warning(f"A rule names the group '{name}', which does not exist any more")
