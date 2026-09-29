@@ -6,10 +6,10 @@ form wrote the answer into #responseMessage - "Task added", the warning
 that a waiting task's player count cannot be read, or "switched off: the
 time is in the past" - and called resetTaskForm() on the next line, which
 empties #responseMessage. The operator saw nothing at all: the v3.1.0
-warning meant to tell him at saving time, not at 4 a.m., never showed, and
+warning meant to say so at saving time, not at 4 a.m., never showed, and
 neither did the older "switched off" notice.
 
-tests/js/task_added_notice.test.js proves the TEXT is right; the fault was
+The node case file for taskAddedNotice proves the TEXT is right; the fault was
 the call site, so this test reads the call site (the form is DOM-bound and
 does not run in node).
 
