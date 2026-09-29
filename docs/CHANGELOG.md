@@ -274,6 +274,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the donation was recorded and that no channel posted it.
 - When the donation window could not send its notice about an invalid amount, the donor got no
   answer at all. They get the error answer now.
+- A channel that allows neither control nor the server status (for example one only for donation
+  announcements) could get a server overview posted into it after it became empty. It stays as it
+  is now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

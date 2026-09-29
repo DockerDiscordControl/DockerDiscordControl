@@ -715,9 +715,17 @@ class BackgroundLoopsMixin:
 
                         # If there are no messages at all, regenerate
                         if not history:
-                            logger.info(f"No messages found in channel {channel.name} ({channel_id}). Regenerating")
-                            # Determine the mode: control or status
                             has_control_permission = _channel_has_permission(channel_id, 'control', config)
+                            # The guard the other path has: a channel that grants
+                            # neither got a server overview posted into it (stage 4
+                            # review before v3.1.0, section 06).
+                            if not has_control_permission and not _channel_has_permission(
+                                    channel_id, 'serverstatus', config):
+                                self.last_channel_activity[channel_id] = now_utc
+                                logger.debug(f"Channel {channel_id} is empty but grants neither control "
+                                             f"nor serverstatus - no overview")
+                                continue
+                            logger.info(f"No messages found in channel {channel.name} ({channel_id}). Regenerating")
                             regeneration_mode = 'control' if has_control_permission else 'status'
                             logger.debug(f"Regeneration mode for empty channel: {regeneration_mode}")
                             await self._regenerate_channel(channel, regeneration_mode, config)
