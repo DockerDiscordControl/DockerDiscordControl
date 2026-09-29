@@ -123,6 +123,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The task list in Discord showed times in the container's own time zone without saying so
   (15:00 for a task set to 13:00 UTC), while the confirmation and the delete buttons said 13:00
   UTC. It shows the task's time zone now, with its name.
+- Starting or stopping a group counted as confirmed when one member's state could not be read
+  and the others looked right, so the "Not confirmed yet" notice was left out. Every member has to
+  be read now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -108,6 +108,10 @@ async def wait_until_the_action_took_effect(cog, docker_name: str, display_name:
             return None
 
         running = []
+        # Every target counts. An unreadable one was skipped and the others
+        # decided: a group start "showed" with a member never confirmed
+        # (stage 4 review before v3.1.0, section 01).
+        complete = True
         for server in targets:
             name = server.get('docker_name')
             # Both caches, or the answer is the one from before the action.
@@ -118,6 +122,7 @@ async def wait_until_the_action_took_effect(cog, docker_name: str, display_name:
             status = await cog.get_status(server)
             if not status.success:
                 logger.error(f"[ACTION_EFFECT] Error getting status for {name}: {status}")
+                complete = False
                 continue
             cog.status_cache_service.set(name, status, datetime.now(timezone.utc))
             running.append(status.is_running)
@@ -128,7 +133,7 @@ async def wait_until_the_action_took_effect(cog, docker_name: str, display_name:
         logger.info(f"[ACTION_EFFECT] {display_name}: {sum(running)}/{len(targets)} running "
                     f"after '{action}' (attempt {attempt}/{len(RETRY_DELAYS)}, {waited}s)")
 
-        if _has_taken_effect(action, running):
+        if complete and _has_taken_effect(action, running):
             return True
 
     # The ladder ran out. Said plainly rather than as the last state seen: a

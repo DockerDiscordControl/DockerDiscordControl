@@ -108,7 +108,7 @@ app/web/tls.py	530	v3rev:1-216 http-redirect:217-497
 app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
-cogs/action_effect.py	162	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
+cogs/action_effect.py	167	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
 cogs/admin_overview.py	1002	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/admin_ui.py	386	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
@@ -132,7 +132,7 @@ cogs/slash_commands.py	822	NONE
 cogs/stack_restart.py	325	v3rev:1-196
 cogs/status_handlers.py	1116	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1127	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
-cogs/task_ui.py	1245	NONE
+cogs/task_ui.py	1250	NONE
 cogs/task_player_options.py	137	new 2026-09-28 (v3.1.0 player options), written with its tests
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	112	passE:E32:read-in-full
