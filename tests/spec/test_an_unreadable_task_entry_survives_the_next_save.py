@@ -42,6 +42,10 @@ def tasks_file(monkeypatch, tmp_path):
     monkeypatch.setattr(scheduler_mod, "_runtime", fresh)
     monkeypatch.setattr(scheduler_mod, "TASKS_FILE_PATH", fresh.tasks_file_path)
     monkeypatch.setattr(scheduler_mod, "_get_system_tasks", lambda: [])
+    # Module state these cases change: restored afterwards, or the broken entry
+    # and the refused-save flag travel into every later test's tasks.json.
+    monkeypatch.setattr(scheduler_mod, "_last_load_failed", False)
+    monkeypatch.setattr(scheduler_mod, "_unreadable_entries", [])
     fresh.ensure_layout()
     yield fresh.tasks_file_path
     scheduler_runtime.reset_scheduler_runtime()
