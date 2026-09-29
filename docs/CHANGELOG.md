@@ -288,6 +288,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The live log panel renews itself before its five minutes run out, but the view it replaced then
   switched its buttons off anyway, and the panel showed "timed out". The renewed panel keeps
   working now.
+- An address entered with its own port, together with a value in the port field, was shown with
+  two ports ("play.example.org:2456:2456"). The address keeps its own port now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

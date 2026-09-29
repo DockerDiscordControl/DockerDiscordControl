@@ -328,11 +328,14 @@ def _valid_url(address: str) -> bool:
 def with_port(address: str, port: str) -> str:
     """The address as a member types it, with the port joined the right way:
     in brackets behind a bare IPv6 address, never into a URL."""
-    if not port or '://' in address:
+    # An address that carries its own port is shown as written, whichever port
+    # field is filled in: the form's port used to be glued on regardless -
+    # "play.example.org:2456:2456" (stage 4 review before v3.1.0, section 09).
+    if not port or carries_port(address):
         return address
     literal = _ipv6_literal(address)
     if literal is not None:
-        return f"[{literal[0]}]:{port}" if not literal[1] else address
+        return f"[{literal[0]}]:{port}"
     return f"{address}:{port}"
 
 
