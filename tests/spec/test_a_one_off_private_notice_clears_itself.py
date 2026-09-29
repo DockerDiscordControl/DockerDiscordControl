@@ -50,6 +50,10 @@ COGS = PROJECT / "cogs"
 A_NOTICE_CALL = ("response.send_message", "followup.send")
 # What turns a notice into a panel: something on it to press or read at length.
 MAKES_IT_A_PANEL = {"view", "embed", "file"}
+# Named exemptions, by the first argument's variable name. song_link (mech_ui,
+# PlaySongButton): Discord draws the YouTube link as a player - the 15 s timer
+# took it away mid-song (stage 4 review before v3.1.0, section 03).
+EXEMPT_FIRST_ARGS = {"song_link"}
 
 
 def _ephemeral_calls():
@@ -77,6 +81,8 @@ def test_every_one_off_notice_clears_itself():
     offenders = []
     for path, node, keywords in _ephemeral_calls():
         if keywords.keys() & MAKES_IT_A_PANEL:
+            continue
+        if node.args and isinstance(node.args[0], ast.Name) and node.args[0].id in EXEMPT_FIRST_ARGS:
             continue
         if "delete_after" not in keywords:
             offenders.append(f"{path}:{node.lineno}")

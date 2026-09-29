@@ -760,9 +760,12 @@ class PlaySongButton(Button):
             if result.success:
                 # Send YouTube URL directly for native Discord video embed
                 # This triggers Discord's automatic YouTube preview with play button!
-                message_text = f"🎵 **{result.title}** (Mech Level {self.level})\n\n{result.url}"
+                song_link = f"🎵 **{result.title}** (Mech Level {self.level})\n\n{result.url}"
 
-                await interaction.followup.send(message_text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+                # No delete_after: Discord draws the link as a player, and the
+                # 15 s notice timer took it away mid-song (stage 4, section 03).
+                # The one named exemption of test_a_one_off_private_notice_clears_itself.
+                await interaction.followup.send(song_link, ephemeral=True)
             else:
                 await interaction.followup.send(
                     _("❌ No music available for Mech Level {level}").format(level=self.level) + "\n"

@@ -135,6 +135,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
   they ask at the press now.
 - An admin assigned to certain containers got the info panel's admin buttons (edit info, logs,
   tasks) for every container in a status channel. They follow the assignment now.
+- The mech's 🎵 song disappeared 15 seconds into playing. The player stays now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
