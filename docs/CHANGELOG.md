@@ -142,6 +142,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the channel for everybody, and it stayed. The refusal is private now.
 - When the mech animation could not be built, a fresh /ss overview pointed at a picture it did
   not carry: a broken image, or no overview at all. It goes out without the picture now.
+- A container group in the overview showed 🔴 0/N while its members showed 🔄 (state unknown,
+  e.g. right after a start), and could show 🟢 over expired data. It shows 🔄 as well now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -59,6 +59,29 @@ def power_consumption_line(decay_per_day) -> str:
     return f"{label}: 🔻 {decay_per_day}{translate('per_day_suffix')}"
 
 
+def fresh_status(cached_entry):
+    """The cached ContainerStatusResult if it is usable, else None.
+
+    One rule for the container lines and the group lines: data present, not
+    older than DDC_DOCKER_MAX_CACHE_AGE, and a successful result. The group
+    lines read the cache their own way and drew a guessed 🔴 0/N (or a stale
+    🟢) under members shown as 🔄 (stage 4 review before v3.1.0, section 05).
+    """
+    from services.docker_status.models import ContainerStatusResult
+    from utils.settings import get_setting
+    if not cached_entry or not cached_entry.get('data'):
+        return None
+    stamp = cached_entry.get('timestamp')
+    if stamp is not None:
+        age = (datetime.now(timezone.utc) - stamp).total_seconds()
+        if age > get_setting('DDC_DOCKER_MAX_CACHE_AGE', 300):
+            return None
+    data = cached_entry['data']
+    if isinstance(data, ContainerStatusResult) and data.success:
+        return data
+    return None
+
+
 def group_status_lines(status_cache_service, translate, boxed: bool = True) -> list:
     """The operator's container groups, as lines for the overview.
 
@@ -105,14 +128,17 @@ def group_status_lines(status_cache_service, translate, boxed: bool = True) -> l
             continue
         members = service.members_of(group.name)
         present = members.containers
-        running = 0
+        running = unknown = 0
         for container in present:
-            entry = status_cache_service.get(container) if status_cache_service else None
-            data = entry.get('data') if entry else None
-            if data is not None and getattr(data, 'is_running', False):
+            status = fresh_status(status_cache_service.get(container) if status_cache_service else None)
+            if status is None:
+                unknown += 1
+            elif status.is_running:
                 running += 1
         total = len(present)
-        if running and running == total:
+        if unknown:
+            lamp = "🔄"          # like the member lines above it - not a guess
+        elif running and running == total:
             lamp = "🟢"
         elif running:
             lamp = "🟡"
@@ -217,21 +243,8 @@ class OverviewEmbedsMixin:
 
             # Get cached status data
             # Use docker_name as cache key (stable identifier)
-            cached_entry = self.status_cache_service.get(docker_name)
-            status_result = None
-
-            if cached_entry and cached_entry.get('data'):
-                from utils.settings import get_setting
-                max_cache_age = get_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
-
-                if 'timestamp' in cached_entry:
-                    cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
-                    if cache_age > max_cache_age:
-                        logger.debug(f"Cache for {display_name} expired")
-                        cached_entry = None
-
-                if cached_entry and cached_entry.get('data'):
-                    status_result = cached_entry['data']
+            # The one rule for a usable cached status (fresh_status)
+            status_result = fresh_status(self.status_cache_service.get(docker_name))
 
             # Process status and build field
             # NOW USING ContainerStatusResult Objects (not tuples)
@@ -436,24 +449,8 @@ class OverviewEmbedsMixin:
 
             # Use cached data only (same as original)
             # Use docker_name as cache key (stable identifier)
-            cached_entry = self.status_cache_service.get(docker_name)
-            status_result = None
-
-            if cached_entry and cached_entry.get('data'):
-                from utils.settings import get_setting
-                max_cache_age = get_setting('DDC_DOCKER_MAX_CACHE_AGE', 300)
-
-                if 'timestamp' in cached_entry:
-                    cache_age = (datetime.now(timezone.utc) - cached_entry['timestamp']).total_seconds()
-                    if cache_age > max_cache_age:
-                        logger.debug(f"Cache for {display_name} expired ({cache_age:.1f}s > {max_cache_age}s)")
-                        cached_entry = None
-
-                if cached_entry and cached_entry.get('data'):
-                    status_result = cached_entry['data']
-            else:
-                logger.debug(f"[/serverstatus] No cache entry for '{display_name}' - Background loop will update")
-                status_result = None
+            # The one rule for a usable cached status (fresh_status)
+            status_result = fresh_status(self.status_cache_service.get(docker_name))
 
             # Process status result - NOW USING ContainerStatusResult Objects (not tuples)
             # Check if we have a successful ContainerStatusResult
