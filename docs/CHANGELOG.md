@@ -171,6 +171,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A donation that reached the ledger but whose mech update then failed (a full disk) was answered
   as failed - a donor who tried again could be credited twice. It is answered as recorded now;
   the mech catches up with the next booking.
+- The confirmation of a new restart or stop task created in Discord closed itself after one
+  minute, too short to choose "wait until nobody plays" and the warning. It stays for five minutes
+  now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

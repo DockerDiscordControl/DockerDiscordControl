@@ -239,6 +239,11 @@ class PrivateView(DDCView):
     DDCView.
     """
 
+    # A panel that needs longer than the minute to be read and filled in keeps
+    # the timeout it asked for; its ✕ still does not stand alone. Only the
+    # confirmation of a new task, with its two dropdowns (operator, 2026-09-29).
+    KEEPS_ITS_TIMEOUT = False
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         built = cls.__init__
@@ -256,6 +261,7 @@ class PrivateView(DDCView):
                 # Read from the layout Discord will get, not guessed.
                 if _alone_on_its_row(self):
                     self.remove_item(self.children[-1])
-                    self.timeout = AUTO_CLOSE_SECONDS
+                    if not self.KEEPS_ITS_TIMEOUT:
+                        self.timeout = AUTO_CLOSE_SECONDS
 
         cls.__init__ = __init__

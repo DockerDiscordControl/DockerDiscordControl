@@ -131,6 +131,8 @@ async def _answer(interaction: discord.Interaction, task_id: str, container_name
 class TaskPlayerOptionsView(PrivateView):
     """The two dropdowns under the confirmation of a new restart/stop task."""
 
+    KEEPS_ITS_TIMEOUT = True   # five minutes to choose, not the lone-✕ minute (operator, 2026-09-29)
+
     def __init__(self, task_id: str, container_name: str, timeout: Optional[float] = 300):
         super().__init__(timeout=timeout)
         self.add_item(WaitForEmptySelect(task_id, container_name, row=0))
