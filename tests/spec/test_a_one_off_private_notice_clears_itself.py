@@ -53,7 +53,11 @@ MAKES_IT_A_PANEL = {"view", "embed", "file"}
 # Named exemptions, by the first argument's variable name. song_link (mech_ui,
 # PlaySongButton): Discord draws the YouTube link as a player - the 15 s timer
 # took it away mid-song (stage 4 review before v3.1.0, section 03).
-EXEMPT_FIRST_ARGS = {"song_link"}
+# processing_notice (donation_ui, the donation modal): every answer is an edit
+# of it, and a delete_after at the send cut the answer short; its removal is
+# scheduled after the last answer instead (section 06, test_the_donation_answer_
+# stays_its_full_time.py).
+EXEMPT_FIRST_ARGS = {"song_link", "processing_notice"}
 
 
 def _ephemeral_calls():

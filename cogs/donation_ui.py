@@ -287,10 +287,8 @@ class DonationBroadcastModal(DDCModal):
         # message - "your donation was recorded, do NOT submit again" stayed only
         # for what was left of the 15 s. The deletion is scheduled once, after the
         # last answer, in the finally below (stage 4 review before v3.1.0, 06).
-        await interaction.response.send_message(
-            _("⏳ Processing..."),  # Shortened processing message
-            ephemeral=True
-        )
+        processing_notice = _("⏳ Processing...")
+        await interaction.response.send_message(processing_notice, ephemeral=True)
 
         # Bound before the try: the handler below reads both, and a notice that
         # failed before they were set (the invalid-amount followup) raised
