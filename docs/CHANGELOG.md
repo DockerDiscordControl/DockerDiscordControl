@@ -193,6 +193,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A game query port outside 1-65535 (e.g. 70000) was saved as 0, "find it automatically", while
   the panel said "saved". Such a port is refused now, with the container and the value named, and
   nothing is saved.
+- The container's "Custom IP/URL" field refused IPv6 addresses and URLs such as
+  https://example.com, and Discord showed "[Invalid Format]" instead. Both are shown now; a port
+  from the info form is put in brackets behind an IPv6 address and never glued into a URL.
 
 ### 🐛 The mech's picture and gift, the update notice
 

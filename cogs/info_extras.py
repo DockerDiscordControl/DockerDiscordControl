@@ -246,17 +246,17 @@ async def address_line(info_config: Dict[str, Any], game_port: Optional[int] = N
     under a Valheim server, the port three lines higher) - but never glued to
     an address that already carries its own.
     """
-    from .control_helpers import validate_custom_address, validate_custom_port
+    from .control_helpers import carries_port, validate_custom_address, validate_custom_port, with_port
     custom_ip = str(info_config.get('custom_ip') or '').strip()
     custom_port = str(info_config.get('custom_port') or '').strip()
     port = custom_port if validate_custom_port(custom_port) else ''
-    if not port and game_port and ':' not in custom_ip:
+    if not port and game_port and not carries_port(custom_ip):
         port = str(game_port)
     if custom_ip:
         if not validate_custom_address(custom_ip):
             logger.warning(f"Invalid custom address format: {custom_ip}")
             return f"🔗 **{_('Custom Address')}:** [Invalid Format]"
-        return f"🔗 **{_('Custom Address')}:** `{custom_ip}{':' + port if port else ''}`"
+        return f"🔗 **{_('Custom Address')}:** `{with_port(custom_ip, port)}`"
     try:
         from utils.common_helpers import get_wan_ip_async
         wan_ip = await get_wan_ip_async()

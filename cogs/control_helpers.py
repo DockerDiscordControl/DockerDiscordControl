@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import discord
-from typing import List, Union
+from typing import List, Optional, Union
 from services.config.config_service import load_config
 from .translation_manager import _ # Import the translation function
 from utils.time_utils import format_datetime_with_timezone, get_datetime_imports # Import time helper
@@ -245,6 +245,14 @@ def validate_custom_address(address: str) -> bool:
     if not isinstance(address, str) or len(address) > 255:
         return False
 
+    # The field says "IP/URL": an http(s) URL and an IPv6 address are addresses
+    # too. The split at the last ':' below refused both (operator, 2026-09-29;
+    # stage 4 review before v3.1.0, section 01).
+    if '://' in address:
+        return _valid_url(address)
+    if _ipv6_literal(address) is not None:
+        return True
+
     # Split the port off FIRST, so the host is judged by the same rule whether
     # or not one is attached. It used to be the other way round: the IP pattern
     # below had no port group, so an address WITH a port never matched it and
@@ -272,6 +280,70 @@ def validate_custom_address(address: str) -> bool:
         return True
 
     return False
+
+
+# What a URL may contain after its host, without a backtick: the address is
+# shown in a Discord code span, and a backtick would end it.
+_URL_TAIL = r"^[A-Za-z0-9\-._~/?#\[\]@!$&'()*+,;=%]*$"
+
+
+def _ipv6_literal(address: str) -> Optional[tuple]:
+    """(ipv6, port or '') for '2001:db8::5' or '[2001:db8::5]:2456', else None."""
+    import ipaddress
+    host, port = address, ''
+    if address.startswith('['):
+        host, sep, rest = address[1:].partition(']')
+        if not sep or (rest and not (rest.startswith(':') and validate_custom_port(rest[1:]))):
+            return None
+        port = rest[1:]
+    try:
+        ipaddress.IPv6Address(host)
+    except ValueError:
+        return None
+    return host, port
+
+
+def _valid_url(address: str) -> bool:
+    """An http(s) URL whose host is an address and whose port is a port."""
+    import re
+    from urllib.parse import urlsplit
+    try:
+        parts = urlsplit(address)
+        port = parts.port
+    except ValueError:
+        return False
+    if parts.scheme not in ('http', 'https') or not parts.hostname:
+        return False
+    if port is not None and not validate_custom_port(str(port)):
+        return False
+    netloc_host = parts.netloc.rsplit('@', 1)[-1]
+    if netloc_host.startswith('['):
+        if _ipv6_literal(netloc_host) is None:
+            return False
+    elif not validate_custom_address(parts.hostname):
+        return False
+    return bool(re.match(_URL_TAIL, address.split(parts.netloc, 1)[1]))
+
+
+def with_port(address: str, port: str) -> str:
+    """The address as a member types it, with the port joined the right way:
+    in brackets behind a bare IPv6 address, never into a URL."""
+    if not port or '://' in address:
+        return address
+    literal = _ipv6_literal(address)
+    if literal is not None:
+        return f"[{literal[0]}]:{port}" if not literal[1] else address
+    return f"{address}:{port}"
+
+
+def carries_port(address: str) -> bool:
+    """Whether the address names its own port (a URL counts as complete)."""
+    if '://' in address:
+        return True
+    literal = _ipv6_literal(address)
+    if literal is not None:
+        return bool(literal[1])
+    return ':' in address
 
 
 def validate_custom_port(port: str) -> bool:

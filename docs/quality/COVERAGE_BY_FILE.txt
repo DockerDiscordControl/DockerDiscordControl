@@ -114,7 +114,7 @@ cogs/admin_ui.py	386	moved unchanged from control_ui.py 2026-09-28 (reviewed the
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	850	v3rev:1-652
 cogs/channel_lifecycle.py	649	v3rev2:1-646
-cogs/control_helpers.py	351	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
+cogs/control_helpers.py	423	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/control_ui.py	1433	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
 cogs/ddc_ui.py	267	passE:written-2026-09-21
 cogs/docker_control.py	1251	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
