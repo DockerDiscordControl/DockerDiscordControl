@@ -79,6 +79,8 @@ def environment(monkeypatch):
     running = ContainerStatusResult.success_result(
         docker_name="nginx", display_name="nginx", is_running=True,
         cpu="1%", ram="10MB", uptime="1h", details_allowed=True)
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service", lambda: SimpleNamespace(
         get=lambda name: {"data": running}))
 

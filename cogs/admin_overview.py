@@ -45,6 +45,27 @@ async def _restart_running_servers(servers, action):
             "not_allowed": counts["not_allowed"]}
 
 
+async def _running_now(docker_name: str):
+    """Whether Docker says the container runs right now; None when it cannot be read.
+
+    The bulk actions trusted the status cache alone, and an entry lives up to
+    75 s: a container stopped outside DDC since the last beat was restarted -
+    which STARTS it - and counted as restarted, although the confirmation
+    promised running containers only (stage 4 review before v3.1.0, section 01).
+    """
+    try:
+        from services.infrastructure.container_status_service import (
+            ContainerStatusRequest, get_container_status_service)
+        service = get_container_status_service()
+        service.invalidate_container(docker_name)
+        result = await service.get_container_status(ContainerStatusRequest(
+            container_name=docker_name, include_stats=False, include_details=False))
+    except (RuntimeError, OSError, AttributeError, ValueError, asyncio.TimeoutError) as e:
+        logger.warning(f"Could not read the live status of {docker_name}: {e}")
+        return None
+    return bool(result.is_running) if getattr(result, 'success', False) else None
+
+
 async def _act_on_running_servers(servers, action, verb: str):
     """Apply ``verb`` to the running ones of ``servers`` with ``action``; the counts.
 
@@ -99,6 +120,15 @@ async def _act_on_running_servers(servers, action, verb: str):
             elif isinstance(status_result, tuple) and len(status_result) >= 2:
                 is_running = status_result[1]
 
+        if is_running:
+            # The cache's "running" is asked again, fresh, before acting on it
+            live = await _running_now(docker_name)
+            if live is None:
+                unknown_count += 1
+                continue
+            if not live:
+                skipped_count += 1
+                continue
         if is_running:
             # One container, with timeout protection
             try:

@@ -90,6 +90,8 @@ def world(monkeypatch, tmp_path):
     servers = [dict(s) for s in SERVERS]
     cache = dict(CACHE)
     monkeypatch.setattr(ao, "get_server_config_service", lambda: SimpleNamespace(get_all_servers=lambda: servers))
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service", lambda: SimpleNamespace(get=cache.get))
     admins = {str(ADMIN_ID)}
 

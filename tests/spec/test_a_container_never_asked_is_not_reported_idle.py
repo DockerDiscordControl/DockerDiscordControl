@@ -62,6 +62,8 @@ def world(monkeypatch):
                                               is_running=is_running)}
 
     cache = {RUNNING: _status(True), STOPPED: _status(False)}
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(admin_overview, "get_status_cache_service",
                         lambda: SimpleNamespace(get=lambda name: cache.get(name)))
 

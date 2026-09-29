@@ -53,6 +53,8 @@ def world(tmp_path, monkeypatch):
 
     monkeypatch.setattr(ao, "get_server_config_service",
                         lambda: SimpleNamespace(get_all_servers=lambda: servers))
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service",
                         lambda: SimpleNamespace(get=_entry))
     return SimpleNamespace(groups=group_service.get_group_service(), entry=_entry,
@@ -122,6 +124,8 @@ async def test_a_compose_stack_does_not_bring_it_either(world, monkeypatch):
         entry["data"].compose_project = "blog"
         return entry
 
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service",
                         lambda: SimpleNamespace(get=_with_project))
 
@@ -138,6 +142,8 @@ def test_the_menu_offers_groups_and_stacks(world, monkeypatch):
         entry["data"].compose_project = "blog" if name == "alpha" else None
         return entry
 
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service",
                         lambda: SimpleNamespace(get=_with_project))
 

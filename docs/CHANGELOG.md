@@ -253,6 +253,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - An admin assigned only to containers that are not active pressed Restart All or Stop All and was
   told "No active servers configured". They are told now that none of the active containers is
   assigned to them; the stack restart says the same.
+- Restart All could restart - which means start - a container that had been stopped outside DDC
+  during the last half minute, because it trusted the last status reading; it then counted it as
+  restarted. Restart All and Stop All ask Docker again before acting on a container now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -74,6 +74,8 @@ async def test_stop_all_stops_only_the_assigned_container(admins, monkeypatch):
     monkeypatch.setattr(ao, "get_server_config_service", lambda: SimpleNamespace(get_all_servers=lambda: servers))
     from services.docker_status.models import ContainerStatusResult
 
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service", lambda: SimpleNamespace(get=lambda name: {
         "data": ContainerStatusResult.success_result(docker_name=name, display_name=name, is_running=True,
                                                      cpu="1%", ram="1MB", uptime="1h", details_allowed=True)}))

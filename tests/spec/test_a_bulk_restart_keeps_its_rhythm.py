@@ -30,6 +30,8 @@ def running(monkeypatch):
             docker_name=name, display_name=name, is_running=True, cpu="1%", ram="1MB",
             uptime="1h", details_allowed=True)}
 
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service",
                         lambda: type("C", (), {"get": staticmethod(lambda n: _entry(n))})())
     sleeps = []

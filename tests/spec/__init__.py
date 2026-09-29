@@ -86,3 +86,21 @@ def configured_as_drawn(monkeypatch, module, allowed=("start", "stop", "restart"
         get_server_by_docker_name=lambda name: {"docker_name": name,
                                                 "allowed_actions": list(allowed)}))
 
+
+
+def docker_agrees_with_the_cache(monkeypatch):
+    """The bulk actions' fresh Docker read answers what the test's status cache says.
+
+    Restart All / Stop All ask Docker again before acting on a container the
+    cache calls running (stage 4 review before v3.1.0, section 01). Tests that
+    describe the containers through the cache alone state here that Docker
+    agrees with it; test_restart_all_asks_docker_before_it_acts.py covers the
+    case where it does not.
+    """
+    import cogs.admin_overview as ao
+
+    async def _as_cached(docker_name):
+        entry = ao.get_status_cache_service().get(docker_name)
+        data = (entry or {}).get("data")
+        return getattr(data, "is_running", None) if data is not None else None
+    monkeypatch.setattr(ao, "_running_now", _as_cached)

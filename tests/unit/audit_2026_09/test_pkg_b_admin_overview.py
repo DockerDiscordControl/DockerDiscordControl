@@ -61,6 +61,7 @@ async def _run_bulk(button_cls, action):
     with patch.object(admin_overview, "get_admin_service", return_value=admin_service), \
          patch.object(admin_overview, "get_server_config_service", return_value=scs), \
          patch.object(admin_overview, "get_status_cache_service", return_value=_running_cache()), \
+         patch.object(admin_overview, "_running_now", new=AsyncMock(return_value=True)), \
          patch("services.docker_service.docker_action_service.docker_action_service_first", action_mock), \
          patch.object(button_cls, "_delayed_overview_update", new=AsyncMock()), \
          patch("asyncio.sleep", new=AsyncMock()):

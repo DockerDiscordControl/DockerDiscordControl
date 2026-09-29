@@ -59,6 +59,8 @@ def world(monkeypatch):
                           bot=SimpleNamespace(get_channel=lambda cid: None))
     monkeypatch.setattr(ao, "get_server_config_service",
                         lambda: SimpleNamespace(get_all_servers=lambda: servers))
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service",
                         lambda: SimpleNamespace(get=_running))
     monkeypatch.setattr(ao, "get_admin_service",
@@ -99,6 +101,8 @@ def test_the_helper_counts_what_the_summary_reports(monkeypatch):
     cache = {"web": {"data": ContainerStatusResult.success_result(
         docker_name="web", display_name="web", is_running=True, cpu="1%", ram="1MB",
         uptime="1h", details_allowed=True)}}
+    from tests.spec import docker_agrees_with_the_cache
+    docker_agrees_with_the_cache(monkeypatch)  # bulk actions ask Docker fresh (stage 4, 01)
     monkeypatch.setattr(ao, "get_status_cache_service",
                         lambda: SimpleNamespace(get=lambda name: cache.get(name)))
     monkeypatch.setattr(ao.asyncio, "sleep", AsyncMock())
