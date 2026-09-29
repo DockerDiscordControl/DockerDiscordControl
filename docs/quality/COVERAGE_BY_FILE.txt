@@ -133,7 +133,7 @@ cogs/stack_restart.py	325	v3rev:1-196
 cogs/status_handlers.py	1116	passE:E15,E16:80-200,560-700 v3rev2:1-1400
 cogs/status_info_integration.py	1127	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1245	NONE
-cogs/task_player_options.py	124	new 2026-09-28 (v3.1.0 player options), written with its tests
+cogs/task_player_options.py	137	new 2026-09-28 (v3.1.0 player options), written with its tests
 cogs/translation_manager.py	149	passE:E30:read-in-full
 cogs/translation_monitor.py	112	passE:E32:read-in-full
 cogs/watchdog_maintenance.py	262	NONE

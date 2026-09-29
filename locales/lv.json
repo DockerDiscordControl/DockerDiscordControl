@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Rāda konteinera informāciju un spēles serverī, kas spēlē",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC ir atjaunināts uz versiju {version}. Jaunumi ir laidiena piezīmēs:",
-  "Full release notes:": "Pilnas laidiena piezīmes:"
+  "Full release notes:": "Pilnas laidiena piezīmes:",
+  "Could not save the change.": "Izmaiņas neizdevās saglabāt."
 }

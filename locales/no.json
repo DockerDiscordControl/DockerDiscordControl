@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Viser containerdetaljer og, på en spillserver, hvem som spiller",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC er oppdatert til versjon {version}. Det nye står i utgivelsesnotatene:",
-  "Full release notes:": "Fullstendige utgivelsesnotater:"
+  "Full release notes:": "Fullstendige utgivelsesnotater:",
+  "Could not save the change.": "Endringen kunne ikke lagres."
 }

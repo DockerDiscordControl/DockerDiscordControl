@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Mostra os detalhes do contentor e, num servidor de jogo, quem joga",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "O DDC foi atualizado para a versão {version}. As novidades estão nas notas de lançamento:",
-  "Full release notes:": "Notas de lançamento completas:"
+  "Full release notes:": "Notas de lançamento completas:",
+  "Could not save the change.": "Não foi possível guardar a alteração."
 }

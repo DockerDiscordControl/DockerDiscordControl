@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Arată detaliile containerului și, la un server de joc, cine joacă",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC a fost actualizat la versiunea {version}. Noutățile sunt în notele de lansare:",
-  "Full release notes:": "Notele complete de lansare:"
+  "Full release notes:": "Notele complete de lansare:",
+  "Could not save the change.": "Modificarea nu a putut fi salvată."
 }

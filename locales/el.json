@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Εμφανίζει λεπτομέρειες container και, σε διακομιστή παιχνιδιού, ποιος παίζει",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "Το DDC ενημερώθηκε στην έκδοση {version}. Τα νέα θα τα βρείτε στις σημειώσεις έκδοσης:",
-  "Full release notes:": "Πλήρεις σημειώσεις έκδοσης:"
+  "Full release notes:": "Πλήρεις σημειώσεις έκδοσης:",
+  "Could not save the change.": "Δεν ήταν δυνατή η αποθήκευση της αλλαγής."
 }

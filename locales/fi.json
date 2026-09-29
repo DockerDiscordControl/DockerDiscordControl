@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Näyttää kontin tiedot ja pelipalvelimella, kuka pelaa",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC on päivitetty versioon {version}. Uutuudet löytyvät julkaisutiedoista:",
-  "Full release notes:": "Koko julkaisutiedot:"
+  "Full release notes:": "Koko julkaisutiedot:",
+  "Could not save the change.": "Muutosta ei voitu tallentaa."
 }

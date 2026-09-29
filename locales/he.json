@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "מציג פרטי קונטיינר, ובשרת משחק מי משחק",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC עודכן לגרסה {version}. מה חדש – בהערות השחרור:",
-  "Full release notes:": "הערות השחרור המלאות:"
+  "Full release notes:": "הערות השחרור המלאות:",
+  "Could not save the change.": "לא ניתן היה לשמור את השינוי."
 }

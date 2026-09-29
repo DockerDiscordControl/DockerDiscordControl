@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Megmutatja a konténer adatait, játékszervernél azt is, ki játszik",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "A DDC frissült a(z) {version} verzióra. Az újdonságok a kiadási megjegyzésekben olvashatók:",
-  "Full release notes:": "A teljes kiadási megjegyzések:"
+  "Full release notes:": "A teljes kiadási megjegyzések:",
+  "Could not save the change.": "A módosítást nem sikerült menteni."
 }

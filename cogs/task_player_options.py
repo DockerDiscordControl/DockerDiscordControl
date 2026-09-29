@@ -16,6 +16,7 @@ once - through normalize_options, like the panel, and with the same notice when
 the player count cannot be read.
 """
 
+import asyncio
 from typing import List, Optional
 
 import discord
@@ -104,15 +105,27 @@ async def _answer(interaction: discord.Interaction, task_id: str, container_name
             f"❌ {_('This action is not allowed in this channel.')}",
             ephemeral=True, delete_after=NOTICE_STAYS_FOR)
         return
-    task, error, warnings = _save(task_id, change)
+    # Acknowledge first, then save in a worker thread: _save takes the tasks
+    # lock and writes tasks.json (often on a network mount - rule B8 in the
+    # scheduler), and asks for the player count. On the loop it stalled the
+    # bot and could miss Discord's 3 seconds; an exception out of it left
+    # "This interaction failed" (second review before v3.1.0).
+    await interaction.response.defer(ephemeral=True)
+    try:
+        task, error, warnings = await asyncio.to_thread(_save, task_id, change)
+    except Exception as e:  # noqa: BLE001 - whatever it was, the member gets an answer
+        logger.error(f"Saving the player options of task {task_id} failed: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ {_('Could not save the change.')}", ephemeral=True,
+                                        delete_after=NOTICE_STAYS_FOR)
+        return
     if error:
-        await interaction.response.send_message(f"❌ {error}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+        await interaction.followup.send(f"❌ {error}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
         return
     from services.scheduling.player_gate import describe
     text = f"✅ {_('Saved')}: {describe(task.options) or _('runs at its time, no warning')}"
     if warnings:
         text += "\n⚠️ " + " ".join(warnings)
-    await interaction.response.send_message(text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+    await interaction.followup.send(text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
 
 class TaskPlayerOptionsView(PrivateView):

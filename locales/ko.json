@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "컨테이너 정보와 게임 서버의 접속자를 보여줍니다",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC가 {version} 버전으로 업데이트되었습니다. 새로운 내용은 릴리스 노트에 있습니다:",
-  "Full release notes:": "전체 릴리스 노트:"
+  "Full release notes:": "전체 릴리스 노트:",
+  "Could not save the change.": "변경 사항을 저장할 수 없습니다."
 }

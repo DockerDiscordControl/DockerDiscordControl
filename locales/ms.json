@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Menunjukkan butiran kontena dan, pada pelayan permainan, siapa bermain",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC telah dikemas kini ke versi {version}. Apa yang baharu ada dalam nota keluaran:",
-  "Full release notes:": "Nota keluaran penuh:"
+  "Full release notes:": "Nota keluaran penuh:",
+  "Could not save the change.": "Perubahan tidak dapat disimpan."
 }

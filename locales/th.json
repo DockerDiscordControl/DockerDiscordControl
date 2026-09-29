@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "แสดงรายละเอียดคอนเทนเนอร์ และผู้ที่กำลังเล่นบนเซิร์ฟเวอร์เกม",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC ได้อัปเดตเป็นเวอร์ชัน {version} แล้ว ดูสิ่งใหม่ในบันทึกประจำรุ่น:",
-  "Full release notes:": "บันทึกประจำรุ่นฉบับเต็ม:"
+  "Full release notes:": "บันทึกประจำรุ่นฉบับเต็ม:",
+  "Could not save the change.": "ไม่สามารถบันทึกการเปลี่ยนแปลงได้"
 }

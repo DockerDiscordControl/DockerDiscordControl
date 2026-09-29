@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "يعرض تفاصيل الحاوية، ومن يلعب على خوادم الألعاب",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "تم تحديث DDC إلى الإصدار {version}. الجديد موجود في ملاحظات الإصدار:",
-  "Full release notes:": "ملاحظات الإصدار الكاملة:"
+  "Full release notes:": "ملاحظات الإصدار الكاملة:",
+  "Could not save the change.": "تعذّر حفظ التغيير."
 }

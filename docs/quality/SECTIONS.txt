@@ -500,4 +500,4 @@ services/translation/translation_service.py:1-835
 # read together.
 services/scheduling/scheduler_service.py:1-632
 services/scheduling/player_gate.py:1-310
-cogs/task_player_options.py:1-124
+cogs/task_player_options.py:1-137

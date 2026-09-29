@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Näitab konteineri üksikasju ja mänguserveris, kes mängib",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC uuendati versioonile {version}. Mis on uut, on kirjas väljalaskemärkmetes:",
-  "Full release notes:": "Täielikud väljalaskemärkmed:"
+  "Full release notes:": "Täielikud väljalaskemärkmed:",
+  "Could not save the change.": "Muudatust ei õnnestunud salvestada."
 }

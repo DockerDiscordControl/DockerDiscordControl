@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Zobrazí detaily kontejneru a u herních serverů, kdo hraje",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC byl aktualizován na verzi {version}. Co je nového, najdete v poznámkách k vydání:",
-  "Full release notes:": "Úplné poznámky k vydání:"
+  "Full release notes:": "Úplné poznámky k vydání:",
+  "Could not save the change.": "Změnu se nepodařilo uložit."
 }

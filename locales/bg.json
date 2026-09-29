@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "Показва детайли за контейнера и кой играе на игровите сървъри",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC е обновен до версия {version}. Какво е новото, вижте в бележките към изданието:",
-  "Full release notes:": "Пълните бележки към изданието:"
+  "Full release notes:": "Пълните бележки към изданието:",
+  "Could not save the change.": "Промяната не можа да бъде запазена."
 }

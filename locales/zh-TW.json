@@ -1660,5 +1660,6 @@
   "Shows container details and, on a game server, who plays": "顯示容器詳情，遊戲伺服器還會顯示誰在玩",
   "🎉 DockerDiscordControl v{version}": "🎉 DockerDiscordControl v{version}",
   "DDC has been updated to version {version}. What is new is in the release notes:": "DDC 已更新至 {version} 版。更新內容請見發行說明：",
-  "Full release notes:": "完整發行說明："
+  "Full release notes:": "完整發行說明：",
+  "Could not save the change.": "無法儲存變更。"
 }
