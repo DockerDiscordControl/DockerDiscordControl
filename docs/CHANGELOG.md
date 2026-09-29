@@ -106,6 +106,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   three days after all.
 - A control channel that could not be reached when a version's update notice went out gets it at
   the next start; until now the first channel that had it closed the version for all of them.
+- Opening the task list no longer switches off a one-time task the scheduler is still going to
+  run: one whose time had passed only seconds ago, or one waiting for an empty server. The list
+  called it expired and turned it off, and the task never ran.
 
 ### 🗓️ The task forms, straightened out
 

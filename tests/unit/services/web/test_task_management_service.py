@@ -673,7 +673,10 @@ class TestCalculateFrontendStatus:
         assert needs_update is False
 
     def test_once_task_in_past_is_expired_and_marked(self, service):
-        past = time.time() - 60
+        # An hour, not a minute: within the scheduler's grace a one-time task
+        # is still going to run and must not be switched off
+        # (tests/spec/test_the_panel_does_not_switch_off_a_task_that_is_still_to_run.py)
+        past = time.time() - 3600
         task = _FakeScheduledTask(cycle="once", next_run_ts=past, is_active=True)
         status, needs_update = service._calculate_frontend_status(task, time.time())
         assert status == "expired"
@@ -1109,7 +1112,7 @@ class TestProcessTaskForFrontend:
         assert "next_run_local" in out
 
     def test_expired_once_task_marks_needs_update(self, service):
-        past = time.time() - 60
+        past = time.time() - 3600  # beyond the scheduler's grace, see above
         task = _FakeScheduledTask(cycle="once", next_run_ts=past, is_active=True)
         out = service._process_task_for_frontend(task, "UTC", time.time())
         assert out["frontend_status"] == "expired"

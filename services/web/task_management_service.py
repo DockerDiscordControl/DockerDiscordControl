@@ -159,6 +159,26 @@ def unreadable_cron_reason(task) -> Optional[str]:
             f"expected: minute hour day month weekday.")
 
 
+def _past_its_last_chance(task, current_time: float) -> bool:
+    """Whether the scheduler would no longer run this due occurrence.
+
+    The scheduler's own rule (scheduler_service._check_and_execute_tasks):
+    a due task runs in the next cycle, is missed only after
+    MISSED_RUN_GRACE_SECONDS, and one that waits for an empty server may
+    wait its whole window on top. This list called a one-time task
+    expired the moment its time had passed and switched it off - a
+    restart still waiting for its players, or one the page was opened
+    for in the seconds before the scheduler's next cycle, never came
+    (second review before v3.1.0, 2026-09-29).
+    """
+    from services.scheduling import player_gate
+    from services.scheduling.scheduler_service import MISSED_RUN_GRACE_SECONDS
+    options = getattr(task, 'options', None) or {}
+    gated = bool(options) and (task.action or '').lower() in player_gate.GATED_ACTIONS
+    window = player_gate.window_seconds(options) if gated else 0
+    return current_time - task.next_run_ts > MISSED_RUN_GRACE_SECONDS + window
+
+
 class TaskManagementService:
     """Service for comprehensive task management with complex business logic."""
 
@@ -760,7 +780,7 @@ class TaskManagementService:
                 needs_update = True
                 self.logger.info(f"Task {task.task_id} is marked as expired (status completed) and deactivated")
 
-        elif task.cycle == CYCLE_ONCE and task.next_run_ts and task.next_run_ts < current_time:
+        elif task.cycle == CYCLE_ONCE and task.next_run_ts and _past_its_last_chance(task, current_time):
             frontend_status = "expired"
             if task.is_active:
                 task.is_active = False
