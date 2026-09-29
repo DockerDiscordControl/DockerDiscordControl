@@ -150,6 +150,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the save failed now.
 - An admin's container assignment changed directly in admins.json took effect only after a
   restart. It is read again after the usual five minutes now.
+- A watchdog rule with a rule-wide cooldown that fired on a protected container (DDC itself is
+  always protected) did nothing there, but then skipped every other container for the whole
+  cooldown. It no longer spends the cooldown when it did nothing.
 
 ### 🐛 The mech's picture and gift, the update notice
 

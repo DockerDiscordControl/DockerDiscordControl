@@ -794,6 +794,11 @@ class AutomationService:
             logger.warning(f"AAS: Blocked {action_type} on protected container '{container}' (watchdog)")
             self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED",
                                               "Protected container")
+            # Nothing was done: the RULE cooldown is freed, like every batch that did
+            # nothing (the container's own keeps this notice rate-limited). Kept, it
+            # skipped every other container - DDC itself is always protected
+            # (stage 4 review before v3.1.0, section 11).
+            self.state_service.release_rule_cooldown(rule.id)
             if not rule.action.silent:
                 await self._alert(bot, channels, event,
                                           f"🚨 {event.reason} — *{rule.name}* (protected: no `{action_type}`)")
