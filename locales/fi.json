@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Ei sinulle määritetty",
   "❌ None of the active containers is assigned to you.": "❌ Yhtään aktiivisista konteista ei ole määritetty sinulle.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Mechin tila tilapäisesti poissa käytöstä",
-  "No channel takes donation announcements - nothing was posted.": "Mikään kanava ei ota vastaan lahjoitusilmoituksia - mitään ei julkaistu."
+  "No channel takes donation announcements - nothing was posted.": "Mikään kanava ei ota vastaan lahjoitusilmoituksia - mitään ei julkaistu.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Tasolle {level} puuttuu ${amount}! (esim. {amount})"
 }

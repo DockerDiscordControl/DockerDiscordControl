@@ -1667,5 +1667,6 @@
   "Not assigned to you": "ไม่ได้มอบหมายให้คุณ",
   "❌ None of the active containers is assigned to you.": "❌ ไม่มีคอนเทนเนอร์ที่ใช้งานอยู่รายการใดที่มอบหมายให้คุณ",
   "⚙️ Mech status temporarily unavailable": "⚙️ สถานะเมคไม่พร้อมใช้งานชั่วคราว",
-  "No channel takes donation announcements - nothing was posted.": "ไม่มีช่องใดรับประกาศการบริจาค - ไม่ได้โพสต์อะไร"
+  "No channel takes donation announcements - nothing was posted.": "ไม่มีช่องใดรับประกาศการบริจาค - ไม่ได้โพสต์อะไร",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 ต้องการอีก ${amount} เพื่อถึงระดับ {level}! (เช่น {amount})"
 }

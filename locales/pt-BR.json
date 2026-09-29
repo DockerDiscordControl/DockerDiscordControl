@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Não atribuídos a você",
   "❌ None of the active containers is assigned to you.": "❌ Nenhum dos containers ativos está atribuído a você.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Status do mech temporariamente indisponível",
-  "No channel takes donation announcements - nothing was posted.": "Nenhum canal aceita anúncios de doações - nada foi publicado."
+  "No channel takes donation announcements - nothing was posted.": "Nenhum canal aceita anúncios de doações - nada foi publicado.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Faltam ${amount} para o nível {level}! (ex. {amount})"
 }

@@ -259,8 +259,11 @@ class DonationBroadcastModal(DDCModal):
 
                 next_level = state.level + 1
 
-                # Return dynamic placeholder with motivation text
-                return f"💎 Need ${formatted_amount} for Level {next_level}! (e.g. {formatted_amount})"
+                # Through the catalogue: a bare f-string left this one field
+                # English in every other language (stage 4 review before
+                # v3.1.0, section 06).
+                return _("💎 Need ${amount} for Level {level}! (e.g. {amount})").format(
+                    amount=formatted_amount, level=next_level)
             else:
                 # At max level or no next level info
                 return _("🎯 Support DDC development! (e.g. 10.50)")

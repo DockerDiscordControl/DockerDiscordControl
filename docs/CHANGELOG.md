@@ -277,6 +277,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A channel that allows neither control nor the server status (for example one only for donation
   announcements) could get a server overview posted into it after it became empty. It stays as it
   is now.
+- The amount field of the donation window ("Need $X for Level N") was English in every language.
+  It is translated now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

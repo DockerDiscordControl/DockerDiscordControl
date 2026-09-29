@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Inte tilldelade dig",
   "❌ None of the active containers is assigned to you.": "❌ Ingen av de aktiva containrarna är tilldelad dig.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Mech-status tillfälligt otillgänglig",
-  "No channel takes donation announcements - nothing was posted.": "Ingen kanal tar emot donationsmeddelanden - inget publicerades."
+  "No channel takes donation announcements - nothing was posted.": "Ingen kanal tar emot donationsmeddelanden - inget publicerades.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 ${amount} kvar till nivå {level}! (t.ex. {amount})"
 }

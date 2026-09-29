@@ -1667,5 +1667,6 @@
   "Not assigned to you": "به تو واگذار نشده",
   "❌ None of the active containers is assigned to you.": "❌ هیچ‌یک از کانتینرهای فعال به تو واگذار نشده است.",
   "⚙️ Mech status temporarily unavailable": "⚙️ وضعیت مک موقتاً در دسترس نیست",
-  "No channel takes donation announcements - nothing was posted.": "هیچ کانالی اعلان‌های کمک مالی را نمی‌پذیرد - چیزی منتشر نشد."
+  "No channel takes donation announcements - nothing was posted.": "هیچ کانالی اعلان‌های کمک مالی را نمی‌پذیرد - چیزی منتشر نشد.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 برای سطح {level} به ${amount} نیاز است! (مثلاً {amount})"
 }

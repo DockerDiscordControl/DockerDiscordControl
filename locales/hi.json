@@ -1667,5 +1667,6 @@
   "Not assigned to you": "तुम्हें सौंपे नहीं गए",
   "❌ None of the active containers is assigned to you.": "❌ सक्रिय कंटेनरों में से कोई भी तुम्हें सौंपा नहीं गया है।",
   "⚙️ Mech status temporarily unavailable": "⚙️ मेक की स्थिति अस्थायी रूप से उपलब्ध नहीं है",
-  "No channel takes donation announcements - nothing was posted.": "कोई भी चैनल दान की घोषणाएँ नहीं लेता - कुछ भी पोस्ट नहीं किया गया।"
+  "No channel takes donation announcements - nothing was posted.": "कोई भी चैनल दान की घोषणाएँ नहीं लेता - कुछ भी पोस्ट नहीं किया गया।",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 स्तर {level} के लिए ${amount} चाहिए! (जैसे {amount})"
 }

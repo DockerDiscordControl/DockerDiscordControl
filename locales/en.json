@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Not assigned to you",
   "❌ None of the active containers is assigned to you.": "❌ None of the active containers is assigned to you.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Mech status temporarily unavailable",
-  "No channel takes donation announcements - nothing was posted.": "No channel takes donation announcements - nothing was posted."
+  "No channel takes donation announcements - nothing was posted.": "No channel takes donation announcements - nothing was posted.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Need ${amount} for Level {level}! (e.g. {amount})"
 }

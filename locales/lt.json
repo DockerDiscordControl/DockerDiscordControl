@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Tau nepriskirta",
   "❌ None of the active containers is assigned to you.": "❌ Nė vienas aktyvus konteineris tau nepriskirtas.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Mecho būsena laikinai nepasiekiama",
-  "No channel takes donation announcements - nothing was posted.": "Joks kanalas nepriima pranešimų apie aukas - nieko nepaskelbta."
+  "No channel takes donation announcements - nothing was posted.": "Joks kanalas nepriima pranešimų apie aukas - nieko nepaskelbta.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Iki {level} lygio trūksta ${amount}! (pvz. {amount})"
 }

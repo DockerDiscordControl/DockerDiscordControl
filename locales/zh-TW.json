@@ -1667,5 +1667,6 @@
   "Not assigned to you": "未分配給你",
   "❌ None of the active containers is assigned to you.": "❌ 沒有任何啟用中的容器分配給你。",
   "⚙️ Mech status temporarily unavailable": "⚙️ 機甲狀態暫時無法使用",
-  "No channel takes donation announcements - nothing was posted.": "沒有頻道接收捐贈公告 - 未發布任何內容。"
+  "No channel takes donation announcements - nothing was posted.": "沒有頻道接收捐贈公告 - 未發布任何內容。",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 距離等級 {level} 還需 ${amount}！（例如 {amount}）"
 }

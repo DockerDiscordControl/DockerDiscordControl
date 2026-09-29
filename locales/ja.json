@@ -1667,5 +1667,6 @@
   "Not assigned to you": "あなたに割り当てられていません",
   "❌ None of the active containers is assigned to you.": "❌ 有効なコンテナはどれもあなたに割り当てられていません。",
   "⚙️ Mech status temporarily unavailable": "⚙️ メックのステータスは一時的に利用できません",
-  "No channel takes donation announcements - nothing was posted.": "寄付のお知らせを受け付けるチャンネルがありません - 何も投稿されませんでした。"
+  "No channel takes donation announcements - nothing was posted.": "寄付のお知らせを受け付けるチャンネルがありません - 何も投稿されませんでした。",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 レベル{level}まであと${amount}！（例: {amount}）"
 }

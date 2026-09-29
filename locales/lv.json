@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Tev nav piešķirts",
   "❌ None of the active containers is assigned to you.": "❌ Neviens no aktīvajiem konteineriem tev nav piešķirts.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Meha statuss īslaicīgi nav pieejams",
-  "No channel takes donation announcements - nothing was posted.": "Neviens kanāls nepieņem ziedojumu paziņojumus - nekas netika publicēts."
+  "No channel takes donation announcements - nothing was posted.": "Neviens kanāls nepieņem ziedojumu paziņojumus - nekas netika publicēts.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Līdz {level}. līmenim trūkst ${amount}! (piem. {amount})"
 }

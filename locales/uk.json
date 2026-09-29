@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Не призначені тобі",
   "❌ None of the active containers is assigned to you.": "❌ Жоден з активних контейнерів не призначений тобі.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Стан меха тимчасово недоступний",
-  "No channel takes donation announcements - nothing was posted.": "Жоден канал не приймає оголошення про пожертви - нічого не опубліковано."
+  "No channel takes donation announcements - nothing was posted.": "Жоден канал не приймає оголошення про пожертви - нічого не опубліковано.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 До рівня {level} бракує ${amount}! (напр. {amount})"
 }

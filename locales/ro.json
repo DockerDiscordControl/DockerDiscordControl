@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Nu îți sunt atribuite",
   "❌ None of the active containers is assigned to you.": "❌ Niciunul dintre containerele active nu îți este atribuit.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Starea mech-ului temporar indisponibilă",
-  "No channel takes donation announcements - nothing was posted.": "Niciun canal nu primește anunțuri de donații - nu s-a publicat nimic."
+  "No channel takes donation announcements - nothing was posted.": "Niciun canal nu primește anunțuri de donații - nu s-a publicat nimic.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Mai sunt ${amount} până la nivelul {level}! (ex. {amount})"
 }

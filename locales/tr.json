@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Sana atanmamış",
   "❌ None of the active containers is assigned to you.": "❌ Etkin konteynerlerin hiçbiri sana atanmamış.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Mech durumu geçici olarak kullanılamıyor",
-  "No channel takes donation announcements - nothing was posted.": "Hiçbir kanal bağış duyurularını kabul etmiyor - hiçbir şey paylaşılmadı."
+  "No channel takes donation announcements - nothing was posted.": "Hiçbir kanal bağış duyurularını kabul etmiyor - hiçbir şey paylaşılmadı.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Seviye {level} için ${amount} gerekiyor! (örn. {amount})"
 }

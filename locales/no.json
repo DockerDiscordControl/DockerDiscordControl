@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Ikke tildelt deg",
   "❌ None of the active containers is assigned to you.": "❌ Ingen av de aktive containerne er tildelt deg.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Mech-status midlertidig utilgjengelig",
-  "No channel takes donation announcements - nothing was posted.": "Ingen kanal tar imot donasjonsmeldinger - ingenting ble publisert."
+  "No channel takes donation announcements - nothing was posted.": "Ingen kanal tar imot donasjonsmeldinger - ingenting ble publisert.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 ${amount} igjen til nivå {level}! (f.eks. {amount})"
 }

@@ -1667,5 +1667,6 @@
   "Not assigned to you": "Nincs hozzád rendelve",
   "❌ None of the active containers is assigned to you.": "❌ Egyik aktív konténer sincs hozzád rendelve.",
   "⚙️ Mech status temporarily unavailable": "⚙️ A mech állapota átmenetileg nem érhető el",
-  "No channel takes donation announcements - nothing was posted.": "Egyik csatorna sem fogad adományközleményeket - semmi sem lett közzétéve."
+  "No channel takes donation announcements - nothing was posted.": "Egyik csatorna sem fogad adományközleményeket - semmi sem lett közzétéve.",
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Még ${amount} a(z) {level}. szintig! (pl. {amount})"
 }
