@@ -106,6 +106,12 @@ All notable changes to DockerDiscordControl will be documented in this file.
   with the few keys it saved: bot token, server id, password and channel rights gone. It is
   refused now, with a message to repair or remove the file first.
 
+### 🐛 Found by the review before v3.1.0
+
+- Clearing the "Global cooldown" field of the auto-actions was saved as "nothing", and from then
+  on every message rule failed in silence while the panel had said "saved". The field now has to
+  hold a whole number of seconds, and a value already stored that way no longer stops the rules.
+
 ### 🐛 The mech's picture and gift, the update notice
 
 - The mech in the channel overview kept the picture it was posted with: out of power, it went on

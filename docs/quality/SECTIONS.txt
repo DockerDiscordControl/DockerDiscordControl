@@ -81,11 +81,11 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-444
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-918
+services/automation/auto_action_config_service.py:1-927
 
 ## Section 11  (1861 lines, 4 pieces)
 services/automation/auto_action_state_service.py:1-389
-services/automation/automation_service.py:1-1007
+services/automation/automation_service.py:1-1020
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
 # config_cache_service.py left for section 12; both are small. own_actions.py
 # followed it on 2026-09-26: automation_service.py grew by the group check of
@@ -107,7 +107,7 @@ services/config/config_migration_service.py:1-466
 # neighbours sit, is at 1,920 and had no room either.
 
 ## Section 13  (1912 lines, 6 pieces)
-services/config/config_service.py:1-1266
+services/config/config_service.py:1-1301
 services/config/config_validation_service.py:1-212
 services/config/container_config_save_service.py:1-150
 services/config/server_config_service.py:1-233

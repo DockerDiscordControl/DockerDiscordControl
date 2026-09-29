@@ -212,6 +212,19 @@ def rule_may_act_on(rule, container: str) -> bool:
     return container in _resolved(groups, action)
 
 
+def global_cooldown_of(global_settings) -> int:
+    """The global cooldown in seconds; the default for a value that is not a number.
+
+    A file written before update_global_settings checked it can hold null or a
+    string, and the raw value raised TypeError in every message rule's cooldown
+    check (stage 4 review before v3.1.0, section 10).
+    """
+    value = (global_settings or {}).get('global_cooldown_seconds', 30)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+        return 30
+    return value
+
+
 def containers_of_action(rule) -> list:
     """The containers a rule's action is about, groups resolved.
 
@@ -518,7 +531,7 @@ class AutomationService:
         can_execute, reason, blocked_container = self.state_service.acquire_execution_locks(
             rule.id,
             target_containers,
-            global_settings.get('global_cooldown_seconds', 30),
+            global_cooldown_of(global_settings),
             rule.cooldown_minutes,
             rule.cooldown_scope
         )

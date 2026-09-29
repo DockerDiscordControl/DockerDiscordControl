@@ -868,6 +868,15 @@ class AutoActionConfigService:
             return ConfigResult(success=False, error="The alarm webhook must be an http(s) URL")
         if settings.get('alert_webhook_mode', 'fallback') not in MODES:
             return ConfigResult(success=False, error=f"Alarm webhook mode must be one of: {', '.join(MODES)}")
+        # A cleared number field arrives as null (parseInt('') is NaN). It was
+        # stored and every message rule then raised TypeError in the cooldown
+        # check - logged, swallowed, automation silently off while the panel
+        # said "saved" (stage 4 review before v3.1.0, section 10).
+        if 'global_cooldown_seconds' in settings:
+            cooldown = settings['global_cooldown_seconds']
+            if isinstance(cooldown, bool) or not isinstance(cooldown, int) or cooldown < 0:
+                return ConfigResult(success=False,
+                                    error="The global cooldown must be a whole number of seconds (0 or more)")
         # Merge with existing settings to prevent data loss
         current = config.get('global_settings', {})
         current.update(settings)

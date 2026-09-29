@@ -142,9 +142,9 @@ services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	444	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/alert_webhook.py	104	NONE
-services/automation/auto_action_config_service.py	918	passE:bothscans+E25 v3rev:1-813
+services/automation/auto_action_config_service.py	927	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	389	passE:bothscans+E25
-services/automation/automation_service.py	1007	passE:bothscans+E25 v3rev:1-676
+services/automation/automation_service.py	1020	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	224	v3rev:1-157
 services/automation/image_updates.py	220	v3rev:1-164
 services/automation/maintenance.py	124	NONE
@@ -157,7 +157,7 @@ services/config/config_cache_service.py	177	passE:E29:read-in-full
 services/config/config_form_parser_service.py	630	pass1:s12:1-483  [23 of 625 lines never in a package] v3rev2:1-625
 services/config/config_loader_service.py	481	pass1:s12:1-468  [13 of 481 lines never in a package]
 services/config/config_migration_service.py	466	pass1:s12:1-406  [60 of 466 lines never in a package]
-services/config/config_service.py	1266	passE:E26+bothscans:252-352,354-512,793-910
+services/config/config_service.py	1301	passE:E26+bothscans:252-352,354-512,793-910
 services/config/config_validation_service.py	212	passE:read-in-full:no-findings
 services/config/container_config_save_service.py	150	passE:read-in-full:no-findings
 services/config/group_references.py	153	NONE
