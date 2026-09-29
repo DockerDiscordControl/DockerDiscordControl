@@ -71,7 +71,8 @@ class AdminService:
                 content = handle.read()
             if not content.strip():
                 return {}
-            raw = json.loads(content).get('admin_containers', {})
+            data = json.loads(content)
+            raw = data.get('admin_containers', {}) if isinstance(data, dict) else {}
             if not isinstance(raw, dict):
                 logger.warning("admin_containers is not an object - ignoring it")
                 return {}
@@ -157,7 +158,13 @@ class AdminService:
                         return []
 
                     admin_data = json.loads(content)
-                    admin_users = admin_data.get('discord_admin_users', [])
+                    # A file that parses but has the wrong shape raised past both
+                    # handlers and broke every admin check (stage 4, section 10)
+                    admin_users = (admin_data.get('discord_admin_users', [])
+                                   if isinstance(admin_data, dict) else None)
+                    if not isinstance(admin_users, list):
+                        logger.error("admins.json has the wrong shape - no admins until it is fixed")
+                        return []
 
                     # Validate that all entries are strings
                     validated_users = []
