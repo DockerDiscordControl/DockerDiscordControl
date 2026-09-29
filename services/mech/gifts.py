@@ -12,6 +12,10 @@ the release gift: when DDC starts on a new version and the mech has run dry,
 it is given three days of the energy its level consumes. Both go to the ENERGY
 account only - a gift never buys evolution progress.
 
+The release gift is decided at the FIRST start of a version, and only then:
+a mech that still has energy at that moment gets nothing for this version,
+not three days later when it runs dry (operator, 2026-09-29).
+
 A gift is refused when the mech still has energy, and when the event log
 already carries that campaign - so a restart gives nothing a second time.
 
@@ -23,11 +27,14 @@ from __future__ import annotations
 from utils.logging_utils import get_module_logger
 
 import hashlib
+import json
 import logging
 from typing import Optional, Tuple, TYPE_CHECKING
 
+from utils.atomic_io import atomic_write_json
+
 from services.mech.progress_service import (
-    LOCK, Event, ProgressState, apply_decay_on_demand, apply_power_event,
+    DATA_DIR, LOCK, Event, ProgressState, apply_decay_on_demand, apply_power_event,
     battery_capacity_cents, compute_ui_state, current_power_cents, decay_per_day, load_snapshot,
     next_seq, now_utc_iso, persist_snapshot, read_events, append_event,
 )
@@ -153,3 +160,51 @@ def grant_power_gift(service: "ProgressService", campaign_id: str,
         gift_dollars = gift_cents / 100.0
         logger.info(f"Power gift granted: ${gift_dollars:.2f}")
         return compute_ui_state(snap), gift_dollars
+
+
+RELEASES_CHECKED_FILE = "release_gifts_checked.json"
+
+
+def _release_decisions() -> dict:
+    """What the first start of each version decided: "granted" or "passed"."""
+    try:
+        with open(DATA_DIR / RELEASES_CHECKED_FILE, "r", encoding="utf-8") as f:
+            decisions = json.load(f).get("versions", {})
+        return {k: v for k, v in decisions.items() if isinstance(k, str) and isinstance(v, str)}
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError, AttributeError) as e:
+        logger.warning(f"Release gift record unreadable, starting a new one: {e}")
+        return {}
+
+
+def release_gift(service: "ProgressService", version: str) -> Tuple[ProgressState, Optional[int]]:
+    """Three days of energy for a mech that is dry at the first start of a release.
+
+    The first start of a version decides and is recorded. A version it passed
+    over - the mech had energy - gives nothing on any later start, also not
+    after the mech has run dry under it. Until 2026-09-29 only a GRANTED gift
+    spent the campaign, so a mech with energy at the update was handed its
+    three days by whichever restart found it empty, days later.
+
+    A version whose gift was granted stays with the event log's campaign
+    check, as before: a restart is refused, and a gift the admin deleted
+    frees the campaign again (test_a_deleted_gift_frees_its_campaign).
+    """
+    with LOCK:
+        decisions = _release_decisions()
+        if decisions.get(version) == "passed":
+            logger.info(f"Release gift skipped: the mech had energy at the first start of {version}")
+            return service.get_state(), None
+        # Under the lock: a donation that levels up in between would size
+        # the gift from the level the mech no longer has.
+        level = load_snapshot(service.mech_id).level
+        state, gift = service.power_gift(f"release_{version}",
+                                         gift_cents=three_days_of_energy(level))
+        if version not in decisions:
+            decisions[version] = "granted" if gift else "passed"
+            try:
+                atomic_write_json(DATA_DIR / RELEASES_CHECKED_FILE, {"versions": decisions})
+            except (OSError, RuntimeError, TypeError) as e:
+                logger.warning(f"Could not record the release gift decision for {version}: {e}")
+        return state, gift

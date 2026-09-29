@@ -40,7 +40,7 @@ CLASS_LIMIT = 1000
 # once it is at the limit.
 FILE_EXCEPTIONS = {
     "services/mech/animation_cache_service.py": 1823,
-    "services/mech/progress_service.py": 1740,
+    "services/mech/progress_service.py": 1731,
 }
 CLASS_EXCEPTIONS = {
     "services/mech/animation_cache_service.py::AnimationCacheService": 1739,

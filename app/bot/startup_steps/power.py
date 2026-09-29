@@ -33,10 +33,10 @@ async def grant_power_gift_step(context: StartupContext) -> None:
         granted.append(getattr(state, "gift", None))
 
         # Every release refuels a mech that has run dry: three days of the
-        # energy its level consumes, on the energy account only. The campaign
-        # carries the version, and the event log refuses a campaign it already
-        # holds - so a restart of the same version gives nothing and an update
-        # gives once. Without DDC_VERSION there is no release to name, and
+        # energy its level consumes, on the energy account only. The first
+        # start of a version decides - a mech with energy then gets nothing for
+        # this version, and no later restart of it gives anything
+        # (services/mech/gifts.release_gift). Without DDC_VERSION there is no release to name, and
         # inventing one would hand out a gift on every restart.
         # Everything after a "+" is build metadata (SemVer), not a release. A
         # build id in DDC_VERSION would make every rebuild of the same release

@@ -1456,19 +1456,10 @@ class ProgressService:
         return grant_power_gift(self, campaign_id, gift_cents=gift_cents)
 
     def release_gift(self, version: str) -> Tuple[ProgressState, Optional[int]]:
-        """Three days of energy for a mech that has run dry, once per DDC release.
+        """Three days of energy for a mech dry at a release's first start (gifts.py)."""
+        from services.mech.gifts import release_gift
 
-        The campaign carries the version, so the event log refuses it the second
-        time: a restart of the same version gives nothing, an update gives once.
-        """
-        from services.mech.gifts import three_days_of_energy
-
-        with LOCK:
-            # Under the lock: a donation that levels up in between would size
-            # the gift from the level the mech no longer has.
-            level = load_snapshot(self.mech_id).level
-            return self.power_gift(f"release_{version}",
-                                   gift_cents=three_days_of_energy(level))
+        return release_gift(self, version)
 
     def rebuild_from_events(self, allow_damaged_log: bool = False) -> ProgressState:
         """
