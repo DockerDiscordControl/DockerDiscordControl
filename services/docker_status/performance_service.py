@@ -42,10 +42,13 @@ class PerformanceProfileService:
         logger.info("PerformanceProfileService initialized")
 
     def _create_default_config(self) -> PerformanceConfig:
-        """Create default performance configuration aligned with Docker timeouts."""
+        """Create the default performance configuration: timeouts capped at a fixed 45 s."""
         try:
-            # SERVICE FIRST: Use direct timeout values instead of old docker_utils
-            # These values come from DDC_FAST_STATS_TIMEOUT and DDC_FAST_INFO_TIMEOUT (both default to 45.0s)
+            # A FIXED cap of 45 s, deliberately not DDC_FAST_STATS_TIMEOUT /
+            # DDC_FAST_INFO_TIMEOUT from the Advanced Settings: a value set too
+            # small there must not starve the status polls (operator, 2026-09-29;
+            # stage 4 review before v3.1.0, section 17). This comment used to say
+            # the values came from those settings.
             stats_timeout_ms = 45.0 * 1000  # 45 seconds in milliseconds
             info_timeout_ms = 45.0 * 1000   # 45 seconds in milliseconds
 
@@ -62,7 +65,7 @@ class PerformanceProfileService:
                 timeout_multiplier=2.0 # Timeout = avg_time * multiplier
             )
 
-            logger.info(f"Performance config aligned with Docker timeouts: max={max_docker_timeout}ms")
+            logger.info(f"Performance config: status poll timeouts capped at a fixed {max_docker_timeout:.0f}ms")
             return config
 
         except (ImportError, AttributeError, KeyError, TypeError) as e:
