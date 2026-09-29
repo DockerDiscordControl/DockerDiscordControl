@@ -57,8 +57,15 @@ class ProcessSafeLock:
         if self._depth == 0:
             from utils.atomic_io import cross_process_lock
 
-            self._file_lock = cross_process_lock(self._path_of())
-            self._file_lock.__enter__()
+            # A file lock that cannot be taken (a root-owned progress.lock, a full
+            # disk) left this with the RLock held and no __exit__: every later
+            # booking waited for ever (stage 4 review before v3.1.0, section 24).
+            try:
+                self._file_lock = cross_process_lock(self._path_of())
+                self._file_lock.__enter__()
+            except BaseException:
+                self._lock.release()
+                raise
         self._depth += 1
         return self
 
