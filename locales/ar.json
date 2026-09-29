@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "لم يُسجَّل شيء - التبرع يحتاج إلى مبلغ.",
   "Please try again later.": "يرجى المحاولة مرة أخرى لاحقًا.",
   "Not in DDC any more": "لم يعد في DDC",
-  "Not assigned to you": "غير مُسندة إليك"
+  "Not assigned to you": "غير مُسندة إليك",
+  "❌ None of the active containers is assigned to you.": "❌ لم يُسند إليك أي من الحاويات النشطة."
 }

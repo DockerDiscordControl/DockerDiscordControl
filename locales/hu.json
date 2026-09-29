@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Semmi sem lett rögzítve - az adományhoz összeg kell.",
   "Please try again later.": "Kérlek, próbáld újra később.",
   "Not in DDC any more": "Már nincs a DDC-ben",
-  "Not assigned to you": "Nincs hozzád rendelve"
+  "Not assigned to you": "Nincs hozzád rendelve",
+  "❌ None of the active containers is assigned to you.": "❌ Egyik aktív konténer sincs hozzád rendelve."
 }

@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Mitään ei kirjattu - lahjoitus tarvitsee summan.",
   "Please try again later.": "Yritä myöhemmin uudelleen.",
   "Not in DDC any more": "Ei enää DDC:ssä",
-  "Not assigned to you": "Ei sinulle määritetty"
+  "Not assigned to you": "Ei sinulle määritetty",
+  "❌ None of the active containers is assigned to you.": "❌ Yhtään aktiivisista konteista ei ole määritetty sinulle."
 }

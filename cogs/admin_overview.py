@@ -676,6 +676,15 @@ class StopAllConfirmationView(DDCView):
         self.add_item(ConfirmStopAllButton(cog_instance, channel_id))
         self.add_item(CancelBulkActionButton())
 
+def nothing_to_act_on(active) -> str:
+    """Why a bulk action found nothing: no active container, or none of them
+    assigned to this admin. Both said "No active servers configured", which
+    is false for the second (stage 4 review before v3.1.0, section 01)."""
+    if active:
+        return _("❌ None of the active containers is assigned to you.")
+    return _("❌ No active servers configured.")
+
+
 class ConfirmRestartAllButton(Button):
     """Button to confirm restart all action."""
 
@@ -751,14 +760,14 @@ class ConfirmRestartAllButton(Button):
 
             # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
             # A missing 'active' field means active (same default as ServerConfigService)
-            servers = [s for s in all_servers if s.get('active', True)]
+            active = [s for s in all_servers if s.get('active', True)]
             # An assigned admin acts on their own containers only - "all" is
             # all THEY may control (operator, 2026-09-26; SPEC B2).
-            servers = admin_service.controllable(str(interaction.user.id), servers)
+            servers = admin_service.controllable(str(interaction.user.id), active)
 
             if not servers:
                 await interaction.followup.send(
-                    _("❌ No active servers configured."),
+                    nothing_to_act_on(active),
                     ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return
@@ -893,14 +902,14 @@ class ConfirmStopAllButton(Button):
 
             # CRITICAL: Filter to only ACTIVE containers (as shown in Admin Overview)
             # A missing 'active' field means active (same default as ServerConfigService)
-            servers = [s for s in all_servers if s.get('active', True)]
+            active = [s for s in all_servers if s.get('active', True)]
             # An assigned admin acts on their own containers only - "all" is
             # all THEY may control (operator, 2026-09-26; SPEC B2).
-            servers = admin_service.controllable(str(interaction.user.id), servers)
+            servers = admin_service.controllable(str(interaction.user.id), active)
 
             if not servers:
                 await interaction.followup.send(
-                    _("❌ No active servers configured."),
+                    nothing_to_act_on(active),
                     ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return

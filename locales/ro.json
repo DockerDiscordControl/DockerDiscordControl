@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Nu s-a înregistrat nimic - o donație are nevoie de o sumă.",
   "Please try again later.": "Te rog încearcă din nou mai târziu.",
   "Not in DDC any more": "Nu mai este în DDC",
-  "Not assigned to you": "Nu îți sunt atribuite"
+  "Not assigned to you": "Nu îți sunt atribuite",
+  "❌ None of the active containers is assigned to you.": "❌ Niciunul dintre containerele active nu îți este atribuit."
 }

@@ -294,6 +294,7 @@ class ConfirmRestartStackButton(Button):
             members = allowed
             if not members:
                 await interaction.followup.send(
+                    ao.nothing_to_act_on(not_assigned) if not_assigned else
                     _("❌ **{stack}** has no active containers any more.").format(stack=self.stack),
                     ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return

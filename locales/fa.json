@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "چیزی ثبت نشد - کمک مالی به مبلغ نیاز دارد.",
   "Please try again later.": "لطفاً بعداً دوباره تلاش کنید.",
   "Not in DDC any more": "دیگر در DDC نیست",
-  "Not assigned to you": "به تو واگذار نشده"
+  "Not assigned to you": "به تو واگذار نشده",
+  "❌ None of the active containers is assigned to you.": "❌ هیچ‌یک از کانتینرهای فعال به تو واگذار نشده است."
 }

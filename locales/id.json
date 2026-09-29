@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Tidak ada yang dicatat - donasi memerlukan jumlah.",
   "Please try again later.": "Silakan coba lagi nanti.",
   "Not in DDC any more": "Tidak lagi ada di DDC",
-  "Not assigned to you": "Tidak ditugaskan kepadamu"
+  "Not assigned to you": "Tidak ditugaskan kepadamu",
+  "❌ None of the active containers is assigned to you.": "❌ Tidak ada kontainer aktif yang ditugaskan kepadamu."
 }

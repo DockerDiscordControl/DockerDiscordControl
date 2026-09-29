@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Nieko neužregistruota - aukai reikia sumos.",
   "Please try again later.": "Bandykite dar kartą vėliau.",
   "Not in DDC any more": "Nebėra DDC",
-  "Not assigned to you": "Tau nepriskirta"
+  "Not assigned to you": "Tau nepriskirta",
+  "❌ None of the active containers is assigned to you.": "❌ Nė vienas aktyvus konteineris tau nepriskirtas."
 }

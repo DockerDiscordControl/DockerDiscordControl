@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Nichts wurde gebucht - eine Spende braucht einen Betrag.",
   "Please try again later.": "Bitte versuche es später noch einmal.",
   "Not in DDC any more": "Nicht mehr in DDC",
-  "Not assigned to you": "Dir nicht zugewiesen"
+  "Not assigned to you": "Dir nicht zugewiesen",
+  "❌ None of the active containers is assigned to you.": "❌ Keiner der aktiven Container ist dir zugewiesen."
 }

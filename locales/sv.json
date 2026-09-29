@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Inget registrerades - en donation behöver ett belopp.",
   "Please try again later.": "Försök igen senare.",
   "Not in DDC any more": "Inte längre i DDC",
-  "Not assigned to you": "Inte tilldelade dig"
+  "Not assigned to you": "Inte tilldelade dig",
+  "❌ None of the active containers is assigned to you.": "❌ Ingen av de aktiva containrarna är tilldelad dig."
 }

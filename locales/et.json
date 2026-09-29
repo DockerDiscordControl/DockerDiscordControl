@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Midagi ei registreeritud - annetus vajab summat.",
   "Please try again later.": "Palun proovi hiljem uuesti.",
   "Not in DDC any more": "Pole enam DDC-s",
-  "Not assigned to you": "Sulle määramata"
+  "Not assigned to you": "Sulle määramata",
+  "❌ None of the active containers is assigned to you.": "❌ Ühtegi aktiivset konteinerit pole sulle määratud."
 }

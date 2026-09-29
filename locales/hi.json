@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "कुछ भी दर्ज नहीं हुआ - दान के लिए राशि चाहिए।",
   "Please try again later.": "कृपया बाद में पुनः प्रयास करें।",
   "Not in DDC any more": "अब DDC में नहीं",
-  "Not assigned to you": "तुम्हें सौंपे नहीं गए"
+  "Not assigned to you": "तुम्हें सौंपे नहीं गए",
+  "❌ None of the active containers is assigned to you.": "❌ सक्रिय कंटेनरों में से कोई भी तुम्हें सौंपा नहीं गया है।"
 }

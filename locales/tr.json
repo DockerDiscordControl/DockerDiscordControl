@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Hiçbir şey kaydedilmedi - bağış için bir tutar gerekir.",
   "Please try again later.": "Lütfen daha sonra tekrar dene.",
   "Not in DDC any more": "Artık DDC'de değil",
-  "Not assigned to you": "Sana atanmamış"
+  "Not assigned to you": "Sana atanmamış",
+  "❌ None of the active containers is assigned to you.": "❌ Etkin konteynerlerin hiçbiri sana atanmamış."
 }

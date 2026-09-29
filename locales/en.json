@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Nothing was recorded - a donation needs an amount.",
   "Please try again later.": "Please try again later.",
   "Not in DDC any more": "Not in DDC any more",
-  "Not assigned to you": "Not assigned to you"
+  "Not assigned to you": "Not assigned to you",
+  "❌ None of the active containers is assigned to you.": "❌ None of the active containers is assigned to you."
 }

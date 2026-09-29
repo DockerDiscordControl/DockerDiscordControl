@@ -250,6 +250,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   as "not in DDC, or switched off", and only the first 20 were named. The members DDC no longer
   has and those not assigned to the admin now get separate lines, and a long list ends with "… and
   N more".
+- An admin assigned only to containers that are not active pressed Restart All or Stop All and was
+  told "No active servers configured". They are told now that none of the active containers is
+  assigned to them; the stack restart says the same.
 
 ### 🐛 The mech's picture and gift, the update notice
 

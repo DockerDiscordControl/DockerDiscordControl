@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "何も記録されていません - 寄付には金額が必要です。",
   "Please try again later.": "後でもう一度お試しください。",
   "Not in DDC any more": "DDCにもう存在しません",
-  "Not assigned to you": "あなたに割り当てられていません"
+  "Not assigned to you": "あなたに割り当てられていません",
+  "❌ None of the active containers is assigned to you.": "❌ 有効なコンテナはどれもあなたに割り当てられていません。"
 }

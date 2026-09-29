@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Δεν καταγράφηκε τίποτα - μια δωρεά χρειάζεται ποσό.",
   "Please try again later.": "Παρακαλώ δοκιμάστε ξανά αργότερα.",
   "Not in DDC any more": "Δεν υπάρχει πλέον στο DDC",
-  "Not assigned to you": "Δεν σου έχουν ανατεθεί"
+  "Not assigned to you": "Δεν σου έχουν ανατεθεί",
+  "❌ None of the active containers is assigned to you.": "❌ Κανένα από τα ενεργά container δεν σου έχει ανατεθεί."
 }

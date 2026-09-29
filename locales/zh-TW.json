@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "未記錄任何內容 - 捐贈需要金額。",
   "Please try again later.": "請稍後再試。",
   "Not in DDC any more": "已不在 DDC 中",
-  "Not assigned to you": "未分配給你"
+  "Not assigned to you": "未分配給你",
+  "❌ None of the active containers is assigned to you.": "❌ 沒有任何啟用中的容器分配給你。"
 }

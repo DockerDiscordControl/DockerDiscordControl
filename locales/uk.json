@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Нічого не записано - для пожертви потрібна сума.",
   "Please try again later.": "Будь ласка, спробуйте пізніше.",
   "Not in DDC any more": "Більше немає в DDC",
-  "Not assigned to you": "Не призначені тобі"
+  "Not assigned to you": "Не призначені тобі",
+  "❌ None of the active containers is assigned to you.": "❌ Жоден з активних контейнерів не призначений тобі."
 }

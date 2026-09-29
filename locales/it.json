@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Non è stato registrato nulla: una donazione richiede un importo.",
   "Please try again later.": "Riprova più tardi.",
   "Not in DDC any more": "Non più in DDC",
-  "Not assigned to you": "Non assegnati a te"
+  "Not assigned to you": "Non assegnati a te",
+  "❌ None of the active containers is assigned to you.": "❌ Nessuno dei container attivi ti è assegnato."
 }

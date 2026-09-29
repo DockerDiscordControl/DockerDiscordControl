@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "שום דבר לא נרשם - תרומה צריכה סכום.",
   "Please try again later.": "נא לנסות שוב מאוחר יותר.",
   "Not in DDC any more": "כבר לא ב-DDC",
-  "Not assigned to you": "לא הוקצו לך"
+  "Not assigned to you": "לא הוקצו לך",
+  "❌ None of the active containers is assigned to you.": "❌ אף אחד מהקונטיינרים הפעילים לא הוקצה לך."
 }

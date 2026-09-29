@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Không có gì được ghi nhận - khoản quyên góp cần có số tiền.",
   "Please try again later.": "Vui lòng thử lại sau.",
   "Not in DDC any more": "Không còn trong DDC",
-  "Not assigned to you": "Không được giao cho bạn"
+  "Not assigned to you": "Không được giao cho bạn",
+  "❌ None of the active containers is assigned to you.": "❌ Không có container đang hoạt động nào được giao cho bạn."
 }

@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Ingenting ble registrert - en donasjon trenger et beløp.",
   "Please try again later.": "Prøv igjen senere.",
   "Not in DDC any more": "Ikke lenger i DDC",
-  "Not assigned to you": "Ikke tildelt deg"
+  "Not assigned to you": "Ikke tildelt deg",
+  "❌ None of the active containers is assigned to you.": "❌ Ingen av de aktive containerne er tildelt deg."
 }

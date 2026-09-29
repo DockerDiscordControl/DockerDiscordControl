@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "아무것도 기록되지 않았습니다 - 기부에는 금액이 필요합니다.",
   "Please try again later.": "나중에 다시 시도해 주세요.",
   "Not in DDC any more": "더 이상 DDC에 없음",
-  "Not assigned to you": "나에게 할당되지 않음"
+  "Not assigned to you": "나에게 할당되지 않음",
+  "❌ None of the active containers is assigned to you.": "❌ 활성 컨테이너 중 나에게 할당된 것이 없습니다."
 }

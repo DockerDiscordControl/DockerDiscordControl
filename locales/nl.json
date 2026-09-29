@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Er is niets geregistreerd - een donatie heeft een bedrag nodig.",
   "Please try again later.": "Probeer het later opnieuw.",
   "Not in DDC any more": "Niet meer in DDC",
-  "Not assigned to you": "Niet aan jou toegewezen"
+  "Not assigned to you": "Niet aan jou toegewezen",
+  "❌ None of the active containers is assigned to you.": "❌ Geen van de actieve containers is aan jou toegewezen."
 }

@@ -1664,5 +1664,6 @@
   "Nothing was recorded - a donation needs an amount.": "Nič nebolo zaznamenané - dar potrebuje sumu.",
   "Please try again later.": "Skúste to prosím neskôr znova.",
   "Not in DDC any more": "Už nie je v DDC",
-  "Not assigned to you": "Nepridelené tebe"
+  "Not assigned to you": "Nepridelené tebe",
+  "❌ None of the active containers is assigned to you.": "❌ Žiadny z aktívnych kontajnerov ti nie je pridelený."
 }
