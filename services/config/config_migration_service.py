@@ -122,8 +122,14 @@ class ConfigMigrationService:
         again.
         """
         if self.channels_config_file.exists():
+            # The "all removed" marker is a migrated channels/ too - the loader
+            # honours it. Without it here, removing the last channel re-ran the
+            # migration and brought every removed channel back with its old
+            # rights (stage 4 review before v3.1.0, section 12).
+            from services.config.channel_config_service import ALL_CHANNELS_REMOVED_MARKER
             if not (self.channels_dir.exists() and
-                    any(self.channels_dir.glob("*.json"))):
+                    (any(self.channels_dir.glob("*.json"))
+                     or (self.channels_dir / ALL_CHANNELS_REMOVED_MARKER).exists())):
                 return False
 
         if self.docker_config_file.exists():

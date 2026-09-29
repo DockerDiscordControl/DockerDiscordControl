@@ -155,6 +155,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   cooldown. It no longer spends the cooldown when it did nothing.
 - Updating from a v1.x installation could reset every advanced setting to its default: the move
   to the new configuration layout deleted the file they were kept in. They are carried over now.
+- On an installation still carrying its v1 channel file, removing the last channel brought all
+  removed channels back at the next start, with their old rights. They stay removed now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

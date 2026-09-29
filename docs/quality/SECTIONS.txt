@@ -104,7 +104,7 @@ services/automation/own_actions.py:1-93
 services/config/config_cache_service.py:1-177
 services/config/config_form_parser_service.py:1-630
 services/config/config_loader_service.py:1-481
-services/config/config_migration_service.py:1-477
+services/config/config_migration_service.py:1-483
 # group_service.py left for section 37 on 2026-09-24: a group gained
 # permissions of its own and the file went from 248 lines to 309, which put
 # this section at 2,039 of the 2,000 a section may hold. Section 13, where its
