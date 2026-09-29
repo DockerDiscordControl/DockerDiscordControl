@@ -26,10 +26,12 @@ Test: tests/spec/test_an_image_update_is_detected_from_the_registry_digest.py
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, Optional, Set, Tuple
 
 logger = logging.getLogger("ddc.image_updates")
@@ -198,11 +200,51 @@ async def cached_remote_digest(ref: ImageRef, wait: float) -> Optional[str]:
         return None
 
 
-class ImageUpdateChecker:
-    """Reports an update once per new remote digest; re-arms when the local image catches up."""
+REPORTED_FILE = "image_updates_reported.json"
 
-    def __init__(self):
-        self._reported: Dict[str, str] = {}
+
+class ImageUpdateChecker:
+    """Reports an update once per new remote digest; re-arms when the local image catches up.
+
+    With ``state_file`` the reported digests survive a restart. In memory only,
+    every DDC restart announced every outstanding update again (operator,
+    2026-09-29: once per new image; stage 4 review before v3.1.0, section 42).
+    """
+
+    def __init__(self, state_file: Optional[Path] = None):
+        self._state_file = state_file
+        self._reported: Dict[str, str] = self._load()
+
+    def _load(self) -> Dict[str, str]:
+        if self._state_file is None:
+            return {}
+        try:
+            with open(self._state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return {}
+        except (OSError, ValueError) as e:
+            logger.warning(f"Reported image updates unreadable ({self._state_file}), starting empty: {e}")
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        return {k: v for k, v in data.items() if isinstance(k, str) and isinstance(v, str)}
+
+    def _save(self) -> None:
+        if self._state_file is None:
+            return
+        try:
+            from utils.atomic_io import atomic_write_json
+            atomic_write_json(self._state_file, dict(self._reported))
+        except (OSError, RuntimeError, TypeError) as e:
+            # Not fatal: the worst case is the notice once more after a restart
+            logger.warning(f"Could not record the reported image updates: {e}")
+
+    def forget(self, container: str) -> None:
+        """Take back a report whose notice could not be handed on, so the next
+        check tries again - with the memory on disk it would be lost for good."""
+        if self._reported.pop(container, None) is not None:
+            self._save()
 
     def observe(self, container: str, image: str, remote: Optional[str], local: Set[str]):
         from services.automation.container_watch import WatchEvent
@@ -211,10 +253,18 @@ class ImageUpdateChecker:
         if verdict is None:
             return []
         if not verdict:
-            self._reported.pop(container, None)
+            if self._reported.pop(container, None) is not None:
+                self._save()
             return []
         if self._reported.get(container) == remote:
             return []
         self._reported[container] = remote
+        self._save()
         return [WatchEvent(container, IMAGE_UPDATE,
                            f"A newer image for '{container}' ({image}) is in the registry.")]
+
+
+def persistent_image_update_checker() -> ImageUpdateChecker:
+    """The checker the status loop uses: its memory lives in the config folder."""
+    from utils.config_paths import get_config_dir
+    return ImageUpdateChecker(get_config_dir() / REPORTED_FILE)

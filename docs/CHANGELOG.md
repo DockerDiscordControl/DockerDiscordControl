@@ -202,6 +202,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - If a new version first started without a control channel, its "DDC has been updated" notice was
   marked as shown, and a control channel added later never got it. It waits for the first control
   channel now.
+- After every DDC restart the notice "A newer image for ... is in the registry" came again for
+  every container still behind. It comes once per new image now, remembered across restarts.
 
 ### 🐛 The mech's picture and gift, the update notice
 

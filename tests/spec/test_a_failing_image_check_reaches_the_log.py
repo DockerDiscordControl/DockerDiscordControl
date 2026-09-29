@@ -26,7 +26,10 @@ from cogs.docker_control import DockerControlCog
 
 
 @pytest.fixture
-def cog(monkeypatch):
+def cog(monkeypatch, tmp_path):
+    # Its own config folder: what was reported is remembered there since
+    # 2026-09-29, and the first case here would otherwise silence the second.
+    monkeypatch.setenv("DDC_CONFIG_DIR", str(tmp_path))
     cog = object.__new__(DockerControlCog)
     cog.bot = object()
     monkeypatch.setattr("services.docker_service.client_factory.build_docker_client",

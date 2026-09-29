@@ -447,11 +447,13 @@ class BackgroundLoopsMixin:
         through the client factory; asks the registry by HEAD. Never pulls.
         """
         from services.automation.automation_service import get_automation_service
-        from services.automation.image_updates import (ImageUpdateChecker, read_running_image,
-                                                       remote_digest)
+        from services.automation.image_updates import (persistent_image_update_checker,
+                                                       read_running_image, remote_digest)
         from services.docker_service.client_factory import build_docker_client
 
-        checker = self.__dict__.setdefault('_image_update_checker', ImageUpdateChecker())
+        checker = self.__dict__.get('_image_update_checker')
+        if checker is None:
+            checker = self.__dict__['_image_update_checker'] = persistent_image_update_checker()
 
         def read_local(name):
             client = build_docker_client(timeout=20)
@@ -479,6 +481,8 @@ class BackgroundLoopsMixin:
             # _track_task catches four types; anything else ended as asyncio's
             # "exception was never retrieved" with nothing in the DDC log.
             logger.error(f"[WATCHDOG] Image update notice failed: {e}", exc_info=True)
+            for event in events:
+                checker.forget(event.container)
 
     @status_update_loop.before_loop
     async def before_status_update_loop(self):

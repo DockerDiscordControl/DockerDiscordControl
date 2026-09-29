@@ -59,7 +59,7 @@ cogs/slash_commands.py:1-834
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:845-1251
-cogs/background_loops.py:1-850
+cogs/background_loops.py:1-854
 cogs/donation_ui.py:1-710
 
 ## Section 07  (694 lines, 1 piece)
@@ -451,7 +451,7 @@ cogs/task_ui.py:1-1250
 ## Section 42  (220 lines, 1 piece)
 # Phase 4d (2026-09-22): the image-update check. Section 11, where the other
 # automation files live, is at 1,987 of its 2,000 lines.
-services/automation/image_updates.py:1-220
+services/automation/image_updates.py:1-270
 
 ## Section 43  (104 lines, 1 piece)
 # The self-restart and debug-level routes (operator, 2026-09-24). Section
