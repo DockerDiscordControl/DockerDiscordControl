@@ -221,6 +221,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A scheduled task whose entry in tasks.json could not be read (after a hand edit or from another
   version) was deleted for good by the next save of any task. It is kept in the file now, logged
   as unreadable, and not run; a tasks.json that is no list is not overwritten at all.
+- When the scheduled donation message failed with an unexpected error (a full disk, for example),
+  it was tried again every minute without end and the panel kept showing the previous result. It
+  is recorded as failed now and waits for its next run.
 
 ### 🐛 The mech's picture and gift, the update notice
 

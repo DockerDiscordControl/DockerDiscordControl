@@ -1057,7 +1057,11 @@ async def execute_task(task: ScheduledTask, timeout: int = 60) -> bool:
             await _persist_async(task)
             return result
 
-        except (ImportError, AttributeError, RuntimeError) as e:
+        except Exception as e:  # noqa: BLE001 - see below
+            # Any error, not three listed ones: an OSError from the mech state (a
+            # full disk) left the task untouched and due, and it was tried again
+            # every cycle for ever (stage 4 review before v3.1.0, section 26).
+            # CancelledError is a BaseException and still passes.
             execution_time = time.time() - execution_start
             error_msg = f"Error executing donation message task: {e}"
             logger.error(error_msg, exc_info=True)
