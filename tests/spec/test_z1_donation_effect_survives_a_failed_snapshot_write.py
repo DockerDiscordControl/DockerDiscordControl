@@ -31,6 +31,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from services.exceptions import MechStateError
+
 from services.mech.progress import reset_progress_runtime
 from services.mech.progress_paths import clear_progress_paths_cache
 
@@ -104,7 +106,9 @@ def test_a_retry_with_the_same_key_applies_the_lost_donation(ps, monkeypatch):
     svc = ps.ProgressService("m1")
     svc.add_donation(10.0, "Alex", idempotency_key="k1")
     _fail_next_snapshot_write(ps, monkeypatch)
-    with pytest.raises(OSError):
+    # Since the stage 4 review (section 24) a failure AFTER the ledger write says
+    # "recorded, the display catches up" instead of the raw OSError
+    with pytest.raises(MechStateError):
         svc.add_donation(5.0, "Sam", idempotency_key="k2")
     _booked(ps, "k2")
 
@@ -125,7 +129,9 @@ def test_a_later_write_does_not_bury_it(ps, monkeypatch, writer, expected):
     svc = ps.ProgressService("m2")
     svc.add_donation(10.0, "Alex", idempotency_key="k1")
     _fail_next_snapshot_write(ps, monkeypatch)
-    with pytest.raises(OSError):
+    # Since the stage 4 review (section 24) a failure AFTER the ledger write says
+    # "recorded, the display catches up" instead of the raw OSError
+    with pytest.raises(MechStateError):
         svc.add_donation(5.0, "Sam", idempotency_key="k2")
     _booked(ps, "k2")
     writer(svc)

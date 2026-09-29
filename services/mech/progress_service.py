@@ -1094,6 +1094,14 @@ def apply_power_event(snap: Snapshot, evt: Event, *, events: Optional[List[Event
 # Service Class
 # ---------------------
 
+
+def _state_pending(error) -> MechStateError:
+    """The ledger line is written, the snapshot failed: recorded, not failed. Answered as a
+    failure, a donor paid again and was credited twice (stage 4 review, section 24)."""
+    logger.error(f"Donation in the ledger, snapshot not updated: {error}", exc_info=True)
+    return MechStateError("The donation is recorded; the mech display catches up with the "
+                          "next booking", error_code="LEDGER_WRITTEN_STATE_PENDING")
+
 class ProgressService:
     """Main service class for progress management"""
 
@@ -1207,40 +1215,41 @@ class ProgressService:
                 ts=now_utc_iso(),
                 type="DonationAdded",
                 mech_id=self.mech_id,
-                payload={
-                    "donation_id": donation_id,
-                    "idempotency_key": idempotency_key,
-                    "units": units_cents,
-                    "donor": donor,
-                    "channel_id": channel_id,
-                },
-            )
+                payload={"donation_id": donation_id, "idempotency_key": idempotency_key,
+                         "units": units_cents, "donor": donor, "channel_id": channel_id})
             append_event(evt)
+            try:
+                return self._apply_booked_donation(evt, all_events, member_count_at_level_up,
+                                                   amount_dollars, donor, donation_id)
+            except Exception as e:  # noqa: BLE001 - in the ledger: never a plain failure
+                raise _state_pending(e) from e
 
-            # Apply to snapshot
-            snap = load_snapshot(self.mech_id)
-            apply_decay_on_demand(snap)
-            # Settles decay first: the donation adds to the CURRENT (decayed, clamped) power
-            lvl_events, bonus_evt = apply_power_event(
-                snap, evt, events=all_events,
-                member_count_at_level_up=member_count_at_level_up)
+    def _apply_booked_donation(self, evt, all_events, member_count_at_level_up,
+                               amount_dollars, donor, donation_id):
+        """The snapshot half of add_donation, after the ledger line is written."""
+        snap = load_snapshot(self.mech_id)
+        apply_decay_on_demand(snap)
+        # Settles decay first: the donation adds to the CURRENT (decayed, clamped) power
+        lvl_events, bonus_evt = apply_power_event(
+            snap, evt, events=all_events,
+            member_count_at_level_up=member_count_at_level_up)
 
-            # Append all level-up events (may be multiple for large donations)
-            for lvl_evt in lvl_events:
-                lvl_evt.seq = next_seq()
-                append_event(lvl_evt)
+        # Append all level-up events (may be multiple for large donations)
+        for lvl_evt in lvl_events:
+            lvl_evt.seq = next_seq()
+            append_event(lvl_evt)
 
-            # Append exact-hit bonus event if triggered
-            if bonus_evt is not None:
-                bonus_evt.seq = next_seq()
-                append_event(bonus_evt)
+        # Append exact-hit bonus event if triggered
+        if bonus_evt is not None:
+            bonus_evt.seq = next_seq()
+            append_event(bonus_evt)
 
-            snap.version += 1
-            snap.last_event_seq = evt.seq
-            persist_snapshot(snap)
+        snap.version += 1
+        snap.last_event_seq = evt.seq
+        persist_snapshot(snap)
 
-            logger.info(f"Donation added: ${amount_dollars:.2f} from {donor} (id={donation_id})")
-            return compute_ui_state(snap)
+        logger.info(f"Donation added: ${amount_dollars:.2f} from {donor} (id={donation_id})")
+        return compute_ui_state(snap)
 
     def add_system_donation(self, amount_dollars: float, event_name: str,
                            description: Optional[str] = None,
@@ -1359,13 +1368,8 @@ class ProgressService:
                 ts=now_utc_iso(),
                 type="SystemDonationAdded",
                 mech_id=self.mech_id,
-                payload={
-                    "idempotency_key": idempotency_key,
-                    "power_units": units_cents,  # Only affects power!
-                    "event_name": event_name,
-                    "description": description,
-                },
-            )
+                payload={"idempotency_key": idempotency_key, "power_units": units_cents,  # power only
+                         "event_name": event_name, "description": description})
             append_event(evt)
 
             # Apply to snapshot: ONLY power, NOT evolution!
@@ -1389,12 +1393,8 @@ class ProgressService:
                            f"(Power +${amount_dollars:.2f}, Evolution unchanged)")
                 return compute_ui_state(snap)
 
-            except (RuntimeError, ValueError, TypeError, AttributeError) as e:
-                # Snapshot operation errors (state updates, attribute access, calculations)
-                logger.error(f"Failed to apply system donation to snapshot: {e}", exc_info=True)
-                # Event was already written, so we need to mark it as failed somehow
-                # For now, just re-raise to let caller handle
-                raise
+            except Exception as e:  # noqa: BLE001 - in the ledger: never a plain failure
+                raise _state_pending(e) from e
 
     def update_member_count(self, member_count: int) -> None:
         """Update member count for difficulty calculation"""

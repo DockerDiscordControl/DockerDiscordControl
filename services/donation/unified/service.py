@@ -37,6 +37,19 @@ logger = get_module_logger("unified_donation_service")
 structured_logger = get_structured_logger(__name__, service_name="UnifiedDonationService")
 
 
+def _booked_while_state_pending(exc, old_state):
+    """A success result when the ledger holds the donation although its snapshot failed.
+
+    Answered as a failure, a donor paid again - a Discord retry carries a new
+    idempotency key - and was credited twice (stage 4 review, section 24).
+    """
+    if getattr(exc, "error_code", None) != "LEDGER_WRITTEN_STATE_PENDING":
+        return None
+    logger.warning("Donation recorded; the mech state catches up with the next booking: %s", exc)
+    return DonationResult.from_states(success=True, old_state=old_state, new_state=None,
+                                      error_message=str(exc))
+
+
 class UnifiedDonationService:
     """Centralized service for donation processing."""
 
@@ -135,6 +148,9 @@ class UnifiedDonationService:
                     event_id=event_id,
                 )
             except MechServiceError as exc:
+                booked = _booked_while_state_pending(exc, old_state)
+                if booked is not None:
+                    return booked
                 # Mech service errors (state save/load, power calculations)
                 duration_ms = (time.time() - start_time) * 1000
                 metrics.increment("donations.mech_error.total")
@@ -325,6 +341,9 @@ class UnifiedDonationService:
                     event_id=event_id,
                 )
             except MechServiceError as exc:
+                booked = _booked_while_state_pending(exc, old_state)
+                if booked is not None:
+                    return booked
                 # Mech service errors (state save/load, power calculations)
                 duration_ms = (time.time() - start_time) * 1000
                 metrics.increment("donations.async.mech_error.total")

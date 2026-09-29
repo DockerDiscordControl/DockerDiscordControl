@@ -168,6 +168,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   own port now.
 - The difficulty panel in the Advanced Settings named the wrong mech level and the wrong price for
   the next one (it guessed from the lifetime total). It shows the mech's real level and goal now.
+- A donation that reached the ledger but whose mech update then failed (a full disk) was answered
+  as failed - a donor who tried again could be credited twice. It is answered as recorded now;
+  the mech catches up with the next booking.
 
 ### 🐛 The mech's picture and gift, the update notice
 
