@@ -70,7 +70,15 @@ if [ "$1" = "--all" ]; then
     total_passed=0; total_skipped=0; total_bad=0; groups=0; failed_groups=""
     while IFS= read -r group; do
         case "$group" in ""|\#*) continue;; esac
-        line=$("$0" "$group" 2>&1 | tail -1)
+        # The pytest summary line, wherever it stands - not the last line: output
+        # that ended with a logging error at exit ("Arguments: ()") counted the
+        # spec group as 0 passed, 0 failed, i.e. green (2026-09-29).
+        line=$("$0" "$group" 2>&1 | grep -E '^=+ .*(passed|failed|error|no tests ran).* =+$' | tail -1)
+        summary_missing=""
+        if [ -z "$line" ]; then
+            line="NO PYTEST SUMMARY - the group did not report; counted as failed"
+            summary_missing=1
+        fi
         groups=$((groups + 1))
         echo "$group :: $line"
         passed=$(printf '%s' "$line" | sed -n 's/.*[^0-9]\([0-9][0-9]*\) passed.*/\1/p')
@@ -81,6 +89,8 @@ if [ "$1" = "--all" ]; then
         errors=$(printf '%s' "$line" | sed -n 's/.*[^0-9]\([0-9][0-9]*\) error.*/\1/p')
         bad=$(( ${failed:-0} + ${errors:-0} ))
         [ "$bad" = "0" ] && bad=""
+        # NO PYTEST SUMMARY: a group that did not report is not a green group
+        [ -n "$summary_missing" ] && bad=1
         total_passed=$((total_passed + ${passed:-0}))
         total_skipped=$((total_skipped + ${skipped:-0}))
         total_bad=$((total_bad + ${bad:-0}))
