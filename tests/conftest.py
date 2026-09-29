@@ -166,7 +166,7 @@ def sample_container_info():
 
 
 @pytest.fixture(autouse=True)
-def cleanup_after_test():
+def cleanup_after_test(monkeypatch):
     """Automatic cleanup after each test.
 
     THE GROUP SERVICE IS A SINGLETON bound to the configuration directory it
@@ -183,8 +183,19 @@ def cleanup_after_test():
     is the same kind of module state: donation tests share a user id, and the
     first broadcast in a run silenced every later one. The WAN IP cache
     (2026-09-26) likewise answered one test with another test's address.
+
+    THE TESTS DO NOT RUN IN DDC'S CONTAINER. The test container's HOSTNAME
+    looks like a container id, so DDC took itself to be in a container whose
+    name it could not read - and since the stage 4 review before v3.1.0
+    (section 11) that stops every automation action for the cycle. A
+    hostname of its own says "not in a container"; the tests about the own
+    container set HOSTNAME themselves, after this.
     """
+    monkeypatch.setenv("HOSTNAME", "ddc-test-runner")
     yield
+    automation = sys.modules.get("services.automation.automation_service")
+    if automation is not None and hasattr(automation, "_own_name"):
+        automation._own_name = None
     try:
         from services.config.group_service import reset_group_service
 

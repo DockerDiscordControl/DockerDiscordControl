@@ -155,12 +155,20 @@ def rule_listens_to(rule, container: str) -> bool:
 # DDC's own container name, looked up once (None: not known yet, "": none).
 _own_name: Optional[str] = None
 
+# In protected_names while DDC runs in a container whose name could not be read:
+# no container name equals it, and the callers refuse every action but NOTIFY
+# for that cycle (stage 4 review before v3.1.0, section 11).
+OWN_CONTAINER_UNKNOWN = "\x00own container unknown"
 
-def _own_container_name() -> str:
-    """The name of the container DDC runs in, or "" outside one.
+
+def _own_container_name() -> Optional[str]:
+    """The name of the container DDC runs in, "" outside one, None when unknown.
 
     Blocking (one Docker call through the proxy) - callers run it in a thread.
-    A failed lookup is not remembered, so the next action asks again.
+    A failed lookup is not remembered, so the next action asks again. It used
+    to answer "" - "not in a container" - and DDC dropped out of the protected
+    set until a lookup worked, so a rule reacting to DDC's own event could
+    restart it.
     """
     global _own_name
     if _own_name is None:
@@ -171,7 +179,13 @@ def _own_container_name() -> str:
         else:
             ok, name = describe_self()
             if not ok:
-                return ""
+                # NotFound is an answer: this Docker has no container of that id
+                # (DDC controls another host), so nothing here is DDC. Any other
+                # failure is "unknown", and asked again next time.
+                if name == "NotFound":
+                    _own_name = ""
+                    return _own_name
+                return None
             _own_name = name
     return _own_name
 
@@ -187,7 +201,9 @@ async def protected_names(settings: Dict) -> set:
     """
     names = {str(p).lower() for p in settings.get('protected_containers', []) or []}
     own = await asyncio.to_thread(_own_container_name)
-    if own:
+    if own is None:
+        names.add(OWN_CONTAINER_UNKNOWN)
+    elif own:
         names.add(own.lower())
     return names
 
@@ -535,8 +551,11 @@ class AutomationService:
         target_containers = containers_of_action(rule)
         
         for container in target_containers:
-            if container.lower() in protected:
-                logger.warning(f"AAS: Blocked action on protected container '{container}'")
+            if container.lower() in protected or (OWN_CONTAINER_UNKNOWN in protected
+                                                  and rule.action.type.upper() != 'NOTIFY'):
+                logger.warning(f"AAS: Blocked action on protected container '{container}'"
+                               + (" (DDC's own container could not be identified)"
+                                  if OWN_CONTAINER_UNKNOWN in protected else ""))
                 self.state_service.record_trigger(
                     rule.id, rule.name, container, rule.action.type, "SKIPPED", "Protected container"
                 )
@@ -814,8 +833,11 @@ class AutomationService:
         # After the cooldowns, not before: this used to be the one message in the
         # engine with no rate limit, so a protected container flapping healthy ->
         # unhealthy -> healthy posted once per poll.
-        if action_type != 'NOTIFY' and container.lower() in protected:
-            logger.warning(f"AAS: Blocked {action_type} on protected container '{container}' (watchdog)")
+        if action_type != 'NOTIFY' and (container.lower() in protected
+                                        or OWN_CONTAINER_UNKNOWN in protected):
+            logger.warning(f"AAS: Blocked {action_type} on protected container '{container}' (watchdog)"
+                           + (" - DDC's own container could not be identified"
+                              if OWN_CONTAINER_UNKNOWN in protected else ""))
             self.state_service.record_trigger(rule.id, rule.name, container, action_type, "SKIPPED",
                                               "Protected container")
             # Nothing was done: the RULE cooldown is freed, like every batch that did

@@ -317,6 +317,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - An auto-action rule with a delay waited that delay once per container: with three containers and
   60 seconds, the last one was acted on after three minutes, although the notice said "60s delay".
   The rule waits once now, before the first container.
+- When DDC could not read its own container name from Docker for a moment (a timeout), an auto-
+  action rule reacting to DDC's own container could restart or stop DDC. While its own name is
+  unknown, rules only notify now; the actions wait for the next check.
 
 ### 🐛 The mech's picture and gift, the update notice
 
