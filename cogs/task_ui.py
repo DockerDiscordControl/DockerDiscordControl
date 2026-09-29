@@ -119,11 +119,17 @@ class TaskManagementButton(discord.ui.Button):
 
             for i, task in enumerate(tasks[:10]):  # Limit to 10 tasks to avoid embed size limits
                 # Format last run
+                # In the TASK's zone, with its name - like the confirmation and the
+                # delete buttons. fromtimestamp() used the process zone (the image's
+                # Europe/Berlin) with no marker: "13:00 UTC" on the button, "15:00"
+                # here (stage 4 review before v3.1.0, section 41).
+                from datetime import datetime
+                from services.scheduling.scheduled_task import _get_timezone
+                task_zone = _get_timezone(task.timezone_str)
                 last_run_str = _("Never")
                 if task.last_run_ts:
-                    from datetime import datetime
-                    last_run_dt = datetime.fromtimestamp(task.last_run_ts)
-                    last_run_str = last_run_dt.strftime("%Y-%m-%d %H:%M")
+                    last_run_dt = datetime.fromtimestamp(task.last_run_ts, task_zone)
+                    last_run_str = last_run_dt.strftime("%Y-%m-%d %H:%M %Z")
                     if task.last_run_success is not None:
                         status_icon = "✅" if task.last_run_success else "❌"
                         last_run_str += f" {status_icon}"
@@ -131,9 +137,8 @@ class TaskManagementButton(discord.ui.Button):
                 # Format next run
                 next_run_str = _("Not scheduled")
                 if task.next_run_ts:
-                    from datetime import datetime
-                    next_run_dt = datetime.fromtimestamp(task.next_run_ts)
-                    next_run_str = next_run_dt.strftime("%Y-%m-%d %H:%M")
+                    next_run_dt = datetime.fromtimestamp(task.next_run_ts, task_zone)
+                    next_run_str = next_run_dt.strftime("%Y-%m-%d %H:%M %Z")
 
                 # Active status
                 status_icon = "🟢" if task.is_active else "🔴"

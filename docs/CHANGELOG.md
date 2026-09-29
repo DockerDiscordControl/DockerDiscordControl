@@ -120,6 +120,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Deleting or restoring a donation while the donation ledger held an unreadable line said
   "deleted", but level, power and total kept counting it. It is refused now with that reason,
   and nothing is written.
+- The task list in Discord showed times in the container's own time zone without saying so
+  (15:00 for a task set to 13:00 UTC), while the confirmation and the delete buttons said 13:00
+  UTC. It shows the task's time zone now, with its name.
 
 ### 🐛 The mech's picture and gift, the update notice
 
