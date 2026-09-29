@@ -410,13 +410,17 @@ class ActionButton(Button):
                     del self.cog.pending_actions[self.docker_name]
                 return
 
-            log_user_action(
-                action=f"DOCKER_{self.action.upper()}",
-                target=self.display_name,
-                user=str(user),
-                source="Discord Button",
-                details=f"Container: {self.docker_name}"
-            )
+            def log_outcome(suffix: str = "") -> None:
+                # Written once the outcome is known. It was written before the
+                # action ran, so a refused or failed press stood in the action
+                # log as done (stage 4 review before v3.1.0, section 02).
+                log_user_action(
+                    action=f"DOCKER_{self.action.upper()}{suffix}",
+                    target=self.display_name,
+                    user=str(user),
+                    source="Discord Button",
+                    details=f"Container: {self.docker_name}"
+                )
 
             async def run_docker_action():
                 # Whether Docker has actually carried the action out. It decides
@@ -429,6 +433,7 @@ class ActionButton(Button):
                     success = await docker_action_service_first(self.docker_name, self.action)
                     logger.info(f"[ACTION_BTN] Docker {self.action} for '{self.display_name}' completed: success={success}")
 
+                    log_outcome("" if success else "_FAILED")
                     if not success:
                         # The result used to be logged and nothing else: a failed action
                         # went on like a successful one - "processing", then the
@@ -599,6 +604,8 @@ class ActionButton(Button):
                     # on the pending or the processing embed and nothing else
                     # will touch it (review D31).
                     logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}", exc_info=True)
+                    if not action_done:
+                        log_outcome("_ERROR")
                     # Remove from pending_actions - use docker_name as key!
                     if self.cog.pending_actions.get(self.docker_name) is pending_entry:
                         del self.cog.pending_actions[self.docker_name]

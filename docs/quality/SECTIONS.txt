@@ -15,7 +15,7 @@ cogs/stack_restart.py:1-325
 cogs/auto_action_monitor.py:1-74
 cogs/control_helpers.py:1-423
 
-## Section 02  (1614 lines, 2 pieces)
+## Section 02  (1621 lines, 2 pieces)
 # Cut moved up from 1991 to 1801 on 2026-09-21, to the class boundary at
 # PasswordProtectedView. Section 02 had reached 1,991 of the 2,000 lines a
 # section may hold and the next repair in this file (review D32) did not fit.
@@ -24,12 +24,12 @@ cogs/control_helpers.py:1-423
 # already fully reviewed in both passes, and every finding of either pass in
 # this file is dealt with, so no finding label ends up naming a section that
 # no longer holds its lines.
-cogs/control_ui.py:1-1435
+cogs/control_ui.py:1-1442
 # action_effect.py came over from section 01 on 2026-09-29: it judges what a
 # press in this panel did, and the IPv6/URL addresses put section 01 at 2,010.
 cogs/action_effect.py:1-179
 
-## Section 03  (1257 lines, 2 pieces)
+## Section 03  (1260 lines, 2 pieces)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
@@ -39,14 +39,14 @@ cogs/action_effect.py:1-179
 cogs/admin_ui.py:1-386
 cogs/mech_ui.py:1-874
 
-## Section 04  (1550 lines, 3 pieces)
+## Section 04  (1578 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
 # Step 5 (2026-09-22): channel setup/teardown/regeneration moved to channel_lifecycle.py.
 cogs/channel_lifecycle.py:1-649
 cogs/docker_control.py:1-826
 cogs/loop_safety.py:1-103
 
-## Section 05  (1530 lines, 3 pieces)
+## Section 05  (1475 lines, 3 pieces)
 # Phase 3 cog split, 2026-09-22: the three overview embed builders (856 lines)
 # moved from this range of docker_control.py into overview_embeds.py, which
 # joins the section they came from; the cuts below move up by 856 lines.
@@ -55,20 +55,20 @@ cogs/docker_control.py:827-844
 cogs/overview_embeds.py:1-623
 cogs/slash_commands.py:1-834
 
-## Section 06  (1849 lines, 3 pieces)
+## Section 06  (1971 lines, 3 pieces)
 # Step 6 (2026-09-22): the donation views and the /addadmin modal moved to donation_ui.py.
 # Step 3 (2026-09-22): six background loops (458 lines) moved to background_loops.py.
 cogs/docker_control.py:845-1251
 cogs/background_loops.py:1-854
 cogs/donation_ui.py:1-710
 
-## Section 07  (694 lines, 1 piece)
+## Section 07  (704 lines, 1 piece)
 cogs/enhanced_info_modal_simple.py:1-704
 
 ## Section 08  (1116 lines, 1 piece)
 cogs/status_handlers.py:1-1116
 
-## Section 09  (1611 lines, 3 pieces)
+## Section 09  (1643 lines, 3 pieces)
 # v3.1.0, 2026-09-28: every container has an info display; who plays on a
 # game server and Docker's facts come from info_extras.py, read with the display
 # it fills; player_joins.py announces who joins, from the same player list.
@@ -76,7 +76,7 @@ cogs/status_info_integration.py:1-1156
 cogs/info_extras.py:1-326
 cogs/player_joins.py:1-161
 
-## Section 10  (1592 lines, 7 pieces)
+## Section 10  (1729 lines, 7 pieces)
 cogs/translation_manager.py:1-149
 cogs/translation_monitor.py:1-124
 services/__init__.py:1-51
@@ -85,7 +85,7 @@ services/admin/admin_service.py:1-459
 services/automation/__init__.py:1-14
 services/automation/auto_action_config_service.py:1-927
 
-## Section 11  (1409 lines, 2 pieces)
+## Section 11  (1415 lines, 2 pieces)
 services/automation/auto_action_state_service.py:1-389
 services/automation/automation_service.py:1-1026
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
@@ -102,7 +102,7 @@ services/config/channel_config_service.py:1-585
 # refusal of an impossible query port put that section at 2,007.
 services/config/config_validation_service.py:1-236
 
-## Section 12  (1847 lines, 5 pieces)
+## Section 12  (1867 lines, 5 pieces)
 # config_cache_service.py followed on 2026-09-23: section 11 went over 2,000
 # when automation_service.py grew with the group resolution.
 services/automation/own_actions.py:1-93
@@ -126,7 +126,7 @@ services/config/server_config_service.py:1-241
 services/config/channel_roles.py:1-55
 services/discord/__init__.py:1-20
 
-## Section 14  (1909 lines, 8 pieces)
+## Section 14  (1927 lines, 8 pieces)
 services/discord/channel_cleanup_service.py:1-515
 services/discord/conditional_update_cache_service.py:1-184
 services/discord/embed_helper_service.py:1-227
@@ -143,14 +143,14 @@ services/docker_service/client_factory.py:1-105
 services/docker_service/docker_client_pool.py:1-738
 services/docker_service/reachability.py:1-87
 
-## Section 16  (1660 lines, 5 pieces)
+## Section 16  (1665 lines, 5 pieces)
 services/docker_service/docker_utils.py:1-1168
 services/docker_service/server_order.py:1-111
 services/docker_service/status_cache_runtime.py:1-101
 services/docker_status/__init__.py:1-34
 services/docker_status/fetch_service.py:1-251
 
-## Section 17  (1902 lines, 13 pieces)
+## Section 17  (1912 lines, 13 pieces)
 services/docker_status/models.py:1-411
 services/docker_status/performance_service.py:1-237
 services/donation/__init__.py:1-24
@@ -165,7 +165,7 @@ services/donation/unified/models.py:1-97
 services/donation/unified/processors.py:1-69
 services/donation/unified/reset.py:1-177
 
-## Section 18  (1703 lines, 8 pieces)
+## Section 18  (1732 lines, 8 pieces)
 services/donation/unified/service.py:1-502
 services/donation/unified/validation.py:1-44
 services/donation/unified_donation_service.py:1-31
@@ -175,19 +175,19 @@ services/infrastructure/action_log_service.py:1-387
 services/infrastructure/action_logger.py:1-137
 services/infrastructure/container_info_service.py:1-332
 
-## Section 19  (2021 lines, 5 pieces)
+## Section 19  (1466 lines, 4 pieces)
 services/infrastructure/container_status_service.py:1-887
 services/infrastructure/docker_connectivity_service.py:1-269
 services/infrastructure/dynamic_cooldown_manager.py:1-191
 services/infrastructure/event_manager.py:1-119
 
-## Section 19b  (877 lines, 2 pieces)
+## Section 19b  (895 lines, 2 pieces)
 # Split off Section 19 on 2026-09-23: container_status_service.py grew past the
 # 2000-line section limit with the cache-lifetime fix.
 services/infrastructure/game_query_service.py:1-711
 services/infrastructure/container_facts_service.py:1-184
 
-## Section 20  (1654 lines, 5 pieces)
+## Section 20  (1710 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-357
 services/infrastructure/spam_protection_service.py:1-609
 services/infrastructure/update_notifier.py:1-326
@@ -207,7 +207,7 @@ services/mech/mech_evolutions.py:1-450
 services/mech/gifts.py:1-210
 services/mech/mech_high_res_service.py:1-249
 
-## Section 23  (1830 lines, 8 pieces)
+## Section 23  (1829 lines, 8 pieces)
 services/mech/mech_reset_service.py:1-374
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-336
@@ -217,7 +217,7 @@ services/mech/mech_story_service.py:1-204
 services/mech/progress/__init__.py:1-17
 services/mech/progress_paths.py:1-189
 
-## Section 24  (1932 lines, 2 pieces)
+## Section 24  (1938 lines, 2 pieces)
 # runtime.py sits with the service it carries the state for; section 23 is at
 # the 2,000 lines a section may hold. gifts.py joined on 2026-09-23: it was
 # split out of progress_service.py, which may only shrink.
@@ -246,28 +246,28 @@ services/scheduling/task_writeback.py:1-119
 # size list and may only shrink); sections 26 and 27 are full.
 services/scheduling/group_tasks.py:1-96
 
-## Section 26  (1220 lines, 1 piece)
+## Section 26  (1261 lines, 1 piece)
 services/scheduling/scheduler.py:1-1261
 
-## Section 26b  (1082 lines, 2 pieces)
+## Section 26b  (1127 lines, 2 pieces)
 # 2026-09-28: scheduler.py split - the task and its cycles went to
 # scheduled_task.py, the input parsing to task_input.py, unchanged. Together
 # with scheduler.py they would exceed the 2000 lines a section may hold.
 services/scheduling/scheduled_task.py:1-881
 services/scheduling/task_input.py:1-246
 
-## Section 27  (1480 lines, 3 pieces)
+## Section 27  (930 lines, 2 pieces)
 services/status/status_cache_service.py:1-225
 services/translation/translation_config_service.py:1-705
 
-## Section 28  (1220 lines, 3 pieces)
+## Section 28  (1230 lines, 3 pieces)
 # translation_service.py moved to section 48 on 2026-09-26: the target-channel
 # check before the provider call (audit #4, #5) took this section past 2,000.
 services/web/__init__.py:1-12
 services/web/configuration_page_service.py:1-555
 services/web/configuration_save_service.py:1-663
 
-## Section 29  (1923 lines, 7 pieces)
+## Section 29  (1746 lines, 7 pieces)
 services/web/container_log_service.py:1-459
 services/web/container_refresh_service.py:1-208
 services/web/diagnostics_service.py:1-87
@@ -276,20 +276,20 @@ services/web/donation_status_service.py:1-252
 services/web/donation_tracking_service.py:1-165
 services/web/i18n_service.py:1-214
 
-## Section 30  (1846 lines, 5 pieces)
+## Section 30  (1732 lines, 5 pieces)
 services/web/mech_music_service.py:1-225
 services/web/mech_status_details_service.py:1-447
 services/web/mech_web_service.py:1-527
 services/web/performance_stats_service.py:1-182
 services/web/security_service.py:1-351
 
-## Section 31  (2164 lines, 6 pieces)
+## Section 31  (1890 lines, 4 pieces)
 services/web/task_management_service.py:1-1193
 app/__init__.py:1-13
 app/auth.py:1-350
 app/blueprints/automation_routes.py:1-334
 
-## Section 31b  (365 lines, 2 pieces)
+## Section 31b  (361 lines, 2 pieces)
 # Split off Section 31 on 2026-09-23: the form login grew app/auth.py by 67
 # lines and brought a new blueprint, which put that section over the 2,000
 # lines a section may hold. log_routes.py came along so both halves have
@@ -297,12 +297,12 @@ app/blueprints/automation_routes.py:1-334
 app/blueprints/login_routes.py:1-119
 app/blueprints/log_routes.py:1-242
 
-## Section 32  (1929 lines, 3 pieces)
+## Section 32  (1789 lines, 3 pieces)
 app/blueprints/main_routes.py:1-1309
 app/blueprints/tasks_bp.py:1-389
 app/blueprints/action_log_routes.py:1-91
 
-## Section 33  (2291 lines, 24 pieces)
+## Section 33  (1983 lines, 23 pieces)
 # group_routes.py joined on 2026-09-23 (new: the operator's container
 # groups) and moved on the same day: section 32 reached 2,019 lines when
 # tasks_bp.py grew with the timezone answer. It is the smallest piece
@@ -338,7 +338,7 @@ app/utils/__init__.py:1-7
 # past the 2000-line section limit. One file, read in one go.
 app/utils/container_info_web_handler.py:1-325
 
-## Section 34  (1361 lines, 9 pieces)
+## Section 34  (1409 lines, 9 pieces)
 # app/bot/startup_steps/sequence.py moved here from 33 on 2026-09-21: 33 had
 # grown to 2,021 of the 2,000 a section may hold, and this is the file that
 # grew (review E9). 34 had the room.
@@ -354,7 +354,7 @@ app/web/app_factory.py:1-68
 app/web/background.py:1-88
 app/web/blueprints.py:1-41
 
-## Section 35  (1778 lines, 14 pieces)
+## Section 35  (1851 lines, 14 pieces)
 # utils/config_cache.py left for section 38 on 2026-09-24: /health stopped
 # describing the installation to unauthenticated callers, app/web/routes.py
 # went 204 -> 232 lines, and this section reached 2,013 of the 2,000 a section
@@ -375,7 +375,7 @@ utils/atomic_io.py:1-104
 utils/common_helpers.py:1-520
 utils/config_paths.py:1-47
 
-## Section 36  (1881 lines, 6 pieces)
+## Section 36  (1773 lines, 6 pieces)
 # utils/import_utils.py moved here from 35 on 2026-09-21: 35 had grown to
 # 2,024 of the 2,000 lines a section may hold. 36 had the room, and both
 # halves of 35 were reviewed in stage C either way.
@@ -388,7 +388,7 @@ utils/observability.py:1-593
 utils/settings.py:1-113
 utils/time_utils.py:1-387
 
-## Section 37  (1351 lines, 5 pieces)
+## Section 37  (1355 lines, 5 pieces)
 # group_service.py arrived from section 12 on 2026-09-24 (see there). This is
 # the section with the most room, and a group's own permissions are the kind of
 # rule that gets read next to the token and key handling rather than next to
@@ -401,7 +401,7 @@ utils/token_security.py:1-283
 services/config/group_references.py:1-153
 services/config/group_service.py:1-416
 
-## Section 38  (1203 lines, 7 pieces)
+## Section 38  (1364 lines, 8 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
 # lines a section may hold, and the next repair in main_routes.py (review D25)
 # did not fit. The section cut is an instrument for reading the code, not a
@@ -425,7 +425,7 @@ services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).
 utils/config_cache.py:1-307
 
-## Section 39  (1471 lines, 6 pieces)
+## Section 39  (1680 lines, 7 pieces)
 # New on 2026-09-22 for v3.0: the allowlist proxy in front of the Docker
 # socket, the TLS modes and the second factor of the web panel. Their own section because they
 # are the security boundary of v3.0 and must be reviewed as one piece, not as
@@ -438,17 +438,17 @@ services/docker_proxy/__init__.py:1-2
 services/docker_proxy/allowlist_proxy.py:1-368
 services/web/two_factor_service.py:1-331
 
-## Section 40  (742 lines, 1 piece)
+## Section 40  (760 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
 cogs/message_updates.py:1-760
 
-## Section 41  (1233 lines, 1 piece)
+## Section 41  (1250 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
 # (2,403 -> 1234 lines); too large to join a neighbour.
 cogs/task_ui.py:1-1250
 
-## Section 42  (220 lines, 1 piece)
+## Section 42  (270 lines, 1 piece)
 # Phase 4d (2026-09-22): the image-update check. Section 11, where the other
 # automation files live, is at 1,987 of its 2,000 lines.
 services/automation/image_updates.py:1-270
@@ -460,7 +460,7 @@ services/automation/image_updates.py:1-270
 # routes in the first place.
 app/blueprints/system_routes.py:1-104
 
-## Section 44  (865 lines, 2 pieces)
+## Section 44  (929 lines, 2 pieces)
 # Moved out of 34 on 2026-09-25: port_diagnostics.py grew when the startup
 # line stopped guessing the host address and started asking which one the
 # panel had actually been reached on, and 34 went to 2,034 of its 2,000.
@@ -488,7 +488,7 @@ services/automation/container_watch.py:1-224
 app/blueprints/backup_routes.py:1-128
 services/config/backup_service.py:1-206
 
-## Section 47  (389 lines, 3 pieces)
+## Section 47  (490 lines, 3 pieces)
 # Watchdog maintenance (operator, 2026-09-26): the pause store and the
 # Discord button that sets it; the panel's three routes live with the other
 # automation routes.
@@ -497,12 +497,12 @@ services/automation/maintenance.py:1-124
 # The alarm webhook joined on 2026-09-26: the watchdog's way out of Discord.
 services/automation/alert_webhook.py:1-104
 
-## Section 48  (795 lines, 1 piece)
+## Section 48  (835 lines, 1 piece)
 # From section 28 on 2026-09-26 (see there). Reviewed in both passes as part
 # of section 28; the coverage ledger keeps its s28 labels.
 services/translation/translation_service.py:1-835
 
-## Section 49  (1066 lines, 3 pieces)
+## Section 49  (1129 lines, 3 pieces)
 # v3.1.0, 2026-09-28: restart or stop only when nobody plays, and the warning
 # before - the core, the scheduler that calls it and its Discord dropdowns,
 # read together.

@@ -215,6 +215,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - When a stop or restart took longer than two minutes and someone pressed again meanwhile, the end
   of the first action cleared the second press's "pending" state, and a third press was let
   through while the second still ran. Each action now clears only its own.
+- The web panel's action log listed a Start, Stop or Restart pressed in Discord as done before it
+  ran, even when it failed. It is recorded after the fact now, as done, failed (_FAILED) or broken
+  off (_ERROR).
 
 ### 🐛 The mech's picture and gift, the update notice
 
