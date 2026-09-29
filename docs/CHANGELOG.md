@@ -212,6 +212,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The container form's checkbox "Enable Info Button" no longer said what it does: every container
   has an info display now. It is called "Show my own text and address" (in all 40 languages),
   which is what it switches.
+- When a stop or restart took longer than two minutes and someone pressed again meanwhile, the end
+  of the first action cleared the second press's "pending" state, and a third press was let
+  through while the second still ran. Each action now clears only its own.
 
 ### 🐛 The mech's picture and gift, the update notice
 

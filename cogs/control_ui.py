@@ -445,7 +445,9 @@ class ActionButton(Button):
 
                     action_done = True
 
-                    if self.docker_name in self.cog.pending_actions:
+                    # Only our own mark: past 120 s a second press may have replaced
+                    # it, and deleting that one let a third through (stage 4, section 02).
+                    if self.cog.pending_actions.get(self.docker_name) is pending_entry:
                         del self.cog.pending_actions[self.docker_name]
 
                     # Invalidate BOTH caches for this container to force fresh status - use docker_name as key!
@@ -589,7 +591,7 @@ class ActionButton(Button):
                         lambda t: _log_background_task_exception(t, f"update views for {self.docker_name}"))
 
                 except asyncio.CancelledError:
-                    if self.docker_name in self.cog.pending_actions:
+                    if self.cog.pending_actions.get(self.docker_name) is pending_entry:
                         del self.cog.pending_actions[self.docker_name]
                     raise
                 except BaseException as e:
@@ -598,7 +600,7 @@ class ActionButton(Button):
                     # will touch it (review D31).
                     logger.error(f"[ACTION_BTN] Error in background Docker {self.action}: {e}", exc_info=True)
                     # Remove from pending_actions - use docker_name as key!
-                    if self.docker_name in self.cog.pending_actions:
+                    if self.cog.pending_actions.get(self.docker_name) is pending_entry:
                         del self.cog.pending_actions[self.docker_name]
                     await self._say_the_panel_is_stale(interaction, action_done=action_done)
 
@@ -610,7 +612,7 @@ class ActionButton(Button):
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"[ACTION_BTN] Error handling {self.action} for '{self.display_name}': {e}", exc_info=True)
             # Remove from pending_actions - use docker_name as key!
-            if self.docker_name in self.cog.pending_actions:
+            if self.cog.pending_actions.get(self.docker_name) is pending_entry:
                 del self.cog.pending_actions[self.docker_name]
         except BaseException:
             # Anything else: take the mark back, then let it travel on. The
@@ -628,7 +630,7 @@ class ActionButton(Button):
             # spec tests prove the permission gate by raising a marker through
             # this method, and swallowing it here would hide a real error as
             # well as their marker.
-            if self.docker_name in self.cog.pending_actions:
+            if self.cog.pending_actions.get(self.docker_name) is pending_entry:
                 del self.cog.pending_actions[self.docker_name]
             raise
 
