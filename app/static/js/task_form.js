@@ -301,9 +301,13 @@ document.getElementById('createTaskButton').addEventListener('click', function()
             // Not always green: a one-time task whose time has passed is saved
             // and switched off in the same call, and the server says so.
             const notice = taskAddedNotice(data.body, DDC_TASK_FORM.taskAdded);
+            // Reset FIRST: resetTaskForm() empties this box, and called after
+            // the answer it wiped it - the operator never saw "added", the
+            // warning about an unreadable player count, or "switched off"
+            // (tests/spec/test_the_task_form_keeps_its_answer_on_screen.py)
+            resetTaskForm();
             responseMessageDiv.textContent = notice.text;
             responseMessageDiv.classList.add('alert', notice.level);
-            resetTaskForm();
             // Reload task list
             if (window.taskManager && typeof window.taskManager.fetchTasks === 'function') {
                 window.taskManager.fetchTasks();
