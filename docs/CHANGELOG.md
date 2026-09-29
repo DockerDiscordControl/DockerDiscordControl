@@ -285,6 +285,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   moment it appears.
 - After a start, stop or restart from Discord the container showed "Uptime: N/A" until the next
   regular refresh. It shows the real uptime straight away now.
+- The live log panel renews itself before its five minutes run out, but the view it replaced then
+  switched its buttons off anyway, and the panel showed "timed out". The renewed panel keeps
+  working now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

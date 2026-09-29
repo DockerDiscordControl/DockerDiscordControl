@@ -479,6 +479,12 @@ class LiveLogView(DDCView):
                 self.auto_refresh_task.cancel()
             if self.recreation_task:
                 self.recreation_task.cancel()
+            # And let go of the message: this view's own timeout fired 30 s
+            # later and edited the renewed panel back to itself with its buttons
+            # disabled (stage 4 review before v3.1.0, section 09). stop() also
+            # cancels py-cord's timeout task.
+            self.message_ref = None
+            self.stop()
 
             logger.info(f"Successfully recreated Live Logs view for container {self.container_name}")
 
