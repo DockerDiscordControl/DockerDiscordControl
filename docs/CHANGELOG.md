@@ -117,6 +117,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - An auto-action rule with a regex and required keywords fired on a message the regex matched
   even when a required keyword was missing; the panel's rule tester said "no match" for the same
   message. Required keywords are checked first now, like the ignore keywords.
+- Deleting or restoring a donation while the donation ledger held an unreadable line said
+  "deleted", but level, power and total kept counting it. It is refused now with that reason,
+  and nothing is written.
 
 ### 🐛 The mech's picture and gift, the update notice
 

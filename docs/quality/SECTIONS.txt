@@ -151,7 +151,7 @@ services/docker_status/models.py:1-411
 services/docker_status/performance_service.py:1-234
 services/donation/__init__.py:1-24
 services/donation/donation_config.py:1-50
-services/donation/donation_management_service.py:1-491
+services/donation/donation_management_service.py:1-498
 services/donation/donation_utils.py:1-89
 services/donation/notification_service.py:1-99
 services/donation/unified/__init__.py:1-30
@@ -218,7 +218,7 @@ services/mech/progress_paths.py:1-189
 # the 2,000 lines a section may hold. gifts.py joined on 2026-09-23: it was
 # split out of progress_service.py, which may only shrink.
 services/mech/progress/runtime.py:1-201
-services/mech/progress_service.py:1-1731
+services/mech/progress_service.py:1-1730
 
 ## Section 25  (1643 lines, 11 pieces)
 services/mech/speed_levels.py:1-427

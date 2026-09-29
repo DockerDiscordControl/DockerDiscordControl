@@ -14,6 +14,8 @@ from dataclasses import dataclass
 import json
 from utils.logging_utils import get_module_logger
 
+from services.exceptions import MechServiceError
+
 from services.mech.progress_paths import get_progress_paths
 
 logger = get_module_logger('donation_management_service')
@@ -374,6 +376,11 @@ class DonationManagementService:
             error_msg = str(e)
             logger.error(f"Validation error deleting donation: {error_msg}")
             return ServiceResult(success=False, error=error_msg)
+        except MechServiceError as e:
+            # The ledger refused (damaged log): nothing was written - say so,
+            # instead of a 500 (stage 4 review before v3.1.0, section 24)
+            logger.error(f"Donation delete refused: {e}")
+            return ServiceResult(success=False, error=str(e))
         except (IOError, OSError) as e:
             # File I/O errors (event log access)
             error_msg = f"Error reading donation event log: {e}"

@@ -1639,8 +1639,13 @@ class ProgressService:
             Updated ProgressState after rebuilding from events
         """
         with LOCK:
-            # Verify the donation exists (support all donation types)
-            all_events = [e for e in read_events() if e.mech_id == self.mech_id]
+            # Refused BEFORE the tombstone: rebuild_from_events would refuse the damaged log
+            # and the delete counted as done while nothing changed (stage 4, section 24)
+            events, damaged = read_events(count_damaged=True)
+            if damaged:
+                raise MechStateError(f"{damaged} unreadable line(s) in the donation ledger; nothing "
+                                     f"changed - repair events.jsonl first", error_code="EVENT_LOG_DAMAGED")
+            all_events = [e for e in events if e.mech_id == self.mech_id]
             donation_event = next((e for e in all_events
                                   if e.seq == donation_seq
                                   and e.type in ["DonationAdded", "PowerGiftGranted", "SystemDonationAdded", "ExactHitBonusGranted"]), None)
@@ -1680,14 +1685,8 @@ class ProgressService:
                 ts=now_utc_iso(),
                 type="DonationDeleted",
                 mech_id=self.mech_id,
-                payload={
-                    "deleted_seq": donation_seq,
-                    "donor": donor,
-                    "units": units,
-                    "reason": reason,
-                    "original_type": donation_event.type  # Track original event type
-                }
-            )
+                payload={"deleted_seq": donation_seq, "donor": donor, "units": units, "reason": reason,
+                         "original_type": donation_event.type})  # original type: see the history
             append_event(evt)
 
             action = "restored" if currently_deleted else "deleted"
