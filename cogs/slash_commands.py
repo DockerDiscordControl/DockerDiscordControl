@@ -618,6 +618,10 @@ class SlashCommandsMixin:
 
             # Try to defer immediately, but handle timeout gracefully
             deferred = False
+            # Answered BEFORE this command deferred - the autocomplete race. Our
+            # own defer makes is_done() True as well, so asking it at the send
+            # step warned on every /info (stage 4 review before v3.1.0, section 05).
+            acknowledged_elsewhere = False
             try:
                 if not ctx.response.is_done():
                     await ctx.response.defer(ephemeral=True)
@@ -625,6 +629,7 @@ class SlashCommandsMixin:
                     logger.debug(f"Successfully deferred /info command for {container_name}")
                 else:
                     logger.debug(f"Interaction response already done for /info command, will use followup")
+                    acknowledged_elsewhere = True
                     deferred = True  # We'll use followup
             except discord.errors.NotFound:
                 # Interaction already timed out, but we can still try to respond
@@ -709,7 +714,7 @@ class SlashCommandsMixin:
             # Send response - check for race condition with autocomplete first
             try:
                 # Check if interaction has already been acknowledged (race condition with autocomplete)
-                if ctx.interaction.response.is_done():
+                if acknowledged_elsewhere:
                     logger.warning(f"Interaction already acknowledged for /info {container_name} - call_id: {call_id}. Using followup instead.")
                     if view:
                         await ctx.followup.send(embed=embed, view=view, ephemeral=True)
