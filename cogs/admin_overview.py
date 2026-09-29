@@ -7,6 +7,7 @@
 # ============================================================================ #
 """Admin overview view for control channels - service first implementation."""
 
+import aiohttp
 import discord
 from discord.ui import View, Button
 import asyncio
@@ -176,7 +177,12 @@ async def answer_or_post(interaction, cog, channel_id: int, embed) -> None:
     try:
         await interaction.followup.send(embed=embed, ephemeral=True)
         return
-    except (discord.errors.NotFound, discord.errors.HTTPException) as error:
+    # Every way of not reaching the presser: a dropped connection on Linux
+    # (errno 104, which py-cord does not retry) or a server disconnect escaped
+    # the two Discord types, and the summary of an action that had run was
+    # lost (stage 4 review before v3.1.0, section 01).
+    except (discord.errors.DiscordException, aiohttp.ClientError, OSError,
+            asyncio.TimeoutError) as error:
         logger.warning(f"Bulk action: the presser could not be answered ({error}) - "
                        f"posting the summary in channel {channel_id}")
     channel = getattr(getattr(cog, 'bot', None), 'get_channel', lambda _cid: None)(channel_id)

@@ -256,6 +256,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Restart All could restart - which means start - a container that had been stopped outside DDC
   during the last half minute, because it trusted the last status reading; it then counted it as
   restarted. Restart All and Stop All ask Docker again before acting on a container now.
+- The result of Restart All, Stop All or a stack restart was lost when the connection dropped
+  while it was being sent to the person who pressed. It is posted in the channel instead, as it
+  already was for other failures.
 
 ### 🐛 The mech's picture and gift, the update notice
 
