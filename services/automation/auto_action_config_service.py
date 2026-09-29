@@ -350,7 +350,15 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         if player_error:
             errors.append(player_error)
         elif player_options.get('wait_for_empty'):
-            problems = [p for c in (containers or []) for p in query_problems(c, False)]
+            # The containers the action really waits for: groups resolved, and for a
+            # watchdog rule the watched ones - its own list is empty. Checking the raw
+            # list warned about "group:Valheim" and never checked a watchdog rule.
+            from services.automation.automation_service import _resolved
+            waited_for = (trigger.get('containers') if trigger_type == TRIGGER_CONTAINER_STATE
+                          else containers)
+            gate_verb = gated_verb(action.get('type', ''))
+            problems = [p for c in _resolved(waited_for or [], gate_verb)
+                        for p in query_problems(c, False)]
             if problems:
                 warnings.append("The player count cannot be read, so the server counts as empty "
                                 "and the action does not wait: " + "; ".join(problems))

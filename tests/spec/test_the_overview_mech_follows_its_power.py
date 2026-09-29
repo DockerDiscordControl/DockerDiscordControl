@@ -110,3 +110,39 @@ async def test_a_level_up_changes_the_picture_too(cog):
     await cog._update_overview_message(111, 9001, "overview")
 
     assert len(_uploads(cog.channel)) == 2
+
+
+# ---------------------------------------------------------------------------
+# Final check before v3.1.0 (2026-09-29), two holes in the swap above.
+#
+# 1. The key held the raw speed level, which moves with every cent of decay,
+#    while the cache picks the picture in 5% steps: the same frames went up
+#    again every few ten minutes per channel. The key uses the cache's steps.
+# 2. A swap that failed (no Read Message History for fetch_message, no Attach
+#    Files, an upload refused) returned False before the plain edit: the
+#    overview and its "last update" froze on every beat. It falls back now.
+#
+# COUNTER-CHECK (2026-09-29): with the raw speed in animation_key the step
+# test goes red; with the fallback removed the failed-swap test goes red.
+# ---------------------------------------------------------------------------
+
+def test_the_key_moves_in_the_steps_the_picture_does():
+    from cogs.overview_embeds import animation_key
+    from services.mech.animation_cache_service import get_animation_cache_service
+
+    cache = get_animation_cache_service()
+
+    assert animation_key(6, 41, 4.2, cache) == animation_key(6, 42, 4.1, cache)
+    assert animation_key(6, 41, 4.2, cache) != animation_key(6, 49, 4.2, cache)
+    assert animation_key(6, 41, 0, cache)[2] is True
+
+
+@pytest.mark.asyncio
+async def test_a_failed_swap_still_updates_the_status(cog):
+    cog.channel.fetch_message = AsyncMock(side_effect=discord.Forbidden(
+        MagicMock(status=403, reason="Forbidden"), "Missing Access"))
+
+    assert await cog._update_overview_message(111, 9001, "overview") is True
+
+    cog.channel.partial.edit.assert_awaited_once()
+    assert 111 in cog.last_message_update_time

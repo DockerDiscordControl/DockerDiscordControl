@@ -820,8 +820,13 @@ class AutomationService:
                     result = await self._alert(bot, channels, event, f"🚨 {event.reason} — *{rule.name}*")
             else:
                 if not rule.action.silent:
+                    # A rule that waits for an empty server says so, like the message path
+                    # does - "→ RESTART" followed by hours of nothing reads as a failure
+                    gate_info = (f" · {player_gate.describe(rule.action.player_options)}"
+                                 if player_gate.gated_verb(action_type)
+                                 and getattr(rule.action, 'player_options', None) else "")
                     await self._alert(bot, channels, event,
-                                              f"🚨 {event.reason} → `{action_type}` — *{rule.name}*")
+                                      f"🚨 {event.reason} → `{action_type}`{gate_info} — *{rule.name}*")
                 if delayed:
                     await asyncio.sleep(rule.action.delay_seconds)
                     # Until nobody plays on it, or the wait is over - then look again (v3.1.0)

@@ -25,7 +25,7 @@ cogs/action_effect.py:1-162
 # already fully reviewed in both passes, and every finding of either pass in
 # this file is dealt with, so no finding label ends up naming a section that
 # no longer holds its lines.
-cogs/control_ui.py:1-1405
+cogs/control_ui.py:1-1415
 
 ## Section 03  (1257 lines, 2 pieces)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
@@ -50,7 +50,7 @@ cogs/loop_safety.py:1-103
 # joins the section they came from; the cuts below move up by 856 lines.
 # Step 2, same day: the slash commands (740 lines) moved to slash_commands.py.
 cogs/docker_control.py:825-842
-cogs/overview_embeds.py:1-616
+cogs/overview_embeds.py:1-626
 cogs/slash_commands.py:1-822
 
 ## Section 06  (1849 lines, 3 pieces)
@@ -71,7 +71,7 @@ cogs/status_handlers.py:1-1116
 # game server and Docker's facts come from info_extras.py, read with the display
 # it fills; player_joins.py announces who joins, from the same player list.
 cogs/status_info_integration.py:1-1127
-cogs/info_extras.py:1-323
+cogs/info_extras.py:1-326
 cogs/player_joins.py:1-161
 
 ## Section 10  (1592 lines, 7 pieces)
@@ -81,11 +81,11 @@ services/__init__.py:1-51
 services/admin/__init__.py:1-5
 services/admin/admin_service.py:1-429
 services/automation/__init__.py:1-14
-services/automation/auto_action_config_service.py:1-910
+services/automation/auto_action_config_service.py:1-918
 
 ## Section 11  (1861 lines, 4 pieces)
 services/automation/auto_action_state_service.py:1-389
-services/automation/automation_service.py:1-1002
+services/automation/automation_service.py:1-1007
 # channel_roles.py and own_actions.py came back here on 2026-09-23 when
 # config_cache_service.py left for section 12; both are small. own_actions.py
 # followed it on 2026-09-26: automation_service.py grew by the group check of
@@ -182,7 +182,7 @@ services/infrastructure/container_facts_service.py:1-179
 ## Section 20  (1654 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-357
 services/infrastructure/spam_protection_service.py:1-609
-services/infrastructure/update_notifier.py:1-308
+services/infrastructure/update_notifier.py:1-324
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-388
 
@@ -433,7 +433,7 @@ services/web/two_factor_service.py:1-331
 ## Section 40  (742 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
-cogs/message_updates.py:1-750
+cogs/message_updates.py:1-760
 
 ## Section 41  (1233 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
@@ -494,10 +494,10 @@ services/automation/alert_webhook.py:1-104
 # of section 28; the coverage ledger keeps its s28 labels.
 services/translation/translation_service.py:1-835
 
-## Section 49  (1057 lines, 3 pieces)
+## Section 49  (1066 lines, 3 pieces)
 # v3.1.0, 2026-09-28: restart or stop only when nobody plays, and the warning
 # before - the core, the scheduler that calls it and its Discord dropdowns,
 # read together.
-services/scheduling/scheduler_service.py:1-623
+services/scheduling/scheduler_service.py:1-632
 services/scheduling/player_gate.py:1-310
 cogs/task_player_options.py:1-124

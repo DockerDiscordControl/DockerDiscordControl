@@ -168,3 +168,65 @@ async def test_without_an_answer_from_github_the_notice_links_the_notes(notifier
     assert await fresh.send_update_notification(bot) is True
     assert "## Security" in posted[1].description
     assert await fresh.send_update_notification(bot) is False, "shown twice for one version"
+
+
+# ---------------------------------------------------------------------------
+# Final check before v3.1.0 (2026-09-29).
+#
+# A CHANNEL THAT MISSED IT. channels_still_to_tell() records who has had the
+# notice, but the version mark was the first gate: once one channel had it,
+# should_show_update_notification() said no on every later start and the
+# channel that was unreachable then never heard of the version.
+#
+# A CUT INSIDE A CODE BLOCK left the fence open, and the rest of the notice -
+# the link to the full notes included - was drawn as code.
+#
+# COUNTER-CHECK (2026-09-29): with the gate back on the version mark alone the
+# missed-channel test goes red; without the closing fence the code test does.
+# ---------------------------------------------------------------------------
+
+async def test_a_channel_that_missed_the_notice_gets_it_on_the_next_start(notifier, monkeypatch):
+    import services.infrastructure.update_notifier as module
+    posted = []
+
+    class _Channel:
+        def __init__(self, cid):
+            self.cid = cid
+
+        async def send(self, embed):
+            posted.append(self.cid)
+
+    async def _no_notes(version, timeout=10.0):
+        return None
+    monkeypatch.setattr(module, "fetch_release_notes", _no_notes)
+    monkeypatch.setattr(module, "load_config", lambda: {"channel_permissions": {
+        "111": {"commands": {"control": True}}, "222": {"commands": {"control": True}}}})
+    reachable = {111}
+    bot = type("Bot", (), {"get_channel": lambda self, cid: _Channel(cid) if cid in reachable else None})()
+
+    assert await notifier.send_update_notification(bot) is True
+    assert posted == [111]
+
+    reachable.add(222)                              # the next start
+    assert await module.UpdateNotifier().send_update_notification(bot) is True
+    assert posted == [111, 222]
+    assert await module.UpdateNotifier().send_update_notification(bot) is False, (
+        "a channel that has it was told again")
+
+
+def test_an_old_mark_without_channels_stays_done(notifier):
+    """Counter-check: a version marked before the per-channel list is not re-sent."""
+    status = notifier.get_update_status()
+    status["last_notified_version"] = notifier.current_version
+    status.pop("channels_notified", None)
+    notifier.save_update_status(status)
+
+    assert notifier.should_show_update_notification() is False
+
+
+def test_a_cut_inside_a_code_block_closes_it(notifier):
+    notes = "Intro.\n\n```\n" + "\n".join(f"line {i} " + "x" * 80 for i in range(80)) + "\n```\n\nEnd."
+    embed = notifier.create_update_embed(notes)
+
+    body = embed.description.split("Full release notes:")[0]
+    assert body.count("```") % 2 == 0, "the link after the notes would be drawn as code"

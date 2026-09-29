@@ -98,7 +98,12 @@ def _cut(text: str, limit: int) -> str:
     cut = head.rfind("\n\n")
     if cut < limit // 2:
         cut = head.rfind("\n")
-    return (head[:cut] if cut > 0 else head).rstrip() + "\n\n…"
+    kept = (head[:cut] if cut > 0 else head).rstrip()
+    # A cut inside a code block would turn the rest of the notice - the link to
+    # the full notes included - into code: close it (final check before v3.1.0)
+    if kept.count("```") % 2:
+        kept += "\n```"
+    return kept + "\n\n…"
 
 logger = get_module_logger('update_notifier')
 
@@ -190,7 +195,13 @@ class UpdateNotifier:
             # compare against either
             return False
         status = self.get_update_status()
-        return status.get("last_notified_version") != self.current_version
+        if status.get("last_notified_version") != self.current_version:
+            return True
+        # Marked as shown - but a channel that was unreachable then is still owed
+        # it, which the per-channel list below records (final check before v3.1.0:
+        # the version mark alone shut them out for good). A mark without a list is
+        # from before that list existed, or from a setup without control channels.
+        return self.current_version in status.get("channels_notified", {})
 
     def channels_still_to_tell(self, channel_ids) -> list:
         """The channels that have not had THIS version's notice yet.
@@ -265,13 +276,18 @@ class UpdateNotifier:
                 self.mark_notification_shown()
                 return False
 
+            pending = self.channels_still_to_tell(control_channels)
+            if not pending:
+                logger.debug("Update notification already in every control channel")
+                return False
+
             # The notes of this version, read once per notice; without them the link
             embed = self.create_update_embed(await fetch_release_notes(self.current_version))
             sent_count = 0
             told = []
 
             # Send to the control channels that have not had it yet
-            for channel_id in self.channels_still_to_tell(control_channels):
+            for channel_id in pending:
                 try:
                     channel = bot.get_channel(channel_id)
                     if channel:

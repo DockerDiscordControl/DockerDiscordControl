@@ -28,6 +28,16 @@ from utils.time_utils import format_datetime_with_timezone
 
 from .translation_manager import _
 
+
+def animation_key(evolution_level, speed_level, power, cache_service) -> tuple:
+    """What the overview's mech picture shows: level, speed as the cache picks it, offline.
+
+    The speed in the cache's 5% steps - the raw level moves with every cent of
+    decay, and a key on it re-uploaded the same frames (final check, v3.1.0).
+    """
+    return (evolution_level, cache_service._quantize_speed(speed_level), (power or 0) <= 0)
+
+
 # Same logger name as the cog: log lines and log-based tests read as before the move.
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
@@ -562,8 +572,8 @@ class OverviewEmbedsMixin:
                     )
                     # What this picture shows - the periodic edit swaps the attachment when
                     # it changes (message_updates._update_overview_message)
-                    self._collapsed_animation_key = (evolution_level, actual_speed_level,
-                                                     (current_Power or 0) <= 0)
+                    self._collapsed_animation_key = animation_key(
+                        evolution_level, actual_speed_level, current_Power, cache_service)
 
                     # Convert to Discord File
                     buffer = BytesIO(animation_bytes)

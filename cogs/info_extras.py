@@ -312,7 +312,10 @@ async def info_extras(server_config: Dict[str, Any]) -> Extras:
     facts_task = asyncio.ensure_future(get_container_facts(name))
     players = await player_list(server_config)
     try:
-        facts = await asyncio.wait_for(asyncio.shield(facts_task), timeout=BUDGET_SECONDS)
+        # What is LEFT of the budget: a game query that used it all left
+        # nothing, and a fresh 2.5 s here made the display take 5 s
+        facts = await asyncio.wait_for(asyncio.shield(facts_task),
+                                       timeout=max(0.1, deadline - loop.time()))
     except asyncio.TimeoutError:
         facts = None
     update = await image_update(facts, deadline - loop.time()) if details else None

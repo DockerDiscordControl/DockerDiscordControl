@@ -95,7 +95,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the status loop already makes, so it costs nothing. The help's legend explains the ⚠️, and the
   ℹ️ button is no longer described as "if configured".
 
-### 🐛 The mech: its overview picture, and its release gift
+### 🐛 The mech's picture and gift, the update notice
 
 - The mech in the channel overview kept the picture it was posted with: out of power, it went on
   walking there while its details said OFFLINE, and a level-up or a new speed never showed
@@ -104,6 +104,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The release gift is decided at the first start of a version. A mech that still has energy then
   gets nothing for that version; until now a later restart that found it dry handed out the
   three days after all.
+- A control channel that could not be reached when a version's update notice went out gets it at
+  the next start; until now the first channel that had it closed the version for all of them.
 
 ### 🗓️ The task forms, straightened out
 

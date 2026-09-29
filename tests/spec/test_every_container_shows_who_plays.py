@@ -283,8 +283,13 @@ async def test_the_dropdown_puts_the_operators_words_first_too(monkeypatch):
 
     async def _edit(**kwargs):
         shown.update(kwargs)
+    async def _defer(**_kwargs):
+        return None
+    # Deferred first, then the original response is edited (final check before v3.1.0)
     interaction = SimpleNamespace(channel=None, user=SimpleNamespace(id=1, name="op"),
-                                  response=SimpleNamespace(edit_message=_edit, is_done=lambda: False))
+                                  response=SimpleNamespace(edit_message=_edit, defer=_defer,
+                                                           is_done=lambda: False),
+                                  edit_original_response=_edit)
     dropdown = control_ui.ContainerInfoDropdown(
         None, [{"name": "Valheim", "display": "Valheim", "protected": False, "order": 1}])
     dropdown._interaction, dropdown._selected_values = interaction, ["Valheim"]  # as py-cord sets them

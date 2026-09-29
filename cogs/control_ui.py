@@ -1212,6 +1212,16 @@ class ContainerInfoDropdown(discord.ui.Select):
             if isinstance(display_name, list) and len(display_name) > 0:
                 display_name = display_name[0]
 
+            # Acknowledge before the game query, the Docker lookup and the WAN
+            # address: together they can outlast Discord's 3 seconds, and the
+            # answer then failed with "This interaction failed" (final check
+            # before v3.1.0). The ℹ️ button defers the same way.
+            try:
+                await interaction.response.defer()
+            except discord.NotFound:
+                logger.warning(f"Info dropdown interaction for {selected_container} expired before it was answered")
+                return
+
             embed = discord.Embed(title=f"ℹ️ {display_name}", color=discord.Color.blue())
             # The operator's address and text first, then the game server, then
             # Docker - the order of the ℹ️ button (status_info_integration.py);
@@ -1240,7 +1250,7 @@ class ContainerInfoDropdown(discord.ui.Select):
                         inline=False
                     )
 
-                    await interaction.response.edit_message(embed=embed, view=view)
+                    await interaction.edit_original_response(embed=embed, view=view)
                 else:
                     # No password set - only show in control channels
                     if is_control_channel:
@@ -1251,7 +1261,7 @@ class ContainerInfoDropdown(discord.ui.Select):
                                 value=info_config['protected_content'],
                                 inline=False
                             )
-                        await interaction.response.edit_message(embed=embed, view=None)
+                        await interaction.edit_original_response(embed=embed, view=None)
                     else:
                         # In status channels, show info about needing control channel
                         embed.add_field(
@@ -1259,10 +1269,10 @@ class ContainerInfoDropdown(discord.ui.Select):
                             value=_("Protected information is available for this container but can only be accessed in control channels."),
                             inline=False
                         )
-                        await interaction.response.edit_message(embed=embed, view=None)
+                        await interaction.edit_original_response(embed=embed, view=None)
             else:
                 # No protected info at all
-                await interaction.response.edit_message(embed=embed, view=None)
+                await interaction.edit_original_response(embed=embed, view=None)
 
             logger.info(f"Container info shown for {selected_container} to user {interaction.user.name}")
 

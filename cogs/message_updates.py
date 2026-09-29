@@ -711,13 +711,23 @@ class MessageUpdatesMixin:
             # message cannot carry files, so only then is the full message fetched.
             key = getattr(self, '_collapsed_animation_key', None) if animation_file else None
             shown = self.__dict__.setdefault('_shown_animation_keys', {})
+            # A swap that fails (no Read Message History or Attach Files, an upload
+            # refused) falls back to the plain edit: the picture waits, the status and
+            # "last update" do not - they froze on every beat otherwise (final check).
+            swapped = False
             if key is not None and shown.get(message_id) != key:
-                message = await channel.fetch_message(message_id)
-                await message.edit(embed=embed, view=view, file=animation_file, attachments=[])
-                shown[message_id] = key
-                logger.info(f"Overview animation in channel {channel_id} now shows level {key[0]}, "
-                            f"speed {key[1]}{', offline' if key[2] else ''}")
-            else:
+                try:
+                    full_message = await channel.fetch_message(message_id)
+                    await full_message.edit(embed=embed, view=view, file=animation_file, attachments=[])
+                    shown[message_id] = key
+                    swapped = True
+                    logger.info(f"Overview animation in channel {channel_id} now shows level {key[0]}, "
+                                f"speed {key[1]}{', offline' if key[2] else ''}")
+                except discord.NotFound:
+                    raise  # the message is gone: the recovery below recreates it
+                except discord.DiscordException as e:
+                    logger.warning(f"Overview animation in channel {channel_id} not swapped: {e}")
+            if not swapped:
                 await message.edit(embed=embed, view=view)
 
             # Update message update timestamp, but NOT channel activity

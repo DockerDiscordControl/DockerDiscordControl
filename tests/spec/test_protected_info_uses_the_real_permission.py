@@ -44,18 +44,24 @@ def _dropdown(monkeypatch, control):
     dropdown.cog = SimpleNamespace()
     dropdown.containers = ["vrising"]
     dropdown._values = ["vrising"]
-    type(dropdown).values = property(lambda self: self._values)
+    # monkeypatch, not a plain assignment: that stayed on the class for every later test
+    monkeypatch.setattr(type(dropdown), "values", property(lambda self: self._values))
     interaction = MagicMock()
     interaction.channel = SimpleNamespace(id=CHANNEL)
     interaction.user.id = 4711
     interaction.response.edit_message = AsyncMock()
     interaction.response.send_message = AsyncMock()
+    # Since the final check before v3.1.0 the dropdown defers first and edits
+    # the original response (test_the_info_dropdown_answers_in_time.py)
+    interaction.response.defer = AsyncMock()
+    interaction.edit_original_response = AsyncMock()
     return dropdown, interaction
 
 
 def _shown(interaction):
     texts = []
-    for call in interaction.response.edit_message.await_args_list:
+    for call in (interaction.response.edit_message.await_args_list
+                 + interaction.edit_original_response.await_args_list):
         embed = call.kwargs.get("embed")
         if embed is not None:
             texts += [f"{f.name} {f.value}" for f in embed.fields]

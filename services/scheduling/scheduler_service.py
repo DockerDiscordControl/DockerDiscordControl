@@ -67,8 +67,17 @@ def set_bot_instance(bot):
     _bot_instance = bot
 
 def get_bot_instance():
-    """Get the bot instance for system tasks."""
-    return _bot_instance
+    """Get the bot instance for system tasks.
+
+    bot.py registers the bot in donation_message_service only; nothing ever
+    called set_bot_instance here. The player gate's warnings before a
+    scheduled restart or stop asked this function, got None and were never
+    posted ("No bot to post the warning", operator's host, 2026-09-29).
+    """
+    if _bot_instance is not None:
+        return _bot_instance
+    from services.scheduling.donation_message_service import get_bot_instance as registered_bot
+    return registered_bot()
 
 class SchedulerService:
     """Service for managing and executing scheduled tasks with CPU optimization."""
