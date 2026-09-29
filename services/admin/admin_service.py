@@ -354,15 +354,17 @@ class AdminService:
         Returns:
             True if successful, False otherwise
         """
+        # Bound before the try: the handler below names it, and a config read
+        # that raised first turned the log line into UnboundLocalError, masking
+        # the cause (stage 4 review before v3.1.0, section 10). Via
+        # utils/config_paths.py (DDC_CONFIG_DIR): see _admins_file().
+        admins_file = _admins_file()
         try:
             from services.config.config_service import load_config
             config = load_config()
             if not config:
                 logger.error("Config unavailable, cannot save admin data")
                 return False
-
-            # Via utils/config_paths.py (DDC_CONFIG_DIR): see _admins_file().
-            admins_file = _admins_file()
 
             # Ensure directory exists
             admins_file.parent.mkdir(parents=True, exist_ok=True)
