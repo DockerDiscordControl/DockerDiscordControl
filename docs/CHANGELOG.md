@@ -218,6 +218,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The web panel's action log listed a Start, Stop or Restart pressed in Discord as done before it
   ran, even when it failed. It is recorded after the fact now, as done, failed (_FAILED) or broken
   off (_ERROR).
+- A scheduled task whose entry in tasks.json could not be read (after a hand edit or from another
+  version) was deleted for good by the next save of any task. It is kept in the file now, logged
+  as unreadable, and not run; a tasks.json that is no list is not overwritten at all.
 
 ### 🐛 The mech's picture and gift, the update notice
 

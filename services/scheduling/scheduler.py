@@ -333,15 +333,24 @@ _failed_cleanup_ids: frozenset = frozenset()
 _last_load_failed: bool = False
 
 
+# Entries of tasks.json that ScheduledTask.from_dict could not build, as they
+# stand in the file. They are not scheduled, but every save writes them back:
+# skipped and forgotten, the next save of anything deleted them for good, with
+# no backup (stage 4 review before v3.1.0, section 26 - the harm review E5
+# forbade for tasks that fail is_valid()).
+_unreadable_entries: List[Any] = []
+
+
 @_with_tasks_lock
 def load_tasks() -> List[ScheduledTask]:
     """Load all scheduled tasks from storage"""
-    global _last_load_failed
+    global _last_load_failed, _unreadable_entries
     # Maintain task persistence across restarts
     tasks = []
 
     # Always ensure task file exists
     if not TASKS_FILE_PATH.exists():
+        _unreadable_entries = []  # nothing on disk any more to keep
         logger.debug("Tasks file %s does not exist, creating empty file", TASKS_FILE_PATH)
         # Create empty tasks file
         try:
@@ -357,8 +366,13 @@ def load_tasks() -> List[ScheduledTask]:
     # eXecute task loading with error handling
     try:
         data = json.loads(TASKS_FILE_PATH.read_text(encoding="utf-8") or "[]")
+        if not isinstance(data, list):
+            # An object's keys would each fail below, and the next save would
+            # write a file holding only the new task.
+            raise ValueError(f"tasks.json holds a {type(data).__name__}, not a list")
 
         # Deserialize each task from stored data
+        unreadable = []
         for task_data in data:
             try:
                 task = ScheduledTask.from_dict(task_data)
@@ -366,8 +380,10 @@ def load_tasks() -> List[ScheduledTask]:
                 logger.debug(f"Loaded task: {task.task_id}")
             except (ValueError, TypeError, KeyError, AttributeError) as e:
                 # Data errors (invalid task data structure, missing fields, type mismatches)
-                logger.error(f"Data error creating ScheduledTask from data: {e}", exc_info=True)
-                continue
+                logger.error(f"Task entry in {TASKS_FILE_PATH} cannot be read ({e}) - it is kept "
+                             f"in the file but not scheduled: {str(task_data)[:200]}")
+                unreadable.append(task_data)
+        _unreadable_entries = unreadable
 
         # Display successful loading information only on debug level to reduce log spam
         logger.debug(f"Loaded {len(tasks)} scheduled tasks")
@@ -469,6 +485,7 @@ def save_tasks(tasks: List[ScheduledTask]) -> bool:
     # Sort tasks by container and action to keep file content more stable
     # This improves diff-based version control and makes visual inspection easier
     tasks_data.sort(key=lambda t: (t.get('container', ''), t.get('action', '')))
+    tasks_data.extend(_unreadable_entries)  # kept as they stand - see _unreadable_entries
 
     success = _save_raw_tasks_to_file(tasks_data)
 
