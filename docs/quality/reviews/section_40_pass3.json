@@ -1,0 +1,30 @@
+{
+  "section": "40",
+  "verdicts": [
+    {"name": "cogs/message_updates.py:34 in_batches", "verdict": "checked"},
+    {"name": "cogs/message_updates.py:39 mech_change", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/message_updates.py:58 MessageUpdatesMixin", "verdict": "checked"},
+    {"name": "cogs/message_updates.py:63 MessageUpdatesMixin.edit_due_messages", "verdict": "finding", "finding": "F2"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/message_updates.py",
+      "line": 51,
+      "trigger": "mech_change(current_glvl=5, current_power=<anything>, last_glvl=0) for a channel that has no prior recorded level (last_glvl_per_channel has no entry for it yet, e.g. a freshly tracked channel, or every channel right after a mech reset that zeroes the per-channel map described under Z7/mech_reset_service.py) -> `abs(current_glvl - last_glvl) >= 1` (line 51-52) is true and returns immediately with glvl_changed=True, current_glvl. The `if last_glvl == 0: # first cycle for this channel: just remember` branch two lines later (line 53-54) is meant to catch exactly this case but can only ever be reached when current_glvl is ALSO 0, because the abs-check above already returns first whenever current_glvl != 0. The caller (_auto_update_ss_messages, lines 461-489) treats glvl_changed=True as a real level change and, once the per-channel rate limiter allows it, deletes and reposts that channel's /ss overview message (new message id, moved to the bottom of the channel) even though nothing actually changed from the donor's point of view - it is only the first time this channel's level was observed.",
+      "suggestion": "Check `last_glvl == 0` before the `abs(current_glvl - last_glvl) >= 1` comparison (mirroring the existing special case for `current_glvl is None`), so a channel with no prior state is always just remembered on the first cycle regardless of what the current level is.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "cogs/message_updates.py",
+      "line": 298,
+      "trigger": "_update_overview_message (called from the tasks built in edit_due_messages) raises an exception type that is outside its own except tuple at line 759 (discord.errors.DiscordException, RuntimeError, ValueError, OSError) - e.g. a KeyError or AttributeError from malformed server/config data. asyncio.gather(..., return_exceptions=True) (line 261) turns that into an Exception object in batch_results; the loop at lines 263-272 only increments error_count for it. Nothing logs which channel/message failed or what the exception was - only the aggregate line at 298 ('... Errors: {error_count} ...') and the generic warning at line 301 ('Encountered N errors during batched processing'). A recurring per-cycle failure for one specific channel is therefore visible only as a repeating count, never diagnosable from the logs.",
+      "suggestion": "When iterating batch_results, log each Exception individually (with the channel_id/message_id it belongs to and str(exception)) instead of only counting it.",
+      "severity": "low",
+      "certainty": "sure"
+    }
+  ],
+  "notes": "Scope was the 4 names in PLAN.txt; findings above sit in the functions they call (mech_change is a standalone helper, and the aggregate-logging gap is inside edit_due_messages's own batch-result loop). MessageUpdatesMixin as a class has no logic of its own beyond its docstring; it depends on many attributes/services defined on DockerControlCog itself (channel_server_message_ids, last_message_update_time, last_channel_activity, last_glvl_per_channel, mech_state_manager, cleanup_service, _get_channel_lock, _create_overview_embed_collapsed, _create_admin_overview_embed, _persist_tracked_message_ids, _ensure_status_cache_fresh, etc.) that are not in source/ - I could not verify those, so anything that depends on their exact behaviour (e.g. whether _create_overview_embed_collapsed sets self._collapsed_animation_key synchronously and from data shared by all channels in a cycle, and whether a mech reset actually zeroes last_glvl_per_channel) is noted but not asserted as a finding. The animation-swap logic added 2026-09-29 (lines 707-731) reads self._collapsed_animation_key once, synchronously, right after the awaited call that presumably sets it and before any further await, so within a single task there is no interleaving hazard from the concurrent batches in edit_due_messages; I could not confirm the setter's own code, so this is inspection, not proof. Outside the 4 planned names I also checked _refresh_cache_for_cycle, _auto_update_ss_messages, _edit_only_ss_messages, _recover_deleted_overview and _update_overview_message (all reachable from edit_due_messages) and found no further findings meeting the trigger bar; the narrow except-tuples throughout match the documented house style from the Z8 sweep (SPEC.md) rather than looking like an oversight."
+}

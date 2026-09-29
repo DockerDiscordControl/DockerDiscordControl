@@ -1,0 +1,37 @@
+{
+  "section": "42",
+  "verdicts": [
+    {"name": "services/automation/image_updates.py:47 ImageRef", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:53 parse_image_reference", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:85 local_digests", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:96 read_running_image", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:115 update_available", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:126 remote_digest", "verdict": "finding", "finding": "F1"},
+    {"name": "services/automation/image_updates.py:174 cached_remote_digest", "verdict": "finding", "finding": "F1"},
+    {"name": "services/automation/image_updates.py:201 ImageUpdateChecker", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:207 ImageUpdateChecker.observe", "verdict": "finding", "finding": "F2"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/automation/image_updates.py",
+      "line": 148,
+      "trigger": "The token endpoint named in the registry's Bearer challenge answers 200 with a JSON body that is not an object (e.g. `null`, `[]`, a string). `data.get(...)` at :148 raises AttributeError, which the `except (aiohttp.ClientError, asyncio.TimeoutError, ValueError)` at :156 does not catch. In `cached_remote_digest` the `_ask()` task then fails, `_REMOTE_CACHE[ref]` is never written, and `await asyncio.wait_for(asyncio.shield(task))` at :196-197 re-raises the exception (only TimeoutError is caught) - although the docstring at :178 promises 'Never raises'. Whoever opens the info display gets the exception instead of 'unknown', and because nothing was cached, every further opening asks that registry again immediately instead of after UNKNOWN_RETRY_SECONDS. The same holds for any other non-ClientError exception raised inside remote_digest.",
+      "suggestion": "In remote_digest, treat a non-dict token answer as 'not known' (e.g. `if not isinstance(data, dict): return None`) and/or widen the except so the promise holds; in cached_remote_digest, catch exceptions from the awaited task (or in `_ask`) and record `(time.monotonic(), None)` in the cache so the retry backoff applies and the 'Never raises' docstring is true.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Sure that the exception propagates out of cached_remote_digest; not visible whether the info-display caller catches it, and I know of no public registry whose token endpoint returns a non-object body with 200 - so the trigger is real but rare."
+    },
+    {
+      "id": "F2",
+      "file": "services/automation/image_updates.py",
+      "line": 205,
+      "trigger": "An image update has been reported (`_reported[container] = remote`) and the local image has not been updated yet. DDC restarts (rebuild, crash, host reboot). `_reported` lives only in memory, so on the next check `observe` sees `self._reported.get(container) != remote` and emits the same 'A newer image ... is in the registry' event again. The class docstring at :203 promises 'once per new remote digest'; in practice it is once per new remote digest per process lifetime.",
+      "suggestion": "Either persist the reported digests (e.g. alongside the other automation state) or state in the docstring/notice that the reminder repeats after a restart, if that is wanted.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Cannot see whether the surrounding container_watch machinery persists watch state or whether a repeat after restart is intended as a reminder."
+    }
+  ],
+  "notes": "parse_image_reference: a container created from a SHORT image id (12 hex chars, `docker run abc123def456`) is not recognised as an id (only the 64-char form is, :66) and is normalised to registry-1.docker.io/library/abc123def456:latest; the registry is asked, gets 404 -> None -> 'unknown', re-asked every 30 min via the cache. Harmless verdict, wasted request; a 12-hex-char string is also a legal Docker Hub repository name, so it cannot be told apart - no finding. | local_digests / update_available: correctness rests on Docker recording in RepoDigests the SAME digest the registry returns for HEAD with the index Accept types (the manifest-list digest). If an installation's RepoDigests holds a platform-specific manifest digest instead (e.g. certain pulls with --platform, images imported via docker load from a save), the compare says 'update' permanently and observe reports it once and never re-arms. That depends on Docker's behaviour, not on this code - recorded, not a finding. | cached_remote_digest: a locally built image (no RepoDigests) yields local=set(), so the verdict is always None whatever the remote says; whether the caller still asks the registry (every 30 min per UNKNOWN_RETRY_SECONDS) for a name that does not exist on Docker Hub depends on the caller, which is not in this section. | cached_remote_digest: when a caller times out (:197) and the background task later fails with an exception, nobody retrieves it -> Python logs 'Task exception was never retrieved' at GC; cosmetic. | remote_digest relies on aiohttp keeping the Authorization header across the redirects allowed at :152 (`allow_redirects=True`); if a registry redirects the authenticated HEAD to another host and aiohttp strips the header, the result is None ('unknown'), never a wrong 'update' - safe direction. | read_running_image: exceptions from client.containers.get / client.images.get (container gone between listing and inspection) propagate to the caller, which is not visible here. | The display path (cached, 6 h / 30 min) and the rule path (remote_digest directly, per the comment at :166-169) ask the registry independently; the display may show 'up to date' from cache for up to 6 h after the rule has already announced an update. Inherent to the cache and acknowledged in the comment; not a finding."
+}

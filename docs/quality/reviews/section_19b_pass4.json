@@ -1,0 +1,88 @@
+{
+  "section": "19b",
+  "verdicts": [
+    {"name": "services/infrastructure/game_query_service.py:68 GameQueryRequest", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:80 GameQueryResult", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:93 GameQueryResult.disabled", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:97 GameQueryResult.no_query", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:103 PlayerList", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:138 a2s_version", "verdict": "finding", "finding": "F5"},
+    {"name": "services/infrastructure/game_query_service.py:154 GameQueryService", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:284 GameQueryService.get_player_list", "verdict": "finding", "finding": "F2"},
+    {"name": "services/infrastructure/game_query_service.py:316 GameQueryService.get_game_query", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:478 GameQueryService.get_bulk_game_queries", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:515 GameQueryService.detect_support", "verdict": "finding", "finding": "F4"},
+    {"name": "services/infrastructure/game_query_service.py:539 GameQueryService.resolve_query_port", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:563 GameQueryService.resolve_query_candidates", "verdict": "finding", "finding": "F1"},
+    {"name": "services/infrastructure/game_query_service.py:608 GameQueryService.resolve_query_target", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:678 GameQueryService.clear_cache", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:687 get_game_query_service", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:695 reset_game_query_service", "verdict": "checked"},
+    {"name": "services/infrastructure/container_facts_service.py:45 ContainerFacts", "verdict": "checked"},
+    {"name": "services/infrastructure/container_facts_service.py:80 version_of", "verdict": "finding", "finding": "F3"},
+    {"name": "services/infrastructure/container_facts_service.py:108 facts_from_attrs", "verdict": "checked"},
+    {"name": "services/infrastructure/container_facts_service.py:138 connect_port", "verdict": "checked"},
+    {"name": "services/infrastructure/container_facts_service.py:173 get_container_facts", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/infrastructure/game_query_service.py",
+      "line": 598,
+      "trigger": "Autodiscovery pairs the CONTAINER's bridge IP (_container_ip, line 598) with the HOST ports (_candidate_ports returns HostPort values, line 599/647). Container published as `-p 27016:27015/udp` (or `-p 2457:2456/udp`, any mapping where host port != container port): the query goes to 172.17.0.x:27016, where nothing listens - the server listens on 27015 at that address. Every status cycle the container yields 'timeout' on every candidate port (a full 5 s each, in sequence, e.g. 3 ports = 15 s per cycle), the failure is cached for 10 s and then repeated. No player count ever appears, and nothing tells the user why; a manual host/port override is the only way out and the panel does not say so. Both docstrings state their half ('the container's own Docker IP', 'published host ports') but nothing checks that the two halves match. connect_port in container_facts_service.py:151 does the container->host mapping correctly for the display, so the two files disagree about which port belongs to which address.",
+      "suggestion": "When the target is the container IP, use the container-side port from the spec key (the part before '/udp') instead of HostPort; alternatively target the host (gateway or configured host) when using host ports. Log at INFO once when every candidate of a container times out so the operator can see the mismatch.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "services/infrastructure/game_query_service.py",
+      "line": 231,
+      "trigger": "_query_players for 'source' runs get_info() and then get_players() inside ONE asyncio.wait_for whose budget equals the per-call timeout (get_player_list line 299-303). A Source server that answers A2S_INFO but not A2S_PLAYER (drops or ignores it; the PlayerList docstring itself anticipates games that count players without naming them, and only handles the empty-name variant): get_players() waits its full timeout, the outer wait_for fires first -> 'timeout' -> the next candidate port is tried and times out too. The info display reports 'timeout'/'unreachable' after n_ports x 5 s, although count, max, server name, game and version were already in hand - while the status line next to it shows a count from get_game_query (which asks INFO only). The same shape at line 266 for palworld: a failing get_players() discards a status that was received.",
+      "suggestion": "Wrap the get_players()/name-fetch call in its own try/except (and its own short timeout) and on failure return the PlayerList with the info data, names=[] and names_given=False, instead of failing the whole port and moving to the next one.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The code path is certain; I could not verify from here which of the listed games (Rust, V Rising, Enshrouded ...) actually refuse A2S_PLAYER on a live server."
+    },
+    {
+      "id": "F3",
+      "file": "services/infrastructure/container_facts_service.py",
+      "line": 90,
+      "trigger": "Config.Image is a digest reference (`docker run nginx@sha256:3f8a...`, or `redis:7-alpine@sha256:...`, as pinned compose files and some Unraid templates produce). No usable label -> the tag branch: the last path segment `nginx@sha256:3f8a...` contains ':', rsplit(':', 1)[1] yields the 64-hex digest, which contains digits, so the info display shows the digest as the app's 'version' instead of the image date.",
+      "suggestion": "Strip an '@digest' suffix before the tag extraction (reference.split('@', 1)[0]), or take the tag from the already-imported parse_image_reference result used in facts_from_attrs (line 119) instead of re-parsing by hand.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F4",
+      "file": "services/infrastructure/game_query_service.py",
+      "line": 535,
+      "trigger": "detect_support docstring: 'Returns (supported, protocol, port_or_None)'. A Valheim container that answers on 2457: the code returns (True, 'source', None) - the port is never returned on success, in any branch. _fetch knows the winning port (it calls _promote_target_port with it) but only under the probe's name '__probe__:<name>' (line 530), so the learned port is not carried over into the real container's target entry either. The caller cannot store or show the detected port; the first real status cycles start again from the heuristic order and pay the 5 s timeout on 2456 that _promote_target_port's docstring describes, until the real name learns it.",
+      "suggestion": "Have _fetch expose the port that answered (e.g. on GameQueryResult) and return it as the third element; or promote under the real container name after a successful probe.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The callers of detect_support are outside this section; if none reads the third element the cost is only the extra timeout after detection, not a wrong display."
+    },
+    {
+      "id": "F5",
+      "file": "services/infrastructure/game_query_service.py",
+      "line": 134,
+      "trigger": "_PLACEHOLDER_VERSION = ^[01](\\.[01])*$ matches every version made only of the digits 0 and 1, not just the measured placeholders '1.0.0.0' and '0.0.0.1'. A Source server without a keyword version whose real version is '1.0', '1.1' or '1.1.0': a2s_version returns None and the info display shows no version, although the server said one.",
+      "suggestion": "Match the two measured placeholders literally, or require at least three components before treating a 0/1-only string as a placeholder.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether any supported game ships a real version of that shape; it is a rare shape, so this may be an acceptable trade-off rather than a defect."
+    },
+    {
+      "id": "F6",
+      "file": "services/infrastructure/container_facts_service.py",
+      "line": 86,
+      "trigger": "An image built FROM ubuntu that sets its own `org.opencontainers.image.version=3.2.1` (a common Dockerfile LABEL) but does not override `org.opencontainers.image.ref.name`, which stays 'ubuntu' from the base: `inherited` is True and the real version label is skipped; with no label-schema/version label and tag 'latest' the display falls back to the image date. The app's version was on the image and is dropped.",
+      "suggestion": "Treat the version as inherited only when it ALSO looks like the base's own version (e.g. matches the ubuntu release pattern \\d\\d\\.\\d\\d, or equals the base image's version label read from the image inspect), not on ref.name alone.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The docstring records that this rule was measured against the operator's images on 2026-09-28; I cannot tell whether those measurements included an ubuntu-based image with its own version label, or whether losing such a version (to a date, not a wrong number) is accepted."
+    }
+  ],
+  "notes": "Things without a stateable trigger or outside view: (1) resolve_query_port (539) and resolve_query_candidates (563) resolve the same thing twice; the former ignores configured_host and bypasses the _target_cache, so any caller still on it re-inspects Docker every cycle (finding P1 would be back for that path) - callers not visible. (2) resolve_query_candidates caches only a positive result; a stopped or host-network container (no IPAddress) is inspected over Docker on every cycle if the caller asks for stopped containers - not visible whether it does. (3) clear_cache (678) clears the result cache only, not _target_cache or _in_flight; a recreated container with new ports is corrected after one failed query anyway (_invalidate_target), so the impact is one cycle. (4) a2s_version ignores the `_game` in _KEYWORD_VERSION: any Source keyword starting with 'g=' is read as a version whatever the game; no concrete offender known. (5) PlayerList docstring says `password` is None when the game does not say, but the Source branch (240) yields False when `visibility` is absent; Source always sends the byte, so no practical trigger. (6) facts_from_attrs: running_digests depends on local_digests(image_attrs or {}, ref) behaving sanely with {} when the image inspect failed - that function is outside this section. (7) get_container_facts / _read log failures only at DEBUG; the info display silently opens without facts - nothing irreversible, so not Z8, but the operator has no hint why the section is empty. (8) The in-flight de-duplication and result cache are keyed by container name only; a protocol/host/port change in the config can be served a stale result for up to 10 s - acceptable TTL. (9) Nothing in this section touches money, permissions, container actions or file writes; Z1-Z10 are not at stake here."
+}

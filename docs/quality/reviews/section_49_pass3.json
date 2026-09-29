@@ -1,0 +1,51 @@
+{
+  "section": "49",
+  "verdicts": [
+    {"name": "services/scheduling/scheduler_service.py:64 set_bot_instance", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:69 get_bot_instance", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:82 SchedulerService", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:116 SchedulerService.start", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:166 SchedulerService.stop", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:529 SchedulerService._execute_task_batch.execute_single_task", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:578 SchedulerService.get_service_stats", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:598 start_scheduler_service", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:607 stop_scheduler_service", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:616 get_scheduler_service", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:625 get_scheduler_stats", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:53 normalize_options", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:93 window_seconds", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:100 occupied", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:105 acting_at", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:110 should_act", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:120 warning_due", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:140 players_online", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:156 target_containers", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:168 counts_for", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:172 query_problem", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:202 query_problems", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:214 describe", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:227 warning_text", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:241 warning_channel_ids", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:251 post_warning", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:279 gated_verb", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:285 hold_until_empty", "verdict": "checked"},
+    {"name": "cogs/task_player_options.py:67 WaitForEmptySelect", "verdict": "checked"},
+    {"name": "cogs/task_player_options.py:78 WaitForEmptySelect.callback", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/task_player_options.py:85 WarnSelect", "verdict": "checked"},
+    {"name": "cogs/task_player_options.py:96 WarnSelect.callback", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/task_player_options.py:118 TaskPlayerOptionsView", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/task_player_options.py",
+      "line": 108,
+      "trigger": "A user picks a non-zero option in WaitForEmptySelect (or changes WarnSelect while wait_for_empty is already true from a previous save) -> `_answer` calls `_save(task_id, change)` with no try/except around it. Inside `_save`, `task.options = options` and `update_task(...)` (the actual persistence) already ran and succeeded *before* `query_problems(...)` is called a few lines later (only when `options.get('wait_for_empty')`). `query_problems` -> `query_problem` imports and calls `get_server_config_service().get_server_by_docker_name()` and `get_game_query_support_service().is_supported()` (both outside this review section, so their real exception behaviour cannot be confirmed here) guarded only by narrow `except (ImportError, RuntimeError, AttributeError[, OSError])` clauses. If either call raises any other exception type - the SPEC itself documents elsewhere in this codebase (scheduler_service.py:538) that DDC's own base exception derives directly from `Exception`, not `RuntimeError`, precisely so it slips past such narrow catches - the exception propagates out of `_save`, out of `_answer`, and out of the discord.ui.Select callback uncaught. The option change was already saved to disk, but the interaction never gets `interaction.response.send_message(...)`, so the operator sees Discord's generic 'This interaction failed' instead of the intended confirmation/warning text, and has no way to tell from the UI that the save actually succeeded.",
+      "suggestion": "Wrap the `_save(...)` call (or at least the `query_problems` step) in a try/except that still sends a best-effort confirmation message when the post-save diagnostic query fails, e.g. catch broadly around the query_problems step only and fall back to the plain 'Saved' text without the player-count warning, so a failure in the read-only diagnostic never swallows the response to an already-successful write.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether this actually fires depends on exception types raised by get_server_config_service() and get_game_query_support_service(), which are not in this review section's material; I cannot confirm they only ever raise ImportError/RuntimeError/AttributeError/OSError. Also cannot confirm how py-cord's default View error handling behaves here (whether it ever still shows a message to the user) since ddc_ui.PrivateView is out of scope."
+    }
+  ],
+  "notes": "Two smaller observations that did not meet the trigger bar for a finding: (1) player_gate.py:135, the last line of warning_due(), does `options.get(\"wait_for_empty\")` without the `(options or {})` guard used everywhere else in the same function (e.g. line 129); harmless today because every call site in this section (hold_until_empty, scheduler_service._warn_players_if_due/_players_allow) always passes a real dict, but the inconsistency is a latent trap if a future caller passes None. (2) gated_verb() maps action_type \"RECREATE\" to the task verb \"restart\" for player-gating purposes; whether an auto-action of type RECREATE is itself consistent with Z6's 'only start/stop/restart, no remove/prune' guarantee cannot be judged from this section's material since the auto-action executor is not included here. (3) scheduler_service.py relies on `getattr(task, 'options', None)` and `task.options.get(...)` assuming ScheduledTask always exposes an `options` attribute that is either a dict or falsy/None; scheduler.py (where ScheduledTask is defined, per SPEC B11) is outside this section, so I could not confirm the field's default, though the code degrades safely (gated=False) if it is None or missing. No Z1/Z4/Z5/Z6/Z9 violations found in this section; the player-gate scheduling math (should_act/acting_at/warning_due/window_seconds) and its use for both the missed-run grace window and the wait-for-empty flow were traced carefully and are internally consistent."
+}

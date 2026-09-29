@@ -1,0 +1,57 @@
+{
+  "section": "02",
+  "verdicts": [
+    {"name": "cogs/control_ui.py:246 ActionButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:307 ActionButton.callback", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:415 ActionButton.callback.run_docker_action", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/control_ui.py:490 ActionButton.callback.run_docker_action.update_all_views", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/control_ui.py:627 ControlView", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:754 InfoButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:771 InfoButton.callback", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/control_ui.py:913 TaskDeleteButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:928 TaskDeleteButton.callback", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:999 InfoDropdownButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1014 InfoDropdownButton.callback", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1110 ContainerInfoSelectView", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1120 ContainerInfoDropdown", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1149 ContainerInfoDropdown.callback", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/control_ui.py:1293 PasswordProtectedView", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1305 PasswordButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1320 PasswordButton.callback", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1350 HelpButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1365 HelpButton.callback", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/control_ui.py",
+      "line": 502,
+      "trigger": "In update_all_views(), when is_admin_message is True: `self.server_config['_is_admin_control'] = True` is set at line 502, then `admin_panel_embed(...)` (511), `running_state_for(...)` (514) and `admin_control_view(...)` (517) all run inside the same try. `self.server_config.pop('_is_admin_control', None)` (524) only runs if none of those calls raised. If any of them raises (discord.errors.DiscordException or RuntimeError is already caught by the except at 525, but so is e.g. a plain call succeeding partway then edit_original_response failing before the pop line is reached) or an exception type not in (DiscordException, RuntimeError) escapes, execution reaches the except at 525 (or propagates further) without ever popping the key, leaving `_is_admin_control: True` permanently set on `self.server_config` - the shared container-config dict this ActionButton instance holds a reference to.",
+      "suggestion": "Wrap the block in try/finally (or move the pop into a finally) so the flag is always removed, regardless of whether admin_panel_embed/running_state_for/admin_control_view/edit_original_response succeed.",
+      "severity": "medium",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F2",
+      "file": "cogs/control_ui.py",
+      "line": 443,
+      "trigger": "After a successful docker_action_service_first() call, run_docker_action deletes `self.cog.pending_actions[self.docker_name]` unconditionally (lines 443-444: `if self.docker_name in self.cog.pending_actions: del ...`) - well before wait_until_the_action_took_effect (462) and the view-redraw (update_all_views, created as a separate task at 574) complete. Elsewhere in the same method the cleanup IS identity-checked (`if self.cog.pending_actions.get(self.docker_name) is pending_entry: del ...` at 404-405 and 432-433, and again in the done-callback at 152-155, whose own comment explains why: 'a newer action may have replaced it'). Once the entry is cleared early at 443-444, a container is no longer 'pending' even though its action has not been confirmed and its panel has not been redrawn yet; a second button press (e.g. from a freshly built /control panel, or another admin panel) during that window is not blocked by refused_while_busy and can start a second run_docker_action for the same docker_name. If the FIRST run_docker_action then hits an exception in its own try (asyncio.CancelledError re-raise aside, the BaseException handler at 583-590, or the CancelledError handler at 579-581) it again deletes `self.cog.pending_actions[self.docker_name]` with no identity check - which could now remove the SECOND action's pending_entry instead of its own.",
+      "suggestion": "Make every deletion of `self.cog.pending_actions[self.docker_name]` in run_docker_action (lines 443-444, 580-581, 589-590) identity-checked against `pending_entry`, the same way lines 404-405 and 432-433 already are, and/or keep the entry until the redraw in update_all_views has actually completed.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see refused_while_busy's exact check (control_helpers.py is not in this section) or how quickly a second panel could realistically be rendered/pressed in that window, so I cannot confirm how often the race is actually reachable in practice - only that the cleanup logic itself is inconsistent within the same function."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/control_ui.py",
+      "line": 835,
+      "trigger": "InfoButton.callback computes `has_control` from `_is_registered_admin(interaction.user.id)` (lines 833-836 and again 877-880), and ContainerInfoDropdown.callback computes `is_control_channel` the same way (1205-1206) via `_is_registered_admin`, none of them scoped to the container being viewed. This differs from ActionButton.callback (line 369: `_admin_may_control(user.id, self.docker_name)`) and TaskDeleteButton.callback (line 970-971: `_admin_may_control_task(interaction.user.id, self.task_id)`), both of which carry an explicit comment ('The admin branch is narrowed to the containers this admin was assigned (review F2)') that InfoButton/ContainerInfoDropdown do not have. Per SPEC.md B2's 2026-09-21 refinement, an admin can be scoped to `admin_containers: [...]`, with no entry meaning every container and an empty list meaning none. With this file's current code, an admin scoped to e.g. only 'valheim' who is not a registered channel-control user can still, for a DIFFERENT container (e.g. 'nginx') in a status channel: (a) get `has_control=True` in InfoButton and thereby reach `ContainerInfoAdminView` (which SPEC.md's own Z5 addendum says attaches TaskManagementButton unconditionally), and (b) see protected info without a password via ContainerInfoDropdown's `is_control_channel` check - for a container outside their assignment.",
+      "suggestion": "If admin_containers scoping is meant to apply to info-editing/protected-content access as well as to start/stop/restart and task deletion, switch these two sites to the container-scoped check (`_admin_may_control(user.id, docker_name)`); if info access is deliberately meant to stay admin-wide (unlike container actions), that should be recorded as a deliberate decision next to B2 the way B12/B13/B14 are, so the next reviewer does not flag it again.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "SPEC.md's B2 refinement text narrows 'this rule and this rule only' but only gives start/stop/restart and per-task deletion as examples ('which actions are allowed stays with the container's own allowed_actions'); it does not say explicitly whether viewing/editing container info and unlocking protected info without a password are 'actions' the same narrowing should cover, so I cannot tell whether the unscoped checks here are an oversight or an intentional difference between 'control' and 'info' admin rights."
+    }
+  ],
+  "notes": "This section is one file, cogs/control_ui.py (lines 1-1415 supplied); all 19 PLAN.txt names were read in full. Several behaviours this file relies on live in files not included in this section and could not be verified: control_helpers.py (_admin_may_control, _admin_may_control_task, refused_while_busy, _channel_has_permission, _get_pending_embed, _is_registered_admin, is_private_panel_message), action_effect.py (wait_until_the_action_took_effect, not_confirmed_embed), group_control.py (admin_panel_embed, admin_control_view, running_state_for, is_group_target), status_info_integration.py (StatusInfoButton, ContainerInfoAdminView - including whether TaskManagementButton's eventual delete_task call is itself container-scoped, which SPEC.md claims but this section cannot confirm), services/scheduling/scheduler.py (delete_task), and the docker_action_service module. Where a finding depends on one of these, I said so in unsure_why rather than guessing. Separately (not filed as a finding, just an observation): ControlView (line 627) only ever gates its action buttons on the `channel_has_control_permission` flag passed in by its caller (lines 667, 699, 712) - it never calls `_admin_may_control` itself, unlike ActionButton.callback's own re-check. Whether a container-scoped admin without channel control ever actually gets offered these buttons therefore depends entirely on what the (unseen) caller passes as `channel_has_control_permission`, which I cannot verify from this file alone."
+}

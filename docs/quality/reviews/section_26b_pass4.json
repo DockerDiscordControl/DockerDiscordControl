@@ -1,0 +1,63 @@
+{
+  "section": "26b",
+  "verdicts": [
+    {"name": "services/scheduling/scheduled_task.py:72 normalize_weekday", "verdict": "finding", "finding": "F4"},
+    {"name": "services/scheduling/scheduled_task.py:112 ScheduledTask", "verdict": "checked"},
+    {"name": "services/scheduling/scheduled_task.py:239 ScheduledTask.is_system_task", "verdict": "checked"},
+    {"name": "services/scheduling/scheduled_task.py:243 ScheduledTask.is_donation_task", "verdict": "checked"},
+    {"name": "services/scheduling/scheduled_task.py:260 ScheduledTask.is_valid", "verdict": "checked"},
+    {"name": "services/scheduling/scheduled_task.py:405 ScheduledTask.to_dict", "verdict": "checked"},
+    {"name": "services/scheduling/scheduled_task.py:450 ScheduledTask.from_dict", "verdict": "checked"},
+    {"name": "services/scheduling/scheduled_task.py:647 ScheduledTask.calculate_next_run", "verdict": "finding", "finding": "F1"},
+    {"name": "services/scheduling/scheduled_task.py:726 ScheduledTask.get_next_run_datetime", "verdict": "checked"},
+    {"name": "services/scheduling/scheduled_task.py:743 ScheduledTask.should_run", "verdict": "checked"},
+    {"name": "services/scheduling/scheduled_task.py:747 ScheduledTask.update_after_execution", "verdict": "finding", "finding": "F2"},
+    {"name": "services/scheduling/scheduled_task.py:778 ScheduledTask._calculate_next_donation_run.get_second_sunday", "verdict": "checked"},
+    {"name": "services/scheduling/task_input.py:77 validate_new_task_input", "verdict": "finding", "finding": "F3"},
+    {"name": "services/scheduling/task_input.py:126 parse_time_string", "verdict": "checked"},
+    {"name": "services/scheduling/task_input.py:184 parse_month_string", "verdict": "checked"},
+    {"name": "services/scheduling/task_input.py:206 parse_weekday_string", "verdict": "finding", "finding": "F4"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/scheduling/scheduled_task.py",
+      "line": 667,
+      "trigger": "A recurring task (daily/weekly/monthly/yearly) that carries an old next_run_ts (loaded from tasks.json or left from the last run) and whose time_str is missing or not parseable as HH:MM (e.g. null, '' or '14:30:00' after a hand edit of tasks.json or an update path that does not re-validate) -> calculate_next_run() returns None at line 667 WITHOUT clearing self.next_run_ts. The same happens for an unknown cycle at line 686. The module's own rule (lines 508-510 for cron, lines 714-719 for 'nothing to compute', and the except at 723) is that every failure clears next_run_ts, because a stale one 'made a broken task read active, next run yesterday'. Here the stale value survives: the panel shows the old next run as if armed, and should_run() (line 745) stays True for a past timestamp. Worse, update_after_execution() (line 759) cannot advance it either, so after one execution the task is immediately due again on the next scheduler tick - a stop/restart task would repeat on every tick until someone notices.",
+      "suggestion": "Set self.next_run_ts = None before the early returns at lines 667 and 686 (or move them under the same 'nothing to compute' exit at 718-719), so the two remaining exits follow the rule the rest of the method already implements. Note the donation system task (no time_str) must keep being handled only by _calculate_next_donation_run.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether a task with an unparseable time_str and a set next_run_ts can reach the scheduler depends on load_tasks() cleanup and the panel's update path, which are outside this section. is_valid() is False for such a task, so the load cleanup may already remove it; the repeat-every-tick consequence also depends on whether the scheduler checks is_valid() before executing."
+    },
+    {
+      "id": "F2",
+      "file": "services/scheduling/scheduled_task.py",
+      "line": 771,
+      "trigger": "update_after_execution() for the donation task calls _calculate_next_donation_run(). (a) config['timezone'] is a misspelt zone (e.g. 'Europe/Berlinn') -> pytz.timezone() raises pytz.UnknownTimeZoneError, which is a KeyError subclass and NOT in the except tuple (ValueError, AttributeError, OSError) at line 808 -> the exception leaves update_after_execution with next_run_ts unchanged (still the run that just happened) and status not reset. (b) load_config() raises OSError, or returns something without .get (AttributeError at line 768) -> the outer except is entered before 'now' and 'tz' are bound -> the fallback at line 814 raises UnboundLocalError (a NameError), which the inner except at 820 does not catch either, so the 'ultimate fallback' at 823 is unreachable for exactly the failures that happen before 'now' exists. In both cases the donation task keeps a past next_run_ts; whether the scheduler then re-runs it on the next tick (should_run() is True for a past timestamp) or drops it depends on the caller's exception handling.",
+      "suggestion": "Resolve the timezone through the same cached _get_timezone() the rest of the module uses (or catch pytz.UnknownTimeZoneError / KeyError), bind 'now'/'tz' with safe defaults before the try, and make the fallback independent of names assigned inside the try block.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "services/scheduling/task_input.py",
+      "line": 36,
+      "trigger": "Discord user creates a one-time task for a date that has already passed (any year 2000..2100, e.g. yesterday, or today at an hour that is over) -> validate_new_task_input() returns (True, ''). ScheduledTask.__init__ then runs calculate_next_run() -> _calculate_once_next_run() returns None (line 535) -> next_run_ts=None while is_active=True and status='pending'. The result is a task that looks pending and active but will never fire; nothing in this section tells the user.",
+      "suggestion": "Reject a one-time date/time that is not in the future in _validate_once_cycle (the caller's timezone is needed for that, or at least a 'next_run_ts is None' check after construction with a clear message).",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The Discord creation code that calls validate_new_task_input and then constructs the task is outside this section; it may already refuse when next_run_ts is None after construction."
+    },
+    {
+      "id": "F4",
+      "file": "services/scheduling/scheduled_task.py",
+      "line": 82,
+      "trigger": "Two mappings for numeric weekdays disagree: parse_weekday_string('1') -> 0 (Monday; '0' invalid, '7' Sunday), normalize_weekday('1') -> 'tuesday' ('0' Monday, '7' Sunday). Within normalize_weekday itself the docstring says '\"7\" is read as Sunday so older stored data stays valid', but that holds only for the string '7': a stored JSON integer 7 (schedule_details.day = 7 or weekday = 7) hits line 82 and returns None -> the weekly task fails _validate_weekly -> is_valid() False. Per the docstring of is_valid the load cleanup deletes on a plain False (validation_errored is not set here), so such a legacy task would be removed silently instead of read as Sunday.",
+      "suggestion": "Handle int 7 like the string '7' in normalize_weekday (index 6), and document or unify the 0-based vs 1-based numeric convention between normalize_weekday and parse_weekday_string so a digit string means the same weekday on both paths.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see whether any stored tasks.json ever contained the weekday as an integer 7, or whether any path hands a digit string from Discord into schedule_details.day; both paths' callers are outside this section."
+    }
+  ],
+  "notes": "Observations without a trigger I can state from this section alone: (1) task_input.py:98-105 - VALID_CYCLES excludes CYCLE_CRON, so the cron branch at 102-105 is unreachable and the 'cron_string ... Added for Cron tasks' parameter promises more than the function delivers; cron tasks can only come from another door. (2) CYCLE_NEXT_WEEK / CYCLE_NEXT_MONTH / CYCLE_CUSTOM are defined but handled nowhere (is_valid, calculate_next_run, VALID_CYCLES); any caller using them gets an invalid task. (3) should_run() ignores is_active; the scheduler must check it (not visible here). (4) from_dict crashes with AttributeError on '\"schedule_details\": null' (data.get(..., {}) returns None), and __init__ line 168 raises on a non-dict 'options' value in tasks.json - a corrupt file would abort loading rather than skip one task. (5) __init__ line 212: the comment says the created_at ISO string is parsed 'in UTC', but a naive string (no offset) is interpreted in the process's local time; to_dict always writes an offset, so this only affects foreign writers, and it is display-only. (6) __init__ line 197: for a weekly task an integer 0-6 in day_val is read as a weekday before the explicit weekday parameter - if a Discord path passes day-of-month for every cycle, day=3 would silently beat weekday=4; the caller is outside this section. (7) The error texts 'Weekday for weekly tasks.' and 'Day for monthly tasks.' (task_input.py:68, 74) are shown to the user and do not say what is wrong. (8) _calculate_yearly_next_run line 625 checks cycle == CYCLE_ONCE but is only called for YEARLY - dead. (9) _calculate_once_next_run calls tz.localize directly instead of _localize(); with a non-pytz tz that is an AttributeError caught only by the outer except in calculate_next_run. (10) Line 236: a stored past _next_run_ts is never recalculated at load, so runs missed while the bot was down fire immediately at startup - a policy question for the scheduler, not visible here. (11) datetime.utcfromtimestamp (lines 696, 731) is deprecated from Python 3.12; works but warns. (12) The donation task takes its timezone from load_config() while every other task uses its own timezone_str (default 'Europe/Berlin' hard-coded in __init__ and from_dict) - two sources that can drift if the operator changes the configured timezone."
+}

@@ -1,0 +1,148 @@
+{
+  "section": "06",
+  "verdicts": [
+    {"name": "cogs/docker_control.py:848 DockerControlCog.control_command", "verdict": "finding", "finding": "F11"},
+    {"name": "cogs/docker_control.py:905 DockerControlCog.cog_unload", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:937 DockerControlCog.update_global_status_cache", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:951 DockerControlCog.get_status_cache", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:971 DockerControlCog._register_persistent_mech_views.PersistentMechDonateView", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:976 DockerControlCog._register_persistent_mech_views.PersistentMechHistoryView", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:982 DockerControlCog._register_persistent_mech_views.PersistentMechSelectionView", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:994 DockerControlCog._register_persistent_mech_views.PersistentMechStoryView", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:1066 setup", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/docker_control.py:1083 setup.check_donation_notifications", "verdict": "finding", "finding": "F9"},
+    {"name": "cogs/background_loops.py:83 status_beat_seconds", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:152 BackgroundLoopsMixin", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:159 BackgroundLoopsMixin.heartbeat_send_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:224 BackgroundLoopsMixin.before_heartbeat_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:232 BackgroundLoopsMixin.status_update_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:456 BackgroundLoopsMixin._check_image_updates.read_local", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:484 BackgroundLoopsMixin.before_status_update_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:490 BackgroundLoopsMixin.start_mech_cache_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:509 BackgroundLoopsMixin.before_start_mech_cache_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:515 BackgroundLoopsMixin.initial_animation_cache_warmup", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:612 BackgroundLoopsMixin.before_initial_animation_cache_warmup", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:620 BackgroundLoopsMixin.inactivity_check_loop", "verdict": "finding", "finding": "F6"},
+    {"name": "cogs/background_loops.py:808 BackgroundLoopsMixin.before_inactivity_check_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:815 BackgroundLoopsMixin.performance_cache_clear_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:848 BackgroundLoopsMixin.before_performance_cache_clear_loop", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:31 DonationView", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/donation_ui.py:80 DonationView.on_timeout", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:99 DonationView.start_auto_delete_timer", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:118 DonationView.broadcast_clicked", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:158 DonationBroadcastModal", "verdict": "finding", "finding": "F10"},
+    {"name": "cogs/donation_ui.py:234 DonationBroadcastModal.callback", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/donation_ui.py:602 AddAdminModal", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:620 AddAdminModal.callback", "verdict": "finding", "finding": "F2"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/donation_ui.py",
+      "line": 553,
+      "trigger": "Donor clears the X in 'Share donation publicly?' (private) and enters an amount, while nothing is booked: either the modal was built with donation_manager_available=False (:307 skips the whole booking block), or process_discord_donation raises RuntimeError/OSError/DiscordException, which :437 catches and then falls through. donation_booked stays False, but the final `else` at :553-557 answers '✅ Donation recorded privately! ... Your donation has been recorded' and the callback ends normally. The Z3 fix (donation_booked) guards only the public-broadcast branches (:481, :541); the private branch never looks at it. Compare: the same states on the public path correctly say '⚠️ Donation could not be recorded'.",
+      "suggestion": "Make the private answer depend on donation_booked as well: `elif not should_share_publicly and donation_booked and amount:` -> 'recorded privately'; otherwise the same '⚠️ Donation could not be recorded' text used at :541 (and for the amountless private case an honest 'thank you, nothing was booked'). Pin with a test like test_z3_z8_donation_broadcast.py for the private path.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "cogs/donation_ui.py",
+      "line": 658,
+      "trigger": "admin_service.add_admin_user(user_id, note) returns False for any reason other than 'already an admin' (e.g. admins.json cannot be written - config/ is mode 700 on the host - or the lock cannot be taken). :658-664 reads every False as '⚠️ This user is already an admin.' and returns. :667 sets success = True unconditionally, so the 'Failed to save admin data' branch at :678-683 is dead code; the message the user gets is wrong and the admin is not added.",
+      "suggestion": "Have add_admin_user return a three-way result (added / already present / save failed) or raise on a save failure, and route the failure to the existing '❌ Failed to save admin data' answer instead of 'already an admin'. Remove the unconditional success = True.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "add_admin_user is not in this section; I cannot see whether a save failure is reported by False (then the wrong message is real) or by an exception (then the broad except at :684 gives a correct generic error and only the dead branch remains)."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/docker_control.py",
+      "line": 1221,
+      "trigger": "A donation notification file from the web panel is waiting on disk when DDC starts (a donation made during the 60-90 s a rebuild takes the bot offline, or while it was down). setup() calls check_donation_notifications.start() before bot.add_cog() and the loop has no before_loop/wait_until_ready, unlike every other loop in this section; its first cycle runs immediately. If the gateway cache is not populated yet, check_and_retrieve_notification() reads and DELETES the file, bot.get_channel() answers None for every channel, sent_count stays 0 and :1187 logs 'reached NONE of the channels ... cannot be sent again'. The thank-you is lost although the panel had reported published_to_discord.",
+      "suggestion": "Give the loop a before_loop that awaits bot.wait_until_ready() (as the other five loops do), or start it after add_cog and only once bot.is_ready(); alternatively do not consume the file when no wanted channel is reachable.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The comment at :1238 claims the bot is already ready when the cog loads. If extension loading really happens after on_ready in every start path (startup_steps not in this section), get_channel works on the first tick and the case does not arise; if the cog is loaded before the gateway is ready, it does."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/donation_ui.py",
+      "line": 67,
+      "trigger": "Two people open the ephemeral donation panel within 15 minutes of each other. DonationView is a timed (890 s) view whose Broadcast button carries the fixed custom_id 'donation_broadcast'. Ephemeral views are stored by py-cord under (None, custom_id), so the second view overwrites the first in the view store: clicks on the first person's panel run the second view's callback (mostly harmless), and when the first view times out and is removed from the store, the entry that now belongs to the second view goes with it - the second person's still-visible Broadcast button then answers 'This interaction failed'.",
+      "suggestion": "Give the button a per-view unique custom_id (e.g. f'donation_broadcast_{interaction.id}' or a uuid) - the view is not persistent, so the fixed id buys nothing - or make the view persistent and registered once via add_view.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The exact store/remove semantics are py-cord internals I cannot check here; the collision on (None, custom_id) is how discord.py-family libraries key ephemeral views, but the version in use (2.6.1 per :1043) may differ in how remove_view handles an overwritten key."
+    },
+    {
+      "id": "F5",
+      "file": "cogs/donation_ui.py",
+      "line": 244,
+      "trigger": "The '⏳ Processing...' original response is sent with delete_after=NOTICE_STAYS_FOR. Every final answer (:559, :597) is an edit of that same message, and py-cord's delete_after deletes the original response after the delay regardless of edits. If booking plus broadcasting to N channels takes longer than NOTICE_STAYS_FOR, edit_original_response at :559 hits a deleted message (NotFound), lands in the broad except at :568, and the retry at :598 fails too: money is in the ledger and the donor gets no answer at all - the situation the code's own comment at :587-591 says must not happen. Even when in time, the confirmation is shown only for the remainder of NOTICE_STAYS_FOR counted from the processing message.",
+      "suggestion": "Send the processing message without delete_after (or defer ephemerally) and apply the notice lifetime to the final answer instead; or send the final result as a fresh followup rather than an edit.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "NOTICE_STAYS_FOR is defined in ddc_ui.py outside this section; if it is generous (minutes) the race does not occur in practice, if it is a few seconds it does whenever Docker/Discord is slow."
+    },
+    {
+      "id": "F6",
+      "file": "cogs/background_loops.py",
+      "line": 686,
+      "trigger": "channel_server_message_ids holds a non-dict (None) for a tracked channel - a state the registration code at docker_control.py:1016 explicitly expects (`tracked = tracked or {}`). Then `.get(channel_id, {}).values()` raises AttributeError, which neither the per-channel except (:800, DiscordException/RuntimeError/OSError) nor the outer except (:804, DiscordException/RuntimeError/ValueError) catches. The cycle aborts at that channel; every channel after it in dict order is never checked for inactivity, and the same happens every 30 s for as long as the entry stays None. The loop keeps running (survives_one_bad_cycle), so nothing but a repeated log line shows it.",
+      "suggestion": "Normalise the lookup: `tracked_ids = set((self.channel_server_message_ids.get(channel_id) or {}).values())`, and add TypeError/AttributeError/KeyError to the per-channel except so one bad channel costs only that channel.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see where channel_server_message_ids is written or restored from disk; if it can never hold None, only the defensive `or {}` at :1016 is misleading and the loop is fine."
+    },
+    {
+      "id": "F7",
+      "file": "cogs/background_loops.py",
+      "line": 713,
+      "trigger": "An inactive tracked channel whose history is empty is regenerated at :717-720 in 'status' mode whenever it lacks 'control' - without the 'neither control nor status permission -> cannot regenerate' guard that the non-empty path applies at :764-767. A channel configured only for, say, donation_broadcasts gets status messages posted into it on the empty-channel path.",
+      "suggestion": "Apply the same permission guard before regenerating an empty channel (skip when neither control nor serverstatus is granted), ideally via one shared helper so the two paths cannot drift again.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "_regenerate_channel is outside this section and may itself refuse a channel without status permission; and it is unclear whether such a channel can enter last_channel_activity at all."
+    },
+    {
+      "id": "F8",
+      "file": "cogs/background_loops.py",
+      "line": 798,
+      "trigger": "The bot loses view/read access to a tracked channel and the newest message there is not one of ours. fetch_channel raises Forbidden every cycle; the handler logs at ERROR and keeps the timer untouched, so the same ERROR line repeats every 30 seconds indefinitely, while NotFound (:795) at least drops the channel.",
+      "suggestion": "Back off on Forbidden like the regeneration failure does at :791-793 (push last_channel_activity forward), or drop the channel from tracking after N consecutive Forbidden answers and log once.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F9",
+      "file": "cogs/docker_control.py",
+      "line": 1113,
+      "trigger": "A donor name entered in the web panel containing markdown, e.g. '[Claim your reward](https://evil.example)' or a line break, is put into the embed and into logger.info at :1105 unescaped. The Discord path was fixed for exactly this (donation_ui.py:254-256: escape_markdown, joined to one line, !r in logs, audit 2026-09-26); the web-panel path renders the masked link in every channel and forges a log line. Two places doing the same thing have drifted.",
+      "suggestion": "Apply discord.utils.escape_markdown(' '.join(donor_name.split())) here as well (or in the notification service so both consumers share it) and log the raw value with !r.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The panel is behind the operator's login, so the input is trusted-ish, and the notification service (not in this section) may already sanitise the name before writing the file."
+    },
+    {
+      "id": "F10",
+      "file": "cogs/donation_ui.py",
+      "line": 225,
+      "trigger": "Bot language set to German (or any non-English), mech below level 11: the amount field's placeholder is the untranslated f-string '💎 Need $X for Level N! (e.g. X)' while every neighbouring string goes through _(); the fallback texts at :227 and :233 are translated, so the user sees English only in the common case.",
+      "suggestion": "Wrap the text in _() with placeholders: _('💎 Need ${amount} for Level {level}! (e.g. {amount})').format(...) and add it to the locale files.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F11",
+      "file": "cogs/docker_control.py",
+      "line": 867,
+      "trigger": "If control_command is ever invoked (it is kept 'for backwards compatibility'): ctx.defer(ephemeral=False) posts a public 'thinking...' placeholder, and every later message is an ephemeral followup; the public placeholder is never edited or deleted and stays in the control channel as a stuck 'is thinking' message (after 15 min Discord shows 'did not respond').",
+      "suggestion": "Either delete the method (nothing in this section calls it and the decorator is commented out) or defer ephemerally / edit the original response with the result.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether any caller outside this section still reaches the method; if none does, this is dead code and only a maintenance hazard."
+    }
+  ],
+  "notes": "Findings F5 also belongs to DonationBroadcastModal.callback and F7/F8 to inactivity_check_loop (one verdict slot each, so they are referenced here). Depends on unseen code, not filed: (1) setup() starts start_mech_cache_loop, initial_animation_cache_warmup and the donation loop and then calls cog._cancel_existing_loops() at :1243 'to ensure clean loop state' - if that helper cancels those three, they never run; it evidently does not in production, but the order invites it. (2) _check_image_updates: only read_local and process_container_events are guarded; `await remote_digest(ref)` at :472 is not, so one unreachable registry aborts the check for all remaining containers and the exception ends in _track_task, which 'catches four types' - whether it is logged depends on that helper. (3) check_donation_notifications consumes (deletes) a notification whose type is not 'donation' without any log line (:1101). (4) inactivity_check_loop compares timeout_minutes <= 0 at :657 before any try; a string value in config raises TypeError that no except in the body catches, so every cycle would abort - assuming config parsing guarantees ints. (5) Amount cleaning at :271 silently drops letters: '1e5' books $15.00, '5O' (letter O) books $5, and the private answer at :553 never echoes the amount booked, so the donor cannot spot it. (6) Share detection at :262 treats any text containing an x as 'share' (e.g. 'nix'). (7) :406 reads new_state.Power (capital) while :400 reads new_state_result.power - if the attribute name is wrong the broad except gives the honest 'was recorded - only the announcement failed' answer, so it stays a note. (8) _broadcast_slot at :482 takes the 5-minute slot before any channel was reached; if all sends fail the donor waits five minutes for a retry. (9) status_beat_seconds' docstring says 'at most that age' (the 60 s render age) but the code uses the channel's update_interval_minutes; with the edits done right after the fetch on the same beat the result is coherent, only the wording overpromises. (10) B1/B2: AddAdminModal.callback performs no permission check of its own; the gate must be in the command that opens the modal, which is outside this section."
+}

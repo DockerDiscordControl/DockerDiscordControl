@@ -1,0 +1,80 @@
+{
+  "section": "04",
+  "verdicts": [
+    {"name": "cogs/channel_lifecycle.py:32 ChannelLifecycleMixin", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/channel_lifecycle.py:413 ChannelLifecycleMixin.send_initial_status", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/channel_lifecycle.py:536 ChannelLifecycleMixin.delete_bot_messages", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:136 DockerControlCog", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/docker_control.py:331 DockerControlCog.config", "verdict": "finding", "finding": "F6"},
+    {"name": "cogs/docker_control.py:349 DockerControlCog.on_ready", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:509 DockerControlCog._setup_background_loops.send_initial_after_delay", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/docker_control.py:557 DockerControlCog.trigger_status_refresh", "verdict": "finding", "finding": "F5"},
+    {"name": "cogs/docker_control.py:636 DockerControlCog.on_message", "verdict": "checked"},
+    {"name": "cogs/loop_safety.py:46 survives_one_bad_cycle", "verdict": "checked"},
+    {"name": "cogs/loop_safety.py:66 survives_one_bad_cycle.wrapper", "verdict": "checked"},
+    {"name": "cogs/loop_safety.py:91 _register_loop_error_handlers.make_handler", "verdict": "checked"},
+    {"name": "cogs/loop_safety.py:92 _register_loop_error_handlers.make_handler.handler", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/channel_lifecycle.py",
+      "line": 525,
+      "trigger": "send_initial_status iterates the configured channels inside one for-loop whose per-channel handlers (lines 521-528) catch only discord.DiscordException, RuntimeError and OSError, and the outer handler (line 530) adds only ValueError. Any other exception raised while one channel is processed - e.g. a hand-edited config entry channel_permissions['123'] = null or 'commands': null (line 457/462: .get on None -> AttributeError), or an AttributeError/TypeError/KeyError out of _create_overview_embed_collapsed / _create_admin_overview_embed, which the senders at lines 277 and 360 do not catch either - leaves the loop: every channel AFTER the failing one gets no initial messages. The finally block (line 533) still sets initial_messages_sent = True and logs 'Success: True' if an earlier channel succeeded. The exception then travels through send_initial_after_delay (docker_control.py:517, catches only DiscordException/RuntimeError/OSError) and _track_task (docker_control.py:458, same plus ValueError) - neither logs it. DDC's own log therefore contains no ERROR for the failure; at most asyncio prints 'Task exception was never retrieved' when the tracker task is garbage-collected. Operator sees blank channels while the log says the initial send succeeded.",
+      "suggestion": "Give the per-channel try in send_initial_status a final `except Exception` (logged at ERROR with exc_info, then `continue`) so one bad channel cannot end the loop for the others, and give send_initial_after_delay (or _track_task) a catch-all that logs through DDC's logger. Report 'Success' per channel, not as a single flag that one early success sets.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "The missing catch-all and the exit from the for-loop are certain from the code. Whether such exceptions actually occur depends on code I cannot see: whether the config service normalizes channel entries, and which exception types the embed builders and _send_message_with_files can raise (e.g. line 340 `message.id` would raise AttributeError if the helper returns None on failure, as the comment at 190-191 suggests it might)."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/channel_lifecycle.py",
+      "line": 504,
+      "trigger": "Restart with a status channel that has post_initial=True and a tracked /donate panel id under the key 'donation'. send_initial_status deletes every tracked key that is not 'overview' or 'admin_overview' as a 'leftover individual server entry from old architecture' - the 'donation' id included - and the following _send_all_server_statuses persists the map without it (line 342). Three other places in the same file deliberately keep that key: line 197-199 ('A /donate panel's id stays: the restart clean-up needs it'), line 334-338 (drops previous tracking 'except a /donate panel's id') and line 52-57. The two clean-up passes drift apart: after the next restart the /donate panel's id is unknown, so whatever the restart clean-up does with it (deleting a >30-day-old panel by id before re-posting, by analogy with the overview) no longer happens - a stale panel stays and a new one is posted on top.",
+      "suggestion": "Make line 504 keep the same set as line 337 (everything in TRACKED_MESSAGE_KINDS, or at least 'donation'), or better: use one helper for 'drop stale tracking but keep the donation id' and call it from both places.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see TRACKED_MESSAGE_KINDS or the 'restart clean-up' that consumes the donation id; if that clean-up runs before send_initial_status and pops the key itself, the deletion here is redundant rather than harmful. The drift between the two passes is certain."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/channel_lifecycle.py",
+      "line": 75,
+      "trigger": "Hot-reload after the operator unticks BOTH 'control' and 'serverstatus' for a channel but leaves the channel entry in channel_permissions (e.g. only donate/help remain - a shape the code knows, see line 163 and 474 'has no control/status permissions'). The channel is still in new_channel_ids, so it is not in `removed`; the switch test compares only wants_control with built_control (False == False for a former status channel), so it is not in `switched`. The hot-reload logs 'no channels added, removed or switched' and the overview built for the old permission stays in the channel and keeps being updated until a restart. After a restart send_initial_status skips the channel (line 474) but the restored tracking still holds the overview id, so it is not cleaned up either.",
+      "suggestion": "Treat 'wants neither control nor serverstatus' as a third mode in the switch detection: a built channel whose config now grants neither should be torn down (added to `removed`), not left alone.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether the periodic updater (message_updates, not in this section) re-checks channel permission before editing the overview is code I cannot see; if it does, the overview merely goes stale instead of staying live. The hot-reload's blind spot itself is certain."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/docker_control.py",
+      "line": 151,
+      "trigger": "Donations enabled (the normal case): is_donations_disabled() returns False, the if-branch is skipped and the except branch does not run, so `self.donations_disabled` is never assigned. Only the disabled case (True) and the error case (False) set it. Any consumer that reads `self.donations_disabled` directly raises AttributeError on the first call in a normal installation. The comment at line 153-154 also promises 'removing donation commands' - the code only sets a flag; nothing here removes a command.",
+      "suggestion": "Set `self.donations_disabled = False` before the try (or assign `self.donations_disabled = is_donations_disabled()` unconditionally), and reword or fulfil the comment.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The consumers of donations_disabled are outside this section; if all of them use getattr(self, 'donations_disabled', False) the defect is latent only."
+    },
+    {
+      "id": "F5",
+      "file": "cogs/docker_control.py",
+      "line": 601,
+      "trigger": "trigger_status_refresh iterates `self.channel_server_message_ids.items()` and awaits _update_overview_message inside the loop. If another coroutine changes the dict's key set during that await - a hot-reload tearing down a channel (channel_lifecycle.py:120 pop) or setting one up (line 265/333 add), a /donate panel being tracked - Python raises RuntimeError('dictionary changed size during iteration') on the next step. It is caught by the catch-all at line 618 and logged, but the remaining channels' overviews are not refreshed for this container action; the operator sees the old state until the next periodic edit.",
+      "suggestion": "Iterate over a snapshot: `for channel_id, server_messages in list(self.channel_server_message_ids.items()):`.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F6",
+      "file": "cogs/docker_control.py",
+      "line": 343,
+      "trigger": "ConfigService raises anything (unreadable/unparseable config.json after a failed save, a service error): the `config` property returns `_initial_config`, the configuration from boot time, and only logs a WARNING per access. Every reader of self.config - on_message here, and per the docstring 'channel_permissions, servers, admin_users' elsewhere - then silently acts on stale data: a channel permission or admin revoked since boot is treated as still granted, one granted since boot is treated as absent, for as long as the fault lasts.",
+      "suggestion": "Do not fall back to a stale snapshot for permission-bearing data: either re-raise (callers already handle failures) or return an empty dict so 'cannot read the permission' means 'no permission', as B14 decided for the scheduler ('a permission that cannot be read is not a permission granted'). If a fallback stays, log at ERROR, once, not WARNING per access.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Which permission checks read self.config versus _channel_has_permission / the config service directly is outside this section; if none of the permission paths use the property, the stale fallback only affects display and inactivity timing."
+    }
+  ],
+  "notes": "Additional observations without a clean user-visible trigger or fully outside what I can see: (1) channel_lifecycle.py:143-147 vs :456-459 - _setup_channel records last_channel_activity for a post_initial=False channel ('adding to tracking only') while send_initial_status just continues; the inactivity loop (unseen) may therefore treat the same channel differently after a hot-reload than after a restart. (2) channel_lifecycle.py:112-113 - _teardown_channel uses the cache-only bot.get_channel; if the channel is not cached the tracking is popped and persisted anyway, so the overview stays in Discord untracked for good; rare after wait_until_ready. (3) channel_lifecycle.py:596-609 - the '_undeleted_messages' retry set lives in memory only; after a transient HTTPException at delete the id is popped from the persisted map, so a restart before the next regeneration loses it and the stranded overview is never retried. (4) docker_control.py:323-325 - the 'cancel loops left running from a previous start' block in __init__ can never find a running loop: each instance gets its own Loop copy via tasks.Loop.__get__; dead code, comment promises more than it does, no user impact. (5) docker_control.py:268-281 - if load_server_order() returns [] because the order file is unparseable (SPEC Z7 says it swallows JSONDecodeError), the default order is saved over the operator's file without an error from this side; since the file was already corrupt nothing recoverable is lost, so not filed. (6) docker_control.py:656 - `timeout_minutes > 0` raises TypeError if inactivity_timeout_minutes is stored as a string; depends on unseen config validation. (7) channel_lifecycle.py:340 - `message.id` after _send_message_with_files: if that helper returns None on failure (the comment at 190-191 says both senders swallow their own failures) this raises AttributeError, which the surrounding except at 354 does not catch - folded into F1's unsure_why. (8) loop_safety.py: _register_loop_error_handlers relies on py-cord's Loop.__get__ copying _error to the per-instance Loop copy; it does in the py-cord versions I know, but the call site of _register_loop_error_handlers is not in this section, so I could not confirm it is applied to the class that owns the loops. (9) Verdict rule allows one finding id per name: ChannelLifecycleMixin also carries F2 (send_initial_status) and DockerControlCog also carries F5/F6; send_initial_after_delay shares F1 because its narrow except is the second of the three filters that let the exception pass unlogged."
+}

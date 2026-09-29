@@ -1,0 +1,69 @@
+{
+  "section": "06",
+  "verdicts": [
+    {"name": "cogs/docker_control.py:848 DockerControlCog.control_command", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:905 DockerControlCog.cog_unload", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:937 DockerControlCog.update_global_status_cache", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:951 DockerControlCog.get_status_cache", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:971 DockerControlCog._register_persistent_mech_views.PersistentMechDonateView", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:976 DockerControlCog._register_persistent_mech_views.PersistentMechHistoryView", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:982 DockerControlCog._register_persistent_mech_views.PersistentMechSelectionView", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:994 DockerControlCog._register_persistent_mech_views.PersistentMechStoryView", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:1066 setup", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:1083 setup.check_donation_notifications", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/background_loops.py:83 status_beat_seconds", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:152 BackgroundLoopsMixin", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:159 BackgroundLoopsMixin.heartbeat_send_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:224 BackgroundLoopsMixin.before_heartbeat_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:232 BackgroundLoopsMixin.status_update_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:456 BackgroundLoopsMixin._check_image_updates.read_local", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:484 BackgroundLoopsMixin.before_status_update_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:490 BackgroundLoopsMixin.start_mech_cache_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:509 BackgroundLoopsMixin.before_start_mech_cache_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:515 BackgroundLoopsMixin.initial_animation_cache_warmup", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:612 BackgroundLoopsMixin.before_initial_animation_cache_warmup", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:620 BackgroundLoopsMixin.inactivity_check_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:808 BackgroundLoopsMixin.before_inactivity_check_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:815 BackgroundLoopsMixin.performance_cache_clear_loop", "verdict": "checked"},
+    {"name": "cogs/background_loops.py:848 BackgroundLoopsMixin.before_performance_cache_clear_loop", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:31 DonationView", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:80 DonationView.on_timeout", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:99 DonationView.start_auto_delete_timer", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:118 DonationView.broadcast_clicked", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:158 DonationBroadcastModal", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:234 DonationBroadcastModal.callback", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/donation_ui.py:602 AddAdminModal", "verdict": "checked"},
+    {"name": "cogs/donation_ui.py:620 AddAdminModal.callback", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/docker_control.py",
+      "line": 1178,
+      "trigger": "Two channels are configured with donation_broadcasts=true. One is a live channel the bot can resolve; the other's id is stale (channel deleted, or the bot was removed from that guild), so bot.get_channel() returns None for it. A donation notification from the web panel arrives: the announcement is sent successfully to the live channel (sent_count=1) and silently skipped for the stale one, which only logs at DEBUG ('Channel {id} not found', line 1170). Because sent_count>0, the 'reached NONE of the channels' error branch at line 1178 (sent_count == 0 and wanted_count) never fires, so nothing above DEBUG records that the stale channel never got its thank-you message.",
+      "suggestion": "Track a per-notification 'missed' count (channels that wanted the broadcast but were neither sent to nor legitimately opted out) and log it at ERROR/WARNING whenever it is nonzero, not only when sent_count is exactly 0 - mirroring the failed_count bookkeeping that cogs/donation_ui.py's DonationBroadcastModal.callback (lines 498-532) already keeps and surfaces to the admin for the same kind of per-channel send.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "cogs/donation_ui.py",
+      "line": 582,
+      "trigger": "processing_msg is only assigned (=None) at line 295, inside the same try block that starts at line 248. If any statement between line 248 and line 295 (donor_name/raw_amount/share_preference handling) raises an exception - none does today under normal modal input, but a future edit or an unusual value could - the except block at line 568 runs. It logs the original error (line 578, fine), but then reaches 'if processing_msg:' at line 582, which raises UnboundLocalError because processing_msg was never bound in this call. That second, unhandled exception propagates out of the callback, so interaction.edit_original_response (line 598) is never reached: the donor's ephemeral '⏳ Processing...' message is never replaced and no error is shown - the same UnboundLocalError class the SPEC (Z3) already records as fixed once in this function for `new_state`.",
+      "suggestion": "Initialize processing_msg = None before the try block (next to where donation_booked is initialized), or read it defensively in the except handler the same way donation_booked already is (`locals().get('processing_msg')` at line 591) instead of `if processing_msg:` at line 582.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I could not find any statement between lines 248 and 295 that throws under normal modal input in this file alone - the risk is structural (a scoping trap that already bit this exact function once for a different variable), not a demonstrated live path from the code visible to me."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/donation_ui.py",
+      "line": 544,
+      "trigger": "should_share_publicly is true, the donation is booked with an amount (broadcast_allowed=true) and the person is not rate-limited (too_soon=false), but every configured channel has donation_broadcasts=false (all opted out) or none resolve. sent_count stays 0 and failed_count stays 0 (opted-out channels only bump opted_out_count, not failed_count). The response branch at line 544 ('elif should_share_publicly:') fires regardless of sent_count, so the donor is shown '✅ **Donation broadcast sent!**' followed by '📢 Sent to **0** channels' - a success header over an announcement that reached nobody.",
+      "suggestion": "When sent_count == 0 (and failed_count == 0, i.e. everyone opted out rather than a delivery failure), use a distinct, non-success-worded response instead of falling into the generic 'Donation broadcast sent!' branch.",
+      "severity": "low",
+      "certainty": "sure"
+    }
+  ],
+  "notes": "Both donation_ui.py:234 (DonationBroadcastModal.callback) and docker_control.py:1083 (setup.check_donation_notifications) build and send the same donation-thank-you embed to the same channel_permissions list, but keep diverging failure bookkeeping: the modal path counts failed_count and shows it to the person who donated; the background notification-loop path only escalates to ERROR when literally every wanted channel failed (F1), and the modal path's own 'all opted out' case still claims success (F3). Both stem from the same design (per-channel try/except over channels_config.items()) and would be easy to drift further apart if one is patched without the other. F2 is a lower-confidence, latent-only finding - included because it repeats, in the same function, the exact UnboundLocalError pattern SPEC.md documents as already fixed once for `new_state`, and the codebase clearly treats that pattern as worth guarding against (donation_booked is read via locals().get() specifically for this reason) - just not consistently for processing_msg. I did not have visibility into services/donation/notification_service.py, services/donation/unified_donation_service.py, services/admin/admin_service.py, control_ui.py, or the tasks-loop error-handling decorators (survives_one_bad_cycle, _register_loop_error_handlers) - several exception-safety assumptions in this section rely on those being sound, which I could not verify from the files given."
+}

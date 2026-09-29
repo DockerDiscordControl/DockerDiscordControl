@@ -1,0 +1,77 @@
+{
+  "section": "19b",
+  "verdicts": [
+    {"name": "services/infrastructure/game_query_service.py:68 GameQueryRequest", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:80 GameQueryResult", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:93 GameQueryResult.disabled", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:97 GameQueryResult.no_query", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:103 PlayerList", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:138 a2s_version", "verdict": "finding", "finding": "F2"},
+    {"name": "services/infrastructure/game_query_service.py:154 GameQueryService", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:284 GameQueryService.get_player_list", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:316 GameQueryService.get_game_query", "verdict": "finding", "finding": "F5"},
+    {"name": "services/infrastructure/game_query_service.py:478 GameQueryService.get_bulk_game_queries", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:515 GameQueryService.detect_support", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:539 GameQueryService.resolve_query_port", "verdict": "finding", "finding": "F4"},
+    {"name": "services/infrastructure/game_query_service.py:563 GameQueryService.resolve_query_candidates", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:608 GameQueryService.resolve_query_target", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:678 GameQueryService.clear_cache", "verdict": "finding", "finding": "F3"},
+    {"name": "services/infrastructure/game_query_service.py:687 get_game_query_service", "verdict": "checked"},
+    {"name": "services/infrastructure/game_query_service.py:695 reset_game_query_service", "verdict": "checked"},
+    {"name": "services/infrastructure/container_facts_service.py:45 ContainerFacts", "verdict": "checked"},
+    {"name": "services/infrastructure/container_facts_service.py:80 version_of", "verdict": "finding", "finding": "F1"},
+    {"name": "services/infrastructure/container_facts_service.py:108 facts_from_attrs", "verdict": "checked"},
+    {"name": "services/infrastructure/container_facts_service.py:138 connect_port", "verdict": "checked"},
+    {"name": "services/infrastructure/container_facts_service.py:173 get_container_facts", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/infrastructure/container_facts_service.py",
+      "line": 90,
+      "trigger": "A container created from a digest-pinned image reference with no usable version label, e.g. Config.Image = 'redis@sha256:0123...abcd' (64 hex chars, no tag) -> version_of() computes tag = reference.rsplit(':', 1)[1], which is the tail of the sha256 digest, not a tag; since it contains digits and isn't 'latest', it is returned and displayed as the app's 'version'.",
+      "suggestion": "Skip tag extraction (or explicitly detect and ignore it) whenever the reference contains '@sha256:' - a digest-pinned reference has no tag, so the fallback should stay None (falling through to the image-date fallback the docstring describes) instead of returning a fragment of the digest.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "services/infrastructure/game_query_service.py",
+      "line": 146,
+      "trigger": "A Source/A2S game server other than Valheim or Icarus (so the keyword-based fallback in _KEYWORD_VERSION never fires) reports a genuine version string made only of the digits 0 and 1, e.g. '1.0' or '1.0.1' - both very common release-version spellings. _PLACEHOLDER_VERSION (r'^[01](\\.[01])*$') matches the whole string, so a2s_version() returns None and the real version is hidden as if it were the known Valheim/Icarus placeholder.",
+      "suggestion": "Match the specific measured placeholder strings ('1.0.0.0', '0.0.0.1') rather than any version composed only of 0s and 1s, or require the keyword fallback to have been tried and failed before trusting the regex this broadly.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "services/infrastructure/game_query_service.py",
+      "line": 679,
+      "trigger": "Calling clear_cache() clears only self._cache (the 10s player-count result cache). self._target_cache (resolved host/ports, valid up to DEFAULT_TARGET_CACHE_TTL_SECONDS = 300s) and self._in_flight are left untouched, so a caller expecting a full 'clear the game-query cache' - e.g. right after editing a container's query host/port override - still gets the stale resolved target for up to 5 minutes.",
+      "suggestion": "Either also clear self._target_cache in clear_cache(), or rename/document the method so it is clear it only drops cached query results, not resolved targets.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "No caller of clear_cache() is in this section, so I cannot tell whether anything relies on it also invalidating resolved targets, or whether the two caches are deliberately independent (e.g. one purely a test helper)."
+    },
+    {
+      "id": "F4",
+      "file": "services/infrastructure/game_query_service.py",
+      "line": 540,
+      "trigger": "resolve_query_port() performs a fresh Docker connect + container inspect on every single call, with no cache - unlike its sibling resolve_query_candidates(), whose target cache this same module's comments say was added specifically because per-cycle Docker inspects were 'finding P1'. If any caller still invokes resolve_query_port() on the per-status-cycle path, that exact cost (and, for a dead server, the associated timeout pile-up) reappears through this second, uncached entry point.",
+      "suggestion": "If resolve_query_port is still reachable from a per-cycle path, route it through the same target cache resolve_query_candidates uses (or through resolve_query_candidates itself); otherwise document that it is a rarely-called, one-off lookup (e.g. for populating a config-form suggestion) so the missing cache is clearly not a problem.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "This section contains only game_query_service.py itself, not its callers, so I cannot tell whether resolve_query_port runs once per status cycle (reintroducing P1) or only rarely (harmless)."
+    },
+    {
+      "id": "F5",
+      "file": "services/infrastructure/game_query_service.py",
+      "line": 361,
+      "trigger": "A configured game server that normally answers but occasionally times out under load causes get_game_query() -> _fetch_and_cache() to call _invalidate_target() on that one failed cycle, dropping the resolved (host, ports) entry entirely even though the container and its ports never changed. The next cycle then pays a full Docker connect + inspect to re-resolve the target again, on top of the game query itself - exactly during the period the server is already struggling, which is when the extra latency and Docker API load hurt most.",
+      "suggestion": "Only invalidate the target cache on failures that indicate the resolved target itself is wrong (e.g. connection refused / host unreachable), not on every failure type including a plain timeout, so a transiently slow server does not repeatedly pay for a full re-resolution.",
+      "severity": "low",
+      "certainty": "sure"
+    }
+  ],
+  "notes": "Two smaller observations that did not meet the bar for a finding (no concrete wrong-behaviour trigger, both look intentional): (1) _candidate_ports()'s docstring says it prefers 'TCP for minecraft, UDP otherwise', but the code (preferred_suffix = '/tcp' if protocol in ('minecraft', 'palworld') else '/udp') also treats palworld as TCP - correct given Palworld's REST API is HTTP/TCP, but the comment is stale and could mislead a future reader about which protocols are UDP. (2) _query_protocol and _query_players implement near-identical per-protocol logic twice (especially the satisfactory/palworld int-validation blocks) - currently consistent, but exactly the kind of duplicated logic that can silently drift; worth watching on future protocol changes. Both facts_from_attrs (container_facts_service.py:116) and running_digests rely on services/automation/image_updates.py and get_container_facts/resolve_query_* rely on services/docker_service/*, none of which are in this section - I could not verify local_digests(), parse_image_reference(), build_docker_client() or get_docker_client_async() and took their behaviour on faith from the comments referencing them."
+}

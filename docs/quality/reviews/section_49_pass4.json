@@ -1,0 +1,100 @@
+{
+  "section": "49",
+  "verdicts": [
+    {"name": "services/scheduling/scheduler_service.py:64 set_bot_instance", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:69 get_bot_instance", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:82 SchedulerService", "verdict": "finding", "finding": "F2"},
+    {"name": "services/scheduling/scheduler_service.py:116 SchedulerService.start", "verdict": "finding", "finding": "F3"},
+    {"name": "services/scheduling/scheduler_service.py:166 SchedulerService.stop", "verdict": "finding", "finding": "F3"},
+    {"name": "services/scheduling/scheduler_service.py:529 SchedulerService._execute_task_batch.execute_single_task", "verdict": "finding", "finding": "F1"},
+    {"name": "services/scheduling/scheduler_service.py:578 SchedulerService.get_service_stats", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:598 start_scheduler_service", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:607 stop_scheduler_service", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:616 get_scheduler_service", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler_service.py:625 get_scheduler_stats", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:53 normalize_options", "verdict": "finding", "finding": "F6"},
+    {"name": "services/scheduling/player_gate.py:93 window_seconds", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:100 occupied", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:105 acting_at", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:110 should_act", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:120 warning_due", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:140 players_online", "verdict": "finding", "finding": "F4"},
+    {"name": "services/scheduling/player_gate.py:156 target_containers", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:168 counts_for", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:172 query_problem", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:202 query_problems", "verdict": "finding", "finding": "F5"},
+    {"name": "services/scheduling/player_gate.py:214 describe", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:227 warning_text", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:241 warning_channel_ids", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:251 post_warning", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:279 gated_verb", "verdict": "checked"},
+    {"name": "services/scheduling/player_gate.py:285 hold_until_empty", "verdict": "checked"},
+    {"name": "cogs/task_player_options.py:67 WaitForEmptySelect", "verdict": "checked"},
+    {"name": "cogs/task_player_options.py:78 WaitForEmptySelect.callback", "verdict": "checked"},
+    {"name": "cogs/task_player_options.py:85 WarnSelect", "verdict": "checked"},
+    {"name": "cogs/task_player_options.py:96 WarnSelect.callback", "verdict": "checked"},
+    {"name": "cogs/task_player_options.py:118 TaskPlayerOptionsView", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/scheduling/scheduler_service.py",
+      "line": 446,
+      "trigger": "A recurring task (say a daily restart) is due; execute_task writes last_run_ts (>= next_run_ts) before it acts (comment at :441-445), then a DDC exception such as DockerConnectionError escapes it (comment at :536-542 says every DDC exception does). execute_single_task (:563) only logs the error; next_run_ts is not advanced and nothing undoes last_run_ts. On every following cycle the guard at :446 sees last_run_ts >= next_run_ts and `continue`s with an INFO line 'was already begun ...; not repeating it' - BEFORE the missed-run handling at :466 that would move the task to its next occurrence. The task never fires again and is never rescheduled; the web panel still shows it as active with a next_run in the past. The C6 fix (do not mark the run as executed before it happened) is undone by this guard for exactly the case it was made for.",
+      "suggestion": "Make the 'already begun' guard apply only to occurrences begun by ANOTHER process (e.g. only when last_run_ts was written before this service started, or within a short window), or on an escaped exception in execute_single_task advance/reschedule the task (or reset last_run_ts) so the missed-run path at :466 can reach it. Log the permanent skip at WARNING rather than INFO in any case.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "execute_task is outside this section; I rely on the two comments in this file that say it writes last_run_ts before acting and that DDC exceptions escape it without advancing next_run_ts. If execute_task resets last_run_ts or advances next_run_ts on its failure paths, the trap does not exist."
+    },
+    {
+      "id": "F2",
+      "file": "services/scheduling/scheduler_service.py",
+      "line": 359,
+      "trigger": "The warning is only posted when a check cycle happens to land inside [acting_at - warn*60, acting_at). The cycle period is CHECK_INTERVAL plus the cycle's own execution time, and grows to 120 s (execution > 5 s), 180 s (concurrency cap) or up to 300 s (error path; DDC_SCHEDULER_CHECK_INTERVAL is operator-configurable). A panel task with warn_minutes=1 (normalize_options allows 1-60) at the default 60 s interval has a window shorter than one period, so consecutive checks can straddle it; with a configured interval of 600 s even the Discord options 5/10 min are straddled. When that happens the check at or after acting_at sees the occurrence as due, `_players_allow` says yes, and the restart/stop runs WITHOUT the warning the operator configured - no log line says the warning was skipped, `_warned` is simply never set.",
+      "suggestion": "When an occurrence is about to be queued (after :476) and warn_minutes > 0 but self._warned.get(task_id) != next_run_ts, either post the warning right then ('restarts in 1 minute' / 'now') or at least log at WARNING that the warning window was missed. Alternatively refuse warn_minutes*60 < CHECK_INTERVAL in normalize_options, or clamp the sleep so that a pending warning window is never slept through.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "services/scheduling/scheduler_service.py",
+      "line": 208,
+      "trigger": "Hosted mode: stop() followed by start() before the loop has processed the cancellation (e.g. a restart path or a test that stops and restarts the global service). stop() sets running=False and schedules the cancel of task T1; start() sets running=True and creates T2. When T1's CancelledError arrives, the `finally` in _service_loop_supervised (:208-210) sets self.running=False, self.event_loop=None and self._service_task=None - the flags that now belong to T2. T2 leaves its `while self.running` loop after its first cycle, start() has already returned True, and no scheduled task runs any more; get_service_stats reports running=False, the log only shows 'hosted-task ended'. Standalone mode has the mirror problem: stop() joins the thread for 2 s while the old loop sleeps up to 60-300 s; a following start() sets running=True again, the old loop never exits, and two scheduler loops run side by side (and when one eventually ends, its `finally` at :271-274 clears event_loop/running for the other).",
+      "suggestion": "Make the finally blocks conditional on identity: only clear self.running/_service_task/event_loop if self._service_task is still this task (or the thread is still self.thread); or generate a per-run token in start() and have the loop check `self._run_token == mine` instead of the shared `self.running`. In start(), refuse or wait while a previous task/thread is still alive.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see whether any code path in production calls stop() then start() on the same instance; if only process shutdown calls stop(), the trap is never hit outside tests."
+    },
+    {
+      "id": "F4",
+      "file": "services/scheduling/player_gate.py",
+      "line": 149,
+      "trigger": "A task with wait_for_empty is due while players are online. At that moment the status cache entry for the container has data.success False (Docker query hiccup) or players_online None (game query timed out / server under load) -> players_online() returns None -> occupied() treats it as 0 -> should_act() returns True and the restart/stop runs at once while people are playing. warning_due() with wait_for_empty also returns False on such counts, so no warning goes out either. Nothing is logged: the INFO 'waits: N player(s) online' line is only written when the gate holds. The module docstring says 'unreadable counts as EMPTY' was decided and that the save-time check (query_problem) makes this 'never a surprise' - but query_problem only sees the state at save time; a count that is readable then and fails at 04:00 is exactly a surprise.",
+      "suggestion": "Distinguish 'container not running' (0) from 'unknown' (None) at run time: while waiting, treat None as 'still occupied' until acting_at (the daily restart is still guaranteed by the max wait) and log at WARNING when a count could not be read; or, if the operator wants 'unknown = empty' also at run time, log that decision at WARNING each time it lets an action through.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The module docstring records 'unknown counts as empty' as an operator decision. I cannot tell whether that decision was meant to cover transient failures at run time, or only containers whose count cannot be read at all (which is what the save-time check covers)."
+    },
+    {
+      "id": "F5",
+      "file": "services/scheduling/player_gate.py",
+      "line": 206,
+      "trigger": "A wait_for_empty task or rule is saved for a GROUP whose members cannot be resolved (group service raises, or the group has no members). target_containers() returns [] (WARNING in the log only), query_problems() iterates nothing and returns [] -> the operator sees 'Saved: only when nobody plays' with no notice, although at run time counts_for([]) is {} and occupied({}) is False, so the action runs at the scheduled time regardless of players. The docstring promise 'the operator is told there if not' does not hold for this case.",
+      "suggestion": "In query_problems, report a problem when is_group is True and target_containers() returned no containers ('group could not be resolved / has no members - the player check is skipped'), so the same notice reaches the operator as for a single container.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Depends on whether group_service.members_of() can return an empty or missing group at save time; the group may be validated earlier on the creation path I cannot see."
+    },
+    {
+      "id": "F6",
+      "file": "services/scheduling/player_gate.py",
+      "line": 63,
+      "trigger": "normalize_options receives wait_for_empty as a non-empty string, e.g. {'wait_for_empty': 'false', 'warn_minutes': 0} from a form or query string -> bool('false') is True -> the task is saved with wait_for_empty=True and max_wait_minutes=120; a restart the user switched the wait OFF for now waits up to two hours for an empty server. The two whole-minute fields are parsed with int() and refused on garbage, this one is not.",
+      "suggestion": "Parse the flag like the numbers: accept bool, 0/1, and the strings 'true'/'false'/'on'/'off' explicitly, refuse anything else with a reason.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The web panel and the rules editor are outside this section; if every caller sends a JSON boolean (the Discord path does), the trigger never occurs."
+    }
+  ],
+  "notes": "Two places compute the same warning window: player_gate.warning_due (:133-134) and SchedulerService._warn_players_if_due (:358-359); identical today, will drift if one changes. _warned is set (:363) BEFORE post_warning runs, so a warning that reached 0 channels (bot None, channels not cached) is never retried for that occurrence - logged at WARNING, so acceptable, but worth knowing. The scheduler warning text uses task.container_name (docker name / group name), not the display name the players know. A warning is posted even if execute_task later refuses the action (B14 unreadable config, disallowed action) - a 'restarts in 10 minutes' that does not happen; rare. _warned/_waiting grow with task ids and are never pruned - negligible. In _check_and_execute_tasks a non-dict task.options (hand-edited tasks.json) would raise AttributeError at :355 and the outer except at :514 aborts the whole cycle for ALL tasks - the loop's general per-task-exception weakness, not new to this section. hold_until_empty holds the calling coroutine for up to 720 min; whether the auto-action caller tolerates that I cannot see. _may_edit passes the group name to _admin_may_control for a group task; whether a container-scoped admin (B2 refinement) is refused there but allowed on the creation path I cannot see. In standalone mode _run_service sets the uvloop policy globally after creating the loop with the default policy - harmless but ineffective. warning_text says 'will restart' for RECREATE auto-actions (gated_verb maps it to restart) - acceptable wording."
+}

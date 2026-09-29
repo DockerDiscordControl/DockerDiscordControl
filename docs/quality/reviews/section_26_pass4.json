@@ -1,0 +1,134 @@
+{
+  "section": "26",
+  "verdicts": [
+    {"name": "services/scheduling/scheduler.py:49 initialize_logging", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:95 create_donation_system_task", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:337 load_tasks", "verdict": "finding", "finding": "F1"},
+    {"name": "services/scheduling/scheduler.py:445 save_tasks", "verdict": "finding", "finding": "F4"},
+    {"name": "services/scheduling/scheduler.py:482 find_task_by_id", "verdict": "finding", "finding": "F10"},
+    {"name": "services/scheduling/scheduler.py:534 get_tasks_for_container", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:572 check_task_time_collision", "verdict": "finding", "finding": "F11"},
+    {"name": "services/scheduling/scheduler.py:594 add_task", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:627 update_task", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:677 delete_task", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:698 reschedule_missed_task", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:763 is_upgrade_pause_note", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:768 pause_long_dead_tasks_once", "verdict": "finding", "finding": "F6"},
+    {"name": "services/scheduling/scheduler.py:859 get_tasks_in_timeframe", "verdict": "finding", "finding": "F5"},
+    {"name": "services/scheduling/scheduler.py:879 get_next_week_tasks", "verdict": "checked"},
+    {"name": "services/scheduling/scheduler.py:932 execute_task", "verdict": "finding", "finding": "F7"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/scheduling/scheduler.py",
+      "line": 367,
+      "trigger": "tasks.json is valid JSON but ONE entry makes ScheduledTask.from_dict raise (missing/renamed field after a version change, hand edit, unknown timezone string, a dict instead of a list at top level). The entry is logged and skipped with `continue`, `tasks` is built without it, and at :377 `_last_load_failed = False` is set because the file itself parsed. The E4 guard in save_tasks therefore does not fire, and the NEXT write - add/update/delete from the panel, the cleanup save at :413 if any other task is invalid, the pause pass, or (if task_writeback rebuilds the file from load_tasks, not visible here) the persist after any executed task - writes tasks.json without that entry. The task is gone from disk for good, with no backup, while the panel reports the unrelated operation as done. This is exactly the harm the E5 comment at :395-398 describes for is_valid(), but on the deserialisation step one line earlier.",
+      "suggestion": "Treat a from_dict failure like a failed read: either set `_last_load_failed = True` (or a separate 'partial' flag) when any entry could not be deserialised so save_tasks refuses, or keep the raw dict of the unreadable entry and write it back unchanged. At minimum log at ERROR that the entry WILL be dropped at the next save.",
+      "severity": "high",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F2",
+      "file": "services/scheduling/scheduler.py",
+      "line": 360,
+      "trigger": "tasks.json contains only whitespace/newline (e.g. `echo > tasks.json`, or truncated to a blank line). `read_text() or \"[]\"` does not catch that (a non-empty string is truthy), json.loads raises JSONDecodeError, `_last_load_failed` becomes True and every save is refused with an ERROR until the operator edits the file. `_load_raw_tasks_from_file` (:219-222) strips and treats the same file as an empty list - the two readers of the same file disagree.",
+      "suggestion": "Strip before the truthiness test: `json.loads(TASKS_FILE_PATH.read_text(encoding='utf-8').strip() or '[]')`, or reuse _load_raw_tasks_from_file.",
+      "severity": "low",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F3",
+      "file": "services/scheduling/scheduler.py",
+      "line": 344,
+      "trigger": "The missing-file branch returns the empty `tasks` at :356 before the rest of the function runs: `_last_load_failed` is not cleared, the cache is not replaced, and system tasks are not appended. Concrete: after a failed read the error text at :458 tells the operator to 'fix or remove the file; the next successful read lifts this by itself'. The operator removes the file and adds a task in the panel: add_task -> load_tasks creates '[]' and returns with the flag still True -> save_tasks refuses again with the same error. Only the second attempt works. Also the first load_tasks after a fresh install returns no donation system task.",
+      "suggestion": "After creating the empty file, fall through to the normal path (or explicitly set `_last_load_failed = False`, replace the cache and append the system tasks) instead of returning early.",
+      "severity": "low",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F4",
+      "file": "services/scheduling/scheduler.py",
+      "line": 477,
+      "trigger": "save_tasks fills the cache with ALL tasks passed in, including the donation system task when the caller's list came from load_tasks (:478 has no is_system_task filter); load_tasks fills the cache with user tasks only (:422). get_tasks_in_timeframe (:865-873) and get_tasks_for_container serve from that cache when the file is unmodified. So whether the donation task shows up in 'tasks in timeframe' / get_next_week_tasks depends on whether the last cache fill was a save or a load - same input, different answer.",
+      "suggestion": "Cache the same set in both places (either always user tasks and have the timeframe readers add system tasks, or always include system tasks). One helper that builds the cache dict, called from both.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The consumers of get_tasks_in_timeframe/get_next_week_tasks are outside this section; if only the web UI's 'upcoming' list uses them the effect is a flickering entry, if the scheduler loop uses them the donation task may be picked up or not depending on cache history."
+    },
+    {
+      "id": "F5",
+      "file": "services/scheduling/scheduler.py",
+      "line": 870,
+      "trigger": "A task deactivated in the panel keeps its future next_run_ts (only is_active flips; see :709-710 and :800 which set is_active without clearing next_run_ts). get_tasks_in_timeframe filters only on next_run_ts, so the paused task is returned as 'scheduled within the next week' by get_next_week_tasks.",
+      "suggestion": "Filter `task.is_active` in both the cache branch and the load branch, or document that callers must.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Callers are not visible; if every consumer re-checks is_active this is harmless. If the UI shows the list as 'upcoming runs', a paused task is shown as if it will run."
+    },
+    {
+      "id": "F6",
+      "file": "services/scheduling/scheduler.py",
+      "line": 791,
+      "trigger": "First start after the upgrade with tasks.json unreadable or unparseable at that moment (JSON error, transient IOError on the SMB/Unraid mount). load_tasks returns [] and sets `_last_load_failed`; `paused` stays empty; the marker file is written at :814-816 with paused=[] and the pass is marked done forever. When the file is readable again, the long-dead recurring tasks are still active and overdue, and the normal missed-run handling (reschedule_missed_task) revives them - the exact outcome the pass exists to prevent (:722-727: stop/restart tasks dead for months run again next to their replacements).",
+      "suggestion": "Do not write the marker when `_last_load_failed` is True (or when load_tasks could not read the file): log and return 0 so the pass runs again at the next start, the same way the unreadable-marker branch at :786-789 already does.",
+      "severity": "medium",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F7",
+      "file": "services/scheduling/scheduler.py",
+      "line": 1002,
+      "trigger": "The donation-message branch catches only (ImportError, AttributeError, RuntimeError). Any other exception from execute_donation_message_task - e.g. a Discord HTTP/Forbidden error, ValueError, KeyError, OSError - propagates out of execute_task WITHOUT touching the task: no last_run_success/last_run_error, no update_after_execution, no persist, no user-action log line. The BaseException handler at :1187 belongs to the second try block and does not cover this one. Per the E3 comment at :1195-1199 the scheduler service only logs such an escape, so next_run_ts stays where it was: the task is still due at the next scheduler cycle and is attempted again, every cycle, until the error stops. If the failure came after some channels were already messaged (partial send), the donation message is repeated to those channels each cycle, while the panel shows the previous run's (possibly green) result.",
+      "suggestion": "Give the donation branch the same last-resort handler as the container branch (catch Exception after the typed tuple, write the error on the task, update_after_execution, persist, return False), or move the donation branch inside the outer try so :1187 covers it.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "Which exception types execute_donation_message_task can raise, and what the scheduler loop does with an exception from execute_task, are outside this section. The escape path itself is certain."
+    },
+    {
+      "id": "F8",
+      "file": "services/scheduling/scheduler.py",
+      "line": 1023,
+      "trigger": "A Discord-created task with target_is_group returns from execute_group_task BEFORE the allowed-actions re-check (:1032-1034) and before the 'last_run_ts before the action' persist (:1051-1053). If one container in the group has since lost e.g. 'stop' from its allowed_actions, or its config is unreadable (B14), this function does not refuse; and a DDC restart mid-group-action is not protected here against acting a second time.",
+      "suggestion": "Either run _get_disallowed_action_reason per member container and the before-action persist inside execute_group_task, or perform both here before delegating. Add a test that a group task with one disallowed member skips that member.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "services/scheduling/group_tasks.py is not in this section; it may already do both. Only what this function does before delegating is visible."
+    },
+    {
+      "id": "F9",
+      "file": "services/scheduling/scheduler.py",
+      "line": 1187,
+      "trigger": "`except BaseException` also catches SystemExit, KeyboardInterrupt and GeneratorExit. If one of them arrives while execute_task awaits the docker action, it is logged as 'Error executing task', written on the task as a failed run (last_run_error = '' for SystemExit()), the task is advanced to its next run and False is returned - the shutdown signal is swallowed at this level. CancelledError is handled correctly at :1183 but is the only one.",
+      "suggestion": "Catch `Exception` instead of `BaseException`; the comment's stated reason (DDCBaseException descends from Exception) is satisfied by Exception.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "In asyncio the interpreter normally delivers KeyboardInterrupt/SystemExit outside coroutines, so the practical window is small; it depends on how the runner shuts down."
+    },
+    {
+      "id": "F10",
+      "file": "services/scheduling/scheduler.py",
+      "line": 515,
+      "trigger": "The B7 fix (hand out a deepcopy so panel edits do not leak into the cache) covers only the cache hit at :492-493. The targeted path at :515-519 stores `task` in the cache AND returns the same object; the two load_tasks paths (:502-505, :528-531) return the object that load_tasks just placed in the cache. Concrete: first panel edit after a bot start (cache empty, file unmodified) -> targeted path -> the edited object is the cached object; if the edit never reaches update_task (panel-side validation error, collision reported before save) the cache holds edited values until the next load_tasks, and get_tasks_for_container / get_tasks_in_timeframe serve them from cache.",
+      "suggestion": "Return copy.deepcopy(...) on all three return paths of find_task_by_id, or store a copy in the cache at :518.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether the Web UI edit path mutates before or after its own validation, and whether update_task (which reloads and thereby repairs the cache) is always reached, is outside this section."
+    },
+    {
+      "id": "F11",
+      "file": "services/scheduling/scheduler.py",
+      "line": 586,
+      "trigger": "Only next_run_ts is compared. Existing daily task at 10:00; on a Wednesday the operator adds a weekly Monday 10:00 task for the same container: the weekly task's next run is days away, no collision, accepted. On Monday both fire at 10:00 (e.g. stop and restart of the same container concurrently). Inactive tasks are also compared, so a paused task with a future next_run_ts blocks a replacement at the same time with a 'collision' message. The docstring ('conflicts with existing tasks ... within a 10-minute window') promises more than the check does.",
+      "suggestion": "Either document the limitation in the docstring and the panel message ('next run only'), or compare the next few occurrences of recurring tasks and skip inactive ones.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Cannot tell whether 'next run only' is a deliberate simplification; it is a design limitation more than a bug, but the wording claims a stronger guarantee."
+    }
+  ],
+  "notes": "Not filed because the trigger depends on code outside this section: (a) reschedule_missed_task persists with the BLOCKING _persist_executed_task (:718); the module header (:23-25) says the blocking twin is for sync callers - if the async scheduler loop calls it, every missed task blocks the bot's event loop for a file write. (b) reschedule_missed_task relies on calculate_next_run() producing a FUTURE time; if it advances from the old next_run_ts by one cycle, a daily task missed for a week is 'rescheduled' into the past six more times, each cycle rewriting tasks.json. (c) pause_long_dead_tasks_once and reschedule_missed_task set only is_active=False, whereas create_donation_system_task also maintains `task.status` (:137-138) - if the panel reads `status`, a paused task may still say 'active'; whether status is derived or stored is in scheduled_task.py. (d) execute_task's donation-disabled branch (:947-957) recalculates and persists the next run itself and returns True 'so it reschedules normally' - if the caller ALSO calls update_after_execution on True, the donation task advances two months. (e) update_task calls is_system_task() (:635) before the isinstance check (:638): a non-ScheduledTask argument raises AttributeError instead of the logged error - harmless. (f) delete_task decides 'system task' by SYSTEM_TASK_PREFIX (:680) while every other place uses is_system_task(); two definitions that can drift. (g) load_tasks never calls _runtime.update_tracked_file_state/record_current_file_state after its own read (only _load_raw_tasks_from_file and the savers do), so after an external edit _is_tasks_file_modified() may stay True until the next save and every lookup reloads from disk - performance only, unless replace_tasks_cache records it. (h) The docstring of _get_disallowed_action_reason (:896-901) still says an unreadable config lets the task run; the code refuses since B14 - the docstring contradicts the code and SPEC B14. (i) _is_definitely_invalid is evaluated twice per task (:407 and :409), so is_valid() runs twice and the 'Keeping task' warning is logged twice - cosmetic. (j) get_tasks_for_container's cache_valid uses one shared container_cache_timestamp for all containers (:551); whether update_container_cache keeps one timestamp per container is in runtime.py - if global, one container's refresh extends every other container's TTL. Deliberate decisions respected: B6 (no second stop/restart after timeout, :1059-1061), B11/B12 (no channel check; web tasks exempt, :1032), B14 (unreadable config refuses, :905-920) all hold in the visible code."
+}

@@ -1,0 +1,68 @@
+{
+  "section": "11",
+  "verdicts": [
+    {"name": "services/automation/auto_action_state_service.py:25 TriggerEvent", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:35 TriggerEvent.to_dict", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:38 AutoActionStateService", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:142 AutoActionStateService.cooldown_key", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:161 AutoActionStateService.check_cooldown", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:198 AutoActionStateService.acquire_execution_lock", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:215 AutoActionStateService.acquire_execution_locks", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:273 AutoActionStateService.release_execution_lock", "verdict": "finding", "finding": "F1"},
+    {"name": "services/automation/auto_action_state_service.py:293 AutoActionStateService.release_rule_cooldown", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:304 AutoActionStateService.record_trigger", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:367 AutoActionStateService.get_history", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:385 get_auto_action_state_service", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:54 TriggerContext", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:66 TriggerContext.full_text", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:71 TriggerContext.message_link", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:141 rule_listens_to", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:178 protected_names", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:194 rule_may_act_on", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:215 containers_of_action", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:223 AutomationService", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:231 AutomationService.process_message", "verdict": "finding", "finding": "F2"},
+    {"name": "services/automation/automation_service.py:669 AutomationService.process_container_events", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:1003 get_automation_service", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:29 ChannelConfigService", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:126 ChannelConfigService.get_all_channels", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:232 ChannelConfigService.get_channel", "verdict": "finding", "finding": "F3"},
+    {"name": "services/config/channel_config_service.py:254 ChannelConfigService.save_channel", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:292 ChannelConfigService.delete_channel", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:323 ChannelConfigService.save_all_channels", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:534 ChannelConfigService.sync_from_main_config", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:567 get_channel_config_service", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:581 reset_channel_config_service", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/automation/auto_action_state_service.py",
+      "line": 289,
+      "trigger": "A rule with cooldown_scope='rule' targets containers in order [A, B] (A currently running, B currently stopped) and has only_if_running enabled. acquire_execution_locks() sets rule_cooldowns[rule.id] once for the whole batch. Container A is processed first and its docker_action succeeds; record_trigger(..., 'SUCCESS', ...) re-confirms rule_cooldowns[rule.id] = now (automation_service.py:634). Container B is processed next: only_if_running skips it, and automation_service.py:601 calls release_execution_lock(rule.id, B, success=False). That method (auto_action_state_service.py:289-290) unconditionally does `del self.rule_cooldowns[rule_id]` - deleting the rule-wide cooldown that A's success had just set a moment earlier. The rule can now fire again on the very next matching message, before its configured cooldown has elapsed, purely because of B's unrelated skip.",
+      "suggestion": "Do not let release_execution_lock blindly wipe the whole rule's cooldown when other containers in the same acquire_execution_locks batch already recorded success; either scope the release to the single container it was called for, or centralize the 'nothing in the batch succeeded' rule-cooldown reset in release_rule_cooldown() the way record_trigger's FAILED branch already does (per the review-B10 comment at :330-336).",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "services/automation/automation_service.py",
+      "line": 291,
+      "trigger": "A rule targets containers [A, B]. In _execute_rule's per-container loop, A's docker_action succeeds and record_trigger(..., 'SUCCESS', ...) confirms container_cooldowns[cooldown_key(rule.id, A)]. While handling B (e.g. docker_action raising a DockerConnectionError, or cancellation during rule.action.delay_seconds sleep - both explicitly named in the comment at :278-282 as real cases this handler exists for), the exception propagates out of _execute_rule into process_message's `except BaseException` block (:268-309). That block iterates over EVERY container in containers_of_action(rule) - including A, which already succeeded - and calls release_execution_lock(rule.id, container, success=False) for each. release_execution_lock unconditionally pops container_cooldowns[cooldown_key(rule_id, container)] (auto_action_state_service.py:291), erasing A's just-confirmed SUCCESS cooldown. The next matching Discord message (including a resend of the same one) can therefore fire the rule and act on A again immediately, with no cooldown, even though A was successfully restarted/stopped moments before.",
+      "suggestion": "In the exception handler, only release the containers that had not yet reached record_trigger in this run (e.g. have _execute_rule return or raise together with the set of containers it already recorded), instead of releasing every container the rule could ever target.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "services/config/channel_config_service.py",
+      "line": 96,
+      "trigger": "save_channel()/_save_channel_file() validate channel_id with _is_valid_discord_id() (`value.isdigit() and 17 <= len(value) <= 19`, :94-97), while get_channel() and delete_channel() validate the same conceptual value with `_SAFE_DISCORD_ID_RE.match()` (`^\\d{17,19}$`, :23, used at :242 and :303). Python's str.isdigit() accepts Unicode characters that Python's regex \\d (which matches the narrower 'Decimal Number' category) does not, e.g. superscript/circled digit glyphs. A channel_id built from such characters, 17-19 characters long, passes save_channel()'s check and is written to '<id>.json' and into config.json's channel_permissions, but the identical id is then rejected by get_channel() and delete_channel(), which return None/False for it - the entry becomes reachable only through get_all_channels()'s directory scan and can be neither fetched nor removed via the single-channel API.",
+      "suggestion": "Use one shared validator (the _SAFE_DISCORD_ID_RE regex is closer to Discord's actual snowflake format) for save_channel, _save_channel_file, get_channel and delete_channel alike.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "This section does not include the web form / API layer that supplies channel_id, so it is not visible whether upstream input is already restricted to ASCII digits before reaching this service - if so, the divergence is unreachable in practice."
+    }
+  ],
+  "notes": "Confirms a defect SPEC.md already documents rather than reporting it again: channel_config_service.py's own _atomic_write_json (lines 50-81) is still the older, less-safe write helper described in SPEC.md's Z7 side finding ('services/config/channel_config_service.py:47 does neither [preserve permissions] and on Windows removes the target file beforehand') - it was not migrated to the shared utils/atomic_io.py helper used by the five files Z7's fix covers. SPEC.md records this as known and deliberately deferred ('a separate item, not part of this fix'), so it is not filed here as a new finding. On this deployment's actual platform (Linux/Unraid, POSIX), the Windows-only unlink-before-rename gap does not apply; the permission-preservation gap (the renamed temp file keeps tempfile.mkstemp's own mode rather than the original file's) still applies on POSIX too, but is likely inconsequential since one process/user (ddc) both reads and writes these files. // Also worth the operator's attention though not filed as a finding (no clear trigger separating intended-vs-bug): in _execute_rule (automation_service.py, ~500-513), if ANY one of a rule's several target containers is in the protected set, the whole rule returns immediately - none of the OTHER, non-protected target containers are acted on, and only a single SKIPPED trigger is recorded (for the first protected container found). The watchdog path (_execute_container_rule) checks protection per single container instead, since it only ever targets one container per event, so there is no direct comparison to confirm whether the message-trigger path's all-or-nothing behaviour is deliberate. // F2's premise (docker_action or the delay sleep raising instead of returning False) is not independently verifiable from this section's source since docker_action's implementation is outside it; the file's own comment at automation_service.py:278-282 names DockerConnectionError and cancellation explicitly as the anticipated cases, which is why certainty was kept at 'sure'."
+}

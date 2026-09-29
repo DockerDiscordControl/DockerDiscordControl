@@ -1,0 +1,14 @@
+cogs/overview_embeds.py:32 animation_key
+cogs/overview_embeds.py:45 power_consumption_line
+cogs/overview_embeds.py:62 group_status_lines
+cogs/overview_embeds.py:135 with_website_footer
+cogs/overview_embeds.py:148 OverviewEmbedsMixin
+cogs/slash_commands.py:42 SlashCommandsMixin
+cogs/slash_commands.py:88 SlashCommandsMixin.serverstatus
+cogs/slash_commands.py:258 SlashCommandsMixin.ss
+cogs/slash_commands.py:264 SlashCommandsMixin.control
+cogs/slash_commands.py:362 SlashCommandsMixin.addadmin
+cogs/slash_commands.py:427 SlashCommandsMixin.help_command
+cogs/slash_commands.py:457 SlashCommandsMixin.ping_command
+cogs/slash_commands.py:467 SlashCommandsMixin.donate_command
+cogs/slash_commands.py:577 SlashCommandsMixin.info_command

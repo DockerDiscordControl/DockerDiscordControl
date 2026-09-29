@@ -1,0 +1,37 @@
+{
+  "section": "42",
+  "verdicts": [
+    {"name": "services/automation/image_updates.py:47 ImageRef", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:53 parse_image_reference", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:85 local_digests", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:96 read_running_image", "verdict": "finding", "finding": "F2"},
+    {"name": "services/automation/image_updates.py:115 update_available", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:126 remote_digest", "verdict": "finding", "finding": "F1"},
+    {"name": "services/automation/image_updates.py:174 cached_remote_digest", "verdict": "finding", "finding": "F1"},
+    {"name": "services/automation/image_updates.py:201 ImageUpdateChecker", "verdict": "checked"},
+    {"name": "services/automation/image_updates.py:207 ImageUpdateChecker.observe", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/automation/image_updates.py",
+      "line": 149,
+      "trigger": "The token realm (from the 401 challenge) answers with HTTP 200 and JSON that parses fine but is not an object - e.g. a bare list, string or number instead of {'token': ...} or {'access_token': ...}. `data.get('token')` at line 149 then raises AttributeError. That type is not in the except tuple at line 156 (`aiohttp.ClientError, asyncio.TimeoutError, ValueError`), so it escapes remote_digest uncaught. In cached_remote_digest (line 188: `digest = await remote_digest(ref)`), if the caller's `wait` is long enough that asyncio.wait_for does not time out first, the same AttributeError propagates out of cached_remote_digest too - even though its own docstring says 'Never raises; None when not (yet) known.' If wait times out first, the exception is instead silently dropped in the background task (never surfaces, cache never gets filled for that ref, so every following call retries).",
+      "suggestion": "Guard the token payload before using it, e.g. `if not isinstance(data, dict): return None` right after the json() call, or add AttributeError/TypeError to the caught exception tuple at line 156 - so a reachable-but-malformed token response degrades to 'unknown' like every other unreachable/unparseable case in this module, instead of raising past the documented contract.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see the callers of remote_digest/cached_remote_digest outside this file, so I don't know whether such an exception is caught generically further up (low practical impact) or would surface as a visible failure in the periodic check or the info-display lookup. I also cannot verify from this file alone whether Docker Hub, ghcr.io or lscr.io ever actually return a non-object body from their token realm in practice, or only well-formed {'token': ...} objects."
+    },
+    {
+      "id": "F2",
+      "file": "services/automation/image_updates.py",
+      "line": 112,
+      "trigger": "attrs.get('Image') (the id of the image the container is actually running) names an image that is no longer present locally - for example during the auto-update window SPEC.md's B7 already documents (container removed and recreated on Unraid), or if the old image was pruned after a pull-and-recreate elsewhere. `client.images.get(running)` at line 112 then raises (docker.errors.NotFound or an APIError from the proxy), uncaught here, so read_running_image propagates an unhandled exception instead of degrading to an 'unknown' result the way the two lines above it already do when `ref is None` (line 109-110 returns `(image_name, None, set())` instead of raising).",
+      "suggestion": "Wrap the `client.images.get(running)` call in a try/except for the not-found/API-error case and return `(image_name, ref, set())` on failure, matching the existing 'unknown, never crash' handling used for the `ref is None` case two lines above and for every unreachable/unparseable case in remote_digest.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The caller of read_running_image is not part of this section, so I don't know whether it already wraps this call in a try/except (harmless) or lets the exception propagate into the periodic check / info-display path (a visible failure each cycle for that container). Flagging because the function's own two other exit paths (ref is None; the parsing failures elsewhere in the module) are all handled as 'unknown' rather than raised, so this one path being unguarded looks like an inconsistency rather than a deliberate choice."
+    }
+  ],
+  "notes": "parse_image_reference was traced by hand through the main reference shapes (bare 'nginx', 'user/repo', 'user/repo:tag', 'host.tld/repo', 'host:port/repo', 'localhost/repo', digest-pinned, bare 64-hex id, bare 'sha256:<64hex>') and all resolved as the docstring/comments claim; no divergence found. local_digests/update_available/ImageUpdateChecker.observe match their docstrings exactly, including the 're-arms when the local image catches up' and 'unknown remote or local -> None, never a false update' contracts. One thing noticed but NOT filed as a finding: ImageUpdateChecker._reported (line 205) is never pruned for a container that disappears entirely (as opposed to one whose verdict turns False), so its dict can grow with stale entries for removed containers - I did not file this because I could not construct a concrete wrong-behaviour trigger (a coincidental digest collision on a reused container name is cryptographically negligible); noting it here only because rule 5 asks about state that is never cleared. Comment at lines 167-170 ('the check above runs only for operators with an image_update rule') describes behaviour enforced by a caller outside this section - I could not verify it from the given source and did not treat it as checked or as a finding."
+}

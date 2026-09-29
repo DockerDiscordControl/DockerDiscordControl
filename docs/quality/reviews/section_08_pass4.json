@@ -1,0 +1,82 @@
+{
+  "section": "08",
+  "verdicts": [
+    {"name": "cogs/status_handlers.py:75 format_uptime", "verdict": "finding", "finding": "F5"},
+    {"name": "cogs/status_handlers.py:113 StatusHandlersMixin", "verdict": "checked"},
+    {"name": "cogs/status_handlers.py:119 StatusHandlersMixin.bulk_fetch_container_status", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/status_handlers.py:189 StatusHandlersMixin.bulk_fetch_container_status.fetch_fast_container", "verdict": "checked"},
+    {"name": "cogs/status_handlers.py:522 StatusHandlersMixin.bulk_update_status_cache", "verdict": "finding", "finding": "F6"},
+    {"name": "cogs/status_handlers.py:586 StatusHandlersMixin.get_status", "verdict": "finding", "finding": "F7"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/status_handlers.py",
+      "line": 280,
+      "trigger": "The fetch service returns an EMPTY but not-None info (e.g. {}) for a container, and is_container_not_found() answers False (container exists, or Docker could not be asked). Line 269 falls through because not-found is False; line 280 only catches `isinstance(info, Exception) or info is None`, so {} passes on to line 291, `is_running` becomes False and a success_result with is_running=False is cached: the container is shown as offline (red) although nothing was measured. The single-container path get_status closes exactly this gap with `if not info:` at line 621 and returns an error result. The comment at 264-268 says the two paths were unified on `not info` (review B37) - the bulk path still reads an empty answer as offline whenever Docker does not confirm 'no such container'. Z3.",
+      "suggestion": "Replace the condition at line 280 with `if not info or isinstance(info, Exception):` (mirror line 621), so an empty answer that is not a confirmed not-found becomes an error result instead of an offline verdict.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see fetch_with_retries / the fetch service, so I cannot tell whether an empty dict (rather than None or an exception) ever reaches this loop. The code itself does treat {} as offline; only the reachability of the input is unknown."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/status_handlers.py",
+      "line": 208,
+      "trigger": "One container classified as 'slow' by the performance service, and its fetch_with_retries raises (Phase 1 wraps the same call in gather(return_exceptions=True), and the B25 comment at 226-230 says exceptions do come back from it). Phase 2 awaits the call bare, so the exception leaves bulk_fetch_container_status: the fast containers' results already collected in all_results are thrown away as well, no container gets a status or error result this run. The caller bulk_update_status_cache (line 584) catches only RuntimeError/KeyError/TypeError; any other type escapes further up. As long as that one container keeps being 'slow' and keeps raising, no bulk run completes.",
+      "suggestion": "Wrap the Phase 2 call: `try: result = await ...; except Exception as e: result = e` (or gather the slow ones sequentially with the same return_exceptions handling), so the existing per-result exception branch at line 234 names the container and the rest of the run survives.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "Depends on whether fetch_with_retries can raise at all or always returns a tuple/exception object; not visible here. The asymmetry between Phase 1 and Phase 2 is certain."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/status_handlers.py",
+      "line": 422,
+      "trigger": "A container has query_enabled with a query_host that does not resolve (or any resolution/OS error), and svc.resolve_query_candidates lets the OSError/socket.gaierror (or a ValueError from a bad port) out. The except at line 464 lists only ImportError, RuntimeError, AttributeError, KeyError, TypeError, so the exception leaves _enrich_status_with_player_counts and thereby bulk_fetch_container_status AFTER all statuses were computed (line 349) - the whole status_results dict is lost for every container, although the docstring at 377-379 promises 'any failure ... never affects the status results'. bulk_update_status_cache does not catch OSError either (line 584). Same pattern in _run_support_probes line 519, but that one runs in its own task and only kills the probe pass.",
+      "suggestion": "Either catch Exception in the two best-effort wrappers (they are explicitly best-effort and log at DEBUG anyway), or at least add OSError, ValueError and asyncio.TimeoutError; alternatively move the enrichment call at line 349 into its own try so a failure there can never discard status_results.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "resolve_query_candidates and get_bulk_game_queries are not in this section; they may already swallow OS errors internally. The mismatch between the docstring's promise and the narrow except list is certain."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/status_handlers.py",
+      "line": 314,
+      "trigger": "A running container whose info carries a `_computed` dict that lacks one of the keys `cpu_percent`, `memory_usage_mb`, `uptime_seconds`, or whose `uptime_seconds` is None. Lines 314-318 index the dict directly and compare `> 0`; _watch_fields (line 99-104) treats the same dict defensively with .get() and None checks, which suggests partial dicts are possible. A KeyError/TypeError here is raised inside the result loop, outside any try, so the whole bulk run aborts and no container is cached this round (caller logs '[BULK_UPDATE] Error during bulk update').",
+      "suggestion": "Use computed.get(...) with None checks like _watch_fields does, and guard the uptime comparison with `if (computed.get('uptime_seconds') or 0) > 0`.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether the fetch service ever produces a `_computed` dict with missing keys or None uptime is not visible here."
+    },
+    {
+      "id": "F5",
+      "file": "cogs/status_handlers.py",
+      "line": 90,
+      "trigger": "format_uptime(0, 30) - a container started less than a minute ago. The condition `minutes > 0 or (days == 0 and hours == 0)` is true, so '0m' is appended; uptime_parts is therefore never empty and the intended '< 1m' fallback at line 91 is unreachable. The embed shows 'Uptime: 0m'.",
+      "suggestion": "Return '< 1m' when days == 0 and hours == 0 and minutes == 0 before building the parts, or drop the `(days == 0 and hours == 0)` arm so the fallback is reached.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F6",
+      "file": "cogs/status_handlers.py",
+      "line": 571,
+      "trigger": "`now` is taken at line 532 BEFORE the bulk fetch, and used as the cache timestamp at line 571 after the fetch returns. With 34 containers the fetch takes seconds to a minute (see the comment at 40-44 and the >30 s / >60 s log branches). A result fetched at T+40 s is stamped T: with a 30 s refresh interval the 1.5-interval age hint (45 s) appears in the embed almost immediately on data that is a few seconds old, and any TTL-based staleness check in the cache service expires the entry early.",
+      "suggestion": "Take the timestamp after `await self.bulk_fetch_container_status(...)` returns (or per result), not before.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F7",
+      "file": "cogs/status_handlers.py",
+      "line": 638,
+      "trigger": "Docker reports StartedAt with nanoseconds, e.g. '2025-09-29T10:00:00.123456789Z'. On Python < 3.11, datetime.fromisoformat accepts only 3 or 6 fractional digits and raises ValueError; the except at 644 then shows 'Uptime: Error' for every running container on the single-container path (refresh after a pending action, line 760, whose result is written into the cache at 780). The bulk path has the same parse at line 300 but overrides the value with _computed['uptime_seconds'] when present, so the failure would show up only on the single path and disappear at the next bulk run - a flickering 'Error'. SPEC notes CI runs Python 3.10.",
+      "suggestion": "Normalise the fraction to 6 digits before parsing (or use the same uptime_seconds source the bulk path uses) in one shared helper, so both paths agree.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The Python version of the runtime image and whether the fetch service already normalises StartedAt are not visible here; on Python 3.11+ fromisoformat truncates extra digits and the problem does not occur."
+    }
+  ],
+  "notes": "Verdicts carry one finding id each; bulk_fetch_container_status also has F2, F3, F4. Not reported as findings, no user-visible trigger I can state from this section alone: (1) display-name drift - bulk (line 261) reads server_config['name'], get_status (line 594) reads server_config['display_name']; the result's display_name is not used by _generate_status_embed_and_view (line 872 assigns it and never reads it), so the effect depends on other consumers of the cache. (2) RAM format drift - bulk writes '512MB' (line 316/327), get_status writes '512.3 MB' (line 660); after a pending action the embed shows the get_status form until the next bulk run replaces it. (3) _schedule_support_probes (line 478-479) counts error and not-found results as 'offline' and calls support.note_offline for them, resetting the probe window for containers that merely failed to fetch. (4) is_container_not_found() (lines 269, 612) is a synchronous call that 'asks Docker itself' inside an async loop; whether it blocks the event loop is not visible. (5) format_uptime with a negative delta (StartedAt ahead of the bot clock) prints the normalised seconds, e.g. '23h 59m' for a 1-second skew; same host normally, so rare. (6) Legacy tuple branch line 1053 has German 'alt' in the English string; the branch appears dead since the cache stores ContainerStatusResult. (7) bulk_update_status_cache catches CancelledError correctly (re-raise) but lets every exception type other than RuntimeError/KeyError/TypeError propagate to the caller, which is outside this section."
+}

@@ -1,0 +1,96 @@
+{
+  "section": "03",
+  "verdicts": [
+    {"name": "cogs/admin_ui.py:32 AdminButton", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:47 AdminButton.callback", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/admin_ui.py:111 AdminButton.callback.get_sort_key", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:149 AdminContainerSelectView", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:187 AdminContainerDropdown", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:209 AdminContainerDropdown.__init__.get_order_key", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:258 AdminContainerDropdown.callback", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/mech_ui.py:34 MechView", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:61 MechDetailsButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:73 MechDetailsButton.callback", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:222 MechDonateButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:236 MechDonateButton.callback", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:267 MechHistoryButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:281 MechHistoryButton.callback", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:393 MechSelectionView", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:426 MechDisplayButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:457 MechDisplayButton.callback", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:555 EpilogueButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:567 EpilogueButton.callback", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:623 MechStoryView", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:638 ReadStoryButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:651 ReadStoryButton.callback", "verdict": "finding", "finding": "F6"},
+    {"name": "cogs/mech_ui.py:722 PlaySongButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:736 PlaySongButton.callback", "verdict": "finding", "finding": "F5"},
+    {"name": "cogs/mech_ui.py:783 MechDetailsView", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:796 MechPrivateDonateButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:808 MechPrivateDonateButton.callback", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:835 MechPrivateHistoryButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:847 MechPrivateHistoryButton.callback", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/admin_ui.py",
+      "line": 341,
+      "trigger": "An admin picks a container in the dropdown; `container_config['_is_admin_control'] = True` is written at :341 into the dict returned by `server_config_service.get_server_by_docker_name()` (or found in `get_all_servers()`). The marker is removed only at :361, on the success path. If `admin_panel_embed()`, `running_state_for()` or `admin_control_view()` raises (:353-358), or the `else` fallback at :363 is taken, the marker stays on that dict. SPEC.md (Z5) says this flag is read by status_handlers.py:1051 and status_info_integration.py:1143 and suppresses display there - so if the service hands out its cached/shared config dict, the shared status message for that container is rendered differently for everybody until the configuration is reloaded, and nothing reports it.",
+      "suggestion": "Remove the marker in a `finally:` (or pass the admin-control flag as an argument instead of mutating the config dict; the `else` branch at :363 must also not leave it behind).",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see whether get_server_by_docker_name()/get_all_servers() return copies or the live cached dicts, nor exactly what the two readers of the flag suppress. If they return copies, the leak is harmless."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/admin_ui.py",
+      "line": 345,
+      "trigger": "`hasattr(self.cog, '_generate_status_embed_and_view')` gates the whole panel build, but the branch never calls that method - it uses admin_panel_embed(), running_state_for() and admin_control_view() from group_control. A cog without that attribute (e.g. after the planned DockerControlCog split moves it) makes every admin selection answer '❌ An error occurred. Please try again.' and log 'The cog has no _generate_status_embed_and_view - the control panel cannot be built' although nothing the branch needs is missing. Today the attribute presumably exists, so the guard is dead - but it is a wrong guard, not a safety net.",
+      "suggestion": "Drop the hasattr guard and the else branch (or guard on what is actually used).",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "cogs/admin_ui.py",
+      "line": 67,
+      "trigger": "The door (AdminButton.callback :67) admits only users on the admin list: `if not admin_service.is_user_admin(user_id): '🛠️ You are not authorized to use admin controls.'`. The dropdown behind it (:285-287) admits `channel control permission OR _is_registered_admin`, with the comment 'the same rule and the same words as every other path (B1, B2)'. So in a channel that holds the `control` permission, a member who by B1 'may do everything' is refused at the button, while the very next step of the same path would have let him through. The two gates also use two different admin lookups (admin_service.is_user_admin(str(id)) vs control_helpers._is_registered_admin(int id)); if they ever disagree, a user passes one gate and is refused at the other.",
+      "suggestion": "Use the same rule and the same helper at the door as in the dropdown (channel permission OR current admin list), or - if the Admin button is deliberately admin-only - say so in the comment at :273-280 and in SPEC B2.",
+      "suggestion_note": "Visible refusal only; the /control panel remains available to that user.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The 🛠️ button may be intended for list-admins only (it lives on the /ss status message, B2's home). Whether /ss messages also stand in control channels, and whether is_user_admin and _is_registered_admin read the same source, is outside this section."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/admin_ui.py",
+      "line": 104,
+      "trigger": "Every press of 🛠️ writes 2 x N INFO lines (:104-107 'BEFORE sorting', :123-126 'AFTER sorting', one per container). Review E37 fixed exactly this in AdminContainerDropdown.__init__ (:199-206, now DEBUG) with the reasoning 'fourteen INFO lines for one click' - but the identical loops in AdminButton.callback were left at INFO, so the click still produces the noise the fix meant to remove (and the dropdown then logs it a third and fourth time at DEBUG).",
+      "suggestion": "Lower :104-107 and :123-126 to DEBUG (or delete them; the dropdown sorts again anyway).",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F5",
+      "file": "cogs/mech_ui.py",
+      "line": 765,
+      "trigger": "A user presses the 🎵 button; the reply with the YouTube link is sent with `delete_after=NOTICE_STAYS_FOR`. Discord renders the link as an embedded player inside that message; when the message is deleted after NOTICE_STAYS_FOR seconds the player disappears with it while the song is playing. The error reply two lines below uses the same delete_after, which is right for a notice - the song itself is not a notice.",
+      "suggestion": "Send the successful music link without delete_after (like the story embed at :712), keep delete_after for the error notice.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "NOTICE_STAYS_FOR is defined in ddc_ui, which I cannot see. If it is long (minutes), the effect is minor; if it is the usual 15-60 s for notices, the song vanishes mid-play."
+    },
+    {
+      "id": "F6",
+      "file": "cogs/mech_ui.py",
+      "line": 701,
+      "trigger": "A story chapter longer than 4000 characters: the comment says 'Split if too long', the code does `chapter_content[:4000] + '...'`. The reader gets the first 4000 characters and an ellipsis; the rest of the chapter is never shown and nothing tells him that there is more or how to read it. The chapter titles at :684-696 are moreover hard-coded English while the chapter text is loaded in the bot's language (:381-383).",
+      "suggestion": "Either send the remainder in a second followup (as the comment promises) or replace the comment and make the truncation visible ('... [continued in the web panel]'); translate the titles through _() like the footer.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether any chapter in the story files exceeds 4000 characters cannot be seen from this section."
+    }
+  ],
+  "notes": "Verdict-to-finding mapping: F4 also lies in 'cogs/admin_ui.py:47 AdminButton.callback' (that name carries F3); F2 also lies in 'cogs/admin_ui.py:258 AdminContainerDropdown.callback' (that name carries F1). Observations without a trigger I can state: (1) AdminContainerSelectView narrows with the fresh `_channel_has_permission` (:171) while AdminContainerDropdown.callback decides with `_get_cached_channel_permission` (:285). If the cache has a TTL, a channel that just lost `control` still opens the panel for that long; the buttons behind it check again, so no action results, but Z5's 'lose their effect immediately' is only as immediate as that cache. Cannot see the cache. (2) The two sort keys get_sort_key (:111) and get_order_key (:209) are identical copies; a value that is neither str nor None and not int-convertible (a list/dict in a hand-edited config) raises TypeError, which neither `except` clause in admin_ui catches, so the user is left with the deferred 'thinking' indicator. (3) The outer `except` clauses in this section catch (RuntimeError, ValueError, KeyError) but not discord.errors.DiscordException, AttributeError, OSError or TypeError; anything else escapes to the view's on_error and the user sees Discord's failure text. In MechDisplayButton.callback (:552), ReadStoryButton.callback (:719) and PlaySongButton.callback (:776) the error handler itself calls followup.send unconditionally; if the exception happened before the defer (only is_donations_disabled() can raise there) the handler raises too. Visible failures only. (4) The comment at admin_ui :288-290 ('a few lines down this callback unpacks embed, view, _ = ...') describes code that no longer exists; `_` is not bound in that callback any more, the alias is harmless. (5) _mech_button_braked's docstring lists the sliders mech_donate, mech_display, mech_story, mech_music; MechDetailsButton brakes under 'mech_details_<channel>' (:81) and the comment claims a slider 'mech_details'. Whether the panel has such a slider, and whether the service keys the cooldown on the whole name (then level 3 and level 4 of MechDisplayButton have separate buckets) or on the slider, is in spam_protection_service, not here. (6) MechHistoryButton.callback re-implements the brake inline (:306-324) instead of calling _mech_button_braked (because it must defer first); two copies of the same rule. (7) MechDisplayButton's shadow path (:526-529) shows 'Need $X more' from evo_max - evo_current, i.e. the amount for the NEXT level. That is right for the 'Next' button; a stale unlocked button whose level is no longer reached (only possible if the mech level can drop) would show the wrong amount. Whether the level can drop is outside this section. (8) All ephemeral views here use timeout=None; whether they are registered as persistent views after a restart cannot be seen here. (9) SPEC B2 refinement: a scoped admin (admin_containers list) loses every GROUP entry from the dropdown unless _admin_may_control knows groups; not visible here, and arguably correct since a group acts on more than his containers."
+}

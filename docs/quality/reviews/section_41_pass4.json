@@ -1,0 +1,106 @@
+{
+  "section": "41",
+  "verdicts": [
+    {"name": "cogs/task_ui.py:33 TaskManagementButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:47 TaskManagementButton.callback", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/task_ui.py:161 TaskManagementView", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:178 AddTaskButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:190 AddTaskButton.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/task_ui.py:234 DeleteTasksButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:246 DeleteTasksButton.callback", "verdict": "finding", "finding": "F5"},
+    {"name": "cogs/task_ui.py:293 AutoActionButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:305 AutoActionButton.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:406 TaskCreationView", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:433 TaskCreationView.check_ready", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:458 TaskCreationView.clear_dropdowns_after", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:467 TaskCreationView.get_next_available_row", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:485 CycleDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:499 CycleDropdown.callback", "verdict": "finding", "finding": "F6"},
+    {"name": "cogs/task_ui.py:526 ActionDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:541 ActionDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:594 SimpleMonthdayDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:632 SimpleMonthdayDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:671 MonthDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:690 MonthDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:734 YearDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:751 YearDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:776 TimeDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:790 TimeDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:824 WeekdayDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:841 WeekdayDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:873 CreateTaskButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:886 CreateTaskButton.callback", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/task_ui.py:1074 ContainerTaskDeleteView", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/task_ui.py:1145 ContainerTaskDeleteButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:1159 ContainerTaskDeleteButton.callback", "verdict": "finding", "finding": "F7"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/task_ui.py",
+      "line": 135,
+      "trigger": "The task list (_show_task_list, reached from TaskManagementButton.callback) formats last_run_ts and next_run_ts with datetime.fromtimestamp(), i.e. in the process's local zone, and prints no zone marker (:126, :136). The two other places in this file that show the same times go out of their way to use the task's own / configured timezone with a %Z marker (ContainerTaskDeleteView :1109-1132 'in the task's own timezone ... with a marker', CreateTaskButton :1015-1018). If the container's system zone differs from the configured 'timezone' (e.g. container on UTC, configured Europe/Berlin), the same daily task reads 'Next Run: 2026-09-30 13:00' in the list and 'D:15h CEST' on the delete button one click later; the list is the first thing the user sees and gives them the wrong hour with nothing to say which clock it is.",
+      "suggestion": "Use task.get_next_run_datetime() (and the equivalent for last_run) as the delete view does, and append %Z, so all three displays of the same task agree.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "Whether the container's local zone equals the configured timezone in practice (TZ env of the image) is not visible here; if they always match, this is only a missing marker."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/task_ui.py",
+      "line": 401,
+      "trigger": "_get_allowed_task_actions() catches ImportError/AttributeError/RuntimeError/OSError/ValueError from the config service, logs, and returns [] - the same value as 'the container allows nothing'. AddTaskButton.callback (:203-207) then tells the user 'No schedulable actions (start/stop/restart) are allowed for X', and CreateTaskButton.callback (:928-931) tells them \"You don't have permission to perform 'stop' on 'X'\", although in this state the configuration could not be read at all and the panel still shows the actions as allowed. Refusing is right (unreadable = not granted, cf. B14), but the message sends the user to change a setting that is not the cause.",
+      "suggestion": "Let the helper signal the read failure separately (return None or raise) and show a 'configuration could not be read, try again' message on that path; keep [] only for a real empty allowed_actions.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "cogs/task_ui.py",
+      "line": 1016,
+      "trigger": "The dropdowns let a user pick cycle 'once' or 'yearly' with day 31 and month 2 (or 30/2, 31/4, 31/6, 31/9, 31/11) - nothing in the UI restricts the day list by month. CreateTaskButton then builds the task, calls task.calculate_next_run() and validate_task_before_creation(), and if add_task() returns True it reports 'Task Created Successfully!'. The success embed treats a missing next run as normal ('if next_run_dt:' simply omits the field). So if the scheduler does not raise on an impossible date but leaves next_run_ts None, the user is told the task was created while it can never fire, and the only hint is an absent 'Next Run' line.",
+      "suggestion": "After calculate_next_run(), refuse when task.next_run_ts is None (before add_task), with a message naming the date; and/or restrict the day options offered after a month is chosen (yearly/once flow picks day before month, so validate at creation).",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "calculate_next_run(), validate_task_before_creation() and add_task() are outside this section; any of them may already raise or reject on an impossible day/month combination, in which case the user gets a loud error and this is only a missing belt."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/task_ui.py",
+      "line": 1119,
+      "trigger": "A weekly task's delete button is labelled with weekday_abbrev = ['Mo','Di','Mi','Do','Fr','Sa','So'][next_run.weekday()] - German abbreviations hard-coded, no _(). An English (or any non-German) user with a weekly task on Tuesday sees the button 'W:Di 17h CEST'; 'Di', 'Mi', 'Do', 'So' are not recognisable weekday names in English or in the other 40 catalogs, so the user cannot tell which of several weekly tasks they are about to delete.",
+      "suggestion": "Use translated abbreviations (catalog entries or the locale's strftime('%a')) instead of the fixed German list.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F5",
+      "file": "cogs/task_ui.py",
+      "line": 283,
+      "trigger": "DeleteTasksButton.callback passes every task of the container to ContainerTaskDeleteView, which silently keeps only the first 25 (:1084-1085), and then writes 'Found Tasks: {len(tasks)} active tasks' - the full count. A container with 26 or more tasks shows '27 active tasks' above 25 buttons; tasks 26 and 27 cannot be deleted from here and nothing says so (the task list at :148 does say 'Showing first 10 of N'). In addition the count is labelled 'active' although get_tasks_for_container evidently also returns inactive tasks (the list at :139 draws a red dot for is_active False), so deactivated tasks are counted as active.",
+      "suggestion": "Show 'Showing first 25 of N' like the list does when truncated, and drop the word 'active' or count only is_active tasks.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F6",
+      "file": "cogs/task_ui.py",
+      "line": 505,
+      "trigger": "Complete a task (e.g. daily, stop, 10:00 - TimeDropdown.callback calls check_ready, the Create button appears enabled), then change the Cycle dropdown (still on row 0) to 'weekly'. CycleDropdown.callback resets every selection to None and removes the later dropdowns, but clear_dropdowns_after excludes the create button and check_ready is not called, so the Create button stays visible and enabled under an embed that says 'Now choose the action...'. The same happens after re-selecting the Action (ActionDropdown.callback :546-552). Clicking Create then answers 'Please select: Action, Time' (:900) - loud, nothing is created, but the button promises a readiness that no longer exists.",
+      "suggestion": "Call self.view.check_ready() at the end of CycleDropdown.callback and ActionDropdown.callback (it already disables the button when not ready).",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F7",
+      "file": "cogs/task_ui.py",
+      "line": 1180,
+      "trigger": "A registered admin in a status channel (no channel 'schedule' permission, B2) opens the delete view, the task is deleted elsewhere (panel, another admin), and the admin presses the now stale button. The permission check runs before find_task_by_id, and _admin_may_control_task(user, task_id) has to resolve the task's container from a task that no longer exists. If it answers False for an unknown task id, the admin is told 'You do not have permission to delete tasks in this channel' instead of the prepared 'Task not found (may have already been deleted)' (:1191) - a wrong reason that makes them doubt their admin status.",
+      "suggestion": "Look the task up first (find_task_by_id) and answer 'not found' when it is gone; run the permission check on the found task's container afterwards.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "_admin_may_control_task is in cogs/control_helpers.py, outside this section; it may treat an unknown task id as 'no restriction' (admin without a container list) or as 'no', and only the latter produces the wrong message."
+    }
+  ],
+  "notes": "Z5 on this section: both the create path (:918-925, 'schedule' or admin via container) and the delete path (:1180-1186, 'schedule' or admin via task) check the CURRENT channel permission at the moment of the press, consistent with SPEC Z5/B2; TaskManagementButton, AddTaskButton and DeleteTasksButton themselves check nothing, which is fine because they only display. Z3 on creation: the success embed is sent only after add_task() returned True. Items without a concrete trigger: (a) CreateTaskButton's 'missing' check (:889-898) does not cover selected_month/selected_year for yearly/once; int(None) would raise TypeError, which the except at :1054 does not catch (interaction stuck on 'thinking'), but I could not construct a flow that reaches Create with time set and month/year None, since Time is only offered after month/year and every earlier dropdown resets time. (b) After add_task() succeeded, the success branch imports services.scheduling.player_gate and .task_player_options (:1033-1034); an ImportError there is not caught, so the task would exist while the user never sees a confirmation - only relevant if a module is missing from the image. (c) The 'Time Conflict' text hard-codes 'within 10 minutes' (:1059) and is chosen by matching the word 'collision' in the exception text; if the scheduler's window or wording changes, this drifts silently. (d) The empty-list embed title '⏰ No Tasks for {container}' (:106) is the only user-facing string in the file outside _(); non-English users see English there. (e) The success embed for yearly/once shows 'Day/Date: 5' without month or year (:1011); the Next Run field carries the full date, so no wrong information, just an incomplete summary. (f) A once task that already ran (next_run_ts None) gets a delete button labelled only 'O ▶️' unless the task carries time_str, which ScheduledTask's __slots__ (per SPEC B11) may not have; several such tasks are indistinguishable. (g) load_tasks is imported and unused at :100 and :253 - not a defect."
+}

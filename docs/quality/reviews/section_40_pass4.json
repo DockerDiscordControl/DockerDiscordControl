@@ -1,0 +1,61 @@
+{
+  "section": "40",
+  "verdicts": [
+    {"name": "cogs/message_updates.py:34 in_batches", "verdict": "checked"},
+    {"name": "cogs/message_updates.py:39 mech_change", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/message_updates.py:58 MessageUpdatesMixin", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/message_updates.py:63 MessageUpdatesMixin.edit_due_messages", "verdict": "finding", "finding": "F2"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/message_updates.py",
+      "line": 517,
+      "trigger": "_auto_update_ss_messages, recreate branch: the tracked id is re-validated at :500 under the channel lock, then the code awaits message.delete() (:505) and _send_message_with_files (:513/:515). If another task removes this channel from self.channel_server_message_ids during those awaits (a config save that drops the channel - the very case the snapshot comment at :336-341 describes), :517 does self.channel_server_message_ids[channel_id]['overview'] = ... and raises KeyError. KeyError is in neither except tuple (:529 DiscordException/RuntimeError/OSError, :537 DiscordException/RuntimeError/ValueError), so it escapes _auto_update_ss_messages into its caller (the donation path, not visible here), and the overview that was just posted is tracked nowhere: the bot will never edit it and the restart clean-up will not delete it. _recover_deleted_overview guards the same write with 'if channel_id in self.channel_server_message_ids' (:600); this path does not.",
+      "suggestion": "Guard the write like :600 (setdefault / membership check) and let the except at :529 also cover KeyError, or delete the just-posted message when the channel is no longer tracked.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see whether any path removes a channel from channel_server_message_ids without taking _get_channel_lock; if every removal takes that lock the race cannot happen."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/message_updates.py",
+      "line": 217,
+      "trigger": "edit_due_messages meets a tracked entry that is neither overview/admin_overview nor in TRACKED_MESSAGE_KINDS (an individual server message left in the persisted tracking file from before the architecture change). It logs a WARNING 'Removing phantom ...' and deletes it from the in-memory dict, but never calls _persist_tracked_message_ids(). Every other place in this file that changes tracking persists (:518, :601, :616, :642, :656). After the next restart the entry is loaded again, the warning repeats, and the restart clean-up keeps a stale id in its list.",
+      "suggestion": "Call self._persist_tracked_message_ids() after the del at :217-219 (the check at :216 is always true after the continue at :212-213 and can go).",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see whether the persisted tracking file can still contain such entries, or whether the loader already drops them, in which case this branch is dead."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/message_updates.py",
+      "line": 53,
+      "trigger": "mech_change(current_glvl=5, current_power=x, last_glvl=0): abs(5-0) >= 1 is true at :51, so the function returns (True, ..., 5) - 'level changed'. The 'first cycle for this channel: just remember' branch at :53 is only reached when current_glvl is 0 (or fractional below 1). So the first cycle of any channel with no memory, and every channel right after the remembered levels were reset (quick mech reset), reports a level change 0 -> N, and _auto_update_ss_messages then logs 'Significant Glvl change detected: 0 -> 5' and deletes and reposts the overview (subject to should_force_recreate). The comment describes a behaviour the code does not have; a remembered 0 and 'no memory' are also indistinguishable (:49, :53), contrary to the docstring's 'Zero is a value'.",
+      "suggestion": "Decide whether a channel with no memory should trigger a repost. If not, treat last_glvl None/0 as 'remember only' before the abs() comparison; if yes, fix the comment so the next reader does not rely on it.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "One repost per channel after a memory reset may be intended so that a new channel gets the right animation at once; the docstring only says what the None case must not do."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/message_updates.py",
+      "line": 418,
+      "trigger": "Two implementations of the overview's container order. _auto_update_ss_messages (:417-432) reads load_server_order() and matches entries against server.get('name'); _update_overview_message (:666-683) reads self.ordered_server_names and matches against docker_name. It also uses self.config (:660) where the other uses load_config() (:368). If the order file holds docker names (or the two attributes are built differently), a container whose display name differs from its docker name falls out of the ordered list in one path and is appended at the end, so the overview reposted after a donation shows a different order than the periodic edit restores up to one interval later.",
+      "suggestion": "Build ordered_servers once (one helper taking servers and the order source) and call it from both places, so they cannot drift.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see what load_server_order() returns (names or docker names) or how self.ordered_server_names is derived; if both use the same key the orders agree today and only the drift risk remains."
+    },
+    {
+      "id": "F5",
+      "file": "cogs/message_updates.py",
+      "line": 408,
+      "trigger": "_auto_update_ss_messages: make_update_decision raises ImportError/AttributeError/RuntimeError. The handler logs a warning and 'continues with original logic (safe fallback)': recreate_this_channel keeps the caller's force_recreate (True by default, :357), so every channel with an overview is edited or deleted-and-reposted regardless of what its panel settings say - a channel that has auto-refresh or recreate switched off in the web panel gets its overview deleted and reposted with a new id. The periodic loop in this same file took the opposite decision for the same failure (:157-169: fall back to the channel's own interval, review E18); the two fallbacks for the same decision differ again.",
+      "suggestion": "On a decision-service failure either skip the channel (log and continue) or fall back to the channel's own enable_auto_refresh / interval as edit_due_messages does; do not recreate on a failed decision.",
+      "severity": "medium",
+      "certainty": "sure"
+    }
+  ],
+  "notes": "Findings attached to names: F1, F4 and F5 all live in _auto_update_ss_messages and belong to the MessageUpdatesMixin verdict (only one id fits the schema); F2 belongs to edit_due_messages. --- Not findings, but worth knowing: (a) :74 imports is_due from status_overview_service at the top of edit_due_messages, outside any try; the ImportError branch of the fallbacks at :157/:196 therefore can no longer engage for a broken service module - the whole cycle raises at :74 instead. Harmless in a healthy install, but the comment at :158-169 promises a fallback that this case cannot reach. (b) :306 logs 'No messages were due' at INFO on every beat of the status loop; with ONE CLOCK that is once per status_beat_seconds rather than once a minute - log volume, not a defect. (c) :94-95 says 'Get default permissions from config' but default_perms is always {} - a tracked channel missing from channel_permissions refreshes every 5 minutes; probably fine, but the comment overstates. (d) :651-657 catches discord.NotFound around get_partial_message, which makes no API call and never raises it; dead handler. The real NotFound comes from :721/:722/:731 and reaches the recovery at :746 with channel/ordered_servers/config bound, as the comment at :633-636 promises - checked. (e) :612-617 recovery: any DiscordException (including a transient 5xx or rate limit) removes the overview from tracking for good; the user who deleted the message sees no overview until a restart or /ss, with an ERROR line as the only sign. Possibly intended (avoids a recovery storm); recorded as a design question, not a finding. (f) :713 reads self._collapsed_animation_key right after the await at :701 with no await in between, so parallel batches of 3 cannot interleave there - unless _create_overview_embed_collapsed sets the attribute before its own internal awaits, which I cannot see. The log at :725 indexes key[0..2]; if the key is not a 3-tuple the IndexError/TypeError is caught nowhere in this function (the outer tuple at :758 has neither) and the cycle counts an error although the swap already succeeded. (g) After a recreate (:513-518) or recovery (:589-593) the new message id has no entry in _shown_animation_keys, so the next due edit does one extra fetch+edit-with-file on a message that already carries the right picture; one API call per recreate, harmless. (h) :731 fallback plain edit after a failed swap keeps the old attachment; if the embed references attachment://<new name> and the old file's name differs, the picture goes blank rather than 'waits' - depends on filenames in overview_embeds.py, not visible. (i) mech_change: 'depleted' is true on every call while power <= 0 and last_glvl > 0, not only on the transition, so every _edit_only_ss_messages (expand/collapse) during an outage asks for a recreate; only should_force_recreate (not visible) stands between that and a delete+repost. Since 2026-09-29 the periodic path swaps the picture anyway, so this override may be redundant now. (j) :370-371 skips a channel silently when load_config() returns falsy, no log line. (k) in_batches is called only with BATCH_SIZE=3 and a list; size <= 0 would raise ValueError in range(), not reachable today."
+}

@@ -1,0 +1,70 @@
+{
+  "section": "05",
+  "verdicts": [
+    {"name": "cogs/overview_embeds.py:32 animation_key", "verdict": "checked"},
+    {"name": "cogs/overview_embeds.py:45 power_consumption_line", "verdict": "checked"},
+    {"name": "cogs/overview_embeds.py:62 group_status_lines", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/overview_embeds.py:135 with_website_footer", "verdict": "checked"},
+    {"name": "cogs/overview_embeds.py:148 OverviewEmbedsMixin", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/slash_commands.py:42 SlashCommandsMixin", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:88 SlashCommandsMixin.serverstatus", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/slash_commands.py:258 SlashCommandsMixin.ss", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:264 SlashCommandsMixin.control", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:362 SlashCommandsMixin.addadmin", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:427 SlashCommandsMixin.help_command", "verdict": "finding", "finding": "F5"},
+    {"name": "cogs/slash_commands.py:457 SlashCommandsMixin.ping_command", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:467 SlashCommandsMixin.donate_command", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/slash_commands.py:577 SlashCommandsMixin.info_command", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/overview_embeds.py",
+      "line": 106,
+      "trigger": "get_group_service().get_groups() succeeds (no OSError), but service.members_of(group.name) for one of the active groups raises an OSError (e.g. an unreadable group-membership file) -> that call sits outside the try/except at lines 92-100, so it propagates uncaught out of group_status_lines, out of _create_overview_embed_collapsed / _create_admin_overview_embed (neither wraps the call either), and into /ss or /control's own except clause, which only catches (discord.errors.DiscordException, RuntimeError, ValueError) - not OSError. The whole overview command fails instead of degrading the way the docstring/comment describes ('the containers are still worth showing; the groups are said to be missing in the log').",
+      "suggestion": "Move the try/except (or widen it) to cover the per-group loop, in particular service.members_of(), so a read failure on one group's membership data degrades the same way a read failure on the group list does.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "group_service.py is not in this section's source, so I cannot see what exceptions members_of() can actually raise in practice (only that get_groups() is documented/handled for OSError)."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/slash_commands.py",
+      "line": 555,
+      "trigger": "In donate_command, if constructing or sending DonationView fails for any reason (view = DonationView(...); message = await ctx.followup.send(embed=embed, view=view); ... _persist_tracked_message_ids()), the bare `except Exception:` at line 555 swallows it with zero logging and falls back to `await ctx.followup.send(embed=embed)` - the SAME embed, which still says 'Choose your preferred method: Click one of the buttons below to support DDC development', except now there are no buttons to click. The operator gets no log line at all to learn a /donate invocation silently lost its buttons.",
+      "suggestion": "Log the exception (at least at WARNING/ERROR, as every other except block in this file does) before falling back to the buttonless embed, and consider telling the user the buttons could not be shown rather than reusing text that promises them.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "cogs/slash_commands.py",
+      "line": 479,
+      "trigger": "donate_command decides whether donations are disabled via `is_donations_disabled()` (services.donation.donation_utils). The Mechonate-button handler (_handle_donate_interaction, same file, line 772) decides the identical question via `bool(config.get('donation_disable_key'))`. The removed duplicate in cogs/docker_control.py is annotated exactly for this gap: 'this one asked is_donations_disabled(), the live one treats any value in donation_disable_key as \"donations off\" - noted for the operator, behaviour unchanged.' donate_command still uses the former style, so if is_donations_disabled() and a bare truthiness check on donation_disable_key ever disagree (e.g. a key value is_donations_disabled() would deem invalid/expired), /donate and the Mechonate button would give a user two different answers to 'are donations on'.",
+      "suggestion": "Route donate_command's disabled check through the same function _handle_donate_interaction uses (or vice versa), so the two entry points to donations cannot drift.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "services/donation/donation_utils.is_donations_disabled() is not in this section's source, so I cannot tell whether it is actually equivalent to bool(config.get('donation_disable_key')) or genuinely narrower/wider, as the codebase's own comment implies."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/overview_embeds.py",
+      "line": 606,
+      "trigger": "In _create_overview_embed_collapsed, when the mech/animation service is unavailable (mech_cache_result.success is False, or the animation build raises), animation_file stays None and the code sets `embed.set_image(url=\"attachment://mech_animation.webp\")` anyway (comment: 'Assume WebP for new system'), assuming an earlier message on that channel already carries that attachment. serverstatus() (cogs/slash_commands.py:219-223) then sends this embed directly via `ctx.followup.send(embed=embed, view=view)` with no file attached. On the FIRST /ss ever posted in a channel there is no earlier attachment to reuse, so Discord shows a broken/missing image. The same situation is explicitly guarded against a few lines later in the same file's _send_message_with_files helper (lines 744-746: 'if embed.image and ... startswith(\"attachment://\"): embed.set_image(url=None)') with a comment that names this exact scenario ('a broken image (the first /ss in a channel)') - but serverstatus's direct send path does not call that helper and so does not get the guard.",
+      "suggestion": "Apply the same attachment-reference guard (or route the send through _send_message_with_files) before serverstatus posts a brand-new message, not only on later edits/updates.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F5",
+      "file": "cogs/slash_commands.py",
+      "line": 440,
+      "trigger": "help_command defers first (line 431) and only afterwards calls _check_spam_protection(ctx, \"help\") (line 440). Inside _check_spam_protection, 'help' is not in the special list ['donate', 'donatebroadcast', 'ss'] that routes the cooldown message through ctx.followup.send() for commands that defer early (line 74); it falls into the else branch and calls `ctx.respond(..., ephemeral=True)` (line 77) even though the interaction was already deferred. The comment directly above the call ('fixed for /donate on 2026-09-23, left behind here until 2026-09-27') documents this as the same class of bug that was fixed for /donate by adding it to that list - and today (2026-09-29) is past that date, with 'help' still missing from the list.",
+      "suggestion": "Add 'help' to the followup-routed command list in _check_spam_protection (or move the spam check before the defer, as serverstatus does), so a user on cooldown reliably gets the cooldown message instead of depending on how ctx.respond() behaves after an interaction has already been deferred.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether this actually fails depends on py-cord's ApplicationContext.respond() implementation when the interaction is already deferred (it may transparently fall back to a followup, in which case this is cosmetic/inert) - that implementation is not part of this section's source."
+    }
+  ],
+  "notes": "donate_command carries two separate findings (F2 and F3); the verdicts array points at F2 (the more certain, higher-severity one) to keep one verdict per plan name, but F3 also belongs to this function. cogs/docker_control.py:825-842 in this section's source is only comments (documenting a removed dead duplicate of _handle_donate_interaction and where the overview embeds now live) - no executable code to review there, so it contributed no verdict/finding of its own."
+}

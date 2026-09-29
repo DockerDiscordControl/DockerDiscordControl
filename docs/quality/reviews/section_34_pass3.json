@@ -1,0 +1,64 @@
+{
+  "section": "34",
+  "verdicts": [
+    {"name": "app/bot/startup_steps/sequence.py:18 run_startup_sequence", "verdict": "checked"},
+    {"name": "app/bot/startup_steps/cooldowns.py:16 apply_dynamic_cooldowns_step", "verdict": "finding", "finding": "F1"},
+    {"name": "app/bot/startup_steps/diagnostics.py:20 run_port_diagnostics_step", "verdict": "finding", "finding": "F2"},
+    {"name": "app/utils/web_helpers.py:38 create_thread", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:41 create_event", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:52 create_thread", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:55 create_event", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:145 note_panel_request", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:152 panel_is_active", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:156 register_panel_activity", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:176 setup_action_logger", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:200 hash_container_data", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:228 get_docker_containers_live", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:332 update_docker_cache", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:544 background_refresh_worker", "verdict": "finding", "finding": "F3"},
+    {"name": "app/utils/web_helpers.py:615 check_docker_connectivity", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:652 start_background_refresh", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:741 stop_background_refresh", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:794 mech_decay_worker", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:864 start_mech_decay_background", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:895 stop_mech_decay_background", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:948 set_initial_password_from_env", "verdict": "checked"},
+    {"name": "app/web/action_logger.py:17 ensure_action_logger", "verdict": "checked"},
+    {"name": "app/web/app_factory.py:35 create_app", "verdict": "checked"},
+    {"name": "app/web/background.py:51 register_background_services", "verdict": "checked"},
+    {"name": "app/web/blueprints.py:28 register_blueprints", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "app/bot/startup_steps/cooldowns.py",
+      "line": 28,
+      "trigger": "dynamic_cooldown_applicator(context.bot) raises a RuntimeError -> apply_dynamic_cooldowns_step's own except (RuntimeError) catches it, logs one ERROR line and returns normally (no exception propagates).",
+      "suggestion": "Either let the exception propagate (remove the local try/except, or re-raise after logging) so run_startup_sequence's aggregator can count and report it, or stop calling this a step of the aggregated sequence.",
+      "severity": "high",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F2",
+      "file": "app/bot/startup_steps/diagnostics.py",
+      "line": 24,
+      "trigger": "log_port_diagnostics() raises RuntimeError or asyncio.TimeoutError -> run_port_diagnostics_step's own except catches it, logs one ERROR line and returns normally, the same pattern as F1.",
+      "suggestion": "Same as F1: let the exception reach run_startup_sequence's aggregator instead of swallowing it locally.",
+      "severity": "high",
+      "certainty": "sure",
+      "unsure_why": ""
+    },
+    {
+      "id": "F3",
+      "file": "app/utils/web_helpers.py",
+      "line": 607,
+      "trigger": "update_docker_cache(logger) (called at :566, inside the inner try at :557-595) raises an exception that is neither docker.errors.DockerException/ValueError/TypeError/KeyError/AttributeError (all handled inside update_docker_cache itself) nor ImportError/AttributeError/RuntimeError/ValueError/TypeError/KeyError (the two except clauses at :583 and :595) -> it escapes the inner try, then also escapes the outer except (AttributeError, RuntimeError) at :607, so it is never logged by this function's own handlers; the worker thread dies, only the `finally` block runs (bg_refresh_running reset, 'stopped' logged at INFO, indistinguishable from a clean shutdown).",
+      "suggestion": "Catch broadly here as mech_decay_worker already does at :839 and :853 (its own comment explains this exact class of bug, review C41) - background_refresh_worker's comment at :583 claims parity ('Service dependency errors') but the except clauses stay narrow, unlike the twin it is modeled on.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I could not see the exception types actually raised by build_docker_client, image_name_of or compose_project_of (not part of this section's source), so I cannot confirm a concrete exception type that would slip through all the listed except clauses. The self-healing behaviour (get_docker_containers_live restarts the worker on the next call via _refresh_worker_is_running) also limits the practical impact, so I could not tell whether this is an overlooked gap or an accepted one."
+    }
+  ],
+  "notes": "Only 2 of the startup sequence's documented 'nine' steps (cooldowns.py, diagnostics.py) were in this section's source; run_startup_sequence itself (sequence.py) is sound and its docstring's stated purpose - one aggregated failure line at the end instead of many scattered ones - is exactly what F1/F2 undermine for their own steps. check_docker_connectivity (web_helpers.py:615) has no caller in this section's source, so I could not confirm how its boolean return or a raised exception from connectivity_service.check_connectivity() is used upstream; read the function itself and found no defect, verdict 'checked' reflects that. The apparent duplicate-filter concern in get_docker_containers_live's rate-limiting fast path (:281-282, returns the full cache without honoring container_name/MAX_CONTAINERS_DISPLAY) turned out to be unreachable with any populated cache - that branch is only reached while global_timestamp is still None, i.e. before the cache has ever been filled, so docker_cache['containers'] is always [] there; not filed as a finding."
+}

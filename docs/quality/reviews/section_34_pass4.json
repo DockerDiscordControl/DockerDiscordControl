@@ -1,0 +1,83 @@
+{
+  "section": "34",
+  "verdicts": [
+    {"name": "app/bot/startup_steps/sequence.py:18 run_startup_sequence", "verdict": "checked"},
+    {"name": "app/bot/startup_steps/cooldowns.py:16 apply_dynamic_cooldowns_step", "verdict": "checked"},
+    {"name": "app/bot/startup_steps/diagnostics.py:20 run_port_diagnostics_step", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:38 create_thread", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:41 create_event", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:52 create_thread", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:55 create_event", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:145 note_panel_request", "verdict": "finding", "finding": "F5"},
+    {"name": "app/utils/web_helpers.py:152 panel_is_active", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:156 register_panel_activity", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:176 setup_action_logger", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:200 hash_container_data", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:228 get_docker_containers_live", "verdict": "finding", "finding": "F2"},
+    {"name": "app/utils/web_helpers.py:332 update_docker_cache", "verdict": "finding", "finding": "F1"},
+    {"name": "app/utils/web_helpers.py:544 background_refresh_worker", "verdict": "finding", "finding": "F1"},
+    {"name": "app/utils/web_helpers.py:615 check_docker_connectivity", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:652 start_background_refresh", "verdict": "finding", "finding": "F4"},
+    {"name": "app/utils/web_helpers.py:741 stop_background_refresh", "verdict": "finding", "finding": "F4"},
+    {"name": "app/utils/web_helpers.py:794 mech_decay_worker", "verdict": "checked"},
+    {"name": "app/utils/web_helpers.py:864 start_mech_decay_background", "verdict": "finding", "finding": "F4"},
+    {"name": "app/utils/web_helpers.py:895 stop_mech_decay_background", "verdict": "finding", "finding": "F4"},
+    {"name": "app/utils/web_helpers.py:948 set_initial_password_from_env", "verdict": "checked"},
+    {"name": "app/web/action_logger.py:17 ensure_action_logger", "verdict": "checked"},
+    {"name": "app/web/app_factory.py:35 create_app", "verdict": "checked"},
+    {"name": "app/web/background.py:51 register_background_services", "verdict": "finding", "finding": "F3"},
+    {"name": "app/web/blueprints.py:28 register_blueprints", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "app/utils/web_helpers.py",
+      "line": 584,
+      "trigger": "update_docker_cache (:350-367) turns a failed list call into a DockerException only when its text contains 'Read timed out' or 'UnixHTTPConnectionPool'; anything else is re-raised as it is. A requests.exceptions.ConnectionError from a TCP DOCKER_HOST (the v3.0 proxy; its message reads 'HTTPConnectionPool(host=..., port=...)', not 'Unix...'), e.g. the daemon or proxy going away between building the client and the list call, is neither a DockerException nor one of (ValueError, TypeError, KeyError, AttributeError), so it leaves update_docker_cache with docker_cache['error'] still None. Two consequences: (a) in background_refresh_worker the inner handlers (:584, :596) and the outer one (:607) list only ImportError/AttributeError/RuntimeError/ValueError/TypeError/KeyError, so the worker dies and the finally block prints the calm INFO line 'Background Docker cache refresh worker stopped' - the same C41 pattern the mech worker (:839-861) was widened and given a DIED line for; its comment 'Broad, like its twin above' describes a twin that is not broad. (b) In get_docker_containers_live (:286) the same exception surfaces into the Flask request as a 500 page instead of the 'DOCKER CONNECTIVITY LOST' banner. The restart in get_docker_containers_live (:246) revives the worker on the next request, only for it to die again the same way.",
+      "suggestion": "Make the worker's exception handling match the mech twin (broad catch inside the loop, DIED line in finally), and in update_docker_cache route every exception from the list call (or at least requests.exceptions.RequestException / OSError) into the DockerException path instead of matching message text, so the cached list is kept and docker_cache['error'] is set.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "services.docker_service.client_factory is not visible: if build_docker_client negotiates the API version at construction, most connection failures already surface as DockerException at :346 and the window is only a daemon/proxy loss between construction and the list call. The exact text of requests' ConnectionError for TCP hosts is from memory."
+    },
+    {
+      "id": "F2",
+      "file": "app/utils/web_helpers.py",
+      "line": 275,
+      "trigger": "Cache filled once, then Docker unreachable or hanging: update_docker_cache leaves global_timestamp at the last success (correct), so on every request cache_age >= the threshold at :259, force_refresh is set True at :275, and the DOCKER_QUERY_COOLDOWN check at :279-282 is skipped ('not force_refresh'). Every page load therefore runs a synchronous Docker query inside the request, up to BACKGROUND_REFRESH_TIMEOUT (30 s) each when the daemon hangs, with no rate limit. The never-filled state (global_timestamp None) IS rate-limited by :279-282, so the same 'Docker is down' condition behaves differently depending on whether a refresh ever succeeded. The same bypass fires at the interval boundary while the panel is in use: the worker sleeps BACKGROUND_REFRESH_INTERVAL after a refresh, so the age reaches interval + refresh duration; with the defaults (30/30) a request in that window, or any request when the operator sets BACKGROUND_REFRESH_INTERVAL larger than DDC_DOCKER_CACHE_DURATION, refreshes synchronously despite a live worker - the comment 'the worker keeps it younger than its interval' (:254-256) does not hold at the boundary.",
+      "suggestion": "Apply the cooldown check to the stale-cache path as well (e.g. set a local 'stale' flag instead of force_refresh, and only query when the cooldown has passed; otherwise return the stale list with docker_cache['error']), and/or base the threshold on the worker's actual cadence (interval plus slack) rather than min(cache duration, 2*interval).",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "How long a query blocks when Docker is down depends on the failure mode (socket missing fails fast; a hung daemon or proxy waits for the 30 s timeout) and on how many requests per page call get_docker_containers_live, which I cannot see."
+    },
+    {
+      "id": "F3",
+      "file": "app/web/background.py",
+      "line": 32,
+      "trigger": "Two readers of the same switch disagree. background.py:_is_enabled reads DDC_ENABLE_BACKGROUND_REFRESH from os.environ only and treats every value other than the literal 'false' as enabled ('0', 'no', 'off' start the worker); web_helpers.py:99 reads the same key config-first via get_setting (the very drift the docstring at web_helpers.py:80-85 says was corrected in nine places). Env DDC_ENABLE_BACKGROUND_REFRESH=false with the Advanced Setting true (or unset in config, if get_setting falls back to a default of True): create_app skips the worker, but the first page load starts it anyway at web_helpers.py:246. Advanced Setting false with the env unset: create_app starts the worker at boot regardless. The operator's off switch is honoured by one side only.",
+      "suggestion": "Read the flag in background.py through the same utils.settings.get_setting(..., bool) used by web_helpers (or import ENABLE_BACKGROUND_REFRESH from web_helpers) so both sides answer the same way; do the same for DDC_ENABLE_MECH_DECAY if it is meant to be an Advanced Setting.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "utils.settings.get_setting is not visible: whether the key is exposed in the panel and how it parses bool values ('0', 'off') decides how often the two readers actually disagree."
+    },
+    {
+      "id": "F4",
+      "file": "app/utils/web_helpers.py",
+      "line": 761,
+      "trigger": "stop_background_refresh sets background_refresh_thread = None (:761) and bg_refresh_running = False (:766) and then joins for at most 1.0 s (:778), while the worker checks the stop flag only every <= 5 s of sleep (:576-582) or after an update of up to 30 s. So the stop normally returns with the old worker still alive (the WARNING at :786 says so). If start_background_refresh is then called - and get_docker_containers_live calls it on the next request whenever _refresh_worker_is_running() is False, which it now is - start_background_refresh sees no thread, calls stop_background_thread.clear() (:685) and starts a second worker. The old worker wakes, finds the shared event cleared, and keeps running: two workers refresh Docker every interval from then on, and the old one's finally never runs. The same shape exists for the mech pair (:914-915, :877).",
+      "suggestion": "Either wait for the old worker to actually finish before clearing the event (join without the 1 s cap, or a per-worker stop event created in start_*), or only clear the event once thread_to_join is confirmed dead; at minimum do not report the worker as stopped (flag False, reference None) while the join timed out.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The only caller of stop_* visible here is the atexit hook in background.py, after which no request follows. The trigger needs a caller during normal operation (a settings reload, tests), which I cannot see."
+    },
+    {
+      "id": "F5",
+      "file": "app/utils/web_helpers.py",
+      "line": 148,
+      "trigger": "note_panel_request runs for every request and excludes only paths starting with '/static/', '/health', '/favicon'. Any other request counts as a person using the panel, including unauthenticated ones: a reverse-proxy or Unraid probe on '/', an uptime monitor on '/login', or a port scanner. A probe with a period shorter than PANEL_ACTIVE_SECONDS (300 s) keeps panel_is_active() True permanently, and the worker queries Docker every 30 s around the clock - the on-demand behaviour the 2026-09-28 change introduced is silently defeated, with the log saying 'Web panel in use again' once and nothing afterwards.",
+      "suggestion": "Count only requests that mean a person is looking: authenticated ones (session present / login succeeded), or at least exclude the login page and HEAD requests; alternatively record the activity where the container list is actually rendered rather than in a global before_request.",
+      "severity": "low",
+      "certainty": "sure"
+    }
+  ],
+  "notes": "Not visible, so not assessed: (1) whether anything outside the web panel (the Discord bot in the same process) reads docker_cache or get_docker_containers_live - if it does, the worker pause (panel_is_active) leaves that reader with a list that is only refreshed when a page is called up; the failure text at web_helpers.py:469 ('Discord bot status messages will be corrupted') suggests such a reader existed at some point. (2) set_initial_password_from_env is not called from create_app or anywhere in this section; its comment says 'called at module level' - where it is invoked could not be checked. Its own logic (marker per value, remember-only for pre-rule installations, refuse on config_read_errors) reads correctly. (3) check_docker_connectivity (async) has no caller in this section; start_background_refresh uses its own synchronous ping. (4) setup_action_logger logs services.infrastructure.action_logger._ACTION_LOG_FILE while web_helpers.py:73 takes ACTION_LOG_FILE from action_log_service.DEFAULT_TEXT_LOG_FILE, with a comment saying the two drifted before (review A3); if they differ again the startup line names a file nothing writes. Whether they agree today could not be checked. Its return value is discarded by ensure_action_logger. (5) register_background_services calls load_active_containers_from_config() and only logs the result (background.py:72-73); whether the call has a side effect that matters is not visible. (6) The cap comment at web_helpers.py:399-401 ('every container in the loop below costs a Docker call') is stale since _ListedContainer removed the per-container inspect; the 50-container cut is still named in a warning, which is fine, but its stated justification no longer holds. (7) MAX_CACHE_AGE (:97) is no longer referenced in this file. (8) start_background_refresh has no lock against two concurrent first requests both finding the worker dead and each starting one - needs a dead worker and two simultaneous requests; mentioned, not filed. (9) The `hash()` in hash_container_data is process-salted but only compared within the process - fine. (10) B-decisions: nothing in this section contradicts B1-B14."
+}

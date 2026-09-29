@@ -1,0 +1,9 @@
+services/automation/image_updates.py:47 ImageRef
+services/automation/image_updates.py:53 parse_image_reference
+services/automation/image_updates.py:85 local_digests
+services/automation/image_updates.py:96 read_running_image
+services/automation/image_updates.py:115 update_available
+services/automation/image_updates.py:126 remote_digest
+services/automation/image_updates.py:174 cached_remote_digest
+services/automation/image_updates.py:201 ImageUpdateChecker
+services/automation/image_updates.py:207 ImageUpdateChecker.observe

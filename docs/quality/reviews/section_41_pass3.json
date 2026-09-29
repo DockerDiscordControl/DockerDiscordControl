@@ -1,0 +1,68 @@
+{
+  "section": "41",
+  "verdicts": [
+    {"name": "cogs/task_ui.py:33 TaskManagementButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:47 TaskManagementButton.callback", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/task_ui.py:161 TaskManagementView", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:178 AddTaskButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:190 AddTaskButton.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:234 DeleteTasksButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:246 DeleteTasksButton.callback", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/task_ui.py:293 AutoActionButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:305 AutoActionButton.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:406 TaskCreationView", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:433 TaskCreationView.check_ready", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:458 TaskCreationView.clear_dropdowns_after", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:467 TaskCreationView.get_next_available_row", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:485 CycleDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:499 CycleDropdown.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/task_ui.py:526 ActionDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:541 ActionDropdown.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/task_ui.py:594 SimpleMonthdayDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:632 SimpleMonthdayDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:671 MonthDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:690 MonthDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:734 YearDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:751 YearDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:776 TimeDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:790 TimeDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:824 WeekdayDropdown", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:841 WeekdayDropdown.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:873 CreateTaskButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:886 CreateTaskButton.callback", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:1074 ContainerTaskDeleteView", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/task_ui.py:1145 ContainerTaskDeleteButton", "verdict": "checked"},
+    {"name": "cogs/task_ui.py:1159 ContainerTaskDeleteButton.callback", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/task_ui.py",
+      "line": 1084,
+      "trigger": "A container has more than 25 active scheduled tasks. DeleteTasksButton.callback builds an embed field 'Found Tasks' with the FULL count `len(tasks)` (line 283), but ContainerTaskDeleteView caps `max_tasks = min(len(tasks), 25)` (line 1084) and only creates delete buttons for `tasks[:max_tasks]` (line 1085) - whichever 25 come first from get_tasks_for_container. The remaining tasks have no delete button in this panel and there is no note that any were left out.",
+      "suggestion": "Either paginate ContainerTaskDeleteView like the >25-task case would need, or - as _show_task_list already does for its own 10-item cap (embed footer 'Showing first {count} of {total} tasks', lines 148-149) - add a visible note when len(tasks) > 25 so the mismatch between the stated count and the buttons shown isn't silent.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "cogs/task_ui.py",
+      "line": 499,
+      "trigger": "Complete a task-creation flow (any cycle) so the Create Task button has been added and enabled - that only happens via TimeDropdown.callback (line 793), which is the only call site of check_ready() in the whole file. CycleDropdown (row 0) and ActionDropdown (row 1) are never removed by clear_dropdowns_after() (both explicitly keep row<=keep_until_row, and the create_button is explicitly excluded from removal too, line 463), so both stay clickable after the flow is complete. If the user now re-opens the Cycle dropdown (line 499-525) or the Action dropdown (line 541-588) and picks a value again, selected_action/day/month/year/time are reset to None, but neither callback calls check_ready() - so the already-enabled Create Task button is left visibly enabled while the state behind it is incomplete. Clicking it immediately hits the 'Please select: ...' rejection (lines 899-902) instead of the button simply being disabled again.",
+      "suggestion": "Call self.view.check_ready() at the end of CycleDropdown.callback and ActionDropdown.callback (or anywhere selections are reset), exactly as TimeDropdown.callback already does, so the Create Task button's enabled state always matches the current selections.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "cogs/task_ui.py",
+      "line": 126,
+      "trigger": "The same task's next/last run time is shown in two places that compute it differently. TaskManagementButton's task list (`_show_task_list`, called from callback) uses `datetime.fromtimestamp(task.last_run_ts)` / `datetime.fromtimestamp(task.next_run_ts)` with no tz argument (lines 126 and 136) - i.e. the host system's local timezone, with no timezone label in the output (`%Y-%m-%d %H:%M`). ContainerTaskDeleteView instead calls `task.get_next_run_datetime()` (line 1109) and explicitly appends a `%Z` marker (line 1131), with a comment stating this is deliberate because 'older tasks may use another zone than the configured one' (lines 1106-1107). If the host's system timezone differs from the task's configured timezone (e.g. app default 'Europe/Berlin' vs. a container running in UTC), the SAME task shows a different, unlabeled time in the task list (reachable via the same TaskManagementView, one click away) than in the delete panel.",
+      "suggestion": "Use the same timezone-aware accessor in _show_task_list that ContainerTaskDeleteView already uses (e.g. task.get_next_run_datetime()/an equivalent for last_run), including the %Z marker, so both views agree.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "The code-level inconsistency (two different conversion methods for the same kind of timestamp) is certain. Whether it currently produces a visibly different time depends on whether the deployment's host/container system timezone matches the app's configured 'timezone' setting - that configuration is not part of this section's source and I could not check it."
+    }
+  ],
+  "notes": "Permission handling for task creation and deletion (Z5/B1/B2) looks correctly fixed as SPEC.md describes: both CreateTaskButton.callback (line 918-925) and ContainerTaskDeleteButton.callback (line 1177-1186) check the CURRENT channel 'schedule' permission first, then fall back to a per-container admin check, and both re-read permission at press time rather than from stale UI state. I could not verify the actual behaviour of `_channel_has_permission`, `_admin_may_control`, `_admin_may_control_task` (imported from .control_helpers), `containers_of_action` (services.automation.automation_service), or `task.get_next_run_datetime()` / scheduler internals (services.scheduling.scheduler, services.scheduling.schedule_helpers) - none of those files are part of this section's source, so any bug living purely inside them would not show up here. AutoActionButton.callback (line 385) uses a broad `except Exception` where every sibling callback in this file uses narrow `(RuntimeError, ValueError, KeyError)`; this is inconsistent with the file's own convention but, since it still logs at ERROR with exc_info and sends a user-visible failure message, it is not itself a silent failure - noted, not filed as a finding. Several places call `_()` (translation) on a dynamically built string such as `self.view.selected_cycle.title()` / `task.action.title()` (e.g. lines 797-798, 1008-1009, 1219) rather than a literal; this happens to work today only because the same capitalized words (e.g. 'Daily', 'Start') already exist as catalog keys from literal `_()` calls elsewhere in this file (e.g. lines 491-495, 532-534) - fragile but not currently broken, and I could not inspect the locale catalogs to be sure, so not filed as a finding. The large dead-code removal noted at lines 864-872 (old MonthdayDropdown/YeardayDropdown/ManualDateView family, review B22) matches its own description; nothing in the current file still references it."
+}

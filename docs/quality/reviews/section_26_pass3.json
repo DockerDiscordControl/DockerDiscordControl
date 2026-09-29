@@ -1,0 +1,54 @@
+{
+  "section": "26",
+  "verdicts": [
+    {"name": "initialize_logging", "verdict": "checked"},
+    {"name": "create_donation_system_task", "verdict": "checked"},
+    {"name": "load_tasks", "verdict": "checked"},
+    {"name": "save_tasks", "verdict": "finding", "finding": "F1"},
+    {"name": "find_task_by_id", "verdict": "finding", "finding": "F1"},
+    {"name": "get_tasks_for_container", "verdict": "finding", "finding": "F1"},
+    {"name": "check_task_time_collision", "verdict": "checked"},
+    {"name": "add_task", "verdict": "checked"},
+    {"name": "update_task", "verdict": "checked"},
+    {"name": "delete_task", "verdict": "checked"},
+    {"name": "reschedule_missed_task", "verdict": "checked"},
+    {"name": "is_upgrade_pause_note", "verdict": "checked"},
+    {"name": "pause_long_dead_tasks_once", "verdict": "checked"},
+    {"name": "get_tasks_in_timeframe", "verdict": "finding", "finding": "F1"},
+    {"name": "get_next_week_tasks", "verdict": "checked"},
+    {"name": "execute_task", "verdict": "finding", "finding": "F3"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/scheduling/scheduler.py",
+      "line": 477,
+      "trigger": "Call add_task(), update_task(), delete_task() or pause_long_dead_tasks_once() (every writer builds its list from `tasks = load_tasks()`, which always includes the freshly-regenerated donation/SYSTEM task, then calls `save_tasks(tasks)`). load_tasks() itself caches only the user tasks before appending system tasks (line 422: `_runtime.replace_tasks_cache({... for task in valid_tasks})`, system tasks added afterwards and never cached there) - but save_tasks() (line 477) caches the *whole* `tasks` argument unfiltered, so the donation task snapshot from that moment lands in `_runtime.tasks_cache` too. `_save_raw_tasks_to_file()` also records the just-written file's mtime/size as current, so `_is_tasks_file_modified()` reports False right afterward. From then on, find_task_by_id(DONATION_TASK_ID) (line 492), get_tasks_for_container('SYSTEM') (line 542) and get_tasks_in_timeframe() (line 865) return that frozen object straight from the cache instead of recomputing it through create_donation_system_task() - so if donations get enabled/disabled (premium key) or the task's last-run state changes afterward without another tasks.json write, those three lookups keep answering with the stale is_active/next_run_ts/last_run_* until the next unrelated task edit happens to refresh the cache again.",
+      "suggestion": "In save_tasks(), build the cache update from the already-computed `user_tasks` (or filter with `not task.is_system_task()`), the same way load_tasks() does, instead of caching the raw `tasks` argument which may still contain the caller's copy of the system/donation task.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "Cannot see services/scheduling/runtime.py (how tasks_cache / is_tasks_file_modified / replace_tasks_cache are actually implemented) or the callers of find_task_by_id / get_tasks_for_container / get_tasks_in_timeframe outside this file, so I cannot confirm which UI or status path actually reads the donation task through one of these three functions, nor whether the runtime layer has some other safeguard that masks this. If a caller does rely on one of them for the donation task's displayed status, this is a silently wrong result a user would believe - hence ranked high despite the uncertainty."
+    },
+    {
+      "id": "F2",
+      "file": "services/scheduling/scheduler.py",
+      "line": 965,
+      "trigger": "In execute_task(), when the donation task fires and get_bot_instance() returns a falsy value (e.g. the bot has not finished connecting yet), the code logs \"Bot instance not available for donation message task\" (line 965) but does not return or skip - it falls straight through to `result = await execute_donation_message_task(bot=bot)` (line 968) with bot=None.",
+      "suggestion": "Mirror the 'donations disabled' branch a few lines above: when there is no bot instance, mark the run as failed with an explicit reason and reschedule, instead of calling execute_donation_message_task with bot=None.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "services/scheduling/donation_message_service.py (execute_donation_message_task) is not part of this section, so I cannot tell whether it safely no-ops or raises on bot=None (in which case the surrounding except block at line 1002 already catches it and correctly marks the task failed - matching Z3), or whether it could return a truthy result despite not actually sending anything, which would be a Z3 violation (false success reported)."
+    },
+    {
+      "id": "F3",
+      "file": "services/scheduling/scheduler.py",
+      "line": 1023,
+      "trigger": "A scheduled task with task.target_is_group == True returns at line 1026 via `execute_group_task(task, timeout)` before reaching the execution-time allowed-action re-check at lines 1032-1034 (`if _is_discord_created(task): disallowed_reason = _get_disallowed_action_reason(...)`). A single-container task created in Discord DOES get that re-check against the container's *current* allowed_actions (SPEC Z5: 'the container allows the action ... on every path'); a Discord-created group task never reaches this code at all, so if a container's allowed actions (or the container itself) changed after the group task was scheduled, this module performs no re-check before dispatching the group action.",
+      "suggestion": "Verify whether services/scheduling/group_tasks.execute_group_task() re-implements the same allowed-action re-check per target container that _get_disallowed_action_reason() performs here; if it does not, add an equivalent check before or inside execute_group_task for Discord-created group tasks.",
+      "severity": "critical",
+      "certainty": "unsure",
+      "unsure_why": "services/scheduling/group_tasks.py (execute_group_task) is not included in this section's source, so I cannot see whether it already re-checks each target container's current allowed_actions on its own. If it does, this is a non-issue; if it does not, this is exactly the kind of 'container action without a currently-valid permission, and nobody notices' case Z5 is meant to rule out on every path - so I ranked it high rather than guessing it away."
+    }
+  ],
+  "notes": "General observation, not a standalone finding: load_tasks() (lines 358-388) reads and parses tasks.json inline, while a separate helper _load_raw_tasks_from_file() (lines 195-251, used only by find_task_by_id's fast-path at line 509) re-implements the same read+parse with different retry/empty-file/JSON-error handling and does not set the module-level _last_load_failed flag. In the visible code this self-corrects (find_task_by_id falls back to a full load_tasks() call whenever the fast path does not find the id), so I did not turn it into a finding, but it is the kind of duplicated logic that can drift silently if either copy is edited alone. Functions not in the check plan but read to judge the plan's functions (_get_disallowed_action_reason, _is_discord_created, _load_raw_tasks_from_file, _save_raw_tasks_to_file, _get_action_timeout/_get_container_stop_timeout) looked correct and consistent with the documented SPEC decisions (B6, B12, B14, E3-E6) where their behaviour was visible. Out-of-section code I could not inspect and that several findings depend on: services/scheduling/runtime.py, services/scheduling/group_tasks.py, services/scheduling/task_writeback.py, services/scheduling/donation_message_service.py, services/scheduling/scheduled_task.py / task_input.py, services/config/server_config_service.py."
+}

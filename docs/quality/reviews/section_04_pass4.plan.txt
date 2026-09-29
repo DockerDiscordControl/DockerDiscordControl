@@ -1,0 +1,13 @@
+cogs/channel_lifecycle.py:32 ChannelLifecycleMixin
+cogs/channel_lifecycle.py:413 ChannelLifecycleMixin.send_initial_status
+cogs/channel_lifecycle.py:536 ChannelLifecycleMixin.delete_bot_messages
+cogs/docker_control.py:136 DockerControlCog
+cogs/docker_control.py:331 DockerControlCog.config
+cogs/docker_control.py:349 DockerControlCog.on_ready
+cogs/docker_control.py:509 DockerControlCog._setup_background_loops.send_initial_after_delay
+cogs/docker_control.py:557 DockerControlCog.trigger_status_refresh
+cogs/docker_control.py:636 DockerControlCog.on_message
+cogs/loop_safety.py:46 survives_one_bad_cycle
+cogs/loop_safety.py:66 survives_one_bad_cycle.wrapper
+cogs/loop_safety.py:91 _register_loop_error_handlers.make_handler
+cogs/loop_safety.py:92 _register_loop_error_handlers.make_handler.handler

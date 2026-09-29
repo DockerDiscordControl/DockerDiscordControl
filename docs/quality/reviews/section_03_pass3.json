@@ -1,0 +1,76 @@
+{
+  "section": "03",
+  "verdicts": [
+    {"name": "cogs/admin_ui.py:32 AdminButton", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:47 AdminButton.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/admin_ui.py:111 AdminButton.callback.get_sort_key", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:149 AdminContainerSelectView", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:187 AdminContainerDropdown", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:209 AdminContainerDropdown.__init__.get_order_key", "verdict": "checked"},
+    {"name": "cogs/admin_ui.py:258 AdminContainerDropdown.callback", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/mech_ui.py:34 MechView", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:61 MechDetailsButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:73 MechDetailsButton.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/mech_ui.py:222 MechDonateButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:236 MechDonateButton.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/mech_ui.py:267 MechHistoryButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:281 MechHistoryButton.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/mech_ui.py:393 MechSelectionView", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/mech_ui.py:426 MechDisplayButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:457 MechDisplayButton.callback", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/mech_ui.py:555 EpilogueButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:567 EpilogueButton.callback", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/mech_ui.py:623 MechStoryView", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:638 ReadStoryButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:651 ReadStoryButton.callback", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/mech_ui.py:722 PlaySongButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:736 PlaySongButton.callback", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/mech_ui.py:783 MechDetailsView", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:796 MechPrivateDonateButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:808 MechPrivateDonateButton.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/mech_ui.py:835 MechPrivateHistoryButton", "verdict": "checked"},
+    {"name": "cogs/mech_ui.py:847 MechPrivateHistoryButton.callback", "verdict": "finding", "finding": "F2"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/admin_ui.py",
+      "line": 341,
+      "trigger": "A user selects a container from the admin dropdown. `container_config['_is_admin_control'] = True` is set at line 341, then `admin_panel_embed()`, `running_state_for()` or `admin_control_view()` (lines 353-358) raises an exception. Execution jumps straight to the `except (RuntimeError, ValueError, KeyError)` block at line 377, which never reaches the `container_config.pop('_is_admin_control', None)` cleanup at line 360 - and the except handler does not pop it either. The temporary marker is left set to True on `container_config` for good.",
+      "suggestion": "Set the marker and clean it up around a try/finally (or pop it in the except handler too), so `_is_admin_control` is always removed regardless of whether embed/view generation succeeds.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether this has any visible effect depends on whether `server_config_service.get_server_by_docker_name()` / `group_config_for()` return a live reference into a shared/cached config object (in which case the stuck flag could affect what status_handlers.py:1051 / status_info_integration.py:1143 display for other users of the same container per SPEC.md Z5) or a fresh dict discarded after this call (harmless). Both are outside this section's source."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/mech_ui.py",
+      "line": 176,
+      "trigger": "Every button callback in this section defers the interaction and wraps its body in a narrow `except (RuntimeError, ValueError, KeyError)` (mech_ui.py:176, :248, :348, :816, :855; admin_ui.py:143 also catches `discord.errors.DiscordException` but still not more). If the service call inside (e.g. `get_mech_status_details_service()`, `get_mech_service()`, `admin_service.is_user_admin()`, `server_config_service.get_all_servers()`) raises any other exception type - AttributeError, TypeError, OSError, or an uncaught discord.errors.* subtype - nothing is caught, no error message is ever sent, and the user's deferred, ephemeral 'thinking...' interaction never resolves. SPEC.md documents this exact failure shape already happening once and being fixed on the donation broadcast path (Z3: an UnboundLocalError caught by neither except block left 'Processing…' permanent) - these callbacks were evidently not part of that sweep.",
+      "suggestion": "Widen these except clauses to also catch AttributeError, TypeError and OSError (or catch a broader Exception at this outer, user-facing boundary and log it), so a service-side bug fails loudly to the user instead of leaving the interaction hanging indefinitely.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether any of the called services can actually raise a type outside (RuntimeError, ValueError, KeyError, DiscordException) depends on code not in this section (services/*), so I cannot confirm this triggers in practice - only that the except clauses would not catch it if it did."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/mech_ui.py",
+      "line": 406,
+      "trigger": "In `MechSelectionView.__init__` (406-409), for each level from 1 to current_level the code does `evolution_info = get_evolution_level_info(level); if evolution_info: <add button>`. If `get_evolution_level_info(level)` returns a falsy value for a level the user has actually unlocked (missing/corrupted evolution data), the button for that level is silently omitted - no log line, no error - and the user simply sees one fewer button, indistinguishable from never having unlocked that level.",
+      "suggestion": "Log a warning when `get_evolution_level_info(level)` returns falsy for a level <= current_level, the way `_is_unlocked_now()` already does for its own missing-data case (line 453), so a data gap shows up in the logs instead of only as a silently missing button.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "services/mech/mech_evolutions.py is not in this section, so I cannot tell how often, if ever, get_evolution_level_info actually returns a falsy value for a level within the supported range 1-11; the silent-drop code path exists regardless of how often it fires."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/mech_ui.py",
+      "line": 550,
+      "trigger": "In `MechDisplayButton.callback`'s except block (550-553) the fallback `await interaction.followup.send(...)` has no surrounding try/except. If the interaction has meanwhile expired or the original response is otherwise gone, `followup.send` itself raises `discord.errors.NotFound`/`HTTPException`, and that second exception is unhandled. The same pattern - no inner try/except around the fallback send - also affects `EpilogueButton.callback` (619-621), `ReadStoryButton.callback` (717-720) and `PlaySongButton.callback` (774-777). By contrast, sibling callbacks in the same file (e.g. MechDetailsButton.callback:178-191, MechHistoryButton.callback:351-357, MechPrivateDonateButton.callback:818-833, MechPrivateHistoryButton.callback:857-872) all wrap this same fallback send in its own try/except that catches at least discord.errors.NotFound.",
+      "suggestion": "Wrap the fallback followup.send/response.send_message call in these four callbacks in the same try/except pattern already used by the other callbacks in this file.",
+      "severity": "low",
+      "certainty": "sure"
+    }
+  ],
+  "notes": "Everything in this section's own code is otherwise consistent with the SPEC: AdminContainerDropdown.callback's door check (admin_ui.py:285-293) correctly asks the CURRENT channel permission or the CURRENT admin list, not the old '_is_admin_control' title heuristic, matching the Z5 fix; the per-container admin scoping (B2) is applied to narrow the dropdown's *options* (admin_ui.py:167-183) and enforcement of that scoping is left to the buttons further down the chain (outside this section's source, per the code's own comment at :273-279) - I could not verify that those downstream buttons actually re-check per-container scope, since admin_control_view/admin_panel_embed live in cogs/group_control.py, which is not part of this section. If that downstream re-check is missing, a container-scoped admin could act on containers outside their assignment; I have no way to confirm or refute this from the material given. AdminButton.callback.get_sort_key (admin_ui.py:112-118) and AdminContainerDropdown.__init__.get_order_key (admin_ui.py:210-217) are byte-for-byte identical sort-key logic duplicated in two places; they do not currently diverge, so this is not reported as a finding, only flagged as a place that could drift. Spam-protection failures (both files, e.g. admin_ui.py:89-90, mech_ui.py:218-219, :324-325) are deliberately fail-open (logged, not blocking the action) and consistent across both files, so not reported as findings."
+}

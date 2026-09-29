@@ -1,0 +1,148 @@
+{
+  "section": "11",
+  "verdicts": [
+    {"name": "services/automation/auto_action_state_service.py:25 TriggerEvent", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:35 TriggerEvent.to_dict", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:38 AutoActionStateService", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:142 AutoActionStateService.cooldown_key", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:161 AutoActionStateService.check_cooldown", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:198 AutoActionStateService.acquire_execution_lock", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:215 AutoActionStateService.acquire_execution_locks", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:273 AutoActionStateService.release_execution_lock", "verdict": "finding", "finding": "F11"},
+    {"name": "services/automation/auto_action_state_service.py:293 AutoActionStateService.release_rule_cooldown", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:304 AutoActionStateService.record_trigger", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:367 AutoActionStateService.get_history", "verdict": "checked"},
+    {"name": "services/automation/auto_action_state_service.py:385 get_auto_action_state_service", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:54 TriggerContext", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:66 TriggerContext.full_text", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:71 TriggerContext.message_link", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:141 rule_listens_to", "verdict": "finding", "finding": "F10"},
+    {"name": "services/automation/automation_service.py:178 protected_names", "verdict": "finding", "finding": "F9"},
+    {"name": "services/automation/automation_service.py:194 rule_may_act_on", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:215 containers_of_action", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:223 AutomationService", "verdict": "checked"},
+    {"name": "services/automation/automation_service.py:231 AutomationService.process_message", "verdict": "finding", "finding": "F1"},
+    {"name": "services/automation/automation_service.py:669 AutomationService.process_container_events", "verdict": "finding", "finding": "F3"},
+    {"name": "services/automation/automation_service.py:1003 get_automation_service", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:29 ChannelConfigService", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:126 ChannelConfigService.get_all_channels", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:232 ChannelConfigService.get_channel", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:254 ChannelConfigService.save_channel", "verdict": "finding", "finding": "F2"},
+    {"name": "services/config/channel_config_service.py:292 ChannelConfigService.delete_channel", "verdict": "finding", "finding": "F2"},
+    {"name": "services/config/channel_config_service.py:323 ChannelConfigService.save_all_channels", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:534 ChannelConfigService.sync_from_main_config", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:567 get_channel_config_service", "verdict": "checked"},
+    {"name": "services/config/channel_config_service.py:581 reset_channel_config_service", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "services/automation/automation_service.py",
+      "line": 377,
+      "trigger": "A message rule with regex_pattern AND required_keywords (e.g. regex 'error', required_keywords ['valheim']). Message 'error in minecraft' arrives: _check_match returns True at :377 as soon as the regex hits, BEFORE the required-keywords check at :391-398 runs. The rule fires and restarts its containers although the keyword the operator marked as REQUIRED is absent. Conversely a regex-only rule (no trigger keywords) returns False at :380 on a regex miss even when all required keywords are present, so required_keywords are never consulted in a regex rule at all. The ignore-keyword fix (audit 2026-09-26 F6) moved the ignore list in front of the regex; the required list still stands behind it.",
+      "suggestion": "Evaluate required_keywords before the regex returns True (move step 3 in front of step 2, or make the regex hit fall through to step 3 instead of returning), and document which combination of regex/required/keywords is legal if this ordering is deliberate.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see the rule editor or the config service: required_keywords may be presented as a keyword-mode-only option, in which case the regex branch ignoring it is intended. The comment at :391 ('ALL must match (AND logic)') does not say so."
+    },
+    {
+      "id": "F2",
+      "file": "services/config/channel_config_service.py",
+      "line": 458,
+      "trigger": "save_channel() or delete_channel() runs while ConfigService.save_config() (or the other of the two) writes config.json. _update_main_config (:445-458) and _remove_from_main_config (:478-487) read config.json, change channel_permissions and rewrite the WHOLE file - without the get_config_service()._save_lock that _update_main_config_bulk (:511-525) takes for exactly this reason ('two overlapping saves ... could have this write land on top of a main save and lose it entirely'). Two tabs or a bot-side channel save concurrent with a panel save: whichever writes second overwrites the other's changes (a token, a setting, another channel's permission) with its stale copy, both callers report success.",
+      "suggestion": "Take get_config_service()._save_lock in _update_main_config and _remove_from_main_config too (it is an RLock, so nested calls from within a locked save keep working).",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F3",
+      "file": "services/automation/automation_service.py",
+      "line": 780,
+      "trigger": "A container-state rule with cooldown_scope='rule' and no container list (or a list that includes a protected container). A container from protected_containers, or DDC itself, reports e.g. 'unhealthy': acquire_execution_locks at :770 sets rule_cooldowns[rule.id] = now, THEN the protected check at :780 refuses and returns False without releasing anything (deliberate for the per-container cooldown, see comment :776-779). With scope 'rule' this also spends the RULE cooldown: for cooldown_minutes (24 h default) every other container's crash is answered with 'Rule cooldown active' and SKIPPED, although nothing was done. Only the history shows it.",
+      "suggestion": "Either check protection before the locks and rate-limit only the alert (its own key), or on the protected branch keep only the container's cooldown and reset the rule cooldown (release_rule_cooldown).",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The comment shows that spending the container cooldown on a protected container is intended; whether spending the rule-wide cooldown was accepted knowingly I cannot tell."
+    },
+    {
+      "id": "F4",
+      "file": "services/automation/automation_service.py",
+      "line": 800,
+      "trigger": "A container-state rule with delay_seconds > 0 or player options: _execute_container_rule starts _act_on_container as a fire-and-forget task (:800-805) whose only done-callback is set.discard. If docker_action, player_gate.hold_until_empty or _alert raises inside it (e.g. the socket blip named at :278), the except at :858-862 releases the lock and re-raises - into a task nobody awaits. No record_trigger, no Discord notice, no alert webhook; the operator saw '🚨 stopped → RESTART' and then nothing. The release is also in memory only: if another rule's record_trigger saved state in between, the container is still locked on disk and stays locked for the cooldown after a DDC restart.",
+      "suggestion": "Give the task a done-callback that reads task.exception(), records FAILED with the error text, sends the '⚠️ failed' alert, and persists the released lock (record_trigger already saves).",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether docker_action / hold_until_empty can raise rather than return False is outside this section; :278 suggests docker_action can."
+    },
+    {
+      "id": "F5",
+      "file": "services/automation/automation_service.py",
+      "line": 291,
+      "trigger": "Message rule with action containers [A, B]. A is restarted (record_trigger SUCCESS, cooldown set), then docker_action on B raises. The handler at :291-293 calls release_execution_lock(success=False) for EVERY target of the rule, A included, so A's cooldown is cleared right after A was restarted. The next matching message in the same chatty channel restarts A again (only the 30 s global cooldown stands in the way) - the same restart-over-and-over pattern review B10 removed from record_trigger.",
+      "suggestion": "Release only the containers that have no SUCCESS recorded in this batch (track them in _execute_rule and expose them, or release before the exception propagates per container).",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Depends on docker_action raising (not returning False) for a later container; and the comment at :278-282 describes releasing everything as intended, without addressing already-successful containers."
+    },
+    {
+      "id": "F6",
+      "file": "services/automation/automation_service.py",
+      "line": 293,
+      "trigger": "Same batch as F5 but DDC restarts afterwards: A's record_trigger saved the whole state to disk, including B's cooldown set by acquire_execution_locks. The exception handler's release_execution_lock changes memory only (no _save_state; the comment at auto_action_state_service.py:269-271 promises the correction 'in record_trigger()', which this path never calls). After the restart _load_state brings B's lock back and the log line 'released its container cooldowns' was wrong for B for up to 24 h.",
+      "suggestion": "Persist after the release in the handler (e.g. record_trigger(..., 'FAILED', str(e)) per container, which also gives the failure a history entry), or make release_execution_lock save.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F7",
+      "file": "services/automation/automation_service.py",
+      "line": 580,
+      "trigger": "A NOTIFY rule whose action containers name a container Docker does not know (typo, or removed since). Each matching message: the '⚡ NOTIFY **name**' notice is sent (:557-560), then is_container_exists returns False (:580), record_trigger FAILED 'Container not found' resets the container cooldown to 0, a second message '⚠️ Container not found' goes out, success_count stays 0 and release_rule_cooldown frees the rule. The rule's cooldown never holds: two messages per matching message, limited only by the 30 s global cooldown.",
+      "suggestion": "For NOTIFY skip the existence check (the notice is the action and was delivered) or count the delivered notice as the result; alternatively record the missing container as SKIPPED so the cooldown stays.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether the rule editor lets a NOTIFY rule name a container at all, and whether 'notify only if the container exists' is the intended meaning, I cannot see."
+    },
+    {
+      "id": "F8",
+      "file": "services/automation/automation_service.py",
+      "line": 611,
+      "trigger": "A message rule with delay_seconds=60 and a group of 20 containers. The single announcement says '(60s delay)' (:548-550), but asyncio.sleep(delay) sits INSIDE the per-container loop (:610-612): container 20 is acted on 20 minutes after the message, and the rule's lock is held for the whole time. The container-state path already moved its delay out of the loop for a similar reason.",
+      "suggestion": "Sleep once before the loop (as the announcement implies), or make the announcement say the delay applies per container.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "A per-container stagger could be the intended meaning of 'delay'; the announcement text suggests otherwise."
+    },
+    {
+      "id": "F9",
+      "file": "services/automation/automation_service.py",
+      "line": 173,
+      "trigger": "own_container_id() succeeds but describe_self() returns ok=False for one lookup (a Docker hiccup that does not stop docker_action from working a moment later). _own_container_name returns '' without caching (:172-174), protected_names (:188-191) therefore contains only the configured list - which, as its own docstring says, does not hold DDC's real name. A rule with no container list and RESTART on high_memory, firing on DDC itself at that moment, restarts DDC; the docstring's own consequence ('the process dies before the cooldown is written, so it would do it again') applies. The protection fails open exactly when Docker is flaky.",
+      "suggestion": "When the own name cannot be determined and own_container_id() is set, refuse the action (or treat the unknown-own-name case as 'protected: unknown' and skip) instead of proceeding with a shorter protected set; or cache a name found once at startup.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "describe_self and own_container_id are outside this section; if describe_self can only fail when Docker is completely unreachable, docker_action would fail too and nothing happens."
+    },
+    {
+      "id": "F10",
+      "file": "services/automation/automation_service.py",
+      "line": 107,
+      "trigger": "_members_of_group catches only OSError (:107). If the group service raises anything else (a JSONDecodeError on a corrupt groups file is a ValueError, a KeyError on an unexpected shape), rule_listens_to (:152) raises inside process_container_events (:709) where nothing catches it: every remaining event of that poll, for every rule, is dropped, and the watcher has already stored the new state, so they are gone. On the message path the same exception is at least caught per rule at :272.",
+      "suggestion": "Catch (OSError, ValueError, KeyError, TypeError) in _members_of_group and treat a group that cannot be read as 'resolves to nothing' with an ERROR log, or wrap each rule in process_container_events like process_message does.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether get_group_service()/members_of()/find() can raise anything but OSError, or already swallow read errors internally, is in code I cannot see."
+    },
+    {
+      "id": "F11",
+      "file": "services/automation/auto_action_state_service.py",
+      "line": 289,
+      "trigger": "Message rule with cooldown_scope='rule', only_if_running=True, action containers [A, B], A running, B stopped. A is restarted (record_trigger SUCCESS sets rule_cooldowns[rule]), then B is skipped and _execute_rule calls release_execution_lock(rule, B, success=False) (:600), which at :288-290 DELETES the rule-wide cooldown although A was just acted on. The rule-scope cooldown is silently downgraded to container scope for this cycle; it shows as soon as the target set changes (group membership, or a container-state rule where the next event is for another container) - the rule then acts within the window the operator set. Same class as review B10, which fixed record_trigger but left release_execution_lock.",
+      "suggestion": "Let release_execution_lock touch only the container key, like record_trigger does since B10; the rule cooldown is already handled once per batch by release_rule_cooldown.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "In the plain message path A's container cooldown still blocks the whole batch, so the effect is hard to observe; I could not tell whether the rule-scope semantics are meant to survive a partial skip."
+    }
+  ],
+  "notes": "Several findings belong to names that hold one verdict slot: F5, F6, F7, F8 are in process_message's _execute_rule path; F4 is in process_container_events' _execute_container_rule/_act_on_container path (F3 is the one recorded on that name). --- Not findings, but worth a look: (1) auto_action_state_service._save_state runs OUTSIDE self._lock (record_trigger releases the lock before saving, :364-365; _load_state likewise) and json.dump iterates the live dicts; if any second thread (web UI/waitress) ever calls record_trigger or acquire_execution_locks, the dump can hit 'dictionary changed size during iteration', which is caught and logged as 'Error saving AAS state' and the state is simply not saved. I cannot see whether the web panel writes into this service, so no trigger. (2) record_trigger SUCCESS on the watchdog path sets global_last_triggered although process_container_events passes global_cooldown=0: a watchdog action holds every MESSAGE rule for the next 30 s. Minor, possibly intended. (3) check_cooldown and acquire_execution_locks are two copies of the same three checks and agree today; check_cooldown is not called anywhere in this section. (4) _execute_rule's protected check (:507-513) refuses the WHOLE rule when any one target of a group is protected, with a log line and history entry only, no Discord notice - the watchdog path alerts in the same case. With DDC's own container in a ticked group the rule quietly does nothing for all other members. Possibly intended ('Question 18'), so not filed. (5) The protected check on the message path runs BEFORE the cooldowns and record_trigger writes the state file per matching message - the per-poll spam the watchdog comment (:776-779) fixed exists here as disk writes/history entries, capped at 100. (6) A NOTIFY rule whose action containers resolve to nothing (empty list, group switched off or deleted) sends nothing at all because the announcement at :547 requires target_containers; whether such a rule is even saveable I cannot see. (7) _safe_regex_search forks the multi-threaded bot process from a worker thread per message and regex rule; a child hanging on an inherited lock is reported as 'pattern too complex' (false negative) rather than deadlocking, so this is a robustness note, not a finding. (8) channel_config_service._atomic_write_json still lacks the permission-preserving/os.replace behaviour of utils/atomic_io.py - already recorded in SPEC Z7 as a separate item, not repeated. (9) save_channel writes the channel file and only then config.json; when _update_main_config fails the two sources differ and False is returned (caller is told) - acceptable but the file is left in place. (10) get_all_channels deletes a wrongly named duplicate file on a READ path (:172-173, review B32) with an INFO log; an operator who edited Control.json by hand loses that edit without a warning. Deliberate per B32, noted only. (11) sync_from_main_config treats config.json as the truth and deletes channel files it does not list; with an empty channel_permissions it leaves the files alone - asymmetric but a safety choice. (12) _load_state on a corrupt auto_actions_state.json logs an ERROR and starts with empty cooldowns, so every rule may fire again at once after a restart; visible in the log, not filed."
+}

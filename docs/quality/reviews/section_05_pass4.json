@@ -1,0 +1,137 @@
+{
+  "section": "05",
+  "verdicts": [
+    {"name": "cogs/overview_embeds.py:32 animation_key", "verdict": "checked"},
+    {"name": "cogs/overview_embeds.py:45 power_consumption_line", "verdict": "checked"},
+    {"name": "cogs/overview_embeds.py:62 group_status_lines", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/overview_embeds.py:135 with_website_footer", "verdict": "checked"},
+    {"name": "cogs/overview_embeds.py:148 OverviewEmbedsMixin", "verdict": "finding", "finding": "F12"},
+    {"name": "cogs/slash_commands.py:42 SlashCommandsMixin", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:88 SlashCommandsMixin.serverstatus", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/slash_commands.py:258 SlashCommandsMixin.ss", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:264 SlashCommandsMixin.control", "verdict": "finding", "finding": "F11"},
+    {"name": "cogs/slash_commands.py:362 SlashCommandsMixin.addadmin", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:427 SlashCommandsMixin.help_command", "verdict": "checked"},
+    {"name": "cogs/slash_commands.py:457 SlashCommandsMixin.ping_command", "verdict": "finding", "finding": "F6"},
+    {"name": "cogs/slash_commands.py:467 SlashCommandsMixin.donate_command", "verdict": "finding", "finding": "F5"},
+    {"name": "cogs/slash_commands.py:577 SlashCommandsMixin.info_command", "verdict": "finding", "finding": "F7"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/slash_commands.py",
+      "line": 126,
+      "trigger": "/ss or /serverstatus in a channel without 'serverstatus' permission, or in a control channel -> ctx.defer() at :104 has already posted a PUBLIC 'thinking' message; the refusal at :126 (and the config error at :131, the connectivity embed error at :155) is then sent as an ephemeral followup after a public defer. The comment at :91-94 records what the operator saw with the identical pattern for the spam refusal: the refusal replaced the thinking message for the whole channel. The spam check was moved before the defer on 2026-09-19; the permission check right below it, which needs nothing but a dict lookup on self.config, was left after the defer. Same pattern in /control at :273/:287 (defer(ephemeral=False) then ephemeral refusal).",
+      "suggestion": "Move the channel-permission check (:117-128) before ctx.defer(), answering with ctx.respond(embed=embed, ephemeral=True) like the spam brake does; likewise in /control (:279-289). Leave the config load after the defer.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see the Discord/py-cord behaviour for an ephemeral followup after a public defer; either the refusal becomes public (as the code's own comment describes for the spam case) or the public 'thinking' message stays stuck. Both are visible to the whole channel, neither is what ephemeral=True promises."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/slash_commands.py",
+      "line": 227,
+      "trigger": "/ss while the animation is unavailable (the inner except at overview_embeds.py:581-592 fires, animation_file=None) -> the builder still sets embed image to attachment://mech_animation.webp (:605, 'reference existing') although a fresh followup.send carries no file. serverstatus sends that embed directly at :223 (and at :220 when the file has no fp). _send_message_with_files (:740-746) exists precisely to strip the attachment:// reference on a send without a file ('that is a broken image (the first /ss in a channel)') but serverstatus does not use it. If Discord rejects the payload with an HTTPException, the fallback at :227 re-sends the identical embed and fails identically; that second HTTPException is not in the (RuntimeError, OSError, ValueError) tuple at :228, so it flies to :250 and the user gets 'An error occurred while generating the overview.' If Discord accepts it, the message shows a broken image.",
+      "suggestion": "Send via self._send_message_with_files(ctx.followup, embed, animation_file, view) or strip the attachment:// image before sending without a file; make the fallback at :227 actually differ from the first attempt (no file, no attachment:// reference) and catch discord.HTTPException there.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "Whether Discord rejects or silently renders a broken image for a dangling attachment:// reference is not visible here; the code's own comment at :743-744 says 'broken image'."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/overview_embeds.py",
+      "line": 111,
+      "trigger": "Docker unreachable (or the status loop stalled) for longer than DDC_DOCKER_MAX_CACHE_AGE (300 s) -> the container lines in the same overview treat the stale cache entry as unknown and draw 🔄 (:446-451, :227-232), but group_status_lines reads status_cache_service.get(container) with NO age check and still counts the stale is_running -> the group line reads '🟢 mygroup 2/2' while its members directly above read 🔄. Reverse case: containers restarted outside DDC while the cache is stale -> group shows 🔴 0/2 with members 🔄. Two places evaluate the same cache entry by different rules.",
+      "suggestion": "Apply the same age rule as the container lines (skip or count as not running when 'timestamp' is older than DDC_DOCKER_MAX_CACHE_AGE), ideally via one shared helper 'status_from_cache(docker_name)' used by all three builders so they cannot drift again.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F4",
+      "file": "cogs/overview_embeds.py",
+      "line": 96,
+      "trigger": "get_group_service()/get_groups() raises anything but OSError (e.g. a corrupt groups file -> json.JSONDecodeError, a ValueError; or a KeyError/TypeError on a malformed entry) -> the exception leaves group_status_lines, and with it _create_overview_embed_collapsed and _create_admin_overview_embed; /ss then answers 'An error occurred while generating the overview.' (:250-253) and /control 'Error showing control overview.' The comment at :97-98 promises 'The containers are still worth showing', which holds only for OSError. Whether the periodic overview update (message_updates, not in this section) survives it I cannot see.",
+      "suggestion": "Catch (OSError, ValueError, KeyError, TypeError) - or whatever the group service documents - at :96, log at ERROR as now, return []. The group section is decoration; it must not take the container list down.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see services/config/group_service.py; it may already convert parse errors into OSError or return an empty list."
+    },
+    {
+      "id": "F5",
+      "file": "cogs/slash_commands.py",
+      "line": 556,
+      "trigger": "/donate: followup.send at :544 SUCCEEDS, then one of the lines after it raises - asyncio.create_task on a failing start_auto_delete_timer, or self._persist_tracked_message_ids() at :555 hitting an OSError on the tracking file -> the except at :556 sends the embed a SECOND time, without buttons. The channel now holds two donation panels; the second is not tracked (:551-554 is after the failure point), has no auto-delete task, and the next start cannot clear it either. Only the first send belongs in the try; the bookkeeping after it must not trigger 'send it again'.",
+      "suggestion": "Narrow the try at :542 to the DonationView construction and the single followup.send; run the bookkeeping (:545-555) outside it with its own except that logs and leaves the message alone. Then the fallback send happens only when no panel has been posted yet.",
+      "severity": "medium",
+      "certainty": "sure"
+    },
+    {
+      "id": "F6",
+      "file": "cogs/slash_commands.py",
+      "line": 461,
+      "trigger": "/ping while the gateway is reconnecting or before the first heartbeat ACK -> self.bot.latency is the library's sentinel (float('inf') when no keep-alive handler exists, nan in some versions) -> round(inf * 1000) raises OverflowError (or ValueError for nan) before any response -> the user sees 'The application did not respond'; nothing in this command catches it, and the spam cooldown at :81 has already been charged.",
+      "suggestion": "Guard: if not math.isfinite(latency): respond with 'Latency not measured yet' (ephemeral) instead of rounding.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "The sentinel value of bot.latency during reconnect comes from py-cord, which I cannot see here; discord.py uses float('inf')."
+    },
+    {
+      "id": "F7",
+      "file": "cogs/slash_commands.py",
+      "line": 689,
+      "trigger": "Any normal /info: the defer at :600 succeeded, so ctx.interaction.response.is_done() at :689 is ALWAYS True -> every successful call logs a WARNING 'Interaction already acknowledged for /info ... Using followup instead.' that speaks of an autocomplete race that did not happen; the 'elif deferred' branch at :695 is dead code. An operator reading the log sees a race condition on every /info and cannot tell a real one from the routine.",
+      "suggestion": "Check the race BEFORE deferring (is_done() at :599 already does that) and set a flag there; at :689 branch on 'deferred' only, and log the warning only when the response was done before this command deferred it.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F8",
+      "file": "cogs/slash_commands.py",
+      "line": 480,
+      "trigger": "A donation_disable_key that is present but not valid for is_donations_disabled() (or vice versa, depending on what that helper checks) -> /donate (:480) and the /ss mech section (overview_embeds.py:521) say 'donations enabled' and show the panel, while the Mech button (_handle_donate_interaction :772, bool(config.get('donation_disable_key'))) answers 'Premium Features Active'. The comment at :480-481 claims 'The SAME answer the donate BUTTON gives for the same state', but the two paths decide the state differently; docker_control.py:829-833 records the difference as 'noted for the operator, behaviour unchanged' - it is not listed among the deliberate decisions in SPEC.md.",
+      "suggestion": "Make _handle_donate_interaction call is_donations_disabled() as well, so one function decides whether donations are off.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see is_donations_disabled(); if it is exactly bool(config.get('donation_disable_key')) the two agree today and only drift later."
+    },
+    {
+      "id": "F9",
+      "file": "cogs/slash_commands.py",
+      "line": 667,
+      "trigger": "A user on the current admin list (B2) runs /info <container> in a STATUS channel -> has_control is computed from the channel alone, so they get include_protected=False and no ContainerInfoAdminView. SPEC.md Z5 (clarified 2026-09-19) says the admin list was restored on 'the info admin view' path; if that restoration lives in the info BUTTON (status_info_integration) and not here, the same admin gets the admin view from the button and the read-only view from the slash command in the same channel.",
+      "suggestion": "Decide has_control the way the info button decides it (channel control permission OR current admin list, scoped to the container per B2 refinement), through one shared helper, so the two entrances agree.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see status_info_integration.py; the button path may behave exactly like this command, in which case this is not a drift but a consistent (and per SPEC incomplete) B2."
+    },
+    {
+      "id": "F10",
+      "file": "cogs/slash_commands.py",
+      "line": 499,
+      "trigger": "is_donations_disabled() raises (ImportError/AttributeError/RuntimeError, e.g. config unreadable) while the operator HAS a premium key -> the error is logged at DEBUG only and the command continues to show the donation panel in the channel; the operator who paid to switch donations off sees them back and finds nothing in the normal log.",
+      "suggestion": "Log at WARNING and treat 'cannot tell' as 'do not show the panel' (answer the caller that the state could not be read), matching the project's rule that a permission that cannot be read is not granted (B14).",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Depends on whether is_donations_disabled() can raise at all; its body is not in this section."
+    },
+    {
+      "id": "F11",
+      "file": "cogs/slash_commands.py",
+      "line": 327,
+      "trigger": "/control while self.bot.get_channel(ctx.channel_id) returns None (channel not in the bot's cache, e.g. right after a reconnect) -> the tracked old admin overview is neither deleted nor remembered in _undeleted_messages (:329 skips silently), then :347 overwrites the tracked id -> the old panel stays in the channel untracked, 'frozen at the moment it was posted, with buttons that still work' - the very state the comment at :321-324 says this block prevents. ctx.channel is available and would do.",
+      "suggestion": "Use ctx.channel (or bot.fetch_channel) instead of get_channel, and when no channel object is available add the id to _undeleted_messages like the Forbidden/HTTPException branch does.",
+      "severity": "low",
+      "certainty": "sure"
+    },
+    {
+      "id": "F12",
+      "file": "cogs/overview_embeds.py",
+      "line": 608,
+      "trigger": "MechStatusCacheService.get_cached_status returns success=False -> RuntimeError at :542 is caught by the OUTER except at :607: the 'Donation Engine' field (:594) is not added, no image is set, and - unlike the inner animation failure at :581-592 - no footer hint is written. with_website_footer's docstring (:138-141) names exactly this outcome as the defect it was written against: 'the operator saw a missing image and no reason for it'. The reason is only in the log.",
+      "suggestion": "Set the same '🎬 Animation service temporarily unavailable' footer in the outer except (or move the footer-hint into a small helper used by both handlers), so the collapsed overview says why the mech is missing whichever of the two services failed.",
+      "severity": "low",
+      "certainty": "sure"
+    }
+  ],
+  "notes": "Several names carry more than one finding; the verdict names the primary one: serverstatus also F2; group_status_lines also F4; donate_command also F8 and F10; info_command also F9. Not findings (no trigger I can state or depends on code outside this section): (a) animation_key calls the private cache_service._quantize_speed; if a cache service without it is ever injected, the AttributeError is not in the inner tuple at :581 and falls to the outer except at :607 - the mech section disappears with only a log line. (b) force_refresh is unused in _create_admin_overview_embed and in the collapsed builder only reaches the mech cache; both docstrings promise 'fresh data' and /ss, /control pass True expecting it - the container status stays cache-only by design ('cached data only (same as original)'). (c) The 'more' cut in both builders counts the trailing group lines as 'more containers'; a large installation loses the groups first and the count is off by the number of groups. (d) serverstatus decides permissions from self.config (:117-118) but everything else from a fresh load_config() (:129); whether self.config is refreshed on a config save I cannot see - if not, a permission change reaches the overview but not the check. (e) serverstatus :146 defaults the language to 'de'; the rest of the project appears to default to 'en' (not visible here). (f) The outer excepts of serverstatus (:250), control (:351) and info (:716) list (DiscordException, RuntimeError, ValueError); a KeyError/TypeError/AttributeError from the builders or services escapes to the global handler after a defer - the caller may be left on 'thinking'. Whether the global handler answers I cannot see. (g) donate_command defers ephemeral (:472) and then sends the panel with followup.send without ephemeral (:544); the comments and the operator's report treat that panel as public, and the deletion/tracking logic only makes sense for a public message - I could not verify from here which one Discord produces, so not filed. (h) _check_spam_protection charges the cooldown (:81) before permission checks run, so a refused caller is also on cooldown; and its followup list ['donate','donatebroadcast','ss'] never sees 'ss' (ss calls serverstatus with its own name) and does not contain 'help', which defers before the check and works only because py-cord's ctx.respond falls back to followup once the response is done. (i) info_command :651-657 refuses when info_result.data is falsy while the comment at :659-661 says every container has an info display since v3.1.0 - depends on what the container info service returns for an unconfigured container, not visible here. (j) overview_embeds.py:612 assigns an unused 'animation_files' (typo), harmless since animation_file is already None. (k) The pending-action dict is mutated (del) while rendering (:256, :475); harmless as long as only this task touches it."
+}

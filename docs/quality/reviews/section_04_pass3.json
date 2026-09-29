@@ -1,0 +1,41 @@
+{
+  "section": "04",
+  "verdicts": [
+    {"name": "cogs/channel_lifecycle.py:32 ChannelLifecycleMixin", "verdict": "checked"},
+    {"name": "cogs/channel_lifecycle.py:413 ChannelLifecycleMixin.send_initial_status", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/channel_lifecycle.py:536 ChannelLifecycleMixin.delete_bot_messages", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:136 DockerControlCog", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:331 DockerControlCog.config", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:349 DockerControlCog.on_ready", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:509 DockerControlCog._setup_background_loops.send_initial_after_delay", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:557 DockerControlCog.trigger_status_refresh", "verdict": "checked"},
+    {"name": "cogs/docker_control.py:636 DockerControlCog.on_message", "verdict": "checked"},
+    {"name": "cogs/loop_safety.py:46 survives_one_bad_cycle", "verdict": "checked"},
+    {"name": "cogs/loop_safety.py:66 survives_one_bad_cycle.wrapper", "verdict": "checked"},
+    {"name": "cogs/loop_safety.py:91 _register_loop_error_handlers.make_handler", "verdict": "checked"},
+    {"name": "cogs/loop_safety.py:92 _register_loop_error_handlers.make_handler.handler", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/channel_lifecycle.py",
+      "line": 519,
+      "trigger": "At bot startup, send_initial_status() (called ~10s after on_ready via docker_control.py's send_initial_after_delay, for every channel with post_initial enabled) calls _send_control_panel_and_statuses() or _send_all_server_statuses() to post the initial messages. Both of those swallow their own exceptions internally (channel_lifecycle.py:275-276 and :355-356) and simply return without setting any 'overview'/'admin_overview' id if the send fails (e.g. a transient Discord HTTP error). send_initial_status() has no equivalent to the channel_was_built(tracked) check that _setup_channel() applies right after the same kind of send (see the documented fix and rationale at :190-203: 'Did anything actually get posted? ... an EMPTY entry makes the periodic loop skip this channel for ever - the operator sees a blank channel and DDC never tries again'). Instead it unconditionally logs 'Successfully regenerated channel' (:519) and sets initial_send_successful=True, leaving channel_server_message_ids[channel_id] empty. With no tracked id, the periodic status loop / message edit path has nothing to edit for that channel, and unlike the hot-reload path (_setup_channel) there is no automatic 'treat as channel to add' retry - only a full DDC restart, or a manual /control or /ss in that exact channel, recovers it.",
+      "suggestion": "After sending in send_initial_status(), check channel_was_built(self.channel_server_message_ids.get(channel_id) or {}) the same way _setup_channel() does, and log an error (and/or leave the channel untracked so a later hot-reload retries it) when nothing was actually posted, instead of unconditionally reporting success.",
+      "severity": "high",
+      "certainty": "unsure",
+      "unsure_why": "I'm sure the check that exists in _setup_channel is absent here and that the code path can leave an empty, untracked channel while logging success - that part is directly verifiable from the source. What I can't be sure of is whether this was a deliberate simplification (the code explicitly says it follows 'consistent logic with _regenerate_channel' at :507, and _regenerate_channel_impl also lacks this guard, so the omission may be uniform by design rather than an oversight specific to this function) or whether it should have received the same fix _setup_channel got. I also can't see message_updates.py / the periodic loop's code to confirm exactly how it behaves for a channel with an empty tracked-id entry."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/channel_lifecycle.py",
+      "line": 503,
+      "trigger": "Same call, inside send_initial_status(): the 'Clear any leftover individual server message tracking from old architecture' loop (:500-505) deletes every key in channel_server_message_ids[channel_id] that is not 'overview' or 'admin_overview' - which includes a 'donation' entry if one is tracked for that channel. The twin cleanup in _send_all_server_statuses() (:334-339) explicitly excludes 'donation' ('Drop the previous tracking, except a /donate panel's id, which the restart clean-up still needs'), and _setup_channel() (:197-198) likewise preserves it on a failed build ('A /donate panel's id stays: the restart clean-up needs it'). send_initial_status() runs this sweep on every bot startup for every post_initial-enabled channel and then persists the result via _persist_tracked_message_ids() inside the subsequent send call, so a channel's donation-panel id is silently dropped from the persisted tracking on every restart, unlike the two sibling code paths that were deliberately written to keep it.",
+      "suggestion": "Exempt 'donation' from the cleanup loop at :500-505, the same way _send_all_server_statuses() does at :337-339.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The consumer of the persisted 'donation' id ('the restart clean-up' referenced in the comments) is not in this section's source, so I cannot tell whether losing it on restart causes a visible problem (a duplicate /donate panel, an orphaned message nobody ever removes) or turns out to be harmless because that other cleanup runs before send_initial_status wipes the entry, or reads the id from somewhere else entirely."
+    }
+  ],
+  "notes": "F1 and F2 are both inside ChannelLifecycleMixin.send_initial_status (the same PLAN entry); the verdict for that name points to F1 as the more consequential of the two, with F2 recorded here as well. A third, related but out-of-scope gap: _regenerate_channel_impl (channel_lifecycle.py:373-411, used by /control, /ss and the inactivity-recreate path - not itself a PLAN name in this section) has the same missing 'did anything get posted' guard as send_initial_status; I did not file it as its own finding since it is not one of the 13 checked names and I have not read its callers, but it strengthens the reading that the guard in _setup_channel may not have been carried to its siblings. Everything else read (loop_safety.py in full, the DockerControlCog constructor/property/on_ready/on_message/trigger_status_refresh, and delete_bot_messages) matched what its own comments and the SPEC/B-decisions describe, with no trigger I could state confidently as a defect. Several places in docker_control.py (e.g. trigger_status_refresh's unused `config = load_config()` at :584, or the stray 'Don't raise - clean sweep failure shouldn't stop recovery' comment at :625-626 that doesn't match the code around it) look like refactor leftovers but produce no stateable trigger, so I left them out per the no-trigger-no-finding rule."
+}

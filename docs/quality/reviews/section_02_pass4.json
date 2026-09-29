@@ -1,0 +1,127 @@
+{
+  "section": "02",
+  "verdicts": [
+    {"name": "cogs/control_ui.py:246 ActionButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:307 ActionButton.callback", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/control_ui.py:415 ActionButton.callback.run_docker_action", "verdict": "finding", "finding": "F1"},
+    {"name": "cogs/control_ui.py:490 ActionButton.callback.run_docker_action.update_all_views", "verdict": "finding", "finding": "F9"},
+    {"name": "cogs/control_ui.py:627 ControlView", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:754 InfoButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:771 InfoButton.callback", "verdict": "finding", "finding": "F4"},
+    {"name": "cogs/control_ui.py:913 TaskDeleteButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:928 TaskDeleteButton.callback", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:999 InfoDropdownButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1014 InfoDropdownButton.callback", "verdict": "finding", "finding": "F6"},
+    {"name": "cogs/control_ui.py:1110 ContainerInfoSelectView", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1120 ContainerInfoDropdown", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1149 ContainerInfoDropdown.callback", "verdict": "finding", "finding": "F7"},
+    {"name": "cogs/control_ui.py:1293 PasswordProtectedView", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1305 PasswordButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1320 PasswordButton.callback", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1350 HelpButton", "verdict": "checked"},
+    {"name": "cogs/control_ui.py:1365 HelpButton.callback", "verdict": "checked"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/control_ui.py",
+      "line": 482,
+      "trigger": "Press Start/Stop/Restart; Docker reports success but wait_until_the_action_took_effect returns False. Line 482 edits the panel to not_confirmed_embed(...), and in the very next statements (574) update_all_views() is spawned unconditionally; it edits the SAME message again (521 admin branch, 537 normal branch) with the regular status embed and buttons as soon as admin_panel_embed / _generate_status_embed_and_view return. There is no delay and no `if took_effect is False: skip the panel edit`, so the notice the code was written to show (comment 474-479: 'the only thing left to say is when it never did') is visible for milliseconds at most. The user sees the panel come back showing the old state with no explanation of why their press did nothing.",
+      "suggestion": "When took_effect is False, leave the panel on the not_confirmed embed: skip the first block of update_all_views (the edit_original_response of the panel) and only refresh the overview messages, or pass took_effect into update_all_views and let it decide. Alternatively make the status/admin embed carry the not-confirmed text.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see admin_panel_embed or _generate_status_embed_and_view; if the wait writes a 'not confirmed' marker that those renderers read, the notice would survive the redraw. From this file alone the second edit overwrites the first."
+    },
+    {
+      "id": "F2",
+      "file": "cogs/control_ui.py",
+      "line": 375,
+      "trigger": "The operator removes 'stop' (or 'restart'/'start') from a container's allowed actions in the web panel. A panel message rendered before that change still holds the old server_config dict inside its ActionButton; on press, the channel permission is read from the fresh load_config() (368), but `allowed_actions = self.server_config.get('allowed_actions', [])` (374-375) is the list from build time, so the no-longer-allowed action runs. Z5 says both checks (channel AND container allows the action) hold on every path; here the second check is made against a message-age snapshot, exactly what the 2026-09-16 decision removed for the channel check.",
+      "suggestion": "Look the container up in the freshly loaded `config` (it is already in hand) and read allowed_actions from there; fall back to refusing if the container is no longer in the configuration.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The window is bounded by how often the status loop rebuilds the ControlView (not visible here). For a panel that is redrawn every few seconds it is small; for the ephemeral admin panel or any message that is not periodically re-rendered it lasts until the message is replaced."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/control_ui.py",
+      "line": 407,
+      "trigger": "Press Stop; docker_action_service_first returns False (Docker refused). log_user_action(action='DOCKER_STOP', ...) at 407-413 has already been written BEFORE run_docker_action starts, with no outcome field, so the action log records a DOCKER_STOP for a container that was never stopped. TaskDeleteButton.callback (975-981) logs the same kind of entry only after delete_task() returned True - the two paths disagree on what an entry means.",
+      "suggestion": "Move the log_user_action call into run_docker_action after `success` is known, or add the outcome (success/failed/not confirmed) to `details`.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "If the action log is documented as 'what was requested' rather than 'what happened', this is intended; nothing in this file says which."
+    },
+    {
+      "id": "F4",
+      "file": "cogs/control_ui.py",
+      "line": 835,
+      "trigger": "admins.json has admin_containers {\"<user>\": [\"valheim\"]}. In a status channel (no control permission) that admin presses the Info button of container 'nginx'. has_control (835-836, and again 879-880) is `channel control or _is_registered_admin(user.id)` - the UNSCOPED check - so it is True; the ephemeral reply is built with include_protected=True (protected info of nginx) and with ContainerInfoAdminView (861/886), which per SPEC Z5 carries TaskManagementButton unconditionally, i.e. the edit/task-management controls for a container this admin was not assigned. ActionButton.callback (368-369) and TaskDeleteButton.callback (970-971) in the same file were narrowed to _admin_may_control / _admin_may_control_task (review F2); this twin was not, although its comment (834) points at :304 as the model.",
+      "suggestion": "Use _admin_may_control(interaction.user.id, docker_name) in both has_control expressions (835 and 879), matching ActionButton.callback.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The buttons inside ContainerInfoAdminView (edit info, create task, delete task) may re-check the scoped admin right on press - SPEC says ContainerTaskDeleteButton checks like its twin, the others I cannot see. Also unclear whether B2's refinement ('only the controls follow the assignment') counts showing protected info and the admin info view as 'controls'."
+    },
+    {
+      "id": "F5",
+      "file": "cogs/control_ui.py",
+      "line": 1205,
+      "trigger": "Same admin as F4 (assigned only to 'valheim') opens the /ss info dropdown in a status channel and selects 'nginx', whose info has protected_enabled=True and no password. is_control_channel = `channel control or _is_registered_admin(user.id)` (1205-1206) is True, so the protected content of nginx is shown without a password (1257-1265), while the same admin pressing the nginx Start button is refused by _admin_may_control.",
+      "suggestion": "Use _admin_may_control(interaction.user.id, <docker name of container_data>) here as well.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "B2 says 'seeing is not narrowed' for the shared overview; whether unprotected-by-password protected content for an unassigned container falls under 'seeing' or 'controls' is an operator question."
+    },
+    {
+      "id": "F6",
+      "file": "cogs/control_ui.py",
+      "line": 1014,
+      "trigger": "A channel has neither 'control' nor 'info' permission but carries a /ss message with the InfoDropdownButton. Any member presses it: the callback makes no permission check at all (1017-1099) and lists every container; ContainerInfoDropdown.callback then shows custom text, address line (if show_ip) and extras for the chosen container. The ControlView Info button for the same content refuses in this channel ('You don't have permission to view container info in this channel', 806-811) and is not even offered (ControlView._channel_has_info_permission, 720-749). Two doors to the same information with different locks.",
+      "suggestion": "Check _channel_has_permission(channel_id, 'info', config) or the registered-admin rule at the top of InfoDropdownButton.callback, the same way InfoButton.callback does, or document that the /ss info dropdown is deliberately public.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "The code that attaches InfoDropdownButton to the /ss message is not in this section; it may only add the button in channels that hold the info permission, in which case only the 'permission revoked after posting' case remains (the same class of gap Z5 closed for control)."
+    },
+    {
+      "id": "F7",
+      "file": "cogs/control_ui.py",
+      "line": 1279,
+      "trigger": "Select a container whose protected_content (no password) is longer than 1024 characters in a control channel: embed.add_field(value=protected_content) (1260-1263) exceeds Discord's field limit, edit_original_response (1265) raises discord.HTTPException (400). The handler at 1279 catches only (RuntimeError, ValueError, KeyError); the exception escapes, the response was already deferred (1221), so the user sees 'This interaction failed' and the dropdown message stays as it was. The same happens for any OSError/timeout/AttributeError/TypeError out of info_extras()/address_line() (network calls to the game server and WAN lookup, 1231-1236) and for discord.HTTPException other than NotFound on the defer itself (1220-1224). Nothing in this file logs it (only py-cord's default handler).",
+      "suggestion": "Widen the except at 1279 to include discord.errors.DiscordException, OSError, AttributeError and TypeError (the other callbacks in this file already list DiscordException), and truncate protected_content to 1024 characters before add_field.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see whether protected_content is length-limited on input, nor what info_extras raises on a dead game server; that the listed exception types are not caught here is certain."
+    },
+    {
+      "id": "F8",
+      "file": "cogs/control_ui.py",
+      "line": 1077,
+      "trigger": "One container entry from get_all_servers() has display_name None or [] (key present, no usable value). display_name.endswith(' Server') (1068) raises AttributeError; the per-entry handler (1077) catches only (RuntimeError, ValueError, KeyError), the outer handler (1103) does not list AttributeError either, so the whole dropdown fails for ALL containers because of one entry, after defer - the user sees 'This interaction failed' with no error message. Same for `int(x.get('order', 999))` (1087) when order is None (TypeError). The per-entry try/except is written to skip a bad entry ('continue') but misses the exception types a malformed entry actually produces.",
+      "suggestion": "Catch (AttributeError, TypeError) in the per-entry handler as well, and coerce order with a guarded int() that falls back to 999.",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "ServerConfigService may normalise display_name/order to safe types before returning; not visible here."
+    },
+    {
+      "id": "F9",
+      "file": "cogs/control_ui.py",
+      "line": 523,
+      "trigger": "On the private (admin) panel, admin_panel_embed() or edit_original_response() (511-521) raises a DiscordException/RuntimeError after `self.server_config['_is_admin_control'] = True` (503). The pop at 523 is inside the try and is skipped; the flag stays on the server_config dict. SPEC says this flag is read by status_handlers.py:1051 and status_info_integration.py:1143 and suppresses display there - so after one failed admin redraw, whatever those two places hide stays hidden for that container as long as the dict lives.",
+      "suggestion": "Pop the flag in a `finally:` (or pass the flag as a parameter instead of mutating the shared dict).",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether self.server_config is the same dict object the status loop reads (shared) or a per-view copy is not visible in this section; if it is a copy, the leak has no effect."
+    },
+    {
+      "id": "F10",
+      "file": "cogs/control_ui.py",
+      "line": 571,
+      "trigger": "After the panel was already redrawn successfully (521 or 537), the loop over self.cog.channel_server_message_ids.items() (545) is interrupted by another coroutine that adds/removes a channel while an _update_overview_message await is in progress -> RuntimeError 'dictionary changed size during iteration' at the for statement itself (outside the inner except-Exception blocks). The BaseException handler at 565 then calls _say_the_panel_is_stale(action_done=True), which REPLACES the freshly redrawn, working panel with '⚠️ Status could not be refreshed - Done - only this panel could not be updated' and view=None: a correct panel is turned into a dead one, and the text names the wrong thing (the panel was fine; another channel's overview was not).",
+      "suggestion": "Iterate over list(self.cog.channel_server_message_ids.items()), and only call _say_the_panel_is_stale when the panel edit itself has not succeeded (track a `panel_redrawn` flag).",
+      "severity": "low",
+      "certainty": "unsure",
+      "unsure_why": "Whether channel_server_message_ids is mutated concurrently by the status loop is not visible here; the misreport on any exception in the overview section is certain from this code."
+    }
+  ],
+  "notes": "Not findings (no user-visible trigger I can state), recorded for the next pass: (1) ActionButton reads the display name from key 'display_name' (255), ControlView and InfoButton from key 'name' (640, 761), InfoButton line 839 from 'display_name' again, InfoDropdownButton tolerates a list; which key the server config really carries is not visible here. (2) _get_container_static_data (98-115) is keyed by display_name only: two containers with the same display name share custom_ids (start_<first docker name>); callbacks are bound to the button object so the action still goes to the right container, but the cache's 'never changes' claim is false after a rename in the panel. (3) ControlView computes info_config (677-683) and never uses it; the lookup is wasted and may log an ERROR for names the info service refuses. (4) In every callback the spam cooldown is charged (add_user_cooldown) before the permission check and before any work, so a refused press still costs the cooldown. (5) run_docker_action releases pending_actions at 443 before wait_until_the_action_took_effect, so during the wait another panel (overview/admin panel for the same container) can start a second action; Docker had confirmed the first, so I did not count it as a defect. (6) The narrow exception lists in InfoButton.callback (898), TaskDeleteButton.callback (995), PasswordButton.callback (1341) leave AttributeError/TypeError/OSError (and for TaskDeleteButton any OSError from delete_task's file write) uncaught after defer -> 'interaction failed' with the user told nothing; same class as F7, not repeated as findings. (7) InfoButton.callback uses two different admin lookups in one function: admin_service.is_user_admin(str(id)) at 803 and _is_registered_admin(int id) at 836/880; they may drift. (8) The `task` / `update_task` references (574, 594) are locals; asyncio keeps only weak references to tasks, in practice the awaited futures keep them alive. (9) TaskDeleteButton label = task_description (924) without truncation; Discord's 80-character label limit would fail the view at send time - the caller is outside this section. Multiple findings on one name: ActionButton.callback also carries F3; update_all_views also carries F10; InfoDropdownButton.callback also carries F8; ContainerInfoDropdown.callback also carries F5."
+}

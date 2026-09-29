@@ -1,0 +1,43 @@
+{
+  "section": "08",
+  "verdicts": [
+    {"name": "cogs/status_handlers.py:75 format_uptime", "verdict": "checked"},
+    {"name": "cogs/status_handlers.py:113 StatusHandlersMixin", "verdict": "checked"},
+    {"name": "cogs/status_handlers.py:119 StatusHandlersMixin.bulk_fetch_container_status", "verdict": "finding", "finding": "F2"},
+    {"name": "cogs/status_handlers.py:189 StatusHandlersMixin.bulk_fetch_container_status.fetch_fast_container", "verdict": "checked"},
+    {"name": "cogs/status_handlers.py:522 StatusHandlersMixin.bulk_update_status_cache", "verdict": "finding", "finding": "F3"},
+    {"name": "cogs/status_handlers.py:586 StatusHandlersMixin.get_status", "verdict": "finding", "finding": "F1"}
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "file": "cogs/status_handlers.py",
+      "line": 621,
+      "trigger": "get_status() is called (manual refresh button, or the pending-action timeout re-check in _generate_status_embed_and_view:759) for a container where get_docker_info_dict_service_first() returns an empty dict `{}` (present, not None) and is_container_not_found() says False. This is exactly the ambiguous case that bulk_fetch_container_status:264-287 has an explicit comment and fix for ('review B37': an answer that is empty but not None used to be read as offline in one place and as failure in the other). get_status's check at line 621, `if not info:`, catches BOTH `info is None` and `info == {}` and returns error_result('no answer from Docker') -> the panel shows '⚠️ Error: An exception occurred while fetching status...'. bulk_fetch_container_status's equivalent check at line 279, `if isinstance(info, Exception) or info is None:`, deliberately excludes a plain empty dict, which instead falls through to line 290 and is treated as a normal (offline-looking) status with no error. So for the identical Docker answer, the same container shows either a clean offline-looking status or a scary error banner, purely depending on whether the background bulk loop or the single-container refresh button last touched it - the same class of drift the code explicitly says was fixed once already, just not fixed on this second path.",
+      "suggestion": "Make get_status's failure check match bulk_fetch_container_status: only treat info is None or isinstance(info, Exception) as an unreadable fetch, and let a present-but-empty dict fall through to the normal is_running/uptime computation (as the bulk path already does) - or add a comment explaining why the two paths must legitimately differ here.",
+      "severity": "high",
+      "certainty": "sure"
+    },
+    {
+      "id": "F2",
+      "file": "cogs/status_handlers.py",
+      "line": 315,
+      "trigger": "In bulk_fetch_container_status, for a running container whose info['_computed'] is present as a dict but does not carry all three of cpu_percent, memory_usage_mb, uptime_seconds, lines 315-319 index it directly (computed['cpu_percent'], computed['memory_usage_mb'], computed['uptime_seconds']) instead of using .get(). A missing key raises KeyError inside the per-container results loop (lines 233-345), which nothing in that loop catches - the whole batch call aborts partway through, so every container from that point in fetched_names onward gets no status_results entry at all for this call, not just the one with the incomplete _computed. The sibling helper _watch_fields() (lines 94-110), which reads the same _computed dict, does this defensively with .get(...) throughout - the two places handling the identical data structure disagree on how much they trust its shape.",
+      "suggestion": "Read computed.get('cpu_percent'), computed.get('memory_usage_mb'), computed.get('uptime_seconds') here the same way _watch_fields() does, so one incomplete container's data cannot abort the whole batch.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see the code that builds info['_computed'] (the SERVICE FIRST backend in services/infrastructure/container_status_service.py or below), so I cannot confirm whether it ever supplies a dict missing one of these three keys, or whether all three are always present together whenever '_computed' is present at all."
+    },
+    {
+      "id": "F3",
+      "file": "cogs/status_handlers.py",
+      "line": 584,
+      "trigger": "bulk_update_status_cache wraps its call to self.bulk_fetch_container_status(...) in `except (RuntimeError, KeyError, TypeError)` only (line 584). Any other exception type raised by bulk_fetch_container_status or the services it calls (performance/fetch/connectivity/server-config) is not caught here and propagates out of bulk_update_status_cache uncaught. This file already documents the identical failure mode once: get_status originally listed a narrower set of exception types that did not include the one the same kind of Docker-status call chain actually raises (DockerConnectionError), and was fixed by widening to a bare `except Exception` with an explanation (lines 679-695, 'review E16'). bulk_update_status_cache reintroduces a narrow, hand-picked exception list for a structurally similar call chain.",
+      "suggestion": "Either widen bulk_update_status_cache's except clause the way get_status's was widened (with the same kind of explanatory comment), or confirm and document why RuntimeError/KeyError/TypeError is provably the complete set of exceptions this call chain can raise.",
+      "severity": "medium",
+      "certainty": "unsure",
+      "unsure_why": "I cannot see status_update_loop or whatever else calls bulk_update_status_cache (not part of this section's source), so I don't know whether an exception that escapes here is caught further up and how visibly, or silently kills a background task."
+    }
+  ],
+  "notes": "Two smaller things I did not turn into formal findings: (1) RAM is formatted differently between the two status paths for the same data - bulk_fetch_container_status:316/327 uses f\"{memory_mb:.0f}MB\" (no space, no decimal) while get_status:660 uses f\"{memory_mb:.1f} MB\" (space, one decimal) - purely cosmetic, arguably falls under the 'no formatting findings' rule, so I left it out of the findings list; mentioning it here because it is the same kind of two-places-may-drift pattern as F1/F2. (2) bulk_fetch_container_status keys its per-container results by the docker_name returned inside the fetch result tuple (line 244: `docker_name, info, stats = result`), not by the fetched_name used to request the fetch (used only for the isinstance(result, Exception) branch, per the comment at 226-230). I could not see fetch_service.fetch_with_retries (not part of this section), so I cannot tell whether it is guaranteed to always return the same name it was called with; if it ever normalized or mismatched, a requested container's entry could go missing from status_results while the log would show a different name than expected. Read for context, though not in PLAN.txt: _generate_status_embed_and_view (line 703), _enrich_status_with_player_counts (line 372), _schedule_support_probes (line 468), _run_support_probes (line 487) - these call into / are called from the reviewed functions and helped establish how get_status's and bulk_fetch_container_status's outputs are actually displayed and consumed."
+}
