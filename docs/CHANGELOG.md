@@ -298,6 +298,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   although it fired. It gets a permanent id the first time it is read now.
 - An auto-action rule named only with angle brackets (such as "<>") was saved without a name, and
   the panel said it was saved. It is refused as a rule without a name now.
+- An auto-action rule with an empty section in auto_actions.json (a hand edit such as "safety":
+  null) disappeared from the panel and never ran, with only a line in the log. Such a section
+  counts as empty now and its defaults apply.
 
 ### 🐛 The mech's picture and gift, the update notice
 

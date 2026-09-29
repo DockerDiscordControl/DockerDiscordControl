@@ -254,7 +254,7 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         errors.append(f"Priority must be between {MIN_PRIORITY} and {MAX_PRIORITY}")
 
     # --- Trigger Validation ---
-    trigger = rule_data.get('trigger', {})
+    trigger = rule_data.get('trigger') or {}
     trigger_type = trigger.get('type', TRIGGER_MESSAGE)
     if trigger_type not in TRIGGER_TYPES:
         errors.append(f"Invalid trigger type: {trigger_type}. Must be one of: {TRIGGER_TYPES}")
@@ -304,7 +304,7 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         errors.append(f"Invalid match_mode: {match_mode}. Must be one of: {VALID_MATCH_MODES}")
 
     # Source filter - User IDs
-    source_filter = trigger.get('source_filter', {})
+    source_filter = trigger.get('source_filter') or {}
     for uid in source_filter.get('allowed_user_ids', []):
         valid, msg = validate_discord_snowflake(uid, "User ID")
         if not valid:
@@ -319,7 +319,7 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
                       "otherwise any webhook in the channel triggers it")
 
     # --- Action Validation ---
-    action = rule_data.get('action', {})
+    action = rule_data.get('action') or {}
 
     action_type = action.get('type', 'NOTIFY').upper()
     if action_type not in VALID_ACTION_TYPES:
@@ -378,7 +378,7 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
             errors.append(msg)
 
     # --- Safety Validation ---
-    safety = rule_data.get('safety', {})
+    safety = rule_data.get('safety') or {}
 
     cooldown = safety.get('cooldown_minutes', 1440)
     if not isinstance(cooldown, int) or cooldown < MIN_COOLDOWN_MINUTES or cooldown > MAX_COOLDOWN_MINUTES:
@@ -476,9 +476,9 @@ class TriggerConfig:
             match_mode=data.get('match_mode', 'any'),
             regex_pattern=data.get('regex_pattern'),
             search_in=data.get('search_in', ["content", "embeds"]),
-            allowed_user_ids=data.get('source_filter', {}).get('allowed_user_ids', []),
-            allowed_usernames=data.get('source_filter', {}).get('allowed_usernames', []),
-            is_webhook=data.get('source_filter', {}).get('is_webhook')
+            allowed_user_ids=(data.get('source_filter') or {}).get('allowed_user_ids', []),
+            allowed_usernames=(data.get('source_filter') or {}).get('allowed_usernames', []),
+            is_webhook=(data.get('source_filter') or {}).get('is_webhook')
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -571,11 +571,15 @@ class AutoActionRule:
             name=data.get('name', 'New Rule'),
             enabled=data.get('enabled', True),
             priority=data.get('priority', 10),
-            trigger=TriggerConfig.from_dict(data.get('trigger', {})),
-            action=ActionConfig.from_dict(data.get('action', {})),
-            cooldown_minutes=data.get('safety', {}).get('cooldown_minutes', 1440),
-            cooldown_scope=data.get('safety', {}).get('cooldown_scope', 'container'),
-            only_if_running=data.get('safety', {}).get('only_if_running', True),
+            # "or {}": a section that is null (a hand edit) is an empty one. With
+            # .get(key, {}) it raised, and get_rules dropped the whole rule with a
+            # log line - one rule fewer in the panel, never run (stage 4 review
+            # before v3.1.0, section 10).
+            trigger=TriggerConfig.from_dict(data.get('trigger') or {}),
+            action=ActionConfig.from_dict(data.get('action') or {}),
+            cooldown_minutes=(data.get('safety') or {}).get('cooldown_minutes', 1440),
+            cooldown_scope=(data.get('safety') or {}).get('cooldown_scope', 'container'),
+            only_if_running=(data.get('safety') or {}).get('only_if_running', True),
             metadata=data.get('metadata', {})
         )
 
