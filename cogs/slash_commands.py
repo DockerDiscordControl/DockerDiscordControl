@@ -551,9 +551,11 @@ class SlashCommandsMixin:
             embed.set_footer(text="https://ddc.bot")
 
             # Send with or without view (use followup since we deferred)
+            panel_sent = False
             try:
                 view = DonationView(mech_service_available, bot=self.bot)
                 message = await ctx.followup.send(embed=embed, view=view)
+                panel_sent = True
                 # Update view with message reference and start auto-delete timer
                 view.message = message
                 view.auto_delete_task = asyncio.create_task(view.start_auto_delete_timer())
@@ -565,8 +567,17 @@ class SlashCommandsMixin:
                     self.channel_server_message_ids[ctx.channel_id] = {}
                 self.channel_server_message_ids[ctx.channel_id]["donation"] = message.id
                 self._persist_tracked_message_ids()
-            except Exception:
-                await ctx.followup.send(embed=embed)
+            except Exception as e:  # noqa: BLE001 - logged, and the caller is answered
+                # This resent the same embed - "Click one of the buttons below" -
+                # WITHOUT buttons, and logged nothing (stage 4 review before
+                # v3.1.0, section 05). After the panel went out, only the log.
+                logger.error(f"Donation panel could not be shown with its buttons: {e}",
+                             exc_info=True)
+                if not panel_sent:
+                    await ctx.followup.send(
+                        _("❌ The donation panel could not be shown. The reason is in "
+                          "the DDC log."),
+                        ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
         except Exception as e:  # noqa: BLE001
             # Broad on purpose, and it ANSWERS. This was the only command whose

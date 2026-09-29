@@ -261,6 +261,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   already was for other failures.
 - The title of a mech story chapter in Discord was always English ("Prologue I: The Dying Light")
   above a German or French chapter. It is the chapter's own heading now, in its language.
+- When /donate could not send its panel with the buttons, it posted the same panel without
+  buttons, still saying "click one of the buttons below", and logged nothing. It tells you
+  privately now that the panel could not be shown, and the reason is in the log.
 
 ### 🐛 The mech's picture and gift, the update notice
 
