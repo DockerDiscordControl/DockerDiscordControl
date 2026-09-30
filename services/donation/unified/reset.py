@@ -49,10 +49,17 @@ def reset_donations(
             # just warning: a backup that keeps deleting on failure would be none.
             # scripts/reset_donations.sh:32-44 uses the same convention.
             # See SPEC.md Z1.
-            _backup_before_reset(progress_paths)
-            _clear_event_log(progress_paths)
-            _reset_sequence_counter(progress_paths)
-            _write_fresh_snapshot(progress_paths)
+            backup = _backup_before_reset(progress_paths)
+            try:
+                _clear_event_log(progress_paths)
+                _reset_sequence_counter(progress_paths)
+                _write_fresh_snapshot(progress_paths)
+            except BaseException:
+                # Back to where it was: with the log emptied and the counter or
+                # the snapshot not written, the ledger was gone while the old
+                # level and power stayed live (stage 4 review before v3.1.0, 17).
+                _restore_from_backup(backup, progress_paths)
+                raise
 
         new_state = mech_service.get_state()
 
@@ -92,7 +99,9 @@ def reset_donations(
             error_message=f"JSON error: {exc}",
             error_code="JSON_ERROR",
         )
-    except (RuntimeError, AttributeError) as exc:  # pragma: no cover - defensive logging
+    except (RuntimeError, AttributeError, ValueError, TypeError) as exc:  # pragma: no cover - defensive logging
+        # ValueError/TypeError too: after the restore above, a failure of the
+        # goal helpers is a failed reset like any other, not an escape.
         # Event emission or other runtime errors
         return DonationResult.from_states(
             success=False,
@@ -127,6 +136,17 @@ def _backup_before_reset(paths: ProgressPaths) -> Path:
     if paths.snapshot_dir.exists():
         shutil.copytree(paths.snapshot_dir, target / paths.snapshot_dir.name)
     return target
+
+
+def _restore_from_backup(backup: Path, paths: ProgressPaths) -> None:
+    """Put the event log, the counter and the snapshots back from ``backup``."""
+    for original in (paths.event_log, paths.seq_file):
+        copy = backup / original.name
+        if copy.exists():
+            shutil.copy2(copy, original)
+    copied = backup / paths.snapshot_dir.name
+    if copied.is_dir():
+        shutil.copytree(copied, paths.snapshot_dir, dirs_exist_ok=True)
 
 
 def _clear_event_log(paths: ProgressPaths) -> None:

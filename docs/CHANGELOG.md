@@ -360,6 +360,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   time raised no watchdog alarm. It is only counted when the request got through now.
 - Two delete clicks on the same donation at almost the same moment (a double click, two tabs) both
   answered "Deleted", and the second one quietly restored the donation. The second is refused now.
+- A mech reset that failed halfway (a full disk) left the donation history emptied while the old
+  level and power stayed, and only said "File I/O error". It puts everything back from its backup
+  now and reports the failure.
 
 ### 🐛 The mech's picture and gift, the update notice
 
