@@ -3362,9 +3362,12 @@ class TestProgressServiceGaps:
         (mech_dir / "decay.json").write_text("{not-json", encoding="utf-8")
         progress_env_v2._decay_config_cache["data"] = None
         progress_env_v2._decay_config_cache["last_load"] = 0
-        # Should fall back to default {"default": 100}
+        # Falls back to the SHIPPED table. Until 2026-09-30 this pinned
+        # {"default": 100}, under which the immortal level 11 decayed after one
+        # bad hand edit (stage 4 review before v3.1.0, 24#3).
+        from services.mech.mech_defaults import DEFAULTS_DIR
         data = progress_env_v2.get_decay_config_data()
-        assert data == {"default": 100}
+        assert data == json.loads((DEFAULTS_DIR / "decay.json").read_text(encoding="utf-8"))
 
     def test_apply_decay_on_demand_sets_initial_decay_day(self, progress_env_v2):
         # Line 533: apply_decay_on_demand sets last_decay_day if missing

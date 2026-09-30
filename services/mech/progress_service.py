@@ -592,7 +592,7 @@ _decay_config_cache = {"data": None, "last_load": 0}  # keeps event replay off t
 
 def get_decay_config_data() -> dict:
     """Load decay config with simple caching (10s TTL)."""
-    # Note: No global needed - we only modify dict contents, not reassign
+    from services.mech.mech_defaults import resolve_mech_file, shipped_mech_json
     now = time.time()
     
     if _decay_config_cache["data"] and (now - _decay_config_cache["last_load"] < 10):
@@ -603,7 +603,6 @@ def get_decay_config_data() -> dict:
         # (services/mech/mech_defaults.py). Without the shipped file, a fresh
         # installation decayed EVERY level at 100 cents - the immortal level 11
         # included.
-        from services.mech.mech_defaults import resolve_mech_file
         config_path = resolve_mech_file("decay.json")
         if config_path.exists():
             with open(config_path, "r") as f:
@@ -613,8 +612,9 @@ def get_decay_config_data() -> dict:
                 return data
     except Exception as e:
         logger.error(f"Error loading decay config: {e}")
-    
-    return {"default": 100}
+    # The last good table, else the shipped one: the flat 100 decayed the immortal
+    # level 11 after a bad hand edit of the own copy (stage 4 review, 24)
+    return _decay_config_cache["data"] or shipped_mech_json("decay.json") or {"default": 100}
 
 
 def decay_per_day(level: int) -> int:

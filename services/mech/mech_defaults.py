@@ -20,7 +20,9 @@ The files now ship read-only in ``services/mech/defaults/``. A file under
 nothing is ever copied into, or overwritten in, the config directory.
 """
 
+import json
 from pathlib import Path
+from typing import Any, Optional
 
 DEFAULTS_DIR = Path(__file__).resolve().parent / "defaults"
 
@@ -32,3 +34,15 @@ def resolve_mech_file(relative: str) -> Path:
     if own_copy.exists():
         return own_copy
     return DEFAULTS_DIR / relative
+
+
+def shipped_mech_json(relative: str) -> Optional[Any]:
+    """The shipped default's content, or None when it cannot be read.
+
+    For a caller whose own copy failed to parse: the shipped table is a far
+    better fallback than a flat constant (stage 4 review before v3.1.0, 24).
+    """
+    try:
+        return json.loads((DEFAULTS_DIR / relative).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None

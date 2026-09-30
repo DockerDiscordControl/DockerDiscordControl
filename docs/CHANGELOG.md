@@ -394,6 +394,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   back to Europe/Zurich instead of taking every mech and donation feature down.
 - A progress config (config/progress/config.json) without difficulty bins no longer makes every
   level-up and ledger rebuild fail; the default bins apply.
+- A decay.json the operator broke by hand no longer makes every mech level decay at $1.00 a day,
+  the immortal level 11 included: the last good table applies, else the shipped one.
 
 ### 🐛 The mech's picture and gift, the update notice
 

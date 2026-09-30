@@ -137,7 +137,11 @@ def test_get_decay_config_data_caches_within_ttl(progress_env, monkeypatch, tmp_
 
 
 def test_get_decay_config_data_handles_invalid_json(progress_env, tmp_path):
-    """Malformed decay.json -> returns default on exception."""
+    """Malformed decay.json -> the SHIPPED table, not a flat default.
+
+    Until 2026-09-30 this pinned {"default": 100}: every level, the immortal
+    level 11 included, then decayed at 100 cents after one bad hand edit
+    (stage 4 review before v3.1.0, 24#3)."""
     config_dir = tmp_path / "ddc_config"
     mech_dir = config_dir / "mech"
     mech_dir.mkdir(parents=True, exist_ok=True)
@@ -146,8 +150,9 @@ def test_get_decay_config_data_handles_invalid_json(progress_env, tmp_path):
     progress_env._decay_config_cache["data"] = None
     progress_env._decay_config_cache["last_load"] = 0
 
+    from services.mech.mech_defaults import DEFAULTS_DIR
     data = progress_env.get_decay_config_data()
-    assert data == {"default": 100}
+    assert data == json.loads((DEFAULTS_DIR / "decay.json").read_text(encoding="utf-8"))
 
 
 def test_decay_per_day_uses_level_specific_value(progress_env, tmp_path):
