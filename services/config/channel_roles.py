@@ -22,7 +22,10 @@ def control_channel_ids(config: Dict[str, Any]) -> List[int]:
     channels: List[int] = []
     # New format: channel_permissions
     for channel_id, perms in (config.get('channel_permissions') or {}).items():
-        if (perms or {}).get('commands', {}).get('control', False):
+        # Guarded like status_channel_ids: a null "commands" or a list entry (hand
+        # edits) raised AttributeError here (stage 4 review before v3.1.0, 13).
+        commands = perms.get('commands') if isinstance(perms, dict) else None
+        if isinstance(commands, dict) and commands.get('control', False):
             try:
                 channels.append(int(channel_id))
             except ValueError:

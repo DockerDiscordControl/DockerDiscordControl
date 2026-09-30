@@ -346,6 +346,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   now and the others are saved.
 - A hand-written "use_dynamic": "false" in evolution_mode.json kept the mech's dynamic pricing on,
   because the text "false" counted as yes. It means static now.
+- A hand-edited channel file with an empty "commands" entry stopped DDC from finding its control
+  channels, so the update notice and the watchdog's default channel failed. Such an entry is
+  skipped now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

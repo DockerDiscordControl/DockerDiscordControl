@@ -117,7 +117,7 @@ services/config/config_migration_service.py:1-509
 # this section at 2,039 of the 2,000 a section may hold. Section 13, where its
 # neighbours sit, is at 1,920 and had no room either.
 
-## Section 13  (1791 lines, 5 pieces)
+## Section 13  (1794 lines, 5 pieces)
 services/config/config_service.py:1-1321
 services/config/container_config_save_service.py:1-154
 services/config/server_config_service.py:1-241
@@ -125,7 +125,7 @@ services/config/server_config_service.py:1-241
 # watchdog's second threshold grew automation_service.py and
 # container_watch.py, which put that section over the 2,000 lines a
 # section may hold. It sits with the other services/config files here.
-services/config/channel_roles.py:1-55
+services/config/channel_roles.py:1-58
 services/discord/__init__.py:1-20
 
 ## Section 14  (1927 lines, 8 pieces)
