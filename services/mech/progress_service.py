@@ -43,7 +43,7 @@ import logging
 
 from services.exceptions import MechStateError
 from services.mech.progress import get_progress_runtime
-from utils.atomic_io import atomic_write_text
+from utils.atomic_io import append_line, atomic_write_text
 
 logger = logging.getLogger('ddc.mech.progress_service')
 
@@ -243,16 +243,9 @@ def read_events(count_damaged: bool = False):
 def append_event(evt: Event) -> None:
     # Ensure directory exists
     EVENT_LOG.parent.mkdir(parents=True, exist_ok=True)
-    # If the last line was truncated (no trailing newline), start a new line so the
-    # new event is not glued onto the damaged one
-    prefix = ""
-    if EVENT_LOG.exists() and EVENT_LOG.stat().st_size > 0:
-        with open(EVENT_LOG, "rb") as f:
-            f.seek(-1, os.SEEK_END)
-            if f.read(1) != b"\n":
-                prefix = "\n"
-    with open(EVENT_LOG, "a", encoding="utf-8") as f:
-        f.write(prefix + json.dumps(evt.to_json(), separators=(",", ":")) + "\n")
+    # Synced: the snapshot written next is, and must not count a line that a
+    # machine crash could still take away (stage 4 review before v3.1.0, 24)
+    append_line(EVENT_LOG, json.dumps(evt.to_json(), separators=(",", ":")))
 
 
 def next_seq() -> int:

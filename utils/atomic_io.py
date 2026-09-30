@@ -94,6 +94,28 @@ def atomic_write_text(path: PathLike, text: str, *, encoding: str = "utf-8") -> 
         raise
 
 
+def append_line(path: PathLike, line: str, *, encoding: str = "utf-8") -> None:
+    """Append one line to ``path`` and put it on the disk before returning.
+
+    If the file's last line was cut off (no trailing newline), the new line
+    starts on a line of its own instead of being glued onto the damaged one.
+    Synced because an append-only log is often the record that a later,
+    synced write depends on: the mech ledger lost a donation to a machine
+    crash while the snapshot counting it survived (stage 4 review before
+    v3.1.0, 24).
+    """
+    prefix = ""
+    if os.path.exists(path) and os.path.getsize(path) > 0:
+        with open(path, "rb") as f:
+            f.seek(-1, os.SEEK_END)
+            if f.read(1) != b"\n":
+                prefix = "\n"
+    with open(path, "a", encoding=encoding) as f:
+        f.write(prefix + line + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
 def atomic_write_json(path: PathLike, data: Dict[str, Any], *, indent: int = 2,
                       ensure_ascii: bool = False) -> None:
     """Serialize ``data`` first, then write it atomically.

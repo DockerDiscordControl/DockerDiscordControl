@@ -219,12 +219,12 @@ services/mech/mech_story_service.py:1-204
 services/mech/progress/__init__.py:1-17
 services/mech/progress_paths.py:1-189
 
-## Section 24  (1941 lines, 2 pieces)
+## Section 24  (1934 lines, 2 pieces)
 # runtime.py sits with the service it carries the state for; section 23 is at
 # the 2,000 lines a section may hold. gifts.py joined on 2026-09-23: it was
 # split out of progress_service.py, which may only shrink.
 services/mech/progress/runtime.py:1-212
-services/mech/progress_service.py:1-1729
+services/mech/progress_service.py:1-1722
 
 ## Section 25  (1643 lines, 11 pieces)
 services/mech/speed_levels.py:1-427
@@ -358,7 +358,7 @@ app/web/app_factory.py:1-68
 app/web/background.py:1-88
 app/web/blueprints.py:1-41
 
-## Section 35  (1851 lines, 14 pieces)
+## Section 35  (1873 lines, 14 pieces)
 # utils/config_cache.py left for section 38 on 2026-09-24: /health stopped
 # describing the installation to unauthenticated callers, app/web/routes.py
 # went 204 -> 232 lines, and this section reached 2,013 of the 2,000 a section
@@ -375,7 +375,7 @@ app/web/security.py:1-152
 app/web_ui.py:1-36
 utils/__init__.py:1-7
 utils/app_commands_helper.py:1-150
-utils/atomic_io.py:1-104
+utils/atomic_io.py:1-126
 utils/common_helpers.py:1-520
 utils/config_paths.py:1-47
 

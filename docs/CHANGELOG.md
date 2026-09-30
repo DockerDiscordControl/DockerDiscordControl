@@ -396,6 +396,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   level-up and ledger rebuild fail; the default bins apply.
 - A decay.json the operator broke by hand no longer makes every mech level decay at $1.00 a day,
   the immortal level 11 included: the last good table applies, else the shipped one.
+- A donation's ledger line is written to the disk before the mech snapshot that counts it, so a
+  power loss can no longer keep the donation in the snapshot and lose it from the ledger.
 
 ### 🐛 The mech's picture and gift, the update notice
 
