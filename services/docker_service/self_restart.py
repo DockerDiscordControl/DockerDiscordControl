@@ -113,7 +113,13 @@ def restart_myself(client=None, delay: float = RESTART_DELAY_SECONDS,
             else:
                 inner = client
             logger.info(f"Restarting own container {name} on request from the panel")
-            inner.containers.get(container_id).restart()
+            # With its StopTimeout, like every other restart: without it docker-py
+            # sent t=10 and Docker killed DDC after ten seconds whatever the
+            # container was configured with (stage 4 review before v3.1.0, 14).
+            from services.docker_service.docker_action_service import get_stop_timeout_kwargs
+
+            own = inner.containers.get(container_id)
+            own.restart(**get_stop_timeout_kwargs(own))
         except Exception as error:                   # noqa: BLE001
             # Nobody is listening any more - the log is the only place left.
             logger.error(f"Self-restart failed: {type(error).__name__}: {error}")

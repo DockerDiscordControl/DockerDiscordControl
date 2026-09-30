@@ -352,6 +352,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Moving an old v1.1 configuration with an unreadable session timeout dropped the Web UI password,
   and the panel came up asking for first-time setup. The password is kept now; only the timeout
   falls back to its default.
+- Restarting DDC from the web panel gave DDC only ten seconds to shut down, even when a longer
+  stop timeout was set for its container. It uses the container's own stop timeout now, like every
+  other restart.
 
 ### 🐛 The mech's picture and gift, the update notice
 
