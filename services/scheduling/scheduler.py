@@ -365,7 +365,9 @@ def load_tasks() -> List[ScheduledTask]:
 
     # eXecute task loading with error handling
     try:
-        data = json.loads(TASKS_FILE_PATH.read_text(encoding="utf-8") or "[]")
+        # strip(): a file holding only a newline ("echo > tasks.json") counted as
+        # a failed read and refused every save (stage 4 review before v3.1.0, 26)
+        data = json.loads(TASKS_FILE_PATH.read_text(encoding="utf-8").strip() or "[]")
         if not isinstance(data, list):
             # An object's keys would each fail below, and the next save would
             # write a file holding only the new task.

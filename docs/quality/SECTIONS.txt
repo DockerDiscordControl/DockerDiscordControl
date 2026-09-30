@@ -248,8 +248,8 @@ services/scheduling/task_writeback.py:1-119
 # size list and may only shrink); sections 26 and 27 are full.
 services/scheduling/group_tasks.py:1-96
 
-## Section 26  (1287 lines, 1 piece)
-services/scheduling/scheduler.py:1-1287
+## Section 26  (1289 lines, 1 piece)
+services/scheduling/scheduler.py:1-1289
 
 ## Section 26b  (1132 lines, 2 pieces)
 # 2026-09-28: scheduler.py split - the task and its cycles went to

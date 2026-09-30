@@ -398,6 +398,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the immortal level 11 included: the last good table applies, else the shipped one.
 - A donation's ledger line is written to the disk before the mech snapshot that counts it, so a
   power loss can no longer keep the donation in the snapshot and lose it from the ledger.
+- A tasks.json that holds only a blank line no longer blocks every task save until it is edited;
+  it reads as an empty task list.
 
 ### 🐛 The mech's picture and gift, the update notice
 
