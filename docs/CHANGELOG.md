@@ -384,6 +384,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   running.
 - A manual player-query re-test that succeeds while the bot is probing the same container is no
   longer overwritten by the bot's older failed probe.
+- The mech display no longer mixes two levels in one answer (current level from one, name,
+  threshold and bars from the next) when a donation is booked while it is being read.
 
 ### 🐛 The mech's picture and gift, the update notice
 

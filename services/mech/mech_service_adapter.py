@@ -16,7 +16,7 @@ the new event-sourced progress service internally.
 
 import logging
 from dataclasses import dataclass
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from .progress_service import get_progress_service, ProgressState
 from .mech_evolutions import get_evolution_level_info
@@ -87,6 +87,10 @@ class MechStateServiceResult:
     threshold: float
     speed: float
     error: Optional[str] = None
+    # The ProgressState these numbers came from, so a caller that needs more
+    # of it does not read it again - a donation in between mixed two levels
+    # in one answer (stage 4 review before v3.1.0, 22)
+    state: Any = None
 
 
 def _speed_of(prog_state) -> float:
@@ -246,7 +250,8 @@ class MechServiceAdapter:
                 name=level_name,
                 threshold=prog_state.evo_max,
                 speed=_speed_of(prog_state),
-                error=None
+                error=None,
+                state=prog_state
             )
         except (ImportError, AttributeError, RuntimeError) as e:
             # Service dependency errors (progress service unavailable, service call failures)

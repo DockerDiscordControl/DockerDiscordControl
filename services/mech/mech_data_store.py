@@ -544,7 +544,8 @@ class MechDataStore:
                 'success': True,
                 'level': result.level,
                 'power': result.power,
-                'total_donated': result.total_donated
+                'total_donated': result.total_donated,
+                'state': _progress_state_of(result)
             }
 
         except (ImportError, AttributeError) as e:
@@ -564,8 +565,7 @@ class MechDataStore:
             # Use unified evolution system instead of mech_levels (Single Point of Truth)
             from services.mech.mech_evolutions import get_evolution_level_info
 
-            prog_service = get_progress_service()
-            prog_state = prog_service.get_state()
+            prog_state = core_data.get('state') or get_progress_service().get_state()
 
             current_level = prog_state.level
             next_level = min(current_level + 1, 11)
@@ -883,8 +883,7 @@ class MechDataStore:
             # Get data from progress service (NEW dynamic evolution system)
             from services.mech.progress_service import get_progress_service
 
-            prog_service = get_progress_service()
-            prog_state = prog_service.get_state()
+            prog_state = core_data.get('state') or get_progress_service().get_state()
 
             return BarsCompat(
                 # Power Bar: Show current power vs. max power for CURRENT level
@@ -924,6 +923,20 @@ class MechDataStore:
                 mech_progress_current=None,
                 mech_progress_max=None
             )
+
+
+def _progress_state_of(result) -> Any:
+    """The ProgressState behind a mech state result, or None.
+
+    The evolution data and the bars take it from here instead of reading the
+    state again: each reading takes the lock on its own, and a donation or
+    level-up booked in between gave one answer two levels (stage 4 review
+    before v3.1.0, 22). Only a real ProgressState counts - a stand-in result
+    has no state, and the readers then ask the service themselves.
+    """
+    from services.mech.progress_service import ProgressState
+    state = getattr(result, 'state', None)
+    return state if isinstance(state, ProgressState) else None
 
 
 # ============================================================================ #
