@@ -105,6 +105,9 @@ def cog(monkeypatch):
     instance.last_message_update_time = {}
     instance.last_channel_activity = {}
     instance.last_glvl_per_channel = {}
+    # Set by the cog's __init__; the recreate path reads it since 2026-09-30 as
+    # the fallback order (stage 4 review, 40#4), so the stand-in needs it too.
+    instance.ordered_server_names = []
     instance.bot = SimpleNamespace(get_channel=lambda cid: channels.get(cid))
     instance.mech_state_manager = SimpleNamespace(
         set_last_glvl=lambda *_a, **_k: None,

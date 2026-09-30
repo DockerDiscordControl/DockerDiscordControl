@@ -440,6 +440,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A hand-edited groups.json with a wrongly typed field ("containers": null) no longer empties the
   admin menu of both admin buttons; the containers are still offered and the file is reported as
   unreadable.
+- After containers are reordered in the web panel, the periodic overview update uses the new order
+  at once; it no longer switches back to the order from the bot's start after each donation.
 
 ### 🐛 The mech's picture and gift, the update notice
 

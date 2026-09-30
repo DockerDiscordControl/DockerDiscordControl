@@ -55,6 +55,34 @@ def mech_change(current_glvl, current_power, last_glvl):
     return False, depleted, None
 
 
+def in_saved_order(servers, fallback_order):
+    """The servers in the order saved in the panel, read now; the rest after them.
+
+    ONE ORDER FOR BOTH DRAWINGS. The periodic edit used the order loaded at the
+    cog's start and never again, the donation recreate read the file fresh: after
+    a reorder in the panel each donation reposted the new order and the next
+    periodic edit put the old one back (stage 4 review before v3.1.0, 40). The
+    start's order is only the fallback for an empty file (and is missing when
+    loading it at the start failed - hence getattr at the callers). An entry names a
+    container by docker_name; name is the same value (the form parser writes both).
+    """
+    from services.docker_service.server_order import load_server_order
+    order = load_server_order() or list(fallback_order or [])
+    ordered, seen = [], set()
+    for entry in order:
+        for server in servers:
+            docker_name = server.get('docker_name')
+            if docker_name and docker_name not in seen and entry in (docker_name, server.get('name')):
+                ordered.append(server)
+                seen.add(docker_name)
+    for server in servers:
+        docker_name = server.get('docker_name')
+        if docker_name and docker_name not in seen:
+            ordered.append(server)
+            seen.add(docker_name)
+    return ordered
+
+
 async def _logged_edit(edit, channel_id, message_id, kind):
     """Await one overview edit; a failure is logged with its channel, then passed on.
 
@@ -429,26 +457,7 @@ class MessageUpdatesMixin:
                         # SERVICE FIRST: Use ServerConfigService instead of direct config access
                         server_config_service = get_server_config_service()
                         servers = server_config_service.get_all_servers()
-                        ordered_servers = []
-                        seen_docker_names = set()
-
-                        # Apply server ordering
-                        from services.docker_service.server_order import load_server_order
-                        server_order = load_server_order()
-
-                        for server_name in server_order:
-                            for server in servers:
-                                docker_name = server.get('docker_name')
-                                if server.get('name') == server_name and docker_name and docker_name not in seen_docker_names:
-                                    ordered_servers.append(server)
-                                    seen_docker_names.add(docker_name)
-
-                        # Add remaining servers
-                        for server in servers:
-                            docker_name = server.get('docker_name')
-                            if docker_name and docker_name not in seen_docker_names:
-                                ordered_servers.append(server)
-                                seen_docker_names.add(docker_name)
+                        ordered_servers = in_saved_order(servers, getattr(self, 'ordered_server_names', None))
 
                         # Auto-detect Glvl changes for force_recreate decision
                         current_glvl = None
@@ -681,25 +690,8 @@ class MessageUpdatesMixin:
             server_config_service = get_server_config_service()
             servers = server_config_service.get_all_servers()
 
-            # Sort servers
-            ordered_docker_names = self.ordered_server_names
-            servers_by_name = {s.get('docker_name'): s for s in servers if s.get('docker_name')}
-
-            ordered_servers = []
-            seen_docker_names = set()
-
-            # First add servers in the defined order
-            for docker_name in ordered_docker_names:
-                if docker_name in servers_by_name:
-                    ordered_servers.append(servers_by_name[docker_name])
-                    seen_docker_names.add(docker_name)
-
-            # Add any servers that weren't in the ordered list
-            for server in servers:
-                docker_name = server.get('docker_name')
-                if docker_name and docker_name not in seen_docker_names:
-                    ordered_servers.append(server)
-                    seen_docker_names.add(docker_name)
+            # Sort servers - by the order saved NOW, like the recreate above
+            ordered_servers = in_saved_order(servers, getattr(self, 'ordered_server_names', None))
 
             # Create the updated embed and view based on message type
             if message_type == "admin_overview":

@@ -125,7 +125,7 @@ cogs/help_embed.py	96	NONE
 cogs/info_extras.py	326	new 2026-09-28 (v3.1.0 game server, players and Docker facts in the info display), written with its tests
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/mech_ui.py	871	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
-cogs/message_updates.py	779	v3rev2:1-791
+cogs/message_updates.py	771	v3rev2:1-791
 cogs/overview_embeds.py	629	v3rev2:1-964
 cogs/player_joins.py	161	new 2026-09-28 (v3.1.0 join announcements), written with its tests
 cogs/slash_commands.py	852	NONE
