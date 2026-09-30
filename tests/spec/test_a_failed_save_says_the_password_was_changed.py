@@ -3,8 +3,9 @@
 
 THE FINDING (stage 4 review before v3.1.0, section 12 pass 4 F4): the Web UI
 password is changed first, before anything else of the form is written.
-When a later step failed - a channel interval of "1.5" (the field allows it,
-int() does not), config.json not writable, the channel files - the answer
+When a later step failed - config.json not writable, the channel files (a
+channel interval of "1.5" was a third until it was read as 1, section 12
+F10) - the answer
 said only what failed. The operator read "save failed", believed nothing
 had changed, and could not log in with the old password afterwards.
 
@@ -37,15 +38,24 @@ class _Config:
 BASE = {"new_web_ui_password": "NewPass123!", "confirm_web_ui_password": "NewPass123!"}
 
 
-@pytest.mark.parametrize("form,config", [
-    (dict(BASE, channel_tables_submitted="1", status_channel_id_1="123456789012345678",
-          status_channel_name_1="s", status_update_interval_minutes_1="1.5"), _Config()),
-    (dict(BASE), _Config(fail_save=True)),
+class _Saves(_Config):
+    def save_config(self, config):
+        from types import SimpleNamespace
+        return SimpleNamespace(success=True, message="saved")
+
+
+CHANNEL_FORM = dict(BASE, channel_tables_submitted="1", status_channel_id_1="123456789012345678",
+                    status_channel_name_1="s")
+
+
+@pytest.mark.parametrize("form,config,channels_written", [
+    (CHANNEL_FORM, _Saves(), False),              # the channel files could not be written
+    (dict(BASE), _Config(fail_save=True), True),  # config.json could not be written
 ])
-def test_the_failure_names_the_changed_password(monkeypatch, form, config):
+def test_the_failure_names_the_changed_password(monkeypatch, form, config, channels_written):
     monkeypatch.setattr("services.config.config_service.change_web_ui_password", lambda password: None)
     monkeypatch.setattr(ConfigFormParserService, "_save_channel_permissions",
-                        staticmethod(lambda permissions: True))
+                        staticmethod(lambda permissions: channels_written))
 
     _updated, ok, message = ConfigFormParserService.process_config_form(form, {}, config)
 

@@ -336,6 +336,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A change made by hand in config.json or a channel file on the server (with nano, for example)
   was not picked up until something else wrote into the config folder or DDC restarted. DDC
   notices it at the next read now.
+- A channel update interval or inactivity timeout of "1.5" made the whole configuration save fail
+  with a raw Python error, and 0 or a negative value was stored as it came. Such values are
+  rounded down to whole minutes and at least one now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

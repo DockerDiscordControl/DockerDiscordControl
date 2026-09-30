@@ -18,6 +18,19 @@ from services.exceptions import ConfigServiceError
 
 logger = logging.getLogger('ddc.config_form_parser')
 
+def _whole_minutes(value, default: int = 1) -> int:
+    """A minutes field as whole minutes, at least one.
+
+    int() alone let "1.5" abort the whole save with Python's raw text, and
+    stored 0 or a negative value as it came; the panel's number fields post
+    all three (stage 4 review before v3.1.0, section 12).
+    """
+    try:
+        return max(1, int(float(value)))
+    except (TypeError, ValueError):
+        return default
+
+
 def _submitted_rows(form_data: Dict[str, Any], prefix: str) -> List[int]:
     """The row numbers this form actually carries, in order.
 
@@ -224,9 +237,9 @@ class ConfigFormParserService:
                 'commands': dict(default_commands),
                 'post_initial': form_data.get(f'{prefix}_post_initial_{count}') in ['1', 'on', True],
                 'enable_auto_refresh': form_data.get(f'{prefix}_enable_auto_refresh_{count}') in ['1', 'on', True],
-                'update_interval_minutes': int(form_data.get(f'{prefix}_update_interval_minutes_{count}', 1) or 1),
+                'update_interval_minutes': _whole_minutes(form_data.get(f'{prefix}_update_interval_minutes_{count}')),
                 'recreate_messages_on_inactivity': form_data.get(f'{prefix}_recreate_messages_{count}') in ['1', 'on', True],
-                'inactivity_timeout_minutes': int(form_data.get(f'{prefix}_inactivity_timeout_{count}', 1) or 1),
+                'inactivity_timeout_minutes': _whole_minutes(form_data.get(f'{prefix}_inactivity_timeout_{count}')),
                 # v3.1.0: who joins a game server is announced here (off unless ticked)
                 'player_joins': form_data.get(f'{prefix}_player_joins_{count}') in ['1', 'on', True],
             }
