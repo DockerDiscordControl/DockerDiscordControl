@@ -19,12 +19,16 @@ COUNTER-CHECK (2026-09-30): red before the change (level 2 next to
 next_level 4 and threshold 55).
 """
 
+import importlib
+
 from services.mech.mech_data_store import MechDataRequest, get_mech_data_store
-from services.mech.progress_service import ProgressService, ProgressState
 
 
 def _state(level, evo_max):
-    return ProgressState(level=level, power_current=5.0, power_max=40.0, power_percent=12,
+    # The module as it is NOW: other spec files reload progress_service, and a
+    # ProgressState of the old module is not one of the new (2026-09-30)
+    progress_service = importlib.import_module("services.mech.progress_service")
+    return progress_service.ProgressState(level=level, power_current=5.0, power_max=40.0, power_percent=12,
                          evo_current=3.0, evo_max=evo_max, evo_percent=10, total_donated=50.0,
                          can_level_up=False, is_offline=False, difficulty_bin=1,
                          difficulty_tier="medium", member_count=10)
@@ -38,7 +42,13 @@ def test_a_level_up_between_the_readings_does_not_split_the_answer(monkeypatch):
         # The first reading sees level 2; a donation lifts it to 3 right after.
         # The core data is read first, so level 2 is the answer.
         return _state(2, 30.0) if len(calls) == 1 else _state(3, 55.0)
-    monkeypatch.setattr(ProgressService, "get_state", get_state)
+    # On the objects in use, not on a class: after a reload the mech service
+    # may hold an instance of an older ProgressService than the module's
+    from services.mech.mech_service import get_mech_service
+    progress_service = importlib.import_module("services.mech.progress_service")
+    for instance in {id(o): o for o in (get_mech_service().progress_service,
+                                         progress_service.get_progress_service())}.values():
+        monkeypatch.setattr(instance, "get_state", get_state.__get__(instance))
 
     result = get_mech_data_store().get_comprehensive_data(MechDataRequest(force_refresh=True))
 
