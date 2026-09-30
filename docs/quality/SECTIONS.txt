@@ -407,7 +407,7 @@ utils/token_security.py:1-283
 services/config/group_references.py:1-153
 services/config/group_service.py:1-416
 
-## Section 38  (1377 lines, 8 pieces)
+## Section 38  (1387 lines, 8 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
 # lines a section may hold, and the next repair in main_routes.py (review D25)
 # did not fit. The section cut is an instrument for reading the code, not a
@@ -429,7 +429,7 @@ cogs/help_embed.py:1-96
 services/status/__init__.py:1-13
 services/translation/__init__.py:1-12
 # utils/config_cache.py arrived from section 35 on 2026-09-24 (see there).
-utils/config_cache.py:1-307
+utils/config_cache.py:1-317
 
 ## Section 39  (1680 lines, 7 pieces)
 # New on 2026-09-22 for v3.0: the allowlist proxy in front of the Docker

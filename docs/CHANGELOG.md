@@ -433,6 +433,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - When the Docker proxy or daemon drops the connection while DDC reads the container list, the
   panel keeps the last list and shows the connectivity banner instead of an error page, and the
   background refresh no longer stops for good.
+- A guild_id written into config.json as a number (not as text) is used as the server for the
+  slash commands instead of declaring them globally.
 
 ### 🐛 The mech's picture and gift, the update notice
 

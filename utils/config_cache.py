@@ -14,6 +14,23 @@ from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger('ddc.config_cache')
 
+def parse_guild_id(value: Any) -> Optional[int]:
+    """A configured guild id as an int, or None.
+
+    A digit string (what the panel writes) or an int (a hand-edited or
+    externally written config.json). Only strings counted before, so a number
+    declared every slash command global while the startup sync used it as the
+    guild (stage 4 review before v3.1.0, 38).
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value > 0 else None
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip()) or None
+    return None
+
+
 class ConfigCache:
     """
     Thread-safe configuration cache for performance optimization.
@@ -141,10 +158,7 @@ class ConfigCache:
             Guild ID as integer or None if not configured
         """
         with self._lock:
-            guild_id_str = self._cache.get('guild_id')
-            if guild_id_str and isinstance(guild_id_str, str) and guild_id_str.isdigit():
-                return int(guild_id_str)
-            return None
+            return parse_guild_id(self._cache.get('guild_id'))
 
     def get_language(self) -> str:
         """
@@ -291,11 +305,7 @@ def get_cached_guild_id() -> Optional[int]:
     if _config_cache.is_valid():
         return _config_cache.get_guild_id()
     else:
-        config = get_cached_config()
-        guild_id_str = config.get('guild_id')
-        if guild_id_str and isinstance(guild_id_str, str) and guild_id_str.isdigit():
-            return int(guild_id_str)
-        return None
+        return parse_guild_id(get_cached_config().get('guild_id'))
 
 def get_cache_memory_stats() -> Dict[str, Any]:
     """
