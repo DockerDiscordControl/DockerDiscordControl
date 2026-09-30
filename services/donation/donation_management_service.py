@@ -106,7 +106,7 @@ class DonationManagementService:
         logger.info("Donation management service initialized")
 
     def get_donation_history(self, limit: int = 100) -> ServiceResult:
-        """Get donation history with statistics using MechService.
+        """Get donation history with statistics from the progress event log.
 
         Args:
             limit: Maximum number of donations to return
@@ -115,26 +115,9 @@ class DonationManagementService:
             ServiceResult with donation data and stats
         """
         try:
-            from services.mech.mech_service import get_mech_service, GetMechStateRequest
-            mech_service = get_mech_service()
-
-            # SERVICE FIRST: Get mech state with donation data
-            mech_state_request = GetMechStateRequest(include_decimals=False)
-            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-            if not mech_state_result.success:
-                return ServiceResult(
-                    success=False,
-                    error="Failed to get mech state",
-                    data={"donations": [], "stats": None}
-                )
-
-            # Create compatibility object for existing code
-            class MechStateCompat:
-                def __init__(self, result):
-                    self.total_donated = result.total_donated
-                    self.level = result.level
-            mech_state = MechStateCompat(mech_state_result)
-
+            # Every number comes from the event log. The mech state that used to
+            # be fetched here was never read, yet an unreadable snapshot failed
+            # the whole page with it (stage 4 review, 17).
             # Get donations AND deletions directly from Progress Service Event Log
             all_events = []
             event_log = get_progress_paths().event_log
@@ -408,25 +391,13 @@ class DonationManagementService:
             return ServiceResult(success=False, error=error_msg)
 
     def get_donation_stats(self) -> ServiceResult:
-        """Get donation statistics only using MechService.
+        """Get donation statistics only, from the progress event log.
 
         Returns:
             ServiceResult with DonationStats
         """
         try:
-            from services.mech.mech_service import get_mech_service, GetMechStateRequest
-            mech_service = get_mech_service()
-
-            # SERVICE FIRST: Get mech state and raw donations
-            mech_state_request = GetMechStateRequest(include_decimals=False)
-            mech_state_result = mech_service.get_mech_state_service(mech_state_request)
-            if not mech_state_result.success:
-                return ServiceResult(
-                    success=False,
-                    error="Failed to get mech state",
-                    data=None
-                )
-
+            # The event log only, as in get_donation_history (stage 4 review, 17).
             # Get ALL donations directly from Progress Service Event Log
             donations_map = {}
             deletions_map = {}

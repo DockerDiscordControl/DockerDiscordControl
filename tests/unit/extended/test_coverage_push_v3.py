@@ -696,7 +696,10 @@ class TestDeleteDonationBranches:
 
 class TestDonationStatsBranches:
 
-    def test_stats_mech_failure_returns_failure(
+    # Changed 2026-09-30 (stage 4 review, 17#3): a failing mech state used to
+    # fail both calls, although neither ever read it; they read the event log
+    # only now, see tests/spec/test_the_donation_history_does_not_need_the_mech_state.py.
+    def test_stats_ignore_a_mech_failure(
         self, patch_mech_service, patch_progress_paths
     ):
         # Mech service returns success=False
@@ -707,9 +710,10 @@ class TestDonationStatsBranches:
         patch_mech_service.return_value = mech
 
         result = DonationManagementService().get_donation_stats()
-        assert result.success is False
+        assert result.success is True
+        mech.get_mech_state_service.assert_not_called()
 
-    def test_stats_history_mech_failure_returns_failure(
+    def test_history_ignores_a_mech_failure(
         self, patch_mech_service, patch_progress_paths
     ):
         mech = MagicMock()
@@ -719,7 +723,8 @@ class TestDonationStatsBranches:
         patch_mech_service.return_value = mech
 
         result = DonationManagementService().get_donation_history()
-        assert result.success is False
+        assert result.success is True
+        mech.get_mech_state_service.assert_not_called()
 
     def test_stats_with_power_gifts_and_deletion_toggle(
         self, patch_mech_service, patch_progress_paths, event_log_path

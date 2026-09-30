@@ -306,17 +306,24 @@ class TestDonationManagementService:
     def test_service_exception_handling(
         self, patch_mech_service, patch_progress_paths, event_log_path
     ):
-        """Catchable errors from the mech service yield a failure result."""
+        """Catchable errors while reading the log yield a failure result."""
         # ValueError is one of the exception classes the production code
-        # explicitly handles for ``get_donation_history``.
-        patch_mech_service.side_effect = ValueError("Mech service error")
-        _write_event_log(event_log_path, [])
+        # explicitly handles for ``get_donation_history``. Until 2026-09-30 the
+        # error came from the mech service, which the history no longer asks
+        # (stage 4 review, 17#3); the event log reader raises it now.
+        import services.donation.donation_management_service as module
 
-        result = self.service.get_donation_history()
+        def _broken(_log):
+            raise ValueError("Event log error")
+            yield  # pragma: no cover - makes this a generator like the real one
+
+        _write_event_log(event_log_path, [])
+        with patch.object(module, "_iter_event_log", _broken):
+            result = self.service.get_donation_history()
 
         assert result.success is False
         assert result.error is not None
-        assert "Mech service error" in result.error
+        assert "Event log error" in result.error
 
 
 # --------------------------------------------------------------------------- #

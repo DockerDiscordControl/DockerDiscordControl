@@ -365,6 +365,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   now and reports the failure.
 - A donation ledger line with an empty payload (a hand edit, a restored backup) no longer turns
   the whole donation history and its statistics into an error.
+- The donation history and its statistics no longer fail when the mech state cannot be read (an
+  unreadable snapshot file); they only ever needed the event log.
 
 ### 🐛 The mech's picture and gift, the update notice
 
