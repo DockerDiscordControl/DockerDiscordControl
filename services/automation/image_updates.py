@@ -147,6 +147,13 @@ async def remote_digest(ref: ImageRef, scheme: str = "https", timeout: float = 1
                 if token_answer.status != 200:
                     return None
                 data = await token_answer.json(content_type=None)
+            if not isinstance(data, dict):
+                # null, [] or a string from a misbehaving registry: data.get()
+                # raised AttributeError, which stopped the watchdog's check for
+                # every later container (stage 4 review before v3.1.0, 42)
+                logger.info(f"Image update check: {ref.registry} answered the token request "
+                            f"with {type(data).__name__}, not an object")
+                return None
             token = data.get("token") or data.get("access_token")
             if not token:
                 return None
@@ -187,7 +194,12 @@ async def cached_remote_digest(ref: ImageRef, wait: float) -> Optional[str]:
     task = _REMOTE_IN_FLIGHT.get(ref)
     if task is None or task.done():
         async def _ask():
-            digest = await remote_digest(ref)
+            try:
+                digest = await remote_digest(ref)
+            except Exception as error:  # noqa: BLE001 - "never raises", and the unknown is cached
+                logger.info(f"Image update check: {ref.registry}/{ref.repository}:{ref.tag} "
+                            f"could not be asked ({error!r})")
+                digest = None
             _REMOTE_CACHE[ref] = (time.monotonic(), digest)
             return digest
         task = asyncio.ensure_future(_ask())

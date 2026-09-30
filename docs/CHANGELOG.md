@@ -451,6 +451,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   button until the task is complete again.
 - Pressing the delete button of a task that was already deleted elsewhere says the task is gone,
   instead of claiming a missing permission.
+- A container registry that answers the token request with something other than an object no
+  longer stops the newer-image check for every later container.
 
 ### 🐛 The mech's picture and gift, the update notice
 
