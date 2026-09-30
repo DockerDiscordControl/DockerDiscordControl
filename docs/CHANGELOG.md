@@ -409,6 +409,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   panel's task list, task form and task creation fail; the panel uses UTC, as the bot already did.
 - Adding a cron task whose date never occurs (such as 31 February) says so, instead of claiming
   the time given is in the past.
+- Downloading an action log that exists but cannot be read answers with a message and the way back
+  to the panel instead of a bare error page.
 
 ### 🐛 The mech's picture and gift, the update notice
 

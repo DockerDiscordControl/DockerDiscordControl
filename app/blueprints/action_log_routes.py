@@ -89,3 +89,10 @@ def download_action_log():
         # Redirect to a relevant page, e.g., the main config page or a dedicated logs page
         # Assuming 'main_bp.config_page' is the route for '/'. Adjust if namespace/name is different after BP registration.
         return redirect(url_for('main_bp.config_page'))
+    except OSError as e:
+        # There but not readable (permissions, I/O): the bare 500 page left the
+        # operator without a word or a way back (stage 4 review before v3.1.0, 32)
+        current_app.logger.error(f"Action log ({ACTION_LOG_FILE}) could not be read for download: {e}",
+                                 exc_info=True)
+        flash('Action log could not be read. Cannot download.', 'error')
+        return redirect(url_for('main_bp.config_page'))
