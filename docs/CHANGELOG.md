@@ -427,6 +427,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   answers without a translation; it says so.
 - Switching "Enable background refresh" off in the panel's advanced settings now keeps the Docker
   refresh worker from starting; it used to start anyway.
+- An uptime monitor or proxy check that probes the panel without logging in no longer keeps the
+  Docker refresh worker busy around the clock; only answered panel requests count as the panel
+  being used.
 
 ### 🐛 The mech's picture and gift, the update notice
 

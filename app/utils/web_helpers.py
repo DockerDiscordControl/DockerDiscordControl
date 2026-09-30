@@ -138,14 +138,21 @@ last_docker_query_time = 0
 # worker refreshes only then; otherwise it asks Docker nothing at all.
 PANEL_ACTIVE_SECONDS = 300
 last_panel_request = 0.0
-# Requests that do not mean a person is looking: Docker's own healthcheck and files
-_NOT_A_PANEL_VISIT = ('/static/', '/health', '/favicon')
+# Requests that do not mean a person is looking: Docker's own healthcheck, files,
+# and the pages anyone may fetch without logging in
+_NOT_A_PANEL_VISIT = ('/static/', '/health', '/favicon', '/login', '/setup')
 
 
-def note_panel_request(path: str) -> None:
-    """Remember that the panel was used (called for every request, see register_panel_activity)."""
+def note_panel_request(path: str, status: int = 200, method: str = 'GET') -> None:
+    """Remember that the panel was used (called for every answer, see register_panel_activity).
+
+    Only an answered request counts. Every request did before, refused ones
+    too, so an uptime monitor probing "/" or "/login" kept the panel "open"
+    and the worker asked Docker around the clock (stage 4 review before
+    v3.1.0, 34).
+    """
     global last_panel_request
-    if not path.startswith(_NOT_A_PANEL_VISIT):
+    if method != 'HEAD' and 200 <= status < 300 and not path.startswith(_NOT_A_PANEL_VISIT):
         last_panel_request = time.time()
 
 
@@ -157,10 +164,11 @@ def register_panel_activity(app) -> None:
     """Hook every request into note_panel_request."""
     from flask import request
 
-    @app.before_request
-    def _note_panel_request():
-        note_panel_request(request.path)
-        return None
+    @app.after_request
+    def _note_panel_request(response):
+        # After, not before: only the answer tells a refused probe from a visit
+        note_panel_request(request.path, response.status_code, request.method)
+        return response
 background_refresh_thread = None
 stop_background_thread = create_event()  # Use Gevent-compatible event
 
