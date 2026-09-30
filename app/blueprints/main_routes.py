@@ -149,6 +149,7 @@ def set_ui_language():
 def save_config_api():
     logger = current_app.logger
     logger.info("save_config_api (blueprint) called...")
+    banner = None  # shown only to a plain form submit, see the end
 
     try:
         # Use ConfigurationSaveService to handle business logic
@@ -204,7 +205,7 @@ def save_config_api():
             'success': False,
             'message': "Service error: Unable to access configuration services."
         }
-        flash("Service error: Unable to save configuration.", 'danger')
+        banner = "Service error: Unable to save configuration."
     except (ValueError, TypeError, KeyError) as e:
         # Data processing errors (request data parsing, validation)
         logger.error(f"Data error in save_config_api: {str(e)}", exc_info=True)
@@ -212,7 +213,7 @@ def save_config_api():
             'success': False,
             'message': "Data error: Invalid configuration data provided."
         }
-        flash("Data error: Invalid configuration data.", 'danger')
+        banner = "Data error: Invalid configuration data."
     except ConfigServiceError as e:
         # Config persistence errors (disk full, permission denied) that escaped the save service
         logger.error(f"Config service error in save_config_api: {e}", exc_info=True)
@@ -220,16 +221,20 @@ def save_config_api():
             'success': False,
             'message': f"Error saving configuration: {e.message}"
         }
-        flash("Error saving configuration.", 'danger')
+        banner = "Error saving configuration."
 
     # Check if it's an AJAX request (has the X-Requested-With header)
     is_ajax_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if is_ajax_request:
-        # Return JSON for AJAX requests
+        # Return JSON for AJAX requests. No flash: the panel shows the JSON, and a
+        # flash waited in the session for the next page - after a later save that
+        # worked, too (stage 4 review before v3.1.0, 32)
         return jsonify(result)
     else:
         # Redirect to configuration page for normal form submits
+        if banner:
+            flash(banner, 'danger')
         return redirect(url_for('.config_page'))
 
 @main_bp.route('/discord_bot_setup')

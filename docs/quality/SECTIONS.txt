@@ -299,8 +299,8 @@ app/blueprints/automation_routes.py:1-334
 app/blueprints/login_routes.py:1-119
 app/blueprints/log_routes.py:1-242
 
-## Section 32  (1966 lines, 4 pieces)
-app/blueprints/main_routes.py:1-1309
+## Section 32  (1971 lines, 4 pieces)
+app/blueprints/main_routes.py:1-1314
 app/blueprints/tasks_bp.py:1-389
 app/blueprints/action_log_routes.py:1-98
 # group_routes.py came over from section 33 on 2026-09-29, beside the other

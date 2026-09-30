@@ -411,6 +411,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the time given is in the past.
 - Downloading an action log that exists but cannot be read answers with a message and the way back
   to the panel instead of a bare error page.
+- A failed configuration save in the panel no longer leaves its error banner behind to appear on a
+  later page, after a save that worked.
 
 ### 🐛 The mech's picture and gift, the update notice
 
