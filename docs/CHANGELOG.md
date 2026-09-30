@@ -382,6 +382,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A manual player-query re-test in the panel keeps its spinner while the bot records a verdict
   change or sees the container offline; it no longer says "No response" while the re-test is still
   running.
+- A manual player-query re-test that succeeds while the bot is probing the same container is no
+  longer overwritten by the bot's older failed probe.
 
 ### 🐛 The mech's picture and gift, the update notice
 

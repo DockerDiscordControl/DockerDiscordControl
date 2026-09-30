@@ -178,6 +178,10 @@ def record_manual_success(name: str, protocol: Optional[str] = None,
     _atomic_update(_m, path)
 
 
+def _final_yes(entry: Optional[Dict[str, Any]]) -> bool:
+    return isinstance(entry, dict) and bool(entry.get('final')) and bool(entry.get('supported'))
+
+
 def _keeping_testing(on_disk: Optional[Dict[str, Any]], entry: Dict[str, Any]) -> Dict[str, Any]:
     """The bot's new entry, with the web process's 'testing' flag if it is set.
 
@@ -362,8 +366,22 @@ class GameQuerySupportService:
         # Persist ONLY this key via read-modify-write, so the bot never overwrites verdicts
         # owned by the web process (manual re-test) or other containers' entries.
         if prev is None or any(prev.get(f) != entry.get(f) for f in _VERDICT_FIELDS):
-            _atomic_update(lambda s: s.update({name: _keeping_testing(s.get(name), entry)}),
-                           self._path)
+            adopted = []
+
+            def _write(state):
+                on_disk = state.get(name)
+                # A manual re-test answered after this pass's reload: its success is
+                # news to the bot and beats the bot's older negative result - the
+                # decision has to be taken here, under the lock (stage 4 review
+                # before v3.1.0, 20). A demotion starts from the bot's own positive
+                # verdict and still goes through.
+                if _final_yes(on_disk) and not entry['supported'] and not _final_yes(prev):
+                    adopted.append(dict(on_disk))
+                    return
+                state[name] = _keeping_testing(on_disk, entry)
+            _atomic_update(_write, self._path)
+            if adopted:
+                self._state[name] = adopted[0]
 
     def _load_file(self) -> None:
         try:
