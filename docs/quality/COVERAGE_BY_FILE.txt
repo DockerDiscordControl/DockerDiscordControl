@@ -273,7 +273,7 @@ utils/__init__.py	7	pass1:s35:1-7
 utils/app_commands_helper.py	150	pass1:s35:1-150
 utils/atomic_io.py	126	pass1:s35:1-70
 utils/common_helpers.py	520	pass1:s35:1-475  [26 of 501 lines never in a package]
-utils/config_cache.py	317	pass1:s35:1-307
+utils/config_cache.py	321	pass1:s35:1-307
 utils/config_paths.py	47	pass1:s35:1-47
 utils/container_image.py	67	passE:written-2026-09-22:E53
 utils/import_utils.py	165	pass1:s35:1-160  [5 of 165 lines never in a package]

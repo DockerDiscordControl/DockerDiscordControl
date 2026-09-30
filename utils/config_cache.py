@@ -6,9 +6,9 @@
 # Licensed under the MIT License                                               #
 # ============================================================================ #
 
+import json
 import threading
 import logging
-import sys
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone, timedelta
 
@@ -102,9 +102,13 @@ class ConfigCache:
         return optimized
 
     def _get_cache_size_mb(self) -> float:
-        """Returns approximate cache size in MB."""
+        """Returns approximate cache size in MB, estimated from the content's JSON length.
+
+        sys.getsizeof measured the outer dict alone and reported about 0.00 MB
+        whatever the cache held (stage 4 review before v3.1.0, 38).
+        """
         try:
-            return sys.getsizeof(self._cache) / (1024 * 1024)
+            return len(json.dumps(self._cache, default=str).encode('utf-8')) / (1024 * 1024)
         except Exception:
             return 0.0
 
