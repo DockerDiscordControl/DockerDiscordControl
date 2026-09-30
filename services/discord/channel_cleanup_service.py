@@ -265,8 +265,11 @@ class ChannelCleanupService:
                                f"{result.messages_deleted}/{result.messages_found} deleted, "
                                f"timed out")
 
-            # Choose appropriate logging based on method used
-            if result.purge_deleted > 0:
+            # Choose appropriate logging based on method used - and only when it
+            # WAS a success: "CLEANUP SUCCESS" followed "CLEANUP INCOMPLETE".
+            if not result.success:
+                pass
+            elif result.purge_deleted > 0:
                 logger.info(f"✅ CLEANUP SUCCESS: Channel {request.channel.id} - "
                            f"Deleted {result.messages_deleted} messages via {result.method_used} "
                            f"(Preserved: {result.messages_preserved})")
@@ -430,8 +433,10 @@ class ChannelCleanupService:
             # permission they never needed to grant. Both neighbours already
             # knew better - the timeout branch above falls back, and
             # _bulk_delete_messages falls back on this very exception
-            # (review D33).
-            result.permission_errors += 1
+            # (review D33). And NOT counted as a permission error: the shortcut
+            # refused is no message left behind - only a message the walk below
+            # cannot delete is. Counted here, a cleanup that removed everything
+            # reported "missing the permission" (stage 4 review before v3.1.0, 14).
             result.method_used = "purge forbidden -> deleting one by one"
             logger.warning(f"⚠️ CLEANUP: No 'Manage Messages' for purge in channel "
                            f"{request.channel.id} - deleting the bot's own messages one by one")

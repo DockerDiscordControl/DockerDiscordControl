@@ -507,7 +507,9 @@ class TestChannelCleanupServiceCore:
         )
         result = ChannelCleanupResult()
         await svc._purge_with_filter(req, result)
-        assert result.permission_errors == 1
+        # The refused bulk shortcut is not a message left behind: only the
+        # one-by-one walk counts refusals (stage 4 review before v3.1.0, 14).
+        assert result.permission_errors == 0
         assert "forbidden" in result.method_used
 
     @pytest.mark.asyncio
