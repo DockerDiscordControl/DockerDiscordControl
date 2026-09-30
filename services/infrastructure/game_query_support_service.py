@@ -178,6 +178,18 @@ def record_manual_success(name: str, protocol: Optional[str] = None,
     _atomic_update(_m, path)
 
 
+def _keeping_testing(on_disk: Optional[Dict[str, Any]], entry: Dict[str, Any]) -> Dict[str, Any]:
+    """The bot's new entry, with the web process's 'testing' flag if it is set.
+
+    A manual re-test sets the flag and the panel polls it; the bot replaced
+    the whole key without it, so the panel stopped and said "No response"
+    while the re-test was still running (stage 4 review before v3.1.0, 20).
+    """
+    if isinstance(on_disk, dict) and on_disk.get('testing'):
+        return {**entry, 'testing': True}
+    return entry
+
+
 class GameQuerySupportService:
     """Singleton (in the bot) holding support verdicts; persists to a file for the web UI."""
 
@@ -310,7 +322,12 @@ class GameQuerySupportService:
         elif entry is not None and not entry.get('final'):
             del self._state[name]
             self._last_probe.pop(name, None)
-            _atomic_update(lambda s: s.pop(name, None), self._path)   # per-key RMW: never clobber others
+            def _forget(state):   # per-key RMW: never clobber others
+                if (state.get(name) or {}).get('testing'):
+                    state[name] = {'testing': True}   # a running re-test keeps its flag
+                else:
+                    state.pop(name, None)
+            _atomic_update(_forget, self._path)
 
     def reload(self) -> None:
         """Re-read the on-disk verdicts (e.g. web-process manual re-test results) into memory,
@@ -345,7 +362,8 @@ class GameQuerySupportService:
         # Persist ONLY this key via read-modify-write, so the bot never overwrites verdicts
         # owned by the web process (manual re-test) or other containers' entries.
         if prev is None or any(prev.get(f) != entry.get(f) for f in _VERDICT_FIELDS):
-            _atomic_update(lambda s: s.update({name: entry}), self._path)
+            _atomic_update(lambda s: s.update({name: _keeping_testing(s.get(name), entry)}),
+                           self._path)
 
     def _load_file(self) -> None:
         try:

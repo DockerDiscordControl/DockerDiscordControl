@@ -379,6 +379,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   after it comes back silent, instead of being written off for good.
 - The 15-minute player-query probe window closes again: a container that does not answer is no
   longer asked every minute forever, but given up after 15 minutes as intended.
+- A manual player-query re-test in the panel keeps its spinner while the bot records a verdict
+  change or sees the container offline; it no longer says "No response" while the re-test is still
+  running.
 
 ### 🐛 The mech's picture and gift, the update notice
 
