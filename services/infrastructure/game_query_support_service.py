@@ -298,7 +298,16 @@ class GameQuerySupportService:
         """Container observed offline: reset the probe window for a not-yet-final container
         (a fresh 15-min window on next boot). FINAL verdicts are untouched (sticky)."""
         entry = self._state.get(name)
-        if entry is not None and not entry.get('final'):
+        if entry is not None and not entry.get('final') and entry.get('demoted'):
+            # A server that answered once keeps that knowledge: dropping the flag
+            # with the entry made it final "unsupported" after its next window,
+            # never asked again (stage 4 review before v3.1.0, 20). Only the
+            # window is reset.
+            if entry.get('probing_since') is not None:
+                self._last_probe.pop(name, None)
+                self._set(name, supported=False, final=False, protocol=None, port=None,
+                          probing_since=None, demoted=True)
+        elif entry is not None and not entry.get('final'):
             del self._state[name]
             self._last_probe.pop(name, None)
             _atomic_update(lambda s: s.pop(name, None), self._path)   # per-key RMW: never clobber others

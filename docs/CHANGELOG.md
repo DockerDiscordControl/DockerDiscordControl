@@ -375,6 +375,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A stored button or command cooldown that is not a whole number of seconds from 0 to 300 (a hand
   edit, a save from before 2026-09-26) no longer makes that button fail; a stored per-minute limit
   of 0 no longer refuses every second press. Each such value is logged and its default applies.
+- A game server that answered once and then went offline is still asked again every 30 minutes
+  after it comes back silent, instead of being written off for good.
 
 ### 🐛 The mech's picture and gift, the update notice
 
