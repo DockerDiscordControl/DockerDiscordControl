@@ -195,6 +195,11 @@ class ConfigMigrationService:
         for json_file in self.config_dir.glob("*.json"):
             if json_file.is_file():
                 shutil.copy2(json_file, backup_dir)
+        # And the modular folders: a retried migration used to rewrite them, and
+        # they were the one part without a copy (stage 4 review before v3.1.0, 12).
+        for folder in (self.channels_dir, self.containers_dir):
+            if folder.is_dir():
+                shutil.copytree(folder, backup_dir / folder.name, dirs_exist_ok=True)
 
         logger.info(f"📦 Created backup in: {backup_dir.name}")
 
@@ -228,6 +233,17 @@ class ConfigMigrationService:
             # File operation errors (deletion errors, permissions)
             logger.warning(f"File error during cleanup: {e}")
 
+    @staticmethod
+    def _fill_in(load_json_func, save_json_func, path, fresh) -> None:
+        """Write ``fresh`` to ``path``, keeping every key the file already has.
+
+        The migration is retried at every start until it finished (review C28);
+        a retry that wrote its legacy values over the files discarded whatever
+        the operator had saved in between (stage 4 review before v3.1.0, 12).
+        """
+        existing = load_json_func(path, {}) if path.exists() else {}
+        save_json_func(path, {**fresh, **(existing or {})})
+
     def create_modular_directories(self) -> None:
         """Create the modular directory structure."""
         self.channels_dir.mkdir(exist_ok=True, parents=True)
@@ -245,6 +261,8 @@ class ConfigMigrationService:
                     logger.warning(f"Skipping invalid channel ID during migration: {channel_id!r}")
                     continue
                 channel_file = self.channels_dir / f"{channel_id}.json"
+                if channel_file.exists():
+                    continue  # written by the operator since - a retry must not undo it
                 channel_config["channel_id"] = channel_id
                 save_json_func(channel_file, channel_config)
                 logger.info(f"✅ Migrated channel: {channel_config.get('name', channel_id)}")
@@ -266,7 +284,7 @@ class ConfigMigrationService:
             }
 
             default_file = self.channels_dir / "default.json"
-            save_json_func(default_file, default_config)
+            self._fill_in(load_json_func, save_json_func, default_file, default_config)
 
             logger.info(f"✅ Migrated {len(channel_permissions)} channels + default config")
 
@@ -287,6 +305,8 @@ class ConfigMigrationService:
                     logger.warning(f"Skipping invalid container name during migration: {container_name!r}")
                     continue
                 container_file = self.containers_dir / f"{container_name}.json"
+                if container_file.exists():
+                    continue  # written by the operator since - a retry must not undo it
                 save_json_func(container_file, server)
                 logger.info(f"✅ Migrated container: {container_name}")
 
@@ -298,7 +318,7 @@ class ConfigMigrationService:
                 "max_log_lines": docker_data.get("max_log_lines", 50)
             }
 
-            save_json_func(self.docker_settings_file, docker_settings)
+            self._fill_in(load_json_func, save_json_func, self.docker_settings_file, docker_settings)
 
             logger.info(f"✅ Migrated {len(servers)} containers + docker settings")
 
@@ -332,7 +352,13 @@ class ConfigMigrationService:
                 "ping_url": "",
                 "interval": 5
             }
-            save_json_func(self.main_config_file, main_config)
+            existing = load_json_func(self.main_config_file, {}) if self.main_config_file.exists() else {}
+            if isinstance(existing, dict) and ('servers' in existing or 'docker_name' in existing):
+                # The monolithic v1.1.x config.json: replaced as before (the backup
+                # above has it). Kept keys would make it look legacy on every read.
+                save_json_func(self.main_config_file, main_config)
+            else:
+                self._fill_in(load_json_func, save_json_func, self.main_config_file, main_config)
 
             # Note: heartbeat.json is no longer created - Status Watchdog config is in main config.json
 
@@ -341,7 +367,7 @@ class ConfigMigrationService:
                 "bot_token": bot_data.get("bot_token"),
                 "encryption_enabled": True
             }
-            save_json_func(self.auth_config_file, auth_config)
+            self._fill_in(load_json_func, save_json_func, self.auth_config_file, auth_config)
 
             logger.info("✅ Migrated system configs (config.json, auth.json)")
 
@@ -364,7 +390,7 @@ class ConfigMigrationService:
                 "donation_disable_key": web_data.get("donation_disable_key", ""),
                 "scheduler_debug_mode": web_data.get("scheduler_debug_mode", False)
             }
-            save_json_func(self.web_ui_config_file, web_ui_config)
+            self._fill_in(load_json_func, save_json_func, self.web_ui_config_file, web_ui_config)
 
             # The advanced settings go to config.json: web_config.json was their only
             # home and the cleanup below deletes it - every one fell back to its

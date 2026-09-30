@@ -326,6 +326,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - When saving the configuration failed after the channel permissions had already been written, the
   panel said only that the save failed. It says now that the channel permissions were saved and
   take effect.
+- When the move to the new configuration layout had to be retried at a later start, it put the old
+  values back over settings you had saved in between (language, status watchdog, channel
+  settings), and the channel and container files were not in its backup. A retry only fills in
+  what is missing now, and the backup includes both folders.
 
 ### 🐛 The mech's picture and gift, the update notice
 
