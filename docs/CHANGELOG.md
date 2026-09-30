@@ -437,6 +437,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   slash commands instead of declaring them globally.
 - A group's admin panel says the groups file could not be read when that is the case, instead of
   claiming the group no longer exists.
+- A hand-edited groups.json with a wrongly typed field ("containers": null) no longer empties the
+  admin menu of both admin buttons; the containers are still offered and the file is reported as
+  unreadable.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -394,7 +394,7 @@ utils/observability.py:1-593
 utils/settings.py:1-113
 utils/time_utils.py:1-387
 
-## Section 37  (1355 lines, 5 pieces)
+## Section 37  (1375 lines, 5 pieces)
 # group_service.py arrived from section 12 on 2026-09-24 (see there). This is
 # the section with the most room, and a group's own permissions are the kind of
 # rule that gets read next to the token and key handling rather than next to
@@ -405,7 +405,7 @@ utils/token_security.py:1-283
 # group_references.py joined on 2026-09-24 (new: everything outside
 # groups.json that points at a group by name, moved by a rename).
 services/config/group_references.py:1-153
-services/config/group_service.py:1-416
+services/config/group_service.py:1-436
 
 ## Section 38  (1396 lines, 8 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000

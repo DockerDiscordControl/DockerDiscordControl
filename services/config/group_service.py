@@ -135,6 +135,17 @@ class GroupResult:
     moved: dict = field(default_factory=dict)
 
 
+def _a_list(value, field: str) -> list:
+    """``value`` as a list if it is one (or the tuple KNOWN_ACTIONS, the default
+    for a group without the field); a TypeError naming ``field`` otherwise.
+
+    list() would turn the string "web" into ['w', 'e', 'b'] without a word.
+    """
+    if not isinstance(value, (list, tuple)):
+        raise TypeError(f"'{field}' is a {type(value).__name__}, not a list")
+    return list(value)
+
+
 class GroupService:
     """Reads and writes ``config/groups.json``."""
 
@@ -339,14 +350,23 @@ class GroupService:
         entries = data.get("groups") if isinstance(data, dict) else None
         if not isinstance(entries, list):
             return []
-        return [{"name": str(e["name"]),
-                 "containers": list(e.get("containers", [])),
-                 # A group from before 2026-09-24 has neither field; see
-                 # ContainerGroup for why the answer is not "nothing".
-                 "active": bool(e.get("active", True)),
-                 "allowed_actions": [a for a in e.get("allowed_actions", KNOWN_ACTIONS)
-                                     if a in KNOWN_ACTIONS]}
-                for e in entries if isinstance(e, dict) and e.get("name")]
+        try:
+            return [{"name": str(e["name"]),
+                     "containers": _a_list(e.get("containers", []), "containers"),
+                     # A group from before 2026-09-24 has neither field; see
+                     # ContainerGroup for why the answer is not "nothing".
+                     "active": bool(e.get("active", True)),
+                     "allowed_actions": [a for a in _a_list(e.get("allowed_actions", KNOWN_ACTIONS),
+                                                            "allowed_actions")
+                                         if a in KNOWN_ACTIONS]}
+                    for e in entries if isinstance(e, dict) and e.get("name")]
+        except TypeError as e:
+            # Valid JSON, wrong shape (a hand edit: "containers": null). The
+            # TypeError escaped every caller and took the whole admin menu
+            # with it; as a read failure it costs the groups only (stage 4
+            # review before v3.1.0, 38).
+            logger.error(f"Groups file {self._path} could not be read: {e}")
+            raise OSError(f"groups.json could not be read: {e}") from e
 
     def _write(self, entries: List[dict]) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
