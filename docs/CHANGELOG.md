@@ -339,6 +339,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A channel update interval or inactivity timeout of "1.5" made the whole configuration save fail
   with a raw Python error, and 0 or a negative value was stored as it came. Such values are
   rounded down to whole minutes and at least one now.
+- A container display name written in square brackets, such as "[PROD]", lost its brackets when
+  saved. It is kept as written now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

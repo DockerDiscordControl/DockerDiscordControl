@@ -83,15 +83,19 @@ class ConfigFormParserService:
         if isinstance(raw_value, str):
             if raw_value.startswith('[') and raw_value.endswith(']'):
                 # It's a stringified list like "['Name1', 'Name2']"
+                # Only a real list of names. Any bracketed name was stripped:
+                # "[PROD]" became "PROD", "[1]" became "1" (stage 4 review before
+                # v3.1.0, section 12).
                 try:
                     import ast
                     parsed_list = ast.literal_eval(raw_value)
-                    if isinstance(parsed_list, list) and len(parsed_list) > 0:
-                        name = str(parsed_list[0])
-                    else:
-                        name = raw_value.strip("[]'\"")
                 except (ValueError, SyntaxError, TypeError):
-                    name = raw_value.strip("[]'\"")
+                    parsed_list = None
+                if (isinstance(parsed_list, list) and parsed_list
+                        and all(isinstance(item, str) for item in parsed_list)):
+                    name = parsed_list[0].strip()
+                else:
+                    name = raw_value.strip()
             else:
                 name = raw_value.strip()
 
