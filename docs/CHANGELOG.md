@@ -418,6 +418,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   longer turns a container task into a group task.
 - The donation API refuses a publish_to_discord that is not a real true or false; the text "false"
   no longer announces the donation in Discord.
+- The first-time password setup is written to the action log with its own fields (action SETUP, by
+  admin, from the Web UI) instead of its sentence in the user field.
 
 ### 🐛 The mech's picture and gift, the update notice
 

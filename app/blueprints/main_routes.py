@@ -969,7 +969,10 @@ def setup_save():
         if success:
             # Log the setup completion
             current_app.logger.info("First-time setup completed successfully")
-            log_user_action("admin", "setup", "First-time password setup completed")
+            # By keyword: positionally the sentence landed in the user field and the
+            # source read "Unknown" (stage 4 review before v3.1.0, 32)
+            log_user_action(action="SETUP", target="Web UI password", user="admin",
+                            source="Web UI", details="First-time password setup completed")
 
             return jsonify({
                 'success': True,
