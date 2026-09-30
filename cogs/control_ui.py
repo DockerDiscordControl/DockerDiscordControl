@@ -986,7 +986,14 @@ class TaskDeleteButton(Button):
                 await interaction.followup.send(_("Error: Could not determine channel."), ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
 
-            from services.scheduling.scheduler import delete_task
+            from services.scheduling.scheduler import delete_task, find_task_by_id
+
+            # Found first, as in the twin: a task deleted elsewhere has no container
+            # for the admin check, and was answered "no permission" (2026-09-30)
+            if find_task_by_id(self.task_id) is None:
+                await interaction.followup.send(f"❌ {_('Task not found (may have already been deleted)')}",
+                                                ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+                return
 
             config = load_config()
             # A registered admin may delete as well (SPEC.md B2) - the same rule as

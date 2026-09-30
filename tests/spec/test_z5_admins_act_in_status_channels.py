@@ -176,6 +176,9 @@ async def test_an_admin_may_delete_a_task_via_the_control_panel(status_channel, 
     button.cog = SimpleNamespace()
     button.task_id = "t1"
     button.task_description = "Daily restart"
+    # The task must exist: since 2026-09-30 this button, like its twin above,
+    # answers "not found" for a task that is gone before it asks about rights
+    monkeypatch.setattr("services.scheduling.scheduler.find_task_by_id", lambda _id: MagicMock())
     monkeypatch.setattr("services.scheduling.scheduler.delete_task", _tripwire)
 
     with pytest.raises(_Passed):

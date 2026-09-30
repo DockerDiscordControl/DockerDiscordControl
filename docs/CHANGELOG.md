@@ -458,6 +458,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   trace.
 - The /api/mech/status answer no longer loses a cent of the next level's goal and of the amount
   still needed ($0.29 was reported as 28 cents).
+- The delete button in the control panel's task list also says a task is gone when it was deleted
+  elsewhere, instead of claiming a missing permission.
 
 ### 🐛 The mech's picture and gift, the update notice
 
