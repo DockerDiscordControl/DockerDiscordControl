@@ -16,7 +16,8 @@ host, 2026-09-28: linuxserver, AdGuard, Nginx Proxy Manager and MinIO label a
 real version; an image built FROM ubuntu inherits "22.04" as its
 org.opencontainers.image.version, and ubuntu marks that label as its own with
 org.opencontainers.image.ref.name=ubuntu - so a version whose ref.name is a
-base system is not the app's. A label without a digit ("master") says nothing
+base system is not the app's - unless the image names itself with a title or
+source label, as docker/metadata-action does when it sets its own version. A label without a digit ("master") says nothing
 either. Without a usable label, a tag other than "latest" is the version
 (redis:7-alpine); without that, the image date is the honest answer.
 """
@@ -35,6 +36,8 @@ VERSION_LABELS = ('org.opencontainers.image.version', 'org.label-schema.version'
 # Base images that label their OWN version, inherited by every image built on them
 BASE_SYSTEMS = frozenset({'ubuntu', 'debian', 'alpine', 'fedora', 'centos', 'rockylinux',
                           'almalinux', 'amazonlinux', 'busybox', 'redhat', 'ubi'})
+# An image that sets one of these names itself, so its version label is its own
+_OWN_NAME_LABELS = ('org.opencontainers.image.title', 'org.opencontainers.image.source')
 # Unraid's macvlan/ipvlan networks: the container has its own LAN address
 _LAN_NETWORK = re.compile(r'^(br|eth|bond|wlan)\d+(\.\d+)?$')
 # Docker writes this for "never" (a container that was never stopped)
@@ -80,7 +83,11 @@ def _moment(value) -> Optional[datetime]:
 def version_of(labels: Dict[str, str], reference: str) -> Optional[str]:
     """The app's version from the image labels or the tag, or None."""
     labels = labels or {}
-    inherited = str(labels.get('org.opencontainers.image.ref.name') or '').lower() in BASE_SYSTEMS
+    # Inherited only while the image does not name itself: docker/metadata-action
+    # sets title and source and overwrites the version, but leaves ubuntu's
+    # ref.name in place; ubuntu sets neither (stage 4 review before v3.1.0, 19b)
+    inherited = str(labels.get('org.opencontainers.image.ref.name') or '').lower() in BASE_SYSTEMS \
+        and not any(str(labels.get(key) or '').strip() for key in _OWN_NAME_LABELS)
     for key in VERSION_LABELS:
         if key == 'org.opencontainers.image.version' and inherited:
             continue

@@ -370,6 +370,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A game server that answers the info query but not the player query (host_players_show 0, a rate-
   limiting query proxy) keeps its count, name and version in the info display; only the names are
   missing.
+- An image built on ubuntu that labels its own version (as docker/metadata-action does) shows that
+  version in the info display instead of the image date.
 
 ### 🐛 The mech's picture and gift, the update notice
 
