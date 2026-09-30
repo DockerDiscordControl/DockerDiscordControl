@@ -344,6 +344,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A container name that is not allowed as a file name (for example one with a space, sent by a
   hand-made request) stopped the saving of every container after it. That one container is refused
   now and the others are saved.
+- A hand-written "use_dynamic": "false" in evolution_mode.json kept the mech's dynamic pricing on,
+  because the text "false" counted as yes. It means static now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

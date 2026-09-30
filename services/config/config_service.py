@@ -164,6 +164,22 @@ class ConfigServiceResult:
     error: Optional[str] = None
     message: Optional[str] = None
 
+def _use_dynamic(value) -> bool:
+    """evolution_mode.json's use_dynamic as a bool.
+
+    Read unchecked, a hand-written "false" was truthy and pricing stayed
+    dynamic while the file said static (stage 4 review before v3.1.0,
+    section 13). Anything that is not a bool or "true"/"false" is dynamic,
+    the default, with a warning.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.strip().lower() in ("true", "false"):
+        return value.strip().lower() == "true"
+    logger.warning(f"evolution_mode.json: use_dynamic {value!r} is no true/false - using dynamic")
+    return True
+
+
 def _difficulty_in_range(value, minimum: float, maximum: float) -> float:
     """The stored difficulty multiplier, or 1.0 when it is not usable.
 
@@ -1191,7 +1207,7 @@ class ConfigService:
 
             return GetEvolutionModeResult(
                 success=True,
-                use_dynamic=mode_config.get('use_dynamic', True),
+                use_dynamic=_use_dynamic(mode_config.get('use_dynamic', True)),
                 difficulty_multiplier=_difficulty_in_range(  # bounds on READ too
                     mode_config.get('difficulty_multiplier', 1.0), self.MIN_DIFFICULTY_MULTIPLIER,
                     self.MAX_DIFFICULTY_MULTIPLIER)
