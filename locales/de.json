@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Mech-Status vorübergehend nicht verfügbar",
   "No channel takes donation announcements - nothing was posted.": "Kein Kanal nimmt Spenden-Ankündigungen an - es wurde nichts gepostet.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Noch ${amount} bis Level {level}! (z. B. {amount})",
-  "The groups file could not be read - try again.": "Die Gruppendatei konnte nicht gelesen werden - versuch es noch einmal."
+  "The groups file could not be read - try again.": "Die Gruppendatei konnte nicht gelesen werden - versuch es noch einmal.",
+  "Mon": "Mo",
+  "Tue": "Di",
+  "Wed": "Mi",
+  "Thu": "Do",
+  "Fri": "Fr",
+  "Sat": "Sa",
+  "Sun": "So"
 }

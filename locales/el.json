@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Η κατάσταση του mech δεν είναι προσωρινά διαθέσιμη",
   "No channel takes donation announcements - nothing was posted.": "Κανένα κανάλι δεν δέχεται ανακοινώσεις δωρεών - δεν δημοσιεύτηκε τίποτα.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Χρειάζονται ${amount} για το επίπεδο {level}! (π.χ. {amount})",
-  "The groups file could not be read - try again.": "Δεν ήταν δυνατή η ανάγνωση του αρχείου ομάδων - δοκίμασε ξανά."
+  "The groups file could not be read - try again.": "Δεν ήταν δυνατή η ανάγνωση του αρχείου ομάδων - δοκίμασε ξανά.",
+  "Mon": "Δευ",
+  "Tue": "Τρι",
+  "Wed": "Τετ",
+  "Thu": "Πεμ",
+  "Fri": "Παρ",
+  "Sat": "Σαβ",
+  "Sun": "Κυρ"
 }

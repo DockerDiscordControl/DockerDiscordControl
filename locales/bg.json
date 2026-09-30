@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Състоянието на механа временно не е налично",
   "No channel takes donation announcements - nothing was posted.": "Никой канал не приема съобщения за дарения - нищо не беше публикувано.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Остават ${amount} до ниво {level}! (напр. {amount})",
-  "The groups file could not be read - try again.": "Файлът с групите не можа да бъде прочетен - опитай отново."
+  "The groups file could not be read - try again.": "Файлът с групите не можа да бъде прочетен - опитай отново.",
+  "Mon": "Пн",
+  "Tue": "Вт",
+  "Wed": "Ср",
+  "Thu": "Чт",
+  "Fri": "Пт",
+  "Sat": "Сб",
+  "Sun": "Нд"
 }

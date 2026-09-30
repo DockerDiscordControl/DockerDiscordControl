@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Starea mech-ului temporar indisponibilă",
   "No channel takes donation announcements - nothing was posted.": "Niciun canal nu primește anunțuri de donații - nu s-a publicat nimic.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Mai sunt ${amount} până la nivelul {level}! (ex. {amount})",
-  "The groups file could not be read - try again.": "Fișierul grupurilor nu a putut fi citit - încearcă din nou."
+  "The groups file could not be read - try again.": "Fișierul grupurilor nu a putut fi citit - încearcă din nou.",
+  "Mon": "lun",
+  "Tue": "mar",
+  "Wed": "mie",
+  "Thu": "joi",
+  "Fri": "vin",
+  "Sat": "sâm",
+  "Sun": "dum"
 }

@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Meha statuss īslaicīgi nav pieejams",
   "No channel takes donation announcements - nothing was posted.": "Neviens kanāls nepieņem ziedojumu paziņojumus - nekas netika publicēts.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Līdz {level}. līmenim trūkst ${amount}! (piem. {amount})",
-  "The groups file could not be read - try again.": "Grupu failu neizdevās nolasīt - mēģini vēlreiz."
+  "The groups file could not be read - try again.": "Grupu failu neizdevās nolasīt - mēģini vēlreiz.",
+  "Mon": "P",
+  "Tue": "O",
+  "Wed": "T",
+  "Thu": "C",
+  "Fri": "Pk",
+  "Sat": "S",
+  "Sun": "Sv"
 }

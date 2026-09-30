@@ -66,7 +66,13 @@ class TestR4_5DeletePanelTaskTimezone:
         assert labels[0].startswith("D:04h CE")  # CET/CEST, not shifted to New York time
         assert labels[1].startswith("D:04h E")   # EST/EDT
 
-    async def test_weekly_label_keeps_day_and_marker(self):
+    async def test_weekly_label_keeps_day_and_marker(self, monkeypatch):
+        # German on purpose: the day was a hard-coded German list until
+        # 2026-09-30 and is translated now (stage 4 review before v3.1.0, 41#3);
+        # "Mo" is still the German answer.
+        import cogs.translation_manager as translation_manager
+        monkeypatch.setattr(translation_manager.translation_manager, "get_current_language",
+                            lambda: "de")
         task = ScheduledTask(container_name="c1", action="restart", cycle="weekly",
                              hour=4, minute=0, weekday=0, timezone_str="UTC")
 

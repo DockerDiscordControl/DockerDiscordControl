@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Status mecha privremeno nedostupan",
   "No channel takes donation announcements - nothing was posted.": "Nijedan kanal ne prima obavijesti o donacijama - ništa nije objavljeno.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Do razine {level} nedostaje ${amount}! (npr. {amount})",
-  "The groups file could not be read - try again.": "Datoteku grupa nije moguće pročitati - pokušaj ponovno."
+  "The groups file could not be read - try again.": "Datoteku grupa nije moguće pročitati - pokušaj ponovno.",
+  "Mon": "pon",
+  "Tue": "uto",
+  "Wed": "sri",
+  "Thu": "čet",
+  "Fri": "pet",
+  "Sat": "sub",
+  "Sun": "ned"
 }

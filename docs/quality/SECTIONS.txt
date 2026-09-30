@@ -449,10 +449,10 @@ services/web/two_factor_service.py:1-331
 # maintenance moved out of docker_control.py; too large to join a neighbour.
 cogs/message_updates.py:1-771
 
-## Section 41  (1250 lines, 1 piece)
+## Section 41  (1253 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
 # (2,403 -> 1234 lines); too large to join a neighbour.
-cogs/task_ui.py:1-1250
+cogs/task_ui.py:1-1253
 
 ## Section 42  (270 lines, 1 piece)
 # Phase 4d (2026-09-22): the image-update check. Section 11, where the other

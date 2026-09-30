@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ สถานะเมคไม่พร้อมใช้งานชั่วคราว",
   "No channel takes donation announcements - nothing was posted.": "ไม่มีช่องใดรับประกาศการบริจาค - ไม่ได้โพสต์อะไร",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 ต้องการอีก ${amount} เพื่อถึงระดับ {level}! (เช่น {amount})",
-  "The groups file could not be read - try again.": "ไม่สามารถอ่านไฟล์กลุ่มได้ - ลองอีกครั้ง"
+  "The groups file could not be read - try again.": "ไม่สามารถอ่านไฟล์กลุ่มได้ - ลองอีกครั้ง",
+  "Mon": "จ.",
+  "Tue": "อ.",
+  "Wed": "พ.",
+  "Thu": "พฤ.",
+  "Fri": "ศ.",
+  "Sat": "ส.",
+  "Sun": "อา."
 }

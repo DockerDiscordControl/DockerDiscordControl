@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Mechin tila tilapäisesti poissa käytöstä",
   "No channel takes donation announcements - nothing was posted.": "Mikään kanava ei ota vastaan lahjoitusilmoituksia - mitään ei julkaistu.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Tasolle {level} puuttuu ${amount}! (esim. {amount})",
-  "The groups file could not be read - try again.": "Ryhmätiedostoa ei voitu lukea - yritä uudelleen."
+  "The groups file could not be read - try again.": "Ryhmätiedostoa ei voitu lukea - yritä uudelleen.",
+  "Mon": "ma",
+  "Tue": "ti",
+  "Wed": "ke",
+  "Thu": "to",
+  "Fri": "pe",
+  "Sat": "la",
+  "Sun": "su"
 }

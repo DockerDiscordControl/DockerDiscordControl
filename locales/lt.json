@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Mecho būsena laikinai nepasiekiama",
   "No channel takes donation announcements - nothing was posted.": "Joks kanalas nepriima pranešimų apie aukas - nieko nepaskelbta.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Iki {level} lygio trūksta ${amount}! (pvz. {amount})",
-  "The groups file could not be read - try again.": "Nepavyko perskaityti grupių failo - bandyk dar kartą."
+  "The groups file could not be read - try again.": "Nepavyko perskaityti grupių failo - bandyk dar kartą.",
+  "Mon": "Pr",
+  "Tue": "An",
+  "Wed": "Tr",
+  "Thu": "Kt",
+  "Fri": "Pn",
+  "Sat": "Št",
+  "Sun": "Sk"
 }

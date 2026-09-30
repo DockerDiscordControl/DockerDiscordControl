@@ -1119,8 +1119,11 @@ class ContainerTaskDeleteView(PrivateView):
                     # For daily: show hour "D:17h"
                     time_info = f":{next_run.strftime('%Hh')}"
                 elif task.cycle == 'weekly':
-                    # For weekly: show day and hour "W:Mo 17h"
-                    weekday_abbrev = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'][next_run.weekday()]
+                    # For weekly: show day and hour "W:Mon 17h", in the bot's language
+                    # (a hard-coded German list said "W:Di" to everyone - stage 4
+                    # review before v3.1.0, 41)
+                    weekday_abbrev = [_("Mon"), _("Tue"), _("Wed"), _("Thu"), _("Fri"), _("Sat"),
+                                      _("Sun")][next_run.weekday()]
                     time_info = f":{weekday_abbrev} {next_run.strftime('%Hh')}"
                 elif task.cycle == 'monthly':
                     # For monthly: show day and hour "M:15. 17h"

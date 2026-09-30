@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ メックのステータスは一時的に利用できません",
   "No channel takes donation announcements - nothing was posted.": "寄付のお知らせを受け付けるチャンネルがありません - 何も投稿されませんでした。",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 レベル{level}まであと${amount}！（例: {amount}）",
-  "The groups file could not be read - try again.": "グループファイルを読み込めませんでした。もう一度お試しください。"
+  "The groups file could not be read - try again.": "グループファイルを読み込めませんでした。もう一度お試しください。",
+  "Mon": "月",
+  "Tue": "火",
+  "Wed": "水",
+  "Thu": "木",
+  "Fri": "金",
+  "Sat": "土",
+  "Sun": "日"
 }

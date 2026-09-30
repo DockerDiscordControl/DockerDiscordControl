@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Mech-status tijdelijk niet beschikbaar",
   "No channel takes donation announcements - nothing was posted.": "Geen enkel kanaal neemt donatie-aankondigingen aan - er is niets geplaatst.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Nog ${amount} tot level {level}! (bijv. {amount})",
-  "The groups file could not be read - try again.": "Het groepenbestand kon niet worden gelezen - probeer het opnieuw."
+  "The groups file could not be read - try again.": "Het groepenbestand kon niet worden gelezen - probeer het opnieuw.",
+  "Mon": "ma",
+  "Tue": "di",
+  "Wed": "wo",
+  "Thu": "do",
+  "Fri": "vr",
+  "Sat": "za",
+  "Sun": "zo"
 }

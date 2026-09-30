@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ حالة الميك غير متاحة مؤقتًا",
   "No channel takes donation announcements - nothing was posted.": "لا توجد قناة تستقبل إعلانات التبرعات - لم يُنشر شيء.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 يلزم ${amount} للوصول إلى المستوى {level}! (مثال: {amount})",
-  "The groups file could not be read - try again.": "تعذّرت قراءة ملف المجموعات - حاول مرة أخرى."
+  "The groups file could not be read - try again.": "تعذّرت قراءة ملف المجموعات - حاول مرة أخرى.",
+  "Mon": "الاثنين",
+  "Tue": "الثلاثاء",
+  "Wed": "الأربعاء",
+  "Thu": "الخميس",
+  "Fri": "الجمعة",
+  "Sat": "السبت",
+  "Sun": "الأحد"
 }

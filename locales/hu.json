@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ A mech állapota átmenetileg nem érhető el",
   "No channel takes donation announcements - nothing was posted.": "Egyik csatorna sem fogad adományközleményeket - semmi sem lett közzétéve.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Még ${amount} a(z) {level}. szintig! (pl. {amount})",
-  "The groups file could not be read - try again.": "A csoportfájlt nem sikerült beolvasni - próbáld újra."
+  "The groups file could not be read - try again.": "A csoportfájlt nem sikerült beolvasni - próbáld újra.",
+  "Mon": "H",
+  "Tue": "K",
+  "Wed": "Sze",
+  "Thu": "Cs",
+  "Fri": "P",
+  "Sat": "Szo",
+  "Sun": "V"
 }

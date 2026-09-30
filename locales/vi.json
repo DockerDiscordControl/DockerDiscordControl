@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Trạng thái mech tạm thời không khả dụng",
   "No channel takes donation announcements - nothing was posted.": "Không kênh nào nhận thông báo quyên góp - không có gì được đăng.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Cần thêm ${amount} để lên cấp {level}! (vd. {amount})",
-  "The groups file could not be read - try again.": "Không thể đọc tệp nhóm - hãy thử lại."
+  "The groups file could not be read - try again.": "Không thể đọc tệp nhóm - hãy thử lại.",
+  "Mon": "T2",
+  "Tue": "T3",
+  "Wed": "T4",
+  "Thu": "T5",
+  "Fri": "T6",
+  "Sat": "T7",
+  "Sun": "CN"
 }

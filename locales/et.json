@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Mechi olek ajutiselt kättesaamatu",
   "No channel takes donation announcements - nothing was posted.": "Ükski kanal ei võta annetusteateid vastu - midagi ei postitatud.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Tasemeni {level} on puudu ${amount}! (nt {amount})",
-  "The groups file could not be read - try again.": "Gruppide faili ei õnnestunud lugeda - proovi uuesti."
+  "The groups file could not be read - try again.": "Gruppide faili ei õnnestunud lugeda - proovi uuesti.",
+  "Mon": "E",
+  "Tue": "T",
+  "Wed": "K",
+  "Thu": "N",
+  "Fri": "R",
+  "Sat": "L",
+  "Sun": "P"
 }

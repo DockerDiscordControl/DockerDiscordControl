@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Stav mecha dočasne nedostupný",
   "No channel takes donation announcements - nothing was posted.": "Žiadny kanál neprijíma oznámenia o daroch - nič nebolo zverejnené.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Do úrovne {level} chýba ${amount}! (napr. {amount})",
-  "The groups file could not be read - try again.": "Súbor so skupinami sa nepodarilo prečítať - skús to znova."
+  "The groups file could not be read - try again.": "Súbor so skupinami sa nepodarilo prečítať - skús to znova.",
+  "Mon": "Po",
+  "Tue": "Ut",
+  "Wed": "St",
+  "Thu": "Št",
+  "Fri": "Pi",
+  "Sat": "So",
+  "Sun": "Ne"
 }

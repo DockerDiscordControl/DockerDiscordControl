@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ Mech-status tillfälligt otillgänglig",
   "No channel takes donation announcements - nothing was posted.": "Ingen kanal tar emot donationsmeddelanden - inget publicerades.",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 ${amount} kvar till nivå {level}! (t.ex. {amount})",
-  "The groups file could not be read - try again.": "Gruppfilen kunde inte läsas - försök igen."
+  "The groups file could not be read - try again.": "Gruppfilen kunde inte läsas - försök igen.",
+  "Mon": "mån",
+  "Tue": "tis",
+  "Wed": "ons",
+  "Thu": "tor",
+  "Fri": "fre",
+  "Sat": "lör",
+  "Sun": "sön"
 }

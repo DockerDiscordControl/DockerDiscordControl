@@ -1669,5 +1669,12 @@
   "⚙️ Mech status temporarily unavailable": "⚙️ मेक की स्थिति अस्थायी रूप से उपलब्ध नहीं है",
   "No channel takes donation announcements - nothing was posted.": "कोई भी चैनल दान की घोषणाएँ नहीं लेता - कुछ भी पोस्ट नहीं किया गया।",
   "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 स्तर {level} के लिए ${amount} चाहिए! (जैसे {amount})",
-  "The groups file could not be read - try again.": "समूह फ़ाइल पढ़ी नहीं जा सकी - फिर से कोशिश करें।"
+  "The groups file could not be read - try again.": "समूह फ़ाइल पढ़ी नहीं जा सकी - फिर से कोशिश करें।",
+  "Mon": "सोम",
+  "Tue": "मंगल",
+  "Wed": "बुध",
+  "Thu": "गुरु",
+  "Fri": "शुक्र",
+  "Sat": "शनि",
+  "Sun": "रवि"
 }
