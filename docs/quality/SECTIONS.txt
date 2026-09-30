@@ -291,18 +291,20 @@ app/__init__.py:1-13
 app/auth.py:1-350
 app/blueprints/automation_routes.py:1-334
 
-## Section 31b  (361 lines, 2 pieces)
+## Section 31b  (459 lines, 3 pieces)
 # Split off Section 31 on 2026-09-23: the form login grew app/auth.py by 67
 # lines and brought a new blueprint, which put that section over the 2,000
 # lines a section may hold. log_routes.py came along so both halves have
 # room; all three are app/blueprints.
 app/blueprints/login_routes.py:1-119
 app/blueprints/log_routes.py:1-242
-
-## Section 32  (1999 lines, 4 pieces)
-app/blueprints/main_routes.py:1-1329
-app/blueprints/tasks_bp.py:1-402
+# action_log_routes.py came over from section 32 on 2026-09-30: the stage 4
+# route fixes put 32 at 2,004 lines. It is a log route, next to log_routes.py.
 app/blueprints/action_log_routes.py:1-98
+
+## Section 32  (1906 lines, 3 pieces)
+app/blueprints/main_routes.py:1-1334
+app/blueprints/tasks_bp.py:1-402
 # group_routes.py came over from section 33 on 2026-09-29, beside the other
 # blueprints: the translation Test button's fix put section 33 at 2,007.
 app/blueprints/group_routes.py:1-170

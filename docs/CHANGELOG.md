@@ -420,6 +420,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   no longer announces the donation in Discord.
 - The first-time password setup is written to the action log with its own fields (action SETUP, by
   admin, from the Web UI) instead of its sentence in the user field.
+- The mech difficulty API refuses a manual_override that is not a real true or false (the text
+  "false" set a fixed difficulty), and a missing multiplier is answered with a JSON error instead
+  of an error page.
 
 ### 🐛 The mech's picture and gift, the update notice
 

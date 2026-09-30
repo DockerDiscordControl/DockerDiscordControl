@@ -728,8 +728,12 @@ def set_mech_difficulty():
         if not data or 'difficulty_multiplier' not in data:
             return jsonify({'success': False, 'error': 'Missing difficulty_multiplier parameter'}), 400
 
-        difficulty_multiplier = float(data['difficulty_multiplier'])
         manual_override = data.get('manual_override', False)
+        # A real boolean: "false" is truthy and set STATIC mode instead of the
+        # reset to dynamic (review D29; stage 4 review before v3.1.0, 32)
+        if not isinstance(manual_override, bool):
+            return jsonify({'success': False, 'error': 'manual_override must be true or false'}), 400
+        difficulty_multiplier = float(data['difficulty_multiplier'])
 
         # Use MechWebService for business logic
         from services.web.mech_web_service import get_mech_web_service, MechDifficultyRequest
@@ -756,7 +760,8 @@ def set_mech_difficulty():
             current_app.logger.error(f"Difficulty set request failed: {result.error}", exc_info=True)
             return jsonify({'success': False, 'error': 'Failed to set difficulty'}), 500
 
-    except ValueError:
+    except (ValueError, TypeError):
+        # TypeError: float(None) or float([]) - a bare 500 page before (stage 4, 32)
         return jsonify({'success': False, 'error': 'Invalid difficulty multiplier value'}), 400
     except (ImportError, AttributeError, RuntimeError) as e:
         # Service dependency errors (mech web service unavailable)
