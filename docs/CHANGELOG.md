@@ -377,6 +377,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   of 0 no longer refuses every second press. Each such value is logged and its default applies.
 - A game server that answered once and then went offline is still asked again every 30 minutes
   after it comes back silent, instead of being written off for good.
+- The 15-minute player-query probe window closes again: a container that does not answer is no
+  longer asked every minute forever, but given up after 15 minutes as intended.
 
 ### 🐛 The mech's picture and gift, the update notice
 

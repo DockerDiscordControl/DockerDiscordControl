@@ -316,7 +316,18 @@ class GameQuerySupportService:
         """Re-read the on-disk verdicts (e.g. web-process manual re-test results) into memory,
         so the bot's decisions and per-key writes never revert externally-written verdicts.
         Call this before each probe pass."""
+        mine = self._state
         self._load_file()
+        # Keep this process's 'updated' where the file says the same verdict. The
+        # file's 'updated' is the time of the last WRITE, and a probing entry is
+        # written only when a verdict field changes: taking the file's time made
+        # record_result see a "gap" 300 s after every write and restart the
+        # window, so no window ever closed (stage 4 review before v3.1.0, 20).
+        for name, entry in self._state.items():
+            own = mine.get(name)
+            if own and own.get('updated') and all(
+                    (own.get(f) or None) == (entry.get(f) or None) for f in _VERDICT_FIELDS):
+                entry['updated'] = max(own['updated'], entry.get('updated') or 0)
 
     # --- internal ----------------------------------------------------------
     def _set(self, name: str, **fields: Any) -> None:
