@@ -79,6 +79,18 @@ def get_bot_instance():
     from services.scheduling.donation_message_service import get_bot_instance as registered_bot
     return registered_bot()
 
+def _warning_was_skipped(task: ScheduledTask, now: float, warned: Dict[str, float]) -> bool:
+    """A due occurrence whose player warning belonged but was never posted.
+
+    Not for a server found empty before the end of its wait: nobody to warn,
+    and the gate acts early on purpose (player_gate.warning_due).
+    """
+    options = getattr(task, 'options', None) or {}
+    if int(options.get('warn_minutes') or 0) <= 0 or warned.get(task.task_id) == task.next_run_ts:
+        return False
+    return not options.get('wait_for_empty') or now >= player_gate.acting_at(options, task.next_run_ts)
+
+
 class SchedulerService:
     """Service for managing and executing scheduled tasks with CPU optimization."""
 
@@ -490,6 +502,13 @@ class SchedulerService:
 
                 if gated and not self._players_allow(task, current_ts):
                     continue
+                if gated and _warning_was_skipped(task, current_ts, self._warned):
+                    # No cycle landed in the warning window (warn 1-2 minutes, or a
+                    # longer check interval): it runs unwarned, and said nothing
+                    # about it (stage 4 review before v3.1.0, 49)
+                    logger.warning(f"Task {task.task_id}: the {task.options.get('warn_minutes')}-minute "
+                                   f"player warning could not be posted - no check fell into its "
+                                   f"window; the {task.action} runs without it")
 
                 due_tasks.append(task)
                 seen_due[task.task_id] = task.next_run_ts

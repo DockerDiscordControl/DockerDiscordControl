@@ -453,6 +453,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   instead of claiming a missing permission.
 - A container registry that answers the token request with something other than an object no
   longer stops the newer-image check for every later container.
+- A scheduled restart or stop whose player warning could not be posted in time (a warning of 1-2
+  minutes, or a longer check interval) says so in the log instead of running unwarned without a
+  trace.
 
 ### 🐛 The mech's picture and gift, the update notice
 
