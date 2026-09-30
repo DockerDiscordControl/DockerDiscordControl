@@ -1263,9 +1263,10 @@ def get_mech_status():
         # Security: Sanitize status completely (CodeQL taint barrier)
         # Create new dict with only primitive, validated values - breaks taint chain
         def _safe_int(value, default=0):
-            """Extract safe integer - CodeQL taint barrier."""
+            """Extract safe integer - CodeQL taint barrier. Rounded: int() cut a cent
+            amount of 28.999... to 28 (2026-09-30)."""
             if isinstance(value, (int, float)) and not isinstance(value, bool):
-                return int(value)
+                return int(round(value))
             return default
 
         def _safe_dollars(value):

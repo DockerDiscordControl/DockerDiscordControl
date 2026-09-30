@@ -281,8 +281,10 @@ class MechResetService:
                 
                 if next_info:
                     # Use actual requirement from state (includes dynamic costs)
-                    status["next_level_threshold"] = state.evo_max * 100  # Convert to cents for consistency
-                    status["amount_needed"] = max(0, (state.evo_max - state.evo_current) * 100)
+                    # Whole cents, rounded: dollars * 100 is not exact in floating point
+                    # ($0.29 -> 28.999...), and the API cut it to 28 (2026-09-30)
+                    status["next_level_threshold"] = round(state.evo_max * 100)
+                    status["amount_needed"] = max(0, round((state.evo_max - state.evo_current) * 100))
                     status["next_level_name"] = next_info.name
                 else:
                     status["next_level_threshold"] = None

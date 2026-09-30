@@ -209,8 +209,8 @@ services/mech/mech_evolutions.py:1-450
 services/mech/gifts.py:1-225
 services/mech/mech_high_res_service.py:1-249
 
-## Section 23  (1834 lines, 8 pieces)
-services/mech/mech_reset_service.py:1-374
+## Section 23  (1836 lines, 8 pieces)
+services/mech/mech_reset_service.py:1-376
 services/mech/mech_service.py:1-32
 services/mech/mech_service_adapter.py:1-341
 services/mech/mech_state_manager.py:1-210
@@ -302,8 +302,8 @@ app/blueprints/log_routes.py:1-242
 # route fixes put 32 at 2,004 lines. It is a log route, next to log_routes.py.
 app/blueprints/action_log_routes.py:1-98
 
-## Section 32  (1906 lines, 3 pieces)
-app/blueprints/main_routes.py:1-1334
+## Section 32  (1907 lines, 3 pieces)
+app/blueprints/main_routes.py:1-1335
 app/blueprints/tasks_bp.py:1-402
 # group_routes.py came over from section 33 on 2026-09-29, beside the other
 # blueprints: the translation Test button's fix put section 33 at 2,007.

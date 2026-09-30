@@ -456,6 +456,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A scheduled restart or stop whose player warning could not be posted in time (a warning of 1-2
   minutes, or a longer check interval) says so in the log instead of running unwarned without a
   trace.
+- The /api/mech/status answer no longer loses a cent of the next level's goal and of the amount
+  still needed ($0.29 was reported as 28 cents).
 
 ### 🐛 The mech's picture and gift, the update notice
 
