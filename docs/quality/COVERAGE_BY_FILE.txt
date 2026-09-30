@@ -148,7 +148,7 @@ services/automation/automation_service.py	1078	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	224	v3rev:1-157
 services/automation/image_updates.py	270	v3rev:1-164
 services/automation/maintenance.py	124	NONE
-services/automation/own_actions.py	93	NONE
+services/automation/own_actions.py	116	NONE
 services/config/__init__.py	16	passE:read-in-full
 services/config/backup_service.py	206	NONE
 services/config/channel_config_service.py	593	passE:E28+bothscans:126-300
@@ -172,9 +172,9 @@ services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	368	v3rev:1-272
 services/docker_service/__init__.py	28	pass2:s14:1-28
 services/docker_service/client_factory.py	105	v3rev:1-105
-services/docker_service/docker_action_service.py	318	pass1:s14:plan pass2:s14:1-276
+services/docker_service/docker_action_service.py	321	pass1:s14:plan pass2:s14:1-276
 services/docker_service/docker_client_pool.py	738	pass1:s15:1-708  [37 of 745 lines never in a package]
-services/docker_service/docker_utils.py	1168	pass1:s16:1-1404  [28 of 1432 lines never in a package]
+services/docker_service/docker_utils.py	1170	pass1:s16:1-1404  [28 of 1432 lines never in a package]
 services/docker_service/group_actions.py	142	NONE
 services/docker_service/reachability.py	87	v3rev:1-87
 services/docker_service/self_restart.py	130	pass2:s34:1-117  [self-restart, added 2026-09-24]

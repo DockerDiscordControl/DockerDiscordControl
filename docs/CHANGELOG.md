@@ -355,6 +355,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Restarting DDC from the web panel gave DDC only ten seconds to shut down, even when a longer
   stop timeout was set for its container. It uses the container's own stop timeout now, like every
   other restart.
+- When a stop or restart from DDC never reached Docker (the connection was refused), DDC still
+  counted the container as stopped by itself for five minutes, so a stop by someone else in that
+  time raised no watchdog alarm. It is only counted when the request got through now.
 
 ### 🐛 The mech's picture and gift, the update notice
 

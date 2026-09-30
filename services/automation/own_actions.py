@@ -87,6 +87,29 @@ def forget(container: str) -> None:
         _recent.pop(container, None)
 
 
+def never_arrived(error: BaseException) -> bool:
+    """Whether a failed call proves the request never reached Docker.
+
+    A refused or timed-out CONNECTION: nothing can have happened, so the note
+    comes back off (stage 4 review before v3.1.0, section 14) - kept, a stop
+    by somebody else within the window passed as DDC's own. A read timeout or
+    a connection lost mid-way is not proof: Docker may be carrying it out.
+    """
+    try:
+        import requests
+    except ImportError:  # pragma: no cover - docker-py depends on it
+        requests = None
+    if requests is not None:
+        if isinstance(error, requests.exceptions.ConnectTimeout):
+            return True
+        if isinstance(error, requests.exceptions.ReadTimeout):
+            return False
+        if isinstance(error, requests.exceptions.ConnectionError):
+            text = str(error)
+            return "NewConnectionError" in text or "Connection refused" in text
+    return isinstance(error, ConnectionRefusedError)
+
+
 def reset() -> None:
     """Forget everything - for tests."""
     with _lock:

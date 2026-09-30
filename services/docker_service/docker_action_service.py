@@ -184,15 +184,18 @@ class DockerActionService:
                 # after success (until 2026-09-26), it was reported as an alarm
                 # and a restart rule could undo it. Taken back only when Docker
                 # itself refused, because then nothing happened.
-                from services.automation.own_actions import forget, note_own_action
+                from services.automation.own_actions import forget, never_arrived, note_own_action
                 note_own_action(request.container_name, request.action)
 
                 # Execute action
                 action_func = self._valid_actions[request.action]
                 try:
                     await asyncio.to_thread(action_func, container)
-                except docker.errors.APIError:
-                    forget(request.container_name)
+                except Exception as error:  # noqa: BLE001 - only decides about the note, re-raised
+                    # Docker refused, or the request never got there: nothing
+                    # happened, so it is not DDC's own stop (stage 4, section 14)
+                    if isinstance(error, docker.errors.APIError) or never_arrived(error):
+                        forget(request.container_name)
                     raise
 
                 execution_time_ms = (time.time() - start_time) * 1000

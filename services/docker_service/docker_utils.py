@@ -649,13 +649,15 @@ async def docker_action(docker_container_name: str, action: str) -> bool:
             container = await asyncio.to_thread(client.containers.get, docker_container_name)
             # Noted before the call, taken back only when Docker refused - the
             # same rule as DockerActionService.execute_docker_action, and why.
-            from services.automation.own_actions import forget, note_own_action
+            from services.automation.own_actions import forget, never_arrived, note_own_action
             note_own_action(docker_container_name, action)
             action_func = valid_actions[action]
             try:
                 await asyncio.to_thread(action_func, container)
-            except docker.errors.APIError:
-                forget(docker_container_name)
+            except Exception as error:  # noqa: BLE001 - only decides about the note, re-raised
+                # Refused, or never delivered: nothing happened (stage 4, section 14)
+                if isinstance(error, docker.errors.APIError) or never_arrived(error):
+                    forget(docker_container_name)
                 raise
             logger.info(f"Docker action '{action}' on container '{docker_container_name}' successful via SDK")
             return True
