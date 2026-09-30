@@ -508,10 +508,10 @@ services/automation/alert_webhook.py:1-104
 # of section 28; the coverage ledger keeps its s28 labels.
 services/translation/translation_service.py:1-835
 
-## Section 49  (1148 lines, 3 pieces)
+## Section 49  (1204 lines, 3 pieces)
 # v3.1.0, 2026-09-28: restart or stop only when nobody plays, and the warning
 # before - the core, the scheduler that calls it and its Discord dropdowns,
 # read together.
-services/scheduling/scheduler_service.py:1-668
+services/scheduling/scheduler_service.py:1-724
 services/scheduling/player_gate.py:1-341
 cogs/task_player_options.py:1-139

@@ -453,9 +453,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   instead of claiming a missing permission.
 - A container registry that answers the token request with something other than an object no
   longer stops the newer-image check for every later container.
-- A scheduled restart or stop whose player warning could not be posted in time (a warning of 1-2
-  minutes, or a longer check interval) says so in the log instead of running unwarned without a
-  trace.
+- DDC no longer misses the player warning before a scheduled restart or stop: it wakes up when
+  the warning is due, and if it still could not warn in time (after a restart of DDC), it warns
+  then and waits the warning time the admin set before acting.
 - The /api/mech/status answer no longer loses a cent of the next level's goal and of the amount
   still needed ($0.29 was reported as 28 cents).
 - The delete button in the control panel's task list also says a task is gone when it was deleted

@@ -113,8 +113,13 @@ async def test_at_the_deadline_it_runs_anyway(world):
     _store(world, WAIT)
     service = ss.SchedulerService()
     await _cycle(service, world)
-    await _cycle(service, world, 120 * 60)
+    # A cycle inside the 10-minute warning window before the deadline, as the
+    # loop now wakes up for it. Jumping straight to the deadline made DDC warn
+    # late and wait the warning time (2026-09-30, stage 4 review 49#1).
+    await _cycle(service, world, 115 * 60)
+    await _cycle(service, world, 5 * 60)
     assert world["ran"] == ["t1"], "the deadline passed with players online and nothing happened"
+    assert len(world["posted"]) == 1, "it ran without the warning"
 
 
 async def test_waiting_is_not_written_off_as_missed(world):

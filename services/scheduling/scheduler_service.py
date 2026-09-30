@@ -79,6 +79,22 @@ def get_bot_instance():
     from services.scheduling.donation_message_service import get_bot_instance as registered_bot
     return registered_bot()
 
+def _next_warning_window(tasks, now: float, warned: Dict[str, float]) -> Optional[float]:
+    """When the earliest warning window still ahead opens, or None."""
+    starts = []
+    for task in tasks:
+        options = getattr(task, 'options', None) or {}
+        warn = int(options.get('warn_minutes') or 0)
+        if (warn <= 0 or not task.is_active or not task.next_run_ts
+                or (task.action or '').lower() not in player_gate.GATED_ACTIONS
+                or warned.get(task.task_id) == task.next_run_ts):
+            continue
+        start = player_gate.acting_at(options, task.next_run_ts) - warn * 60
+        if start > now:
+            starts.append(start)
+    return min(starts) if starts else None
+
+
 def _warning_was_skipped(task: ScheduledTask, now: float, warned: Dict[str, float]) -> bool:
     """A due occurrence whose player warning belonged but was never posted.
 
@@ -114,6 +130,11 @@ class SchedulerService:
         # occurrence already warned about / already reported as waiting
         self._warned: Dict[str, float] = {}
         self._waiting: Dict[str, float] = {}
+        # When the next warning window opens (the loop wakes up for it), and the
+        # occurrences warned late that wait the admin's warning time:
+        # task_id -> (next_run_ts, run not before)
+        self._next_warning_ts: Optional[float] = None
+        self._held: Dict[str, tuple] = {}
         # Set when the service loop runs on a borrowed (already-running) event
         # loop instead of in its own thread. Lets stop() cancel cleanly.
         self._service_task = None
@@ -315,7 +336,7 @@ class SchedulerService:
                 self.last_check_time = time.time()
 
                 # CPU-OPTIMIZED: Dynamic sleep interval based on load
-                sleep_interval = self._calculate_optimal_sleep_interval(execution_time)
+                sleep_interval = self._sleep_before_next_cycle(execution_time)
                 logger.debug(f"Scheduler check completed in {execution_time:.2f}s, sleeping for {sleep_interval}s")
 
                 await asyncio.sleep(sleep_interval)
@@ -325,6 +346,21 @@ class SchedulerService:
                 logger.error(traceback.format_exc())
                 # CPU-OPTIMIZED: Longer sleep on error to prevent error loops
                 await asyncio.sleep(min(CHECK_INTERVAL * 2, 300))  # Max 5 minutes
+
+    def _sleep_before_next_cycle(self, last_execution_time: float) -> float:
+        """The load-based interval - cut short when a warning window opens or a
+        held occurrence may run before it ends.
+
+        The admin sets the warning time; a cycle of 60-180 s jumped over a warning
+        of one or two minutes and the restart ran unwarned (stage 4 review before
+        v3.1.0, 49; the operator: why should DDC miss it?).
+        """
+        interval = self._calculate_optimal_sleep_interval(last_execution_time)
+        moments = [ts for ts in [self._next_warning_ts, *(until for _run, until in self._held.values())]
+                   if ts is not None]
+        if moments:
+            interval = min(interval, max(1.0, min(moments) - time.time()))
+        return interval
 
     def _calculate_optimal_sleep_interval(self, last_execution_time: float) -> int:
         """
@@ -375,6 +411,19 @@ class SchedulerService:
         self._warned[task.task_id] = task.next_run_ts
         minutes = max(1, round((player_gate.acting_at(task.options, task.next_run_ts) - current_ts) / 60))
         text = player_gate.warning_text(task.container_name, task.action, minutes, counts)
+        try:
+            await player_gate.post_warning(get_bot_instance(), text)
+        except (RuntimeError, AttributeError, TypeError, ValueError) as e:
+            logger.error(f"Player warning for task {task.task_id} failed: {e}", exc_info=True)
+
+    async def _warn_late_and_hold(self, task: ScheduledTask, current_ts: float) -> None:
+        """Post the warning now and hold the occurrence for the warning time."""
+        warn = int(task.options.get('warn_minutes') or 0)
+        self._warned[task.task_id] = task.next_run_ts
+        self._held[task.task_id] = (task.next_run_ts, current_ts + warn * 60)
+        logger.warning(f"Task {task.task_id}: its {warn}-minute player warning was not posted in "
+                       f"time - posting it now; the {task.action} waits {warn} minute(s)")
+        text = player_gate.warning_text(task.container_name, task.action, warn, self._gate_counts(task))
         try:
             await player_gate.post_warning(get_bot_instance(), text)
         except (RuntimeError, AttributeError, TypeError, ValueError) as e:
@@ -433,6 +482,7 @@ class SchedulerService:
             current_ts = time.time()
             due_tasks = []
             seen_due: Dict[str, float] = {}
+            self._next_warning_ts = _next_warning_window(tasks, current_ts, self._warned)
 
             # First pass: Find all due tasks
             for task in tasks:
@@ -450,6 +500,12 @@ class SchedulerService:
 
                 # Not due yet
                 if task.next_run_ts > current_ts:
+                    continue
+
+                # Warned late: it waits the admin's warning time, and is not late
+                held = self._held.get(task.task_id)
+                held_here = bool(held) and held[0] == task.next_run_ts
+                if held_here and current_ts < held[1]:
                     continue
 
                 # Skip if task is already running
@@ -491,7 +547,7 @@ class SchedulerService:
                 # executed" while it was executing.
                 # An occurrence waiting for an empty server is not missed while it may wait.
                 window = player_gate.window_seconds(task.options) if gated else 0
-                if self._lateness(task, current_ts) > MISSED_RUN_GRACE_SECONDS + window:
+                if not held_here and self._lateness(task, current_ts) > MISSED_RUN_GRACE_SECONDS + window:
                     try:
                         # Writes tasks.json under the cross-process lock, so it
                         # goes off the event loop like the read above (B8).
@@ -503,12 +559,12 @@ class SchedulerService:
                 if gated and not self._players_allow(task, current_ts):
                     continue
                 if gated and _warning_was_skipped(task, current_ts, self._warned):
-                    # No cycle landed in the warning window (warn 1-2 minutes, or a
-                    # longer check interval): it runs unwarned, and said nothing
-                    # about it (stage 4 review before v3.1.0, 49)
-                    logger.warning(f"Task {task.task_id}: the {task.options.get('warn_minutes')}-minute "
-                                   f"player warning could not be posted - no check fell into its "
-                                   f"window; the {task.action} runs without it")
+                    # The window passed unwarned (DDC restarted, a long cycle): warn
+                    # now and give the players the time the admin set, instead of
+                    # acting unwarned (stage 4 review before v3.1.0, 49)
+                    await self._warn_late_and_hold(task, current_ts)
+                    continue
+                self._held.pop(task.task_id, None)
 
                 due_tasks.append(task)
                 seen_due[task.task_id] = task.next_run_ts
