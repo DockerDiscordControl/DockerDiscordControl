@@ -425,6 +425,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   of an error page.
 - The translation Test button no longer reports "Microsoft API error: HTTP 200" when Microsoft
   answers without a translation; it says so.
+- Switching "Enable background refresh" off in the panel's advanced settings now keeps the Docker
+  refresh worker from starting; it used to start anyway.
 
 ### 🐛 The mech's picture and gift, the update notice
 

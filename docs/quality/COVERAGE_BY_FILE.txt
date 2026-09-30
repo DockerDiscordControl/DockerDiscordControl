@@ -92,7 +92,7 @@ app/utils/web_helpers.py	1060	pass1:s34:1-862  [43 of 905 lines never in a packa
 app/web/__init__.py	12	pass1:s34:1-12
 app/web/action_logger.py	20	pass1:s34:1-20
 app/web/app_factory.py	68	pass1:s34:1-61 v3rev2:1-68
-app/web/background.py	88	pass1:s34:1-85
+app/web/background.py	92	pass1:s34:1-85
 app/web/blueprints.py	41	pass1:s34:1-31
 app/web/compat.py	102	pass1:s34:1-102
 app/web/config.py	170	pass1:s35:1-169

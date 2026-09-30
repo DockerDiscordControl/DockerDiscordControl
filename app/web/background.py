@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import atexit
-import os
 
 from flask import Flask
 
@@ -29,7 +28,12 @@ _shutdown_hook_registered = False
 
 
 def _is_enabled(var_name: str) -> bool:
-    return os.environ.get(var_name, "true").lower() != "false"
+    # The panel's Advanced Settings first, then the environment, as every other
+    # advanced setting is read: this looked at os.environ only, and the panel's
+    # "Enable background refresh" switched off started the worker anyway
+    # (stage 4 review before v3.1.0, 34)
+    from utils.settings import get_setting
+    return get_setting(var_name, True, bool)
 
 
 def _stop_background_threads(logger) -> None:
