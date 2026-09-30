@@ -403,6 +403,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Removing a broken tasks.json, as the refusal message advises, lifts the save refusal at once
   instead of after one more failed save; the first load after a fresh install includes the
   donation task.
+- If tasks.json cannot be read at the first start after the update, the one-time pause of long-
+  dead tasks waits for a readable file instead of being spent on an empty list.
 
 ### 🐛 The mech's picture and gift, the update notice
 

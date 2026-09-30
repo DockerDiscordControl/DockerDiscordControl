@@ -852,6 +852,13 @@ def pause_long_dead_tasks_once(now_ts: Optional[float] = None) -> int:
 
     now_ts = time.time() if now_ts is None else now_ts
     tasks = load_tasks()
+    if _last_load_failed:
+        # An empty list from a failed read: writing the marker now spent the
+        # pass, and the long-dead tasks came back once the file was readable
+        # (stage 4 review before v3.1.0, 26)
+        logger.warning(f"Could not read {TASKS_FILE_PATH}; the one-time check for long-dead "
+                       f"tasks runs again at the next start")
+        return 0
     paused = []
     for task in tasks:
         if task.is_system_task() or not task.is_active or task.cycle == CYCLE_ONCE or not task.next_run_ts:
