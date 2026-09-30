@@ -367,8 +367,17 @@ def update_docker_cache(logger):
             # A DockerException instead, so the handler at the bottom does what
             # it already does correctly for every other connection failure:
             # report it and LEAVE THE CACHED LIST ALONE.
-            if "Read timed out" in str(te) or "UnixHTTPConnectionPool" in str(te):
-                logger.error(f"Container list operation timed out after {BACKGROUND_REFRESH_TIMEOUT} seconds")
+            #
+            # By type as well as by text: a connection the proxy or daemon closed
+            # before or during the answer (ConnectionError "Connection aborted.",
+            # ChunkedEncodingError) matched neither text, escaped every handler,
+            # ended the refresh worker and gave a page a 500 instead of the
+            # banner (stage 4 review before v3.1.0, 34).
+            import requests
+            if (isinstance(te, (requests.exceptions.RequestException, OSError))
+                    or "Read timed out" in str(te) or "UnixHTTPConnectionPool" in str(te)):
+                logger.error(f"Container list could not be read ({type(te).__name__}; "
+                             f"timeout {BACKGROUND_REFRESH_TIMEOUT} seconds)")
                 raise docker.errors.DockerException(
                     f"the container list could not be read: {te}") from te
             raise te
@@ -559,6 +568,7 @@ def background_refresh_worker(logger):
     with cache_lock:
         docker_cache['bg_refresh_running'] = True
 
+    died = False
     try:
         paused = False
         while not stop_background_thread.is_set():
@@ -600,9 +610,11 @@ def background_refresh_worker(logger):
                         gevent.sleep(1)
                     else:
                         time.sleep(1)
-            except (ValueError, TypeError, KeyError) as e:
-                # Data errors (invalid cache data, unexpected data structures)
-                logger.error(f"Data error in background refresh worker: {str(e)}", exc_info=True)
+            except Exception as e:  # noqa: BLE001
+                # Broad, like the mech decay worker: anything unlisted (an OSError
+                # from the Docker transport, say) ended this thread with only the
+                # calm "stopped" line below (stage 4 review before v3.1.0, 34)
+                logger.error(f"Error in background refresh worker: {str(e)}", exc_info=True)
                 # In case of errors, wait briefly and try again
                 # Also use smaller interval here for better response to stop signal
                 for _ in range(5): # 5x1 second instead of once 5 seconds
@@ -612,13 +624,18 @@ def background_refresh_worker(logger):
                         gevent.sleep(1)
                     else:
                         time.sleep(1)
-    except (AttributeError, RuntimeError) as e:
+    except Exception as e:  # noqa: BLE001 - see the clause above
         # Service/runtime errors (thread/event errors, gevent issues)
         logger.error(f"Runtime error in background worker thread: {e}", exc_info=True)
+        died = True
     finally:
         with cache_lock:
             docker_cache['bg_refresh_running'] = False
-        logger.info("Background Docker cache refresh worker stopped")
+        if died:
+            logger.error("Background Docker cache refresh worker DIED - the next page that "
+                         "asks for the container list starts it again")
+        else:
+            logger.info("Background Docker cache refresh worker stopped")
 
 async def check_docker_connectivity(logger):
     """Immediate Docker connectivity check using SERVICE FIRST architecture"""

@@ -430,6 +430,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - An uptime monitor or proxy check that probes the panel without logging in no longer keeps the
   Docker refresh worker busy around the clock; only answered panel requests count as the panel
   being used.
+- When the Docker proxy or daemon drops the connection while DDC reads the container list, the
+  panel keeps the last list and shows the connectivity banner instead of an error page, and the
+  background refresh no longer stops for good.
 
 ### 🐛 The mech's picture and gift, the update notice
 
