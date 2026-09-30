@@ -447,6 +447,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The Delete Tasks panel of a container with 25 or more tasks opens again (it failed with "Error
   opening task delete panel"); it shows the first 24, says so, and counts only active tasks as
   active.
+- Picking the cycle or the action again while creating a task in Discord disables the Create
+  button until the task is complete again.
 
 ### 🐛 The mech's picture and gift, the update notice
 

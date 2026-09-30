@@ -523,6 +523,9 @@ class CycleDropdown(discord.ui.Select):
         self.view.selected_month = None
         self.view.selected_year = None
         self.view.selected_time = None
+        # Asked again: a complete task left Create enabled through the reset,
+        # which then answered "Please select" (stage 4 review before v3.1.0, 41)
+        self.view.check_ready()
 
         # Add action dropdown
         action_dropdown = ActionDropdown(self.view.allowed_actions)
@@ -564,6 +567,7 @@ class ActionDropdown(discord.ui.Select):
         self.view.selected_month = None
         self.view.selected_year = None
         self.view.selected_time = None
+        self.view.check_ready()  # see CycleDropdown.callback
 
         # Add next dropdown based on cycle type
         if self.view.selected_cycle == 'daily':
