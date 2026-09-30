@@ -465,10 +465,14 @@ class ConfigFormParserService:
         # to disk before config.json, and a failure after them said only "save
         # failed" (stage 4 review before v3.1.0, section 12).
         channels_written = False
+        # Every failure after the password change says it happened: the operator
+        # read "save failed", believed nothing changed, and could not log in
+        # with the old password (stage 4 review before v3.1.0, section 12).
+        password_changed = False
+        password_note = " Web UI password changed; log in again with the new password."
         try:
             # Web UI password change ("New Password" in _auth_settings.html). Runs before
             # anything is written, so a rejected password aborts the whole save.
-            password_changed = False
             # Token as stored before a possible password change (see the bot_token handling below)
             previous_token = current_config.get('bot_token')
             new_password = ConfigFormParserService._form_str(form_data, 'new_web_ui_password')
@@ -590,7 +594,7 @@ class ConfigFormParserService:
             message = result.message or "Configuration saved"
 
             if password_changed:
-                message += " Web UI password changed; log in again with the new password."
+                message += password_note
 
             refused_url = ConfigFormParserService.refused_heartbeat_url(form_data)
             if result.success and refused_url:
@@ -625,7 +629,8 @@ class ConfigFormParserService:
                 # that a success (review B5). The SHARED constant, so the caller can
                 # tell this from a failure that wrote nothing and still save the
                 # container settings (see the spec test of the same name).
-                return updated_config, False, CHANNELS_NOT_SAVED_MESSAGE
+                return (updated_config, False,
+                        CHANNELS_NOT_SAVED_MESSAGE + (password_note if password_changed else ""))
 
             return updated_config, result.success, message
 
@@ -637,7 +642,9 @@ class ConfigFormParserService:
             if channels_written:
                 message += (" The channel permissions WERE saved already and take effect; the "
                             "rest of the configuration was not.")
+            if password_changed:
+                message += password_note
             return current_config, False, message
         except (RuntimeError, ValueError, TypeError) as e:
             logger.error(f"Error processing config form: {e}", exc_info=True)
-            return current_config, False, str(e)
+            return current_config, False, str(e) + (password_note if password_changed else "")

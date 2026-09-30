@@ -330,6 +330,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   values back over settings you had saved in between (language, status watchdog, channel
   settings), and the channel and container files were not in its backup. A retry only fills in
   what is missing now, and the backup includes both folders.
+- When saving the configuration failed after a new Web UI password had already been set, the
+  message did not say the password had changed, and the old one no longer worked at the next
+  login. Every such failure now says that the password was changed.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -134,6 +134,10 @@ def test_the_parser_really_returns_that_message():
     import services.config.config_form_parser_service as parser
 
     source = open(parser.__file__, encoding="utf-8").read()
-    assert "return updated_config, False, CHANNELS_NOT_SAVED_MESSAGE" in source, (
+    # Since 2026-09-30 the message may carry the password-changed note AFTER the
+    # constant, and the caller asks startswith (stage 4 review, section 12).
+    assert "CHANNELS_NOT_SAVED_MESSAGE + (password_note if password_changed" in source, (
         "process_config_form no longer returns the shared constant, so "
         "ConfigurationSaveService can no longer tell this failure from any other")
+    import services.web.configuration_save_service as caller
+    assert ".startswith(CHANNELS_NOT_SAVED_MESSAGE)" in open(caller.__file__, encoding="utf-8").read()

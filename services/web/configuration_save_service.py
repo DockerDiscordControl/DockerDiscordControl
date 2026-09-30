@@ -128,7 +128,8 @@ class ConfigurationSaveService:
             # just been saved, and pressing Save again changed nothing.
             from services.config.config_form_parser_service import CHANNELS_NOT_SAVED_MESSAGE
 
-            channels_only = not success and message == CHANNELS_NOT_SAVED_MESSAGE
+            # startswith: the message may carry the password-changed note after it
+            channels_only = not success and (message or "").startswith(CHANNELS_NOT_SAVED_MESSAGE)
             if not success and not channels_only:
                 return ConfigurationSaveResult(
                     success=False,
@@ -161,7 +162,7 @@ class ConfigurationSaveService:
             if channels_only:
                 return ConfigurationSaveResult(
                     success=False,
-                    message=(f"{CHANNELS_NOT_SAVED_MESSAGE} The container settings and the "
+                    message=(f"{message} The container settings and the "
                              "server order WERE saved."),
                     config_files=save_result.config_files
                 )
