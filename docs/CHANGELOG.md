@@ -423,6 +423,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The mech difficulty API refuses a manual_override that is not a real true or false (the text
   "false" set a fixed difficulty), and a missing multiplier is answered with a JSON error instead
   of an error page.
+- The translation Test button no longer reports "Microsoft API error: HTTP 200" when Microsoft
+  answers without a translation; it says so.
 
 ### 🐛 The mech's picture and gift, the update notice
 

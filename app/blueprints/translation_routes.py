@@ -343,7 +343,7 @@ def test_translation():
                 headers=ms_headers,
                 timeout=timeout
             )
-            if status == 200 and resp_data:
+            if status == 200:
                 if resp_data and resp_data[0].get("translations"):
                     t = resp_data[0]["translations"][0]
                     detected = resp_data[0].get("detectedLanguage", {}).get("language")
@@ -354,6 +354,10 @@ def test_translation():
                         'provider': 'Microsoft',
                         'characters_used': len(text)
                     })
+                # The call worked; "HTTP 200" as an error sent the operator looking
+                # at keys and regions (stage 4 review before v3.1.0, 33)
+                return jsonify({'success': False,
+                                'error': "Microsoft answered without a translation"}), 400
             return jsonify({'success': False, 'error': f"Microsoft API error: HTTP {status}"}), 400
 
         else:
