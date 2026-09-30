@@ -372,6 +372,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   missing.
 - An image built on ubuntu that labels its own version (as docker/metadata-action does) shows that
   version in the info display instead of the image date.
+- A stored button or command cooldown that is not a whole number of seconds from 0 to 300 (a hand
+  edit, a save from before 2026-09-26) no longer makes that button fail; a stored per-minute limit
+  of 0 no longer refuses every second press. Each such value is logged and its default applies.
 
 ### 🐛 The mech's picture and gift, the update notice
 

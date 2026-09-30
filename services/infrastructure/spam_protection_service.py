@@ -94,6 +94,53 @@ def problems_in(settings: Dict[str, Any]) -> List[str]:
     return problems
 
 
+def _whole_in(value, bounds) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and bounds[0] <= value <= bounds[1]
+
+
+def _usable_on_read(spam_data: Any) -> Any:
+    """The stored settings minus every value the bot cannot enforce.
+
+    Only the unusable value is dropped, not everything around it: its
+    neighbours are perfectly readable, and falling back to the defaults
+    wholesale would throw away a working configuration over one bad number
+    (review C64). The dropped keys get their default from get_config's merge.
+    The same ranges as problems_in, so what the panel may not save is not
+    enforced when it is in the file anyway (a hand edit, a save from before
+    2026-09-26) - stage 4 review before v3.1.0, 20.
+    """
+    if not isinstance(spam_data, dict):
+        return spam_data
+    repaired = dict(spam_data)
+    for section in ('command_cooldowns', 'button_cooldowns'):
+        cooldowns = spam_data.get(section, {})
+        if not isinstance(cooldowns, dict):
+            logger.error(f"spam_protection.{section} is not a list of cooldowns "
+                         f"({cooldowns!r}) - the defaults apply for it")
+            repaired[section] = {}
+            continue
+        repaired[section] = {name: value for name, value in cooldowns.items()
+                             if _whole_in(value, COOLDOWN_RANGE)}
+        for name in cooldowns.keys() - repaired[section].keys():
+            logger.error(f"spam_protection.{section}.{name} is not a whole number of seconds "
+                         f"from {COOLDOWN_RANGE[0]} to {COOLDOWN_RANGE[1]} "
+                         f"({cooldowns[name]!r}) - the default applies for it")
+    global_settings = spam_data.get('global_settings', {})
+    if not isinstance(global_settings, dict):
+        logger.error(f"spam_protection.global_settings is not a list of settings "
+                     f"({global_settings!r}) - the defaults apply for it")
+        global_settings = {}
+    global_settings = dict(global_settings)
+    for key in ('max_commands_per_minute', 'max_buttons_per_minute'):
+        if key in global_settings and not _whole_in(global_settings[key], PER_MINUTE_RANGE):
+            logger.error(f"spam_protection.global_settings.{key} is not a whole number from "
+                         f"{PER_MINUTE_RANGE[0]} to {PER_MINUTE_RANGE[1]} "
+                         f"({global_settings[key]!r}) - the default applies for it")
+            global_settings.pop(key)
+    repaired['global_settings'] = global_settings
+    return repaired
+
+
 @dataclass(frozen=True)
 class ServiceResult:
     """Standard service result wrapper."""
@@ -158,7 +205,10 @@ class SpamProtectionService:
             # Extract spam_protection section from channels_config.json
             spam_data = channels_data.get('spam_protection', {})
             try:
-                config = SpamProtectionConfig.from_dict(spam_data)
+                # Out-of-range and non-numeric values that from_dict lets through
+                # ("abc" as a cooldown raised TypeError at every press; a stored
+                # limit of 0 refused every second press) - stage 4 review, 20
+                config = SpamProtectionConfig.from_dict(_usable_on_read(spam_data))
             except (TypeError, ValueError) as e:
                 # A stored value that is not the shape from_dict expects - a
                 # limit that is not a number, say. from_dict stays strict,
@@ -172,15 +222,10 @@ class SpamProtectionService:
                 # get_remaining_cooldown, add_user_cooldown, which is every
                 # command and every button press that asks about spam
                 # protection (review C64).
-                logger.error(f"The stored spam protection settings could not be read as "
-                             f"they are ({e}) - reading them without the unusable parts")
-                try:
-                    config = SpamProtectionConfig.from_dict(self._without_bad_numbers(spam_data))
-                except (TypeError, ValueError) as e2:
-                    logger.error(f"Nothing usable in the stored spam protection settings "
-                                 f"({e2}) - the defaults apply. The values shown in the "
-                                 f"panel are NOT in force.")
-                    config = self._get_default_config()
+                logger.error(f"Nothing usable in the stored spam protection settings "
+                             f"({e}) - the defaults apply. The values shown in the "
+                             f"panel are NOT in force.")
+                config = self._get_default_config()
             # Fill in missing keys from the defaults; saved values win. Without
             # this, every real installation (the file always exists) read ONLY
             # the saved keys: anything missing was silently braked with the
@@ -471,32 +516,6 @@ class SpamProtectionService:
                    if current_time - timestamp > 300]
         for key in old_keys:
             del self._user_cooldowns[key]
-
-    # The two global settings from_dict runs int() on.
-    _NUMERIC_GLOBALS = ('max_commands_per_minute', 'max_buttons_per_minute')
-
-    def _without_bad_numbers(self, spam_data: Dict[str, Any]) -> Dict[str, Any]:
-        """The stored settings minus the global limits that are not numbers.
-
-        Only the unusable value is dropped, not everything around it. The
-        per-command cooldowns next to it are perfectly readable, and they are
-        what the bot actually enforces - falling back to the defaults wholesale
-        would throw away a working configuration over one bad number
-        (review C64).
-        """
-        global_settings = dict(spam_data.get('global_settings') or {})
-        for key in self._NUMERIC_GLOBALS:
-            if key not in global_settings:
-                continue
-            try:
-                int(global_settings[key])
-            except (TypeError, ValueError):
-                logger.error(f"spam_protection.global_settings.{key} is not a number "
-                             f"({global_settings[key]!r}) - the default applies for it")
-                global_settings.pop(key)
-        repaired = dict(spam_data)
-        repaired['global_settings'] = global_settings
-        return repaired
 
     def _get_default_config(self) -> SpamProtectionConfig:
         """Get default spam protection configuration."""

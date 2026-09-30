@@ -189,9 +189,9 @@ services/infrastructure/event_manager.py:1-119
 services/infrastructure/game_query_service.py:1-740
 services/infrastructure/container_facts_service.py:1-191
 
-## Section 20  (1710 lines, 5 pieces)
+## Section 20  (1729 lines, 5 pieces)
 services/infrastructure/game_query_support_service.py:1-357
-services/infrastructure/spam_protection_service.py:1-609
+services/infrastructure/spam_protection_service.py:1-628
 services/infrastructure/update_notifier.py:1-326
 services/mech/__init__.py:1-30
 services/mech/mech_display_cache_service.py:1-388
