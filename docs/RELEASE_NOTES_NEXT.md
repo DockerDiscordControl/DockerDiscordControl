@@ -1,170 +1,47 @@
-# DDC v3.0: the Docker socket, behind a door
+# DDC v3.1.0: only when nobody plays, and who is playing
 
-DRAFT for the operator. Nothing here is published until they say so. The v2.4.1 notes this
-file held before are in the release for that tag; the full list of changes is in
-`docs/CHANGELOG.md`.
+DRAFT for the operator. Nothing here is published until they say so. The v3.0 notes this file
+held before are in the release for that tag; the full list of changes is in `docs/CHANGELOG.md`.
 
 ---
 
-DDC needs the Docker socket, and write access to the Docker API is root on the host. That has
-always been true and no amount of documentation changed it. v3.0 changes it: inside the one
-container, DDC's code can no longer reach anything but the handful of Docker endpoints it
-needs. What that does and does not protect is written out in
-[`docs/SECURITY.md`](docs/SECURITY.md) - please read it, including the part about what it does
-NOT protect.
+Updating from v3.0 is a plain image update.
 
-## Read before you update
+## Restart only when nobody plays
 
-- **Behind a reverse proxy:** set `DDC_TRUSTED_PROXIES` to your proxy's address or range. Until
-  you do, the action log shows the proxy's address instead of the client's - DDC no longer
-  believes `X-Forwarded-*` from just anyone, which is what let a direct client walk around the
-  login rate limit before.
-- **`docker_socket_path` in the configuration is no longer used.** Every Docker client follows
-  `DOCKER_HOST`. If yours is set to something else, DDC says so once in the log.
-- **Started with `--user`?** Then no proxy can run, and DDC says so and uses the raw socket.
-  Start without `--user` and use `PUID`/`PGID` instead.
-- **A monthly task on the 29th, 30th or 31st now runs every month.** It used to skip the months
-  that have no such day - "monthly on the 31st" meant seven runs a year, and only a debug line
-  said so. It now falls on the last day of a short month, the way a yearly task on 29 February
-  has always fallen back to the 28th. If you were relying on the skip, use a cron expression.
-- **Going back to v2.4.1 is not supported.** v2.4.1 does not know container groups: the first
-  scheduled task it runs rewrites `tasks.json` without the group marker, and every task aimed at
-  a group then acts on a container of that name - after upgrading again, too. It also does not
-  enforce the second factor. Keep a copy of your `config/` folder before upgrading if you want a
-  way back.
-- **Some things got stricter on purpose** (your decisions of 2026-09-26):
-  - `/donate` works only in DDC's own channels; a broadcast needs an amount, and one person
-    broadcasts at most once every five minutes.
-  - An admin with a container assignment acts only on those containers - also through Restart
-    All, Stop All, a stack restart and maintenance - and cannot use `/addadmin` in status channels.
-  - A "webhook only" auto-action rule must name the webhook's ID. Existing rules without one keep
-    running and are marked "Any webhook" in the list; saving one active needs the ID.
-  - Channel translation no longer translates other bots or webhooks.
+- **A scheduled restart or stop can wait for an empty server**, at most as long as you set
+  (1-720 minutes, 120 by default), and then happens anyway: "restart daily at 4, but only once
+  nobody plays, at the latest at 6". Auto-action rules take the same option.
+- **A warning before it**, in the status and control channels: "Valheim will restart in 10
+  minutes". DDC wakes up for the warning time you set; if it could not warn in time (it was
+  restarted, say), it warns then and waits that long before acting.
+- A player count that cannot be read counts as empty; whether it can be read is checked when
+  you save the task or rule, and the panel tells you.
 
-## The boundary
+## Who is playing, in the info display
 
-- **An allowlist in front of the socket.** A separate user inside the container speaks to
-  Docker; DDC speaks to that user over a private socket and may ask for exactly ten things:
-  ping, version, the container list, a container's details, logs and stats, start, stop,
-  restart, and an image's details (read-only, for the update notice). Everything else -
-  creating containers, `exec`, pulling images, the daemon's own information - is refused
-  before it reaches Docker.
-- **DDC cannot rewrite its own start.** Code, entrypoint and the proxy are root-owned and
-  read-only for DDC; only the data directories belong to it.
-- **One Docker client factory** instead of eight separate constructions, three of which used
-  to ignore the configured timeout.
-- **TLS:** `DDC_TLS_MODE=proxy` (TLS ends at your reverse proxy) or `self-signed` (DDC serves
-  HTTPS with a certificate it creates and renews itself, fingerprint in the log). Default is
-  `off`, exactly as before.
-- **Two-factor authentication** for the panel: offered with a "Later" button, never forced.
-  TOTP, ten recovery codes, and a break-glass script on the host for a lost phone. While it is
-  on, the panel answers only over HTTPS.
+- **Every container has an info display now**: uptime, restarts, health, the image's version and
+  whether a newer image is in the registry (checked every six hours, never pulled) - and for a
+  game server who is playing, with the game, its version and the port to connect to.
+- **Player joins can be announced** in a channel ("👋 Anna joined Valheim (2/10)"); off unless
+  you tick "Player joins" for the channel.
+- **A dead game server is shown ⚠️, not green**: its container runs, but the game does not answer.
 
-## New things you will notice
+## Quieter, and more careful
 
-- **Container groups.** Make a group in the panel - a name you choose and the containers that
-  belong to it - and use it everywhere: as the target of a scheduled task ("every Sunday at 4,
-  restart Gameserver"), in an auto-action rule (as the containers it watches AND as the ones it
-  acts on), and behind one button in the Admin Overview. Compose stacks still work and are
-  offered by the same button; groups are for the containers that have no Compose project, which
-  on Unraid is usually all of them.
-- **The mech's energy is a battery.** It survives a level-up instead of being reset to the
-  surplus, it holds the level's goal, and every new DDC release gives an empty mech three days
-  of energy. The $1 bonus for hitting a goal exactly is gone - it only ever made up for the
-  energy the level-up wiped out. What you will see: after climbing a level the mech keeps
-  running instead of standing at zero. The first time the state is rebuilt from the event log
-  (deleting a donation, or a repair) the displayed power may jump once, because the history is
-  replayed under the new rule; the ledger and the totals do not change.
+- The web panel asks Docker once per refresh instead of once per container, and only while
+  somebody uses the panel.
+- An admins.json or config.json that cannot be read is reported and left alone instead of being
+  replaced by the next save.
+- A review before this release went through every part again and fixed well over a hundred
+  smaller defects, each with its own test. 8,340 tests pass.
 
-- **A container watchdog.** Rules can react when a container stops on its own, turns unhealthy,
-  restarts several times in a few minutes, or stays above a CPU or memory threshold. Notify, or
-  restart/start/stop the container that changed. Set it up under Auto-Actions, trigger type
-  *Container state*. It remembers the containers across a DDC restart, so a container that went
-  down while DDC was offline is reported after the start. A CPU threshold is per core (like
-  `docker stats`) or of the whole host - your choice per rule.
-- **Maintenance for one container.** Pause the watchdog for a container while you work on it -
-  no notices, no automatic restarts, the pause ends by itself. In the panel (Auto-Actions ->
-  Maintenance) and in Discord (🔧 on each container's admin panel, and on a group's panel for
-  all its containers). The 🔧 shows only where a watchdog rule actually watches.
-- **Every language, complete.** All 39 translations carry the texts that were still English,
-  each catalogue read in full; German says "du" throughout. `/help` and the ❓ button show one
-  up-to-date help.
-- **Alarms beyond Discord.** An optional alarm webhook - ntfy, Gotify or any JSON webhook -
-  carries watchdog alarms when Discord cannot be reached, or always.
-- **Backup & restore.** System tab: download the complete configuration as one file, or restore
-  one - with a preview first, the replaced configuration kept, and DDC restarting. The file holds
-  your bot token, second factor and password hash unencrypted; both steps ask for the panel
-  password again. (Backups made by v3.0 cannot be restored into v2.4.1 - see below.)
-- **Image-update notices.** A rule can report when the registry has a newer image for the tag a
-  container runs - a HEAD request every six hours, no pull, no effect on Docker Hub's pull
-  limit.
-- **Compose stacks.** The panel shows each container's stack and can sort the server order by
-  it; the Admin Overview groups by stack and has a "Stack" button that restarts one.
-- **The container info shows uptime, restart count and health.**
+## Good to know
 
-## Fixed on the way
+- **A plaintext bot token is encrypted automatically** once a web panel password is set.
+- **At startup DDC clears its own old messages of any age** in its channels, not only recent ones.
+- **An out-of-range query port is refused** when you save, with a message, instead of being kept.
+- **A container that never answers a player query is asked for 15 minutes and then left alone**,
+  as intended; before, every such container was asked every minute for as long as it ran.
 
-Three independent review passes over the code found these, among others. Each one is fixed with
-a test that was red against the old code.
-
-- **Channel translation works in both directions.** A->B plus B->A translated nothing, and a
-  chain stopped at the middle. It also stopped paying the provider for a target channel that is
-  gone, sends every provider a language code it accepts (Chinese on Microsoft, European
-  Portuguese, a DeepL source "English (British)"), shows a pair it had to stop, lets you set
-  the Microsoft region, and marks a cut text with "…".
-- **The bot pings nobody,** and a container takes one action at a time - from anybody.
-
-- **The update interval you set is kept.** The overview was edited every minute whatever you had
-  configured.
-- **Live Logs survive.** Recreating a deleted overview swept the channel clean, including your
-  Live Log and the auto-action notices - and in a channel with both overviews it started a
-  delete-and-post loop, one per minute.
-- **`/control` replaces its panel** instead of leaving a second, frozen one behind, and a channel
-  switched between status and control mode is rebuilt at once.
-- A container DDC could not ask - a query that timed out - was reported as offline. It is now
-  reported as unknown, and the last known state stays.
-- On a large installation no overview appeared at all: an embed longer than 4096 characters is
-  refused by Discord. Measured with 20-character names, the Admin Overview now shows 120
-  containers whole and names the rest.
-- **Honest numbers:** data older than one and a half refresh cycles says how old it is, a
-  container Docker says does not exist is not counted as "offline", and details you switched off
-  say so instead of showing "—%".
-- **Scheduled tasks, read end to end for the first time.** A task cut short by DDC's own restart
-  was carried out a second time on the way back up - at 03:01, on a database still booting. An
-  edit made while a task ran was thrown away without a word. A run missed while DDC was down
-  went on showing the green badge of the last run that really happened, every morning. A
-  donation message skipped because donations are off was recorded as sent. A broken cron
-  expression froze a task and the panel blamed "a time in the past". And every write-back ran on
-  the bot's own event loop, so the bot answered nothing - not even Discord's heartbeat - for as
-  long as the disk took.
-- **The panel and the donations, read end to end.** Two more review passes, seventeen
-  findings. A tab opened before a change made in Discord used to overwrite it without a
-  word; a failed channel-permission write threw your container edits away; more than 50
-  channels were dropped and their permissions deleted; a rule you had just created could
-  vanish when another one fired. On the donation side: the public broadcast button had no
-  brake at all, a donation the ledger had already taken was reported as failed and the
-  retry booked it twice, a donor called Müller was thanked as "Mller", and a thank-you
-  that reached nobody looked like a success.
-- **The Docker layer and the bot's commands, read end to end.** Two more passes, thirteen
-  findings. A Docker query that timed out emptied the panel's container list and marked it
-  fresh with no error. Switching the Status Watchdog on did nothing until the next restart -
-  the one feature whose job is to tell you DDC has stopped. A container DDC could not reach
-  was announced as "not found" and its automation skipped. /donate said nothing at all when
-  it failed. The two buttons that restart or stop every container had no brake.
-- **The panel says when a save did not work** - a container file it could not write, a mistyped
-  channel ID (which silently deleted that channel's permissions), a heartbeat URL without https.
-  The info of containers the page did not show is no longer cleared, and a changed language takes
-  effect at once.
-- A long info text made the Info button answer with an error instead of showing the text.
-- In the panel, a label that needs two lines no longer pushes its input field out of line.
-- **Security:** on an installation whose configuration could not be read, the first-time setup
-  page reopened - and an unauthenticated request could set a new panel password. It stays closed
-  now.
-
-## Testing
-
-- 6,154 tests pass in the production image, over the 43 groups of `tests/GROUPS.txt`
-  (`scripts/ddc_test.sh --all`).
-- Six independent review passes: three over the new v3.0 code, three over the cog split, the
-  status embeds and the panel's save path. Every finding they confirmed is fixed with a test
-  that was red against the old code, or written down as a decision.
+Everything in detail: [docs/CHANGELOG.md](docs/CHANGELOG.md)
