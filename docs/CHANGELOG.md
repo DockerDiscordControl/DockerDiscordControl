@@ -444,6 +444,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   at once; it no longer switches back to the order from the bot's start after each donation.
 - The delete buttons of weekly tasks name the weekday in the bot's language (W:Tue 17h) instead of
   always in German (W:Di 17h).
+- The Delete Tasks panel of a container with 25 or more tasks opens again (it failed with "Error
+  opening task delete panel"); it shows the first 24, says so, and counts only active tasks as
+  active.
 
 ### 🐛 The mech's picture and gift, the update notice
 

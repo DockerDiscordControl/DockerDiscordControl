@@ -236,6 +236,10 @@ class AddTaskButton(discord.ui.Button):
             else:
                 await interaction.response.send_message(f"❌ {_('Error showing task help.')}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
 
+# Delete buttons one panel can hold: Discord's 25 items, less the ✕ of PrivateView
+TASK_BUTTONS_SHOWN = 24
+
+
 class DeleteTasksButton(discord.ui.Button):
     """Button to open task delete panel."""
 
@@ -282,11 +286,16 @@ class DeleteTasksButton(discord.ui.Button):
                 inline=False
             )
 
+            # Active ones only, as the text says; and a cut above the limit is said
+            active = sum(1 for task in tasks if getattr(task, 'is_active', True))
             embed.add_field(
                 name=_("Found Tasks"),
-                value=f"{_('{count} active tasks for {container}').format(count=len(tasks), container=self.container_name)}",
+                value=f"{_('{count} active tasks for {container}').format(count=active, container=self.container_name)}",
                 inline=False
             )
+            if len(tasks) > TASK_BUTTONS_SHOWN:
+                embed.set_footer(text=_('Showing first {count} of {total} tasks').format(
+                    count=TASK_BUTTONS_SHOWN, total=len(tasks)))
 
             await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
@@ -1084,8 +1093,10 @@ class ContainerTaskDeleteView(PrivateView):
         self.cog = cog_instance
         self.container_name = container_name
 
-        # Add delete buttons for each task (max 25 due to Discord limits)
-        max_tasks = min(len(tasks), 25)
+        # Add delete buttons for each task: 24, one place below Discord's 25, for the
+        # ✕ PrivateView appends. With 25 the view could not be built and the whole
+        # panel failed from 25 tasks on (stage 4 review before v3.1.0, 41).
+        max_tasks = min(len(tasks), TASK_BUTTONS_SHOWN)
         for i, task in enumerate(tasks[:max_tasks]):
             task_id = task.task_id
 
