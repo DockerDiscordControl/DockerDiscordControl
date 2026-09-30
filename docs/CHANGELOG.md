@@ -392,6 +392,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   on the shared cache.
 - A malformed timezone in config/progress/config.json (an empty value, a trailing slash) falls
   back to Europe/Zurich instead of taking every mech and donation feature down.
+- A progress config (config/progress/config.json) without difficulty bins no longer makes every
+  level-up and ledger rebuild fail; the default bins apply.
 
 ### 🐛 The mech's picture and gift, the update notice
 

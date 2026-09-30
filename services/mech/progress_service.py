@@ -387,13 +387,13 @@ def persist_snapshot(snap: Snapshot) -> None:
 # ---------------------
 
 def current_bin(user_count: int) -> int:
-    bins = CFG["difficulty_bins"]
+    # A hand-edited file without bins failed every level-up (stage 4 review, 24)
+    bins = CFG.get("difficulty_bins") or DEFAULT_CONFIG["difficulty_bins"]
     idx = 1
     for i, lb in enumerate(bins, start=1):
         if user_count >= lb:
             idx = i
     return min(idx, 21)
-
 
 
 def validated_level(level) -> int:
