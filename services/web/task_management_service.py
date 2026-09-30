@@ -251,9 +251,6 @@ class TaskManagementService:
 
     def __init__(self):
         self.logger = logger
-        # Set by _validate_and_calculate_next_run when the cron string is the
-        # reason, so the caller can say so instead of "the time is in the past"
-        self.cron_error = None
 
     def add_task(self, request: AddTaskRequest) -> AddTaskResult:
         """
@@ -281,12 +278,14 @@ class TaskManagementService:
                 )
 
             # Step 4: Validate and calculate next run time
-            self.cron_error = None
             validation_result = self._validate_and_calculate_next_run(scheduled_task, timezone_str)
             if not validation_result:
+                # Asked here, per call: kept on the shared instance, a second request
+                # in another waitress thread cleared or swapped the reason (stage 4
+                # review before v3.1.0, 31)
                 return AddTaskResult(
                     success=False,
-                    error=self.cron_error or
+                    error=unreadable_cron_reason(scheduled_task) or
                     "Task validation failed or next run time could not be calculated."
                 )
 
@@ -686,9 +685,9 @@ class TaskManagementService:
                 self.logger.error(f"Task validation failed for task with container={task.container_name}")
                 return False
 
-            self.cron_error = unreadable_cron_reason(task)
-            if self.cron_error:
-                self.logger.error(f"Task {task.task_id}: {self.cron_error}")
+            cron_error = unreadable_cron_reason(task)
+            if cron_error:
+                self.logger.error(f"Task {task.task_id}: {cron_error}")
                 return False
 
             self.logger.debug(f"Task is valid, calculating next execution time...")
