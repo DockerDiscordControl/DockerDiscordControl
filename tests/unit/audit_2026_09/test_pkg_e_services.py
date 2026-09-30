@@ -237,7 +237,7 @@ def test_e10_delete_targets_seq_even_if_new_events_arrived(event_log):
 
     assert result.success is True
     assert result.data["action"] == "Deleted"
-    progress.delete_donation.assert_called_once_with(2)  # by index it would have hit Alice/Charlie
+    progress.delete_donation.assert_called_once_with(2, expect_deleted=True)  # by index it would have hit Alice/Charlie
 
 
 def test_e10_restore_via_deletion_event_seq(event_log):
@@ -247,7 +247,7 @@ def test_e10_restore_via_deletion_event_seq(event_log):
 
     assert result.success is True
     assert result.data["action"] == "Restored"
-    progress.delete_donation.assert_called_once_with(1)
+    progress.delete_donation.assert_called_once_with(1, expect_deleted=False)
 
 
 def test_e10_stale_clicks_do_not_toggle_back(event_log):

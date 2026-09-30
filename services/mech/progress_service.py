@@ -1621,7 +1621,7 @@ class ProgressService:
                 goals[previous.level] = goal
         return goals, previous
 
-    def delete_donation(self, donation_seq: int) -> ProgressState:
+    def delete_donation(self, donation_seq: int, expect_deleted: Optional[bool] = None) -> ProgressState:
         """
         Delete a donation by adding a DonationDeleted compensation event.
 
@@ -1658,7 +1658,8 @@ class ProgressService:
                                 if e.type == "DonationDeleted"
                                 and e.payload.get("deleted_seq") == donation_seq)
             currently_deleted = deletion_count % 2 == 1
-
+            if expect_deleted is not None and currently_deleted == expect_deleted:  # asked under LOCK:
+                raise ValueError(f"Donation seq {donation_seq} is already {'deleted' if expect_deleted else 'active'}")  # a racing 2nd click re-toggled it (stage 4, 17)
             # Extract donor name and amount based on event type
             if donation_event.type == "DonationAdded":
                 donor = donation_event.payload.get("donor", "Anonymous")
@@ -1678,7 +1679,6 @@ class ProgressService:
                 donor = "Unknown"
                 units = 0
 
-            # Create DonationDeleted compensation event (toggle: delete or restore)
             reason = "admin_restore" if currently_deleted else "admin_deletion"
             evt = Event(
                 seq=next_seq(),
@@ -1693,8 +1693,7 @@ class ProgressService:
             logger.info(f"Donation {action} event added for seq {donation_seq} "
                        f"(${units/100:.2f} from {donor}, type: {donation_event.type})")
 
-            # Rebuild snapshot from scratch
-            return self.rebuild_from_events()
+            return self.rebuild_from_events()  # the snapshot from scratch
 
 
 # ---------------------

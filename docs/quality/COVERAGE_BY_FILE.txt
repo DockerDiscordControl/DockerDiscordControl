@@ -186,7 +186,7 @@ services/docker_status/models.py	411	pass1:s17:plan pass2:s17:1-376
 services/docker_status/performance_service.py	237	pass1:s17:plan pass2:s17:1-234
 services/donation/__init__.py	24	pass2:s17:1-24
 services/donation/donation_config.py	50	pass1:s17:plan pass2:s17:1-41
-services/donation/donation_management_service.py	498	pass1:s17:plan pass2:s17:1-440  [6 of 446 lines never in a package]
+services/donation/donation_management_service.py	501	pass1:s17:plan pass2:s17:1-440  [6 of 446 lines never in a package]
 services/donation/donation_utils.py	89	pass1:s17:plan pass2:s17:1-62
 services/donation/notification_service.py	99	pass1:s17:plan pass2:s17:1-79
 services/donation/unified/__init__.py	30	pass2:s17:1-30
@@ -230,7 +230,7 @@ services/mech/mech_story_service.py	204	pass1:s23:1-194  [10 of 204 lines never 
 services/mech/progress/__init__.py	17	pass1:s23:1-17
 services/mech/progress/runtime.py	208	pass1:s23:1-153  [5 of 158 lines never in a package]
 services/mech/progress_paths.py	189	pass1:s23:1-188  [1 of 189 lines never in a package]
-services/mech/progress_service.py	1730	pass1:s24:plan pass2:s24:1-1612  [128 of 1731 lines never in a package]
+services/mech/progress_service.py	1729	pass1:s24:plan pass2:s24:1-1612  [128 of 1731 lines never in a package]
 services/mech/speed_levels.py	427	pass1:s24:plan pass1:s25:1-413  [14 of 427 lines never in a package]
 services/member_count/__init__.py	17	pass1:s25:1-17
 services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a package]

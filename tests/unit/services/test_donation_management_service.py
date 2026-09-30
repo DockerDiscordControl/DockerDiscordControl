@@ -246,7 +246,7 @@ class TestDonationManagementService:
         assert result.data["deleted_seq"] == 3  # Charlie's seq
         assert result.data["action"] == "Deleted"
         assert result.data["type"] == "DonationAdded"
-        progress_service.delete_donation.assert_called_once_with(3)
+        progress_service.delete_donation.assert_called_once_with(3, expect_deleted=True)
 
     def test_delete_donation_invalid_index(
         self, patch_mech_service, patch_progress_paths, event_log_path
@@ -409,7 +409,7 @@ class TestDonationManagementServiceIntegration:
             delete_result = service.delete_donation(2)
         assert delete_result.success is True
         assert delete_result.data["deleted_seq"] == 2
-        progress_service.delete_donation.assert_called_once_with(2)
+        progress_service.delete_donation.assert_called_once_with(2, expect_deleted=True)
 
 
 if __name__ == "__main__":

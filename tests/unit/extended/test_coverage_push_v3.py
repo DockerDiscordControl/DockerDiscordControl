@@ -639,8 +639,9 @@ class TestDeleteDonationBranches:
 
         assert result.success is True
         assert result.data["action"] == "Restored"
-        # The 'target_seq' should be the deleted_seq (the original donation)
-        progress.delete_donation.assert_called_once_with(1)
+        # The 'target_seq' should be the deleted_seq (the original donation);
+        # the wanted end state goes along (stage 4 review before v3.1.0, 17)
+        progress.delete_donation.assert_called_once_with(1, expect_deleted=False)
 
     def test_delete_donation_runtime_error(
         self, patch_progress_paths, event_log_path

@@ -356,7 +356,10 @@ class DonationManagementService:
             progress_service = get_progress_service()
 
             # Delete/restore event (adds compensation event and rebuilds)
-            progress_service.delete_donation(target_seq)
+            # The intent goes along: the check above reads the ledger without the
+            # lock, and two racing requests both passed it; the locked section
+            # refuses the second (stage 4 review before v3.1.0, section 17).
+            progress_service.delete_donation(target_seq, expect_deleted=not restore)
 
             action = "Restored" if restore else "Deleted"
             logger.info(f"{action} donation seq {target_seq} (clicked seq {seq}, type {item_type})")

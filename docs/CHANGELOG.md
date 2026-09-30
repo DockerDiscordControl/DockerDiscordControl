@@ -358,6 +358,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - When a stop or restart from DDC never reached Docker (the connection was refused), DDC still
   counted the container as stopped by itself for five minutes, so a stop by someone else in that
   time raised no watchdog alarm. It is only counted when the request got through now.
+- Two delete clicks on the same donation at almost the same moment (a double click, two tabs) both
+  answered "Deleted", and the second one quietly restored the donation. The second is refused now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
