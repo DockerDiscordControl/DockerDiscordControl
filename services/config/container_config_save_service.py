@@ -96,7 +96,11 @@ class ContainerConfigSaveService:
             logger.info(f"Saved container config for {container_name} to {config_file}")
             return True
 
-        except (IOError, OSError, PermissionError, RuntimeError, json.JSONDecodeError) as e:
+        # ValueError too: _validate_path_safety refuses a name with it ("bad
+        # name", "../x"), and escaping here it stopped the whole web batch -
+        # every container after it went unsaved (stage 4 review before v3.1.0,
+        # section 13). JSONDecodeError is a ValueError.
+        except (IOError, OSError, PermissionError, RuntimeError, ValueError) as e:
             logger.error(f"Error saving container config for {container_name}: {e}", exc_info=True)
             return False
 
@@ -122,7 +126,7 @@ class ContainerConfigSaveService:
 
             return True
 
-        except (RuntimeError, OSError, PermissionError) as e:
+        except (RuntimeError, OSError, PermissionError, ValueError) as e:  # ValueError: see save
             logger.error(f"Error deleting container config for {container_name}: {e}", exc_info=True)
             return False
 

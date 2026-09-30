@@ -362,22 +362,22 @@ class TestContainerConfigSaveService:
 
     def test_save_rejects_invalid_name(self, tmp_path):
         svc = _make_container_save_service(tmp_path)
-        # The safe-name regex rejects `..` paths; service raises ValueError
-        # because the catch list does NOT include ValueError.
-        with pytest.raises(ValueError):
-            svc.save_container_config("../escape", {"x": 1})
+        # The safe-name regex rejects `..` paths. It answers False since the
+        # stage 4 review before v3.1.0 (section 13) - the ValueError it raised
+        # stopped the whole web batch - and still writes nothing.
+        assert svc.save_container_config("../escape", {"x": 1}) is False
         assert list(svc.containers_dir.glob("*.json")) == []
 
     def test_save_rejects_path_traversal(self, tmp_path):
         svc = _make_container_save_service(tmp_path)
-        with pytest.raises(ValueError):
-            svc.save_container_config("foo/bar", {})
+        assert svc.save_container_config("foo/bar", {}) is False
+        assert list(svc.containers_dir.rglob("*.json")) == []
 
     def test_save_rejects_dotfile_name(self, tmp_path):
         svc = _make_container_save_service(tmp_path)
         # Must start with alphanumeric per regex.
-        with pytest.raises(ValueError):
-            svc.save_container_config(".hidden", {})
+        assert svc.save_container_config(".hidden", {}) is False
+        assert not (svc.containers_dir / ".hidden.json").exists()
 
     def test_save_overwrites_existing(self, tmp_path):
         svc = _make_container_save_service(tmp_path)
@@ -402,10 +402,10 @@ class TestContainerConfigSaveService:
 
     def test_delete_rejects_invalid_name(self, tmp_path):
         svc = _make_container_save_service(tmp_path)
-        # Same as save: ValueError propagates from _validate_path_safety
-        # because delete's except clause doesn't list ValueError.
-        with pytest.raises(ValueError):
-            svc.delete_container_config("../bad")
+        # Same as save: refused, and answered False (stage 4, section 13).
+        (svc.containers_dir.parent / "bad.json").write_text("{}")
+        assert svc.delete_container_config("../bad") is False
+        assert (svc.containers_dir.parent / "bad.json").exists(), "a path outside was deleted"
 
     def test_save_handles_unserializable_data(self, tmp_path):
         """A non-JSON-serializable value triggers the broad except clause."""

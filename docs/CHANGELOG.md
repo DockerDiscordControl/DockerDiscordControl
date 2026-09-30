@@ -341,6 +341,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   rounded down to whole minutes and at least one now.
 - A container display name written in square brackets, such as "[PROD]", lost its brackets when
   saved. It is kept as written now.
+- A container name that is not allowed as a file name (for example one with a space, sent by a
+  hand-made request) stopped the saving of every container after it. That one container is refused
+  now and the others are saved.
 
 ### 🐛 The mech's picture and gift, the update notice
 
