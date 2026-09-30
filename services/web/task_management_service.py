@@ -230,6 +230,22 @@ def _apply_schedule_details(task, schedule_details: Dict[str, Any]) -> None:
                 pass
 
 
+def _known_timezone(timezone_str: Any) -> str:
+    """The zone if pytz knows it, else UTC - what the bot does (app/bootstrap/runtime.py).
+
+    An unknown one (a hand edit; the settings save does not check the field)
+    made the task list, the form and task creation fail as a whole: nothing
+    below catches pytz.UnknownTimeZoneError (stage 4 review before v3.1.0, 31).
+    """
+    import pytz
+    try:
+        pytz.timezone(str(timezone_str))
+        return str(timezone_str)
+    except pytz.UnknownTimeZoneError:
+        logger.warning(f"Unknown timezone '{timezone_str}' - the task panel uses UTC")
+        return 'UTC'
+
+
 class TaskManagementService:
     """Service for comprehensive task management with complex business logic."""
 
@@ -556,7 +572,7 @@ class TaskManagementService:
             # Step 2: Load timezone configuration
             from services.config.config_service import load_config
             config = load_config()
-            timezone_str = config.get('timezone', 'Europe/Berlin')
+            timezone_str = _known_timezone(config.get('timezone', 'Europe/Berlin'))
 
             # Step 3: Get timezone abbreviation
             timezone_name = self._get_timezone_abbreviation(timezone_str)
@@ -592,11 +608,11 @@ class TaskManagementService:
     def _determine_timezone(self, timezone_str: Optional[str]) -> str:
         """Determine timezone from request or config."""
         if timezone_str:
-            return timezone_str
+            return _known_timezone(timezone_str)
 
         from services.config.config_service import load_config
         config = load_config()
-        return config.get('timezone', 'Europe/Berlin')
+        return _known_timezone(config.get('timezone', 'Europe/Berlin'))
 
     def _debug_time_conversion(self, schedule_details: Dict[str, Any], timezone_str: str):
         """Debug time conversion for timezone handling."""

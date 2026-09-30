@@ -405,6 +405,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   donation task.
 - If tasks.json cannot be read at the first start after the update, the one-time pause of long-
   dead tasks waits for a readable file instead of being spent on an empty list.
+- A timezone in config.json that is not known (a typo like Europe/Berln) no longer makes the web
+  panel's task list, task form and task creation fail; the panel uses UTC, as the bot already did.
 
 ### 🐛 The mech's picture and gift, the update notice
 
