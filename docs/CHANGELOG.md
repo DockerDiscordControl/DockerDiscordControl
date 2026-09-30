@@ -449,6 +449,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   active.
 - Picking the cycle or the action again while creating a task in Discord disables the Create
   button until the task is complete again.
+- Pressing the delete button of a task that was already deleted elsewhere says the task is gone,
+  instead of claiming a missing permission.
 
 ### 🐛 The mech's picture and gift, the update notice
 

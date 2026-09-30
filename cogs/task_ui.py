@@ -1196,6 +1196,18 @@ class ContainerTaskDeleteButton(discord.ui.Button):
             # A registered admin may delete as well (SPEC.md B2): this is the
             # button of the admin info view, which admins open in status
             # channels. Added 2026-09-19 after the operator was refused there.
+            # Found first: a task deleted elsewhere has no container for the
+            # admin check below, and was answered "no permission" instead of
+            # "not found" (stage 4 review before v3.1.0, 41). Also the info for
+            # the log.
+            task = find_task_by_id(self.task_id)
+            if not task:
+                await interaction.followup.send(
+                    f"❌ {_('Task not found (may have already been deleted)')}",
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
+                )
+                return
+
             config = load_config()
             # Via the task's container - same rule as its twin in control_ui
             # (review F2).
@@ -1203,15 +1215,6 @@ class ContainerTaskDeleteButton(discord.ui.Button):
                     or _admin_may_control_task(interaction.user.id, self.task_id)):
                 await interaction.followup.send(
                     f"❌ {_('You do not have permission to delete tasks in this channel.')}",
-                    ephemeral=True, delete_after=NOTICE_STAYS_FOR
-                )
-                return
-
-            # Find the task first to get info for logging
-            task = find_task_by_id(self.task_id)
-            if not task:
-                await interaction.followup.send(
-                    f"❌ {_('Task not found (may have already been deleted)')}",
                     ephemeral=True, delete_after=NOTICE_STAYS_FOR
                 )
                 return

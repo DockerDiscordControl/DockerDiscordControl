@@ -180,7 +180,13 @@ async def test_he_does_not_delete_a_task_of_another_container(status_channel, mo
 
 @pytest.mark.parametrize("kind", TASK_BUTTONS)
 async def test_a_task_nobody_can_place_is_refused(status_channel, monkeypatch, kind):
-    """There is no way to tell whose it is, so it is not deleted."""
+    """There is no way to tell whose it is, so it is not deleted.
+
+    The info-view button says "Task not found" since 2026-09-30: the task is
+    gone, and a permission refusal for it was untrue (stage 4 review before
+    v3.1.0, 41#4). The control-panel twin still refuses by permission; both
+    delete nothing, which is what this test holds.
+    """
     monkeypatch.setattr("services.scheduling.scheduler.find_task_by_id", lambda _id: None)
     monkeypatch.setattr("services.scheduling.scheduler.delete_task", _tripwire)
     inter = _interaction()
@@ -188,7 +194,8 @@ async def test_a_task_nobody_can_place_is_refused(status_channel, monkeypatch, k
     await _delete_button(kind).callback(inter)
 
     sent = " ".join(str(a) for c in inter.followup.send.await_args_list for a in c.args)
-    assert "permission" in sent.lower(), sent
+    expected = "not found" if kind == "info_view" else "permission"
+    assert expected in sent.lower(), sent
 
 
 @pytest.mark.parametrize("kind", TASK_BUTTONS)
