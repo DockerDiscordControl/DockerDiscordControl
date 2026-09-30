@@ -367,6 +367,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   the whole donation history and its statistics into an error.
 - The donation history and its statistics no longer fail when the mech state cannot be read (an
   unreadable snapshot file); they only ever needed the event log.
+- A game server that answers the info query but not the player query (host_players_show 0, a rate-
+  limiting query proxy) keeps its count, name and version in the info display; only the names are
+  missing.
 
 ### 🐛 The mech's picture and gift, the update notice
 

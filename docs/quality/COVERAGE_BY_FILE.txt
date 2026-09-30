@@ -208,7 +208,7 @@ services/infrastructure/container_status_service.py	887	pass1:s19:1-816  [14 of 
 services/infrastructure/docker_connectivity_service.py	269	pass1:s19:1-239
 services/infrastructure/dynamic_cooldown_manager.py	191	pass1:s19:1-179  [12 of 191 lines never in a package]
 services/infrastructure/event_manager.py	119	pass1:s19:1-118
-services/infrastructure/game_query_service.py	711	pass1:s19:1-525  [28 of 553 lines never in a package; PlayerList, a2s_version and get_player_list new 2026-09-28 (v3.1.0), written with their tests]
+services/infrastructure/game_query_service.py	740	pass1:s19:1-525  [28 of 553 lines never in a package; PlayerList, a2s_version and get_player_list new 2026-09-28 (v3.1.0), written with their tests]
 services/infrastructure/game_query_support_service.py	357	pass1:s20:1-282  [59 of 341 lines never in a package]
 services/infrastructure/spam_protection_service.py	609	pass1:s20:1-504  [49 of 553 lines never in a package]
 services/infrastructure/update_notifier.py	326	pass1:s20:1-213  [22 of 235 lines never in a package]

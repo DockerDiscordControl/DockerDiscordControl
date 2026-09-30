@@ -153,6 +153,31 @@ def _count(value, positive: bool = False) -> Optional[int]:
     return value
 
 
+def _names_deadline(timeout: float) -> float:
+    """When the player names must be in, so the count still makes it out.
+
+    get_player_list gives the whole query one timeout; the names get what is
+    left of nine tenths of it, the rest is the margin for the answer.
+    """
+    return asyncio.get_running_loop().time() + timeout * 0.9
+
+
+async def _names_within(fetch, deadline: float):
+    """The player names, or None when the server does not give them in time.
+
+    A server may answer the info query and refuse the player query (a Source
+    server with host_players_show 0, a rate-limiting query proxy). The count,
+    the server's name and version are worth showing then; failing the whole
+    list lost them (stage 4 review, 19b).
+    """
+    remaining = max(deadline - asyncio.get_running_loop().time(), 0.01)
+    try:
+        return await asyncio.wait_for(fetch(), timeout=remaining)
+    except Exception as e:  # noqa: BLE001 - opengsq raises its own errors; TimeoutError too
+        logger.debug(f"[GAME_QUERY] Player names not given: {e!r}")
+        return None
+
+
 class GameQueryService:
     """Singleton service that queries game servers via opengsq, cached and non-blocking."""
 
@@ -227,14 +252,16 @@ class GameQueryService:
         if protocol == 'source':
             from opengsq.protocols.source import Source  # lazy import
             server = Source(host=host, port=port, timeout=timeout)
+            deadline = _names_deadline(timeout)
             info = await server.get_info()
             online = getattr(info, 'players', None)
-            names = [(p.name.strip(), p.duration) for p in await server.get_players()
-                     if (p.name or '').strip()] if online else []
+            given = await _names_within(server.get_players, deadline) if online else []
+            names = [(p.name.strip(), p.duration) for p in given or []
+                     if (p.name or '').strip()]
             folder = str(getattr(info, 'folder', '') or '')
             return PlayerList(
                 success=True, players_online=online, max_players=getattr(info, 'max_players', None),
-                names=names, names_given=bool(names) or not online,
+                names=names, names_given=given is not None and (bool(names) or not online),
                 server_name=(str(getattr(info, 'name', '') or '').strip() or None),
                 game=(str(getattr(info, 'game', '') or '').strip() or folder.title() or None),
                 game_version=a2s_version(getattr(info, 'version', None), getattr(info, 'keywords', None)),
@@ -259,15 +286,17 @@ class GameQueryService:
             # REST API: HTTP Basic auth, user "admin", the AdminPassword as the token
             server = Palworld(host=host, port=port, api_username='admin',
                               api_password=(token or ''), timeout=timeout)
+            deadline = _names_deadline(timeout)
             status = await server.get_status()
             online, max_players = _count(getattr(status, 'num_players', None)), \
                 _count(getattr(status, 'max_players', None), positive=True)
             if max_players is None:
                 online = None
-            names = [(p.name.strip(), None) for p in await server.get_players()
-                     if (p.name or '').strip()] if online else []
+            given = await _names_within(server.get_players, deadline) if online else []
+            names = [(p.name.strip(), None) for p in given or [] if (p.name or '').strip()]
             return PlayerList(success=True, players_online=online, max_players=max_players,
-                              names=names, names_given=bool(names) or not online, game='Palworld',
+                              names=names, names_given=given is not None and (bool(names) or not online),
+                              game='Palworld',
                               server_name=(str(getattr(status, 'server_name', '') or '').strip() or None))
         if protocol == 'satisfactory':
             from opengsq.protocols.satisfactory import Satisfactory  # lazy import
