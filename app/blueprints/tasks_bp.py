@@ -48,6 +48,19 @@ def _player_warnings(task_data) -> list:
             "runs at its time: " + "; ".join(problems)]
 
 
+def _not_a_boolean(data, key):
+    """The refusal when ``key`` is present but not a real true or false, else None.
+
+    bool("false") is True: a hand-made request with target_is_group "false"
+    made a GROUP task for a group named like the container, and the intended
+    container was never acted on. Refused, not interpreted - the same reason
+    as is_active below (review D29; stage 4 review before v3.1.0, 32).
+    """
+    if key in data and not isinstance(data[key], bool):
+        return f"{key} must be true or false"
+    return None
+
+
 @tasks_bp.route('/add', methods=['POST'])
 @auth.login_required
 def add_task():
@@ -65,7 +78,7 @@ def add_task():
             return jsonify({"error": "Container is required"}), 400
         if not data.get('action'):
             return jsonify({"error": "Action is required"}), 400
-        refused = _refused_player_options(data)
+        refused = _refused_player_options(data) or _not_a_boolean(data, 'target_is_group')
         if refused:
             return jsonify({"error": refused}), 400
 
@@ -321,7 +334,7 @@ def edit_task_route(task_id):
             data = request.get_json()
             if not data:
                 return jsonify({"success": False, "error": "No data provided"}), 400
-            refused = _refused_player_options(data)
+            refused = _refused_player_options(data) or _not_a_boolean(data, 'target_is_group')
             if refused:
                 return jsonify({"success": False, "error": refused}), 400
 
