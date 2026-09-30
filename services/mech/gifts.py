@@ -165,6 +165,15 @@ def grant_power_gift(service: "ProgressService", campaign_id: str,
 RELEASES_CHECKED_FILE = "release_gifts_checked.json"
 
 
+def _gift_stands(mech_id: str, campaign_id: str) -> bool:
+    """Whether the event log holds a gift of this campaign that is not deleted."""
+    events = read_events()
+    deleted = _currently_deleted(events)
+    return any(evt.type == "PowerGiftGranted" and evt.mech_id == mech_id
+               and (evt.payload or {}).get("campaign_id") == campaign_id
+               and evt.seq not in deleted for evt in events)
+
+
 def _release_decisions() -> dict:
     """What the first start of each version decided: "granted" or "passed"."""
     try:
@@ -202,7 +211,13 @@ def release_gift(service: "ProgressService", version: str) -> Tuple[ProgressStat
         state, gift = service.power_gift(f"release_{version}",
                                          gift_cents=three_days_of_energy(level))
         if version not in decisions:
-            decisions[version] = "granted" if gift else "passed"
+            # From the ledger, not from the refusal: with the record lost (a
+            # failed write, a deleted file) a standing gift is refused as
+            # "campaign used" too, and "passed" would claim the mech had energy
+            # - and keep a gift the admin deletes later from freeing the
+            # campaign (stage 4 review before v3.1.0, 22)
+            granted = gift or _gift_stands(service.mech_id, f"release_{version}")
+            decisions[version] = "granted" if granted else "passed"
             try:
                 atomic_write_json(DATA_DIR / RELEASES_CHECKED_FILE, {"versions": decisions})
             except (OSError, RuntimeError, TypeError) as e:

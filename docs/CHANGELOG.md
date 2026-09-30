@@ -386,6 +386,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   longer overwritten by the bot's older failed probe.
 - The mech display no longer mixes two levels in one answer (current level from one, name,
   threshold and bars from the next) when a donation is booked while it is being read.
+- A release gift whose record file was lost is no longer relabelled as "the mech had energy at the
+  first start", and deleting that gift frees its campaign again.
 
 ### 🐛 The mech's picture and gift, the update notice
 
