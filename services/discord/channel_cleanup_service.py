@@ -461,8 +461,9 @@ class ChannelCleanupService:
         """
         deleted_count = 0
         messages_checked = 0
+        cap = min(request.message_limit, 50)
 
-        async for message in request.channel.history(limit=min(request.message_limit, 50)):
+        async for message in request.channel.history(limit=cap):
             messages_checked += 1
 
             if request.custom_filter and request.custom_filter(message):
@@ -488,6 +489,11 @@ class ChannelCleanupService:
 
         result.individually_deleted = deleted_count
         logger.info(f"🧹 CLEANUP: Deleted {deleted_count}/{messages_checked} messages one by one")
+        if messages_checked >= cap:
+            # Said, not left to look like a permission problem: older messages
+            # were never looked at (stage 4 review before v3.1.0, section 14).
+            logger.warning(f"🧹 CLEANUP: the one-by-one walk stopped at its cap of {cap} messages "
+                           f"in channel {request.channel.id} - older ones were not looked at")
 
 
 # Singleton instance
