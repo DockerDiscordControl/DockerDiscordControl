@@ -92,12 +92,19 @@ class ConfigCacheService:
         if not config_dir.exists():
             return 0
         newest = os.path.getmtime(config_dir)
-        for name in ConfigCacheService._CONFIG_SUBDIRECTORIES:
-            sub = config_dir / name
+        # The .json FILES as well: an edit in place (nano, `cat >`) changes the
+        # file's mtime and not its directory's, so the directories alone missed
+        # the very hand edit this check is for (stage 4 review before v3.1.0,
+        # section 12). One scandir per directory; the entries carry their stat.
+        for folder in [config_dir] + [config_dir / n for n in ConfigCacheService._CONFIG_SUBDIRECTORIES]:
             try:
-                newest = max(newest, os.path.getmtime(sub))
+                newest = max(newest, os.path.getmtime(folder))
+                with os.scandir(folder) as entries:
+                    for entry in entries:
+                        if entry.name.endswith('.json') and entry.is_file():
+                            newest = max(newest, entry.stat().st_mtime)
             except OSError:
-                # Not every install has both; a fresh one has neither.
+                # Not every install has both subdirectories; a fresh one has neither.
                 continue
         return newest
 

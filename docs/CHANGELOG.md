@@ -333,6 +333,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - When saving the configuration failed after a new Web UI password had already been set, the
   message did not say the password had changed, and the old one no longer worked at the next
   login. Every such failure now says that the password was changed.
+- A change made by hand in config.json or a channel file on the server (with nano, for example)
+  was not picked up until something else wrote into the config folder or DDC restarted. DDC
+  notices it at the next read now.
 
 ### 🐛 The mech's picture and gift, the update notice
 
