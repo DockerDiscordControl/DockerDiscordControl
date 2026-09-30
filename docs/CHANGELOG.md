@@ -413,6 +413,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
   to the panel instead of a bare error page.
 - A failed configuration save in the panel no longer leaves its error banner behind to appear on a
   later page, after a save that worked.
+- The /api/mech/status answer reports the donated total with its cents (12.99, not 12).
 
 ### 🐛 The mech's picture and gift, the update notice
 

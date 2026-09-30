@@ -1255,6 +1255,13 @@ def get_mech_status():
                 return int(value)
             return default
 
+        def _safe_dollars(value):
+            """Dollars as a number, to the cent. _safe_int cut $12.99 to 12
+            (stage 4 review before v3.1.0, 32)."""
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return round(float(value), 2)
+            return 0.0
+
         def _safe_string(value, default='Unknown'):
             """Extract safe string without exceptions - CodeQL taint barrier."""
             if not isinstance(value, str):
@@ -1278,7 +1285,7 @@ def get_mech_status():
         # This breaks CodeQL's taint tracking by going through validation barriers
         safe_status = {
             'donations_count': _safe_int(status.get('donations_count'), 0),
-            'total_donated': _safe_int(status.get('total_donated'), 0),
+            'total_donated': _safe_dollars(status.get('total_donated')),
             'current_level': _safe_int(status.get('current_level'), 1),
             'level_upgrades_count': _safe_int(status.get('level_upgrades_count'), 0),
             'next_level_threshold': _safe_int(status.get('next_level_threshold'), 0) if status.get('next_level_threshold') is not None else None,
