@@ -390,6 +390,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   first start", and deleting that gift frees its campaign again.
 - Two panel or bot requests for the mech data at the same moment no longer make one of them fail
   on the shared cache.
+- A malformed timezone in config/progress/config.json (an empty value, a trailing slash) falls
+  back to Europe/Zurich instead of taking every mech and donation feature down.
 
 ### 🐛 The mech's picture and gift, the update notice
 

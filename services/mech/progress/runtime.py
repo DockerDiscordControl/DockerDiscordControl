@@ -183,7 +183,11 @@ class ProgressRuntime:
             tz_name = config.get("timezone", default_tz)
             try:
                 self._timezone = ZoneInfo(str(tz_name))
-            except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError):
+            # ValueError: a malformed key ('', 'Europe/Zurich/', 'a/../b') - it
+            # escaped, and progress_service, which asks this at import, failed
+            # to import at all (stage 4 review before v3.1.0, 24)
+            except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError,
+                    ValueError):
                 logger.warning("Unknown timezone '%s'; falling back to %s", tz_name, default_tz)
                 self._timezone = ZoneInfo(default_tz)
         return self._timezone
