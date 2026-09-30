@@ -349,6 +349,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A hand-edited channel file with an empty "commands" entry stopped DDC from finding its control
   channels, so the update notice and the watchdog's default channel failed. Such an entry is
   skipped now.
+- Moving an old v1.1 configuration with an unreadable session timeout dropped the Web UI password,
+  and the panel came up asking for first-time setup. The password is kept now; only the timeout
+  falls back to its default.
 
 ### 🐛 The mech's picture and gift, the update notice
 

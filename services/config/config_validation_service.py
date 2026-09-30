@@ -16,6 +16,14 @@ from typing import Dict, Any, List
 logger = logging.getLogger('ddc.config_validation')
 
 
+def _int_or(value, default: int) -> int:
+    """``value`` as an int, or ``default`` when it is none."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 class ConfigValidationService:
     """
     Handles all configuration validation and extraction operations.
@@ -146,7 +154,11 @@ class ConfigValidationService:
                 'web_ui_password_hash': str(config.get('web_ui_password_hash', '')) if isinstance(config.get('web_ui_password_hash'), str) else None,
                 'web_ui_user': str(config.get('web_ui_user', 'admin')),
                 'admin_enabled': bool(config.get('admin_enabled', True)),
-                'session_timeout': int(config.get('session_timeout', 3600)) if isinstance(config.get('session_timeout'), (int, str)) else 3600,
+                # On its own: one expression for all fields meant an unreadable
+                # timeout returned the DEFAULT web config - without the password
+                # hash, so a v1.1.x migration left the panel in first-run mode
+                # (stage 4 review before v3.1.0, section 13).
+                'session_timeout': _int_or(config.get('session_timeout'), 3600),
                 'donation_disable_key': str(config.get('donation_disable_key', '')),
                 'advanced_settings': dict(config.get('advanced_settings', {})) if isinstance(config.get('advanced_settings'), dict) else {}
             }
