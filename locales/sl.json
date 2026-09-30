@@ -1668,5 +1668,6 @@
   "❌ None of the active containers is assigned to you.": "❌ Noben od aktivnih vsebnikov ti ni dodeljen.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Stanje mecha začasno ni na voljo",
   "No channel takes donation announcements - nothing was posted.": "Noben kanal ne sprejema obvestil o donacijah - nič ni bilo objavljeno.",
-  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Do stopnje {level} manjka ${amount}! (npr. {amount})"
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Do stopnje {level} manjka ${amount}! (npr. {amount})",
+  "The groups file could not be read - try again.": "Datoteke skupin ni bilo mogoče prebrati - poskusi znova."
 }

@@ -1668,5 +1668,6 @@
   "❌ None of the active containers is assigned to you.": "❌ Geen van de actieve containers is aan jou toegewezen.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Mech-status tijdelijk niet beschikbaar",
   "No channel takes donation announcements - nothing was posted.": "Geen enkel kanaal neemt donatie-aankondigingen aan - er is niets geplaatst.",
-  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Nog ${amount} tot level {level}! (bijv. {amount})"
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Nog ${amount} tot level {level}! (bijv. {amount})",
+  "The groups file could not be read - try again.": "Het groepenbestand kon niet worden gelezen - probeer het opnieuw."
 }

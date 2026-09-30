@@ -1668,5 +1668,6 @@
   "❌ None of the active containers is assigned to you.": "❌ Žádný z aktivních kontejnerů ti není přiřazen.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Stav mecha dočasně nedostupný",
   "No channel takes donation announcements - nothing was posted.": "Žádný kanál nepřijímá oznámení o darech - nic nebylo zveřejněno.",
-  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Do úrovně {level} chybí ${amount}! (např. {amount})"
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Do úrovně {level} chybí ${amount}! (např. {amount})",
+  "The groups file could not be read - try again.": "Soubor se skupinami se nepodařilo přečíst - zkus to znovu."
 }

@@ -1668,5 +1668,6 @@
   "❌ None of the active containers is assigned to you.": "❌ Ühtegi aktiivset konteinerit pole sulle määratud.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Mechi olek ajutiselt kättesaamatu",
   "No channel takes donation announcements - nothing was posted.": "Ükski kanal ei võta annetusteateid vastu - midagi ei postitatud.",
-  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Tasemeni {level} on puudu ${amount}! (nt {amount})"
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Tasemeni {level} on puudu ${amount}! (nt {amount})",
+  "The groups file could not be read - try again.": "Gruppide faili ei õnnestunud lugeda - proovi uuesti."
 }

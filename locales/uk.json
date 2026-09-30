@@ -1668,5 +1668,6 @@
   "❌ None of the active containers is assigned to you.": "❌ Жоден з активних контейнерів не призначений тобі.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Стан меха тимчасово недоступний",
   "No channel takes donation announcements - nothing was posted.": "Жоден канал не приймає оголошення про пожертви - нічого не опубліковано.",
-  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 До рівня {level} бракує ${amount}! (напр. {amount})"
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 До рівня {level} бракує ${amount}! (напр. {amount})",
+  "The groups file could not be read - try again.": "Не вдалося прочитати файл груп - спробуй ще раз."
 }

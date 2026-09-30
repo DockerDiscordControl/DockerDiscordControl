@@ -163,7 +163,12 @@ def group_panel_embed(name: str, status_cache_service):
         members = service.members_of(name)
     except OSError as e:
         logger.error(f"Groups could not be read for the panel of '{name}': {e}")
-        group, members = None, None
+        # Not "does not exist": the file is unreadable, the group may well be
+        # there (stage 4 review before v3.1.0, 38)
+        return discord.Embed(
+            title=f"{GROUP_EMOJI} {name}",
+            description=_("The groups file could not be read - try again."),
+            color=discord.Color.gold())
 
     if group is None or members is None or not members.exists:
         return discord.Embed(

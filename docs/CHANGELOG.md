@@ -435,6 +435,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   background refresh no longer stops for good.
 - A guild_id written into config.json as a number (not as text) is used as the server for the
   slash commands instead of declaring them globally.
+- A group's admin panel says the groups file could not be read when that is the case, instead of
+  claiming the group no longer exists.
 
 ### 🐛 The mech's picture and gift, the update notice
 

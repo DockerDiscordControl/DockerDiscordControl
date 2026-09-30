@@ -1668,5 +1668,6 @@
   "❌ None of the active containers is assigned to you.": "❌ Tiada kontena aktif yang diberikan kepada anda.",
   "⚙️ Mech status temporarily unavailable": "⚙️ Status mech tidak tersedia buat sementara",
   "No channel takes donation announcements - nothing was posted.": "Tiada saluran yang menerima pengumuman derma - tiada apa yang disiarkan.",
-  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Perlu ${amount} lagi untuk Tahap {level}! (cth. {amount})"
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 Perlu ${amount} lagi untuk Tahap {level}! (cth. {amount})",
+  "The groups file could not be read - try again.": "Fail kumpulan tidak dapat dibaca - cuba lagi."
 }

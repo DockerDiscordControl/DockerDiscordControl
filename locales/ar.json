@@ -1668,5 +1668,6 @@
   "❌ None of the active containers is assigned to you.": "❌ لم يُسند إليك أي من الحاويات النشطة.",
   "⚙️ Mech status temporarily unavailable": "⚙️ حالة الميك غير متاحة مؤقتًا",
   "No channel takes donation announcements - nothing was posted.": "لا توجد قناة تستقبل إعلانات التبرعات - لم يُنشر شيء.",
-  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 يلزم ${amount} للوصول إلى المستوى {level}! (مثال: {amount})"
+  "💎 Need ${amount} for Level {level}! (e.g. {amount})": "💎 يلزم ${amount} للوصول إلى المستوى {level}! (مثال: {amount})",
+  "The groups file could not be read - try again.": "تعذّرت قراءة ملف المجموعات - حاول مرة أخرى."
 }
