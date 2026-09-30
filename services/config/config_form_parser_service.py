@@ -461,6 +461,10 @@ class ConfigFormParserService:
         Returns:
             Tuple of (updated_config, success, message)
         """
+        # What was already written when a later step fails: the channel files go
+        # to disk before config.json, and a failure after them said only "save
+        # failed" (stage 4 review before v3.1.0, section 12).
+        channels_written = False
         try:
             # Web UI password change ("New Password" in _auth_settings.html). Runs before
             # anything is written, so a rejected password aborts the whole save.
@@ -519,6 +523,7 @@ class ConfigFormParserService:
             if channel_permissions or ConfigFormParserService._parse_form_checkbox(form_data, 'channel_tables_submitted'):
                 updated_config['channel_permissions'] = channel_permissions
                 channels_saved = ConfigFormParserService._save_channel_permissions(channel_permissions)
+                channels_written = channels_saved
 
             # Parse heartbeat
             updated_config['heartbeat'] = ConfigFormParserService._parse_heartbeat(form_data)
@@ -628,7 +633,11 @@ class ConfigFormParserService:
             # Persistence errors (disk full, permission denied) raised by save_config or
             # change_web_ui_password
             logger.error(f"Config service error processing config form: {e}", exc_info=True)
-            return current_config, False, e.message
+            message = e.message
+            if channels_written:
+                message += (" The channel permissions WERE saved already and take effect; the "
+                            "rest of the configuration was not.")
+            return current_config, False, message
         except (RuntimeError, ValueError, TypeError) as e:
             logger.error(f"Error processing config form: {e}", exc_info=True)
             return current_config, False, str(e)

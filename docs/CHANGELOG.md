@@ -323,6 +323,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A groups.json with a hand-edited entry of the wrong shape (such as "containers": null) stopped
   every watchdog rule, on every check, for as long as the file stayed that way. Only the rules
   that name that group are affected now, and the log says why.
+- When saving the configuration failed after the channel permissions had already been written, the
+  panel said only that the save failed. It says now that the channel permissions were saved and
+  take effect.
 
 ### 🐛 The mech's picture and gift, the update notice
 
