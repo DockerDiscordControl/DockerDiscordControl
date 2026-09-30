@@ -361,7 +361,10 @@ def load_tasks() -> List[ScheduledTask]:
         except (IOError, OSError, PermissionError) as e:
             # File I/O errors (cannot create file, permission denied)
             logger.error(f"File I/O error creating tasks file: {e}", exc_info=True)
-        return tasks
+            return tasks
+        # Created: read it like any other file below. Returning here kept a
+        # failed-read flag the operator had lifted by removing the file, and left
+        # out the cache and the system tasks (stage 4 review before v3.1.0, 26)
 
     # eXecute task loading with error handling
     try:

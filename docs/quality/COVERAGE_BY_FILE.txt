@@ -241,7 +241,7 @@ services/scheduling/group_tasks.py	96	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
 services/scheduling/scheduled_task.py	886	moved unchanged from scheduler.py 2026-09-28 (reviewed there: passE section26-by-hand)
-services/scheduling/scheduler.py	1289	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md; ScheduledTask and the input parsing moved to scheduled_task.py and task_input.py 2026-09-28]
+services/scheduling/scheduler.py	1292	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md; ScheduledTask and the input parsing moved to scheduled_task.py and task_input.py 2026-09-28]
 services/scheduling/scheduler_service.py	649	pass1:s27:1-539  [13 of 552 lines never in a package]
 services/scheduling/player_gate.py	341	new 2026-09-28 (v3.1.0 player options), written with its tests
 services/scheduling/task_input.py	246	moved unchanged from scheduler.py 2026-09-28 (reviewed there: passE section26-by-hand)

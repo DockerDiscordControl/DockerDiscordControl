@@ -400,6 +400,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   power loss can no longer keep the donation in the snapshot and lose it from the ledger.
 - A tasks.json that holds only a blank line no longer blocks every task save until it is edited;
   it reads as an empty task list.
+- Removing a broken tasks.json, as the refusal message advises, lifts the save refusal at once
+  instead of after one more failed save; the first load after a fresh install includes the
+  donation task.
 
 ### 🐛 The mech's picture and gift, the update notice
 
