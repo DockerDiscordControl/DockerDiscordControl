@@ -55,6 +55,21 @@ def mech_change(current_glvl, current_power, last_glvl):
     return False, depleted, None
 
 
+async def _logged_edit(edit, channel_id, message_id, kind):
+    """Await one overview edit; a failure is logged with its channel, then passed on.
+
+    gather(return_exceptions=True) below only COUNTS what escapes, so a channel
+    whose overview failed every beat showed up as "Errors: 1" with neither the
+    channel nor the cause (stage 4 review before v3.1.0, 40).
+    """
+    try:
+        return await edit
+    except Exception as e:  # noqa: BLE001 - logged, then re-raised for the count
+        logger.error(f"Overview edit for channel {channel_id} message {message_id} ({kind}) "
+                     f"failed: {e!r}", exc_info=e)
+        raise
+
+
 class MessageUpdatesMixin:
     """Status and overview message maintenance, mixed into DockerControlCog."""
 
@@ -149,7 +164,8 @@ class MessageUpdatesMixin:
 
                         if decision.should_update:
                             logger.debug(f"SERVICE_FIRST: Overview update approved - {decision.reason}")
-                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
+                            tasks_to_run.append(_logged_edit(self._update_overview_message(channel_id, message_id, "overview"),
+                                                          channel_id, message_id, "overview"))
                         else:
                             logger.debug(f"SERVICE_FIRST: Overview update skipped - {decision.skip_reason}")
 
@@ -165,7 +181,8 @@ class MessageUpdatesMixin:
                         # messages taking the same decision had two different
                         # fallbacks, and nobody decided that they should.
                         if is_due(last_update_time, update_interval_delta, beat):
-                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "overview"))
+                            tasks_to_run.append(_logged_edit(self._update_overview_message(channel_id, message_id, "overview"),
+                                                          channel_id, message_id, "overview"))
 
                     continue  # Overview message handled, move to next message
 
@@ -188,7 +205,8 @@ class MessageUpdatesMixin:
 
                         if decision.should_update:
                             logger.debug(f"SERVICE_FIRST: Admin Overview update approved - {decision.reason}")
-                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "admin_overview"))
+                            tasks_to_run.append(_logged_edit(self._update_overview_message(channel_id, message_id, "admin_overview"),
+                                                          channel_id, message_id, "admin_overview"))
                         else:
                             logger.debug(f"SERVICE_FIRST: Admin Overview update skipped - {decision.skip_reason}")
 
@@ -196,7 +214,8 @@ class MessageUpdatesMixin:
                         logger.warning(f"SERVICE_FIRST: Error in admin overview decision service: {service_error}")
                         # Fallback to simple update interval check
                         if is_due(last_update_time, update_interval_delta, beat):
-                            tasks_to_run.append(self._update_overview_message(channel_id, message_id, "admin_overview"))
+                            tasks_to_run.append(_logged_edit(self._update_overview_message(channel_id, message_id, "admin_overview"),
+                                                          channel_id, message_id, "admin_overview"))
 
                     continue  # Admin overview message handled, move to next message
 

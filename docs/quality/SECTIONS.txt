@@ -444,10 +444,10 @@ services/docker_proxy/__init__.py:1-2
 services/docker_proxy/allowlist_proxy.py:1-368
 services/web/two_factor_service.py:1-331
 
-## Section 40  (760 lines, 1 piece)
+## Section 40  (779 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
-cogs/message_updates.py:1-760
+cogs/message_updates.py:1-779
 
 ## Section 41  (1250 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
