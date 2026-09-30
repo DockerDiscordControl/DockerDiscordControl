@@ -155,7 +155,9 @@ class DonationManagementService:
 
                 if event_type == 'DonationAdded':
                     seq = event.get('seq')
-                    payload = event.get('payload', {})
+                    # "or {}": a line with "payload": null (a hand edit, a restored
+                    # backup) took the whole history down (stage 4 review, 17)
+                    payload = event.get('payload') or {}
                     donations_map[seq] = {
                         'seq': seq,
                         'donor_name': payload.get('donor', 'Anonymous'),
@@ -167,8 +169,8 @@ class DonationManagementService:
                     }
                 elif event_type == 'PowerGiftGranted':
                     seq = event.get('seq')
-                    payload = event.get('payload', {})
-                    campaign = payload.get('campaign_id', '')
+                    payload = event.get('payload') or {}
+                    campaign = str(payload.get('campaign_id') or '')
                     # Show appropriate name based on campaign
                     if 'startup' in campaign.lower():
                         gift_name = '🎁 Welcome Gift'
@@ -185,7 +187,7 @@ class DonationManagementService:
                     }
                 elif event_type == 'SystemDonationAdded':
                     seq = event.get('seq')
-                    payload = event.get('payload', {})
+                    payload = event.get('payload') or {}
                     donations_map[seq] = {
                         'seq': seq,
                         'donor_name': f"🤖 {payload.get('event_name', 'System Event')}",
@@ -197,7 +199,7 @@ class DonationManagementService:
                     }
                 elif event_type == 'ExactHitBonusGranted':
                     seq = event.get('seq')
-                    payload = event.get('payload', {})
+                    payload = event.get('payload') or {}
                     from_level = payload.get('from_level', '?')
                     to_level = payload.get('to_level', '?')
                     donations_map[seq] = {
@@ -210,15 +212,15 @@ class DonationManagementService:
                         'deletion_events': []
                     }
                 elif event.get('type') == 'DonationDeleted':
-                    deleted_seq = event.get('payload', {}).get('deleted_seq')
+                    deleted_seq = (event.get('payload') or {}).get('deleted_seq')
                     if deleted_seq:
                         deletion_event = {
                             'seq': event.get('seq'),
                             'deleted_seq': deleted_seq,
-                            'donor_name': event.get('payload', {}).get('donor', 'Unknown'),
-                            'amount': _cents(event.get('payload', {}), 'units'),
+                            'donor_name': (event.get('payload') or {}).get('donor', 'Unknown'),
+                            'amount': _cents(event.get('payload') or {}, 'units'),
                             'timestamp': event.get('ts', ''),
-                            'reason': event.get('payload', {}).get('reason', 'admin_deletion'),
+                            'reason': (event.get('payload') or {}).get('reason', 'admin_deletion'),
                             'donation_type': 'deletion',
                             'is_deletion': True
                         }
@@ -441,14 +443,14 @@ class DonationManagementService:
                     # from the division.
                     if event_type in _DONATION_EVENT_TYPES and _usable(event):
                         seq = event.get('seq')
-                        payload = event.get('payload', {})
+                        payload = event.get('payload') or {}
                         amount_key = 'units' if event_type == 'DonationAdded' else 'power_units'
                         donations_map[seq] = {
                             'amount': _cents(payload, amount_key),
                             'is_deleted': False
                         }
                     elif event_type == 'DonationDeleted':
-                        deleted_seq = event.get('payload', {}).get('deleted_seq')
+                        deleted_seq = (event.get('payload') or {}).get('deleted_seq')
                         if deleted_seq:
                             deletions_map[deleted_seq] = deletions_map.get(deleted_seq, 0) + 1
 

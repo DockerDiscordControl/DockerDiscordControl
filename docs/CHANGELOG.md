@@ -363,6 +363,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - A mech reset that failed halfway (a full disk) left the donation history emptied while the old
   level and power stayed, and only said "File I/O error". It puts everything back from its backup
   now and reports the failure.
+- A donation ledger line with an empty payload (a hand edit, a restored backup) no longer turns
+  the whole donation history and its statistics into an error.
 
 ### 🐛 The mech's picture and gift, the update notice
 
