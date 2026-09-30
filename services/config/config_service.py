@@ -529,14 +529,14 @@ class ConfigService:
                     if 'web_ui_password_hash' in main_config:
                         logger.info("  - web_ui_password_hash: saved")
 
-                except (IOError, OSError) as write_error:
+                except BaseException:  # any failure - a TypeError from json.dump left it (stage 4, 13)
                     # Clean up temp file on error
                     try:
                         if os.path.exists(temp_path):
                             os.unlink(temp_path)
                     except (IOError, OSError):
                         pass  # Ignore cleanup errors
-                    raise write_error
+                    raise
 
                 # Invalidate cache after successful save
                 try:
