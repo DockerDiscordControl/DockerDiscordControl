@@ -388,6 +388,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   threshold and bars from the next) when a donation is booked while it is being read.
 - A release gift whose record file was lost is no longer relabelled as "the mech had energy at the
   first start", and deleting that gift frees its campaign again.
+- Two panel or bot requests for the mech data at the same moment no longer make one of them fail
+  on the shared cache.
 
 ### 🐛 The mech's picture and gift, the update notice
 

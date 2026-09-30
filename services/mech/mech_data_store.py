@@ -29,6 +29,7 @@ Usage:
 
 from utils.logging_utils import get_module_logger
 import logging
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
@@ -229,6 +230,11 @@ class MechDataStore:
 
         # Intelligent caching
         self._cache = {}
+        # One instance per process, read from waitress threads and the bot's
+        # loops (real threads): two expiring the same key raised KeyError, a
+        # cleanup walking the dict while another inserted raised RuntimeError,
+        # and either failed the request (stage 4 review before v3.1.0, 22)
+        self._cache_lock = threading.Lock()
         self._cache_ttl = 10.0  # 10 seconds default cache
         self._last_cache_clear = time.time()
 
@@ -831,50 +837,53 @@ class MechDataStore:
 
     def _get_from_cache(self, key: str) -> Optional[MechDataResult]:
         """Get data from cache if valid."""
-        if key not in self._cache:
+        with self._cache_lock:
+            cache_entry = self._cache.get(key)
+            if cache_entry is None:
+                return None
+            cache_time = cache_entry.get('timestamp', 0)
+
+            # Check if cache is still valid
+            if time.time() - cache_time < self._cache_ttl:
+                return cache_entry.get('data')
+
+            # Cache expired, remove entry
+            self._cache.pop(key, None)
             return None
-
-        cache_entry = self._cache[key]
-        cache_time = cache_entry.get('timestamp', 0)
-
-        # Check if cache is still valid
-        if time.time() - cache_time < self._cache_ttl:
-            return cache_entry.get('data')
-
-        # Cache expired, remove entry
-        del self._cache[key]
-        return None
 
     def _store_in_cache(self, key: str, data: MechDataResult) -> None:
         """Store data in cache."""
-        self._cache[key] = {
-            'data': data,
-            'timestamp': time.time()
-        }
+        with self._cache_lock:
+            self._cache[key] = {
+                'data': data,
+                'timestamp': time.time()
+            }
 
-        # Periodic cache cleanup (every 5 minutes)
-        if time.time() - self._last_cache_clear > 300:
-            self._cleanup_cache()
+            # Periodic cache cleanup (every 5 minutes)
+            if time.time() - self._last_cache_clear > 300:
+                self._cleanup_cache()
 
     def _cleanup_cache(self) -> None:
-        """Clean up expired cache entries."""
+        """Clean up expired cache entries. The caller holds _cache_lock."""
         current_time = time.time()
         expired_keys = []
 
-        for key, entry in self._cache.items():
+        # A copy to walk: whatever changes the dict meanwhile cannot break it
+        for key, entry in list(self._cache.items()):
             if current_time - entry.get('timestamp', 0) >= self._cache_ttl:
                 expired_keys.append(key)
 
         for key in expired_keys:
-            del self._cache[key]
+            self._cache.pop(key, None)
 
         self._last_cache_clear = current_time
         self.logger.debug(f"Cache cleanup: removed {len(expired_keys)} expired entries")
 
     def clear_cache(self) -> None:
         """Manually clear all cache entries."""
-        self._cache.clear()
-        self._last_cache_clear = time.time()
+        with self._cache_lock:
+            self._cache.clear()
+            self._last_cache_clear = time.time()
         self.logger.info("Manual cache clear performed")
 
     def _calculate_power_bars(self, core_data: dict, evolution_data: dict, progress_data: dict) -> BarsCompat:
