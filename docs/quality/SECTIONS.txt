@@ -285,8 +285,8 @@ services/web/mech_web_service.py:1-527
 services/web/performance_stats_service.py:1-182
 services/web/security_service.py:1-351
 
-## Section 31  (1929 lines, 4 pieces)
-services/web/task_management_service.py:1-1232
+## Section 31  (1943 lines, 4 pieces)
+services/web/task_management_service.py:1-1246
 app/__init__.py:1-13
 app/auth.py:1-350
 app/blueprints/automation_routes.py:1-334

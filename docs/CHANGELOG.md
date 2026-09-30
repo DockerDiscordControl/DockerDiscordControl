@@ -407,6 +407,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   dead tasks waits for a readable file instead of being spent on an empty list.
 - A timezone in config.json that is not known (a typo like Europe/Berln) no longer makes the web
   panel's task list, task form and task creation fail; the panel uses UTC, as the bot already did.
+- Adding a cron task whose date never occurs (such as 31 February) says so, instead of claiming
+  the time given is in the past.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -246,6 +246,21 @@ def _known_timezone(timezone_str: Any) -> str:
         return 'UTC'
 
 
+def _switched_off_message(task) -> str:
+    """Why an added task was saved switched off, in the operator's terms.
+
+    A schedule without a next run was told "the time given is in the past":
+    a cron date that never occurs ('0 0 31 2 *') has no time in the past,
+    and a new time is not what is wrong (stage 4 review before v3.1.0, 31).
+    """
+    from services.scheduling.scheduler import CYCLE_ONCE
+    if task.cycle == CYCLE_ONCE:
+        return ("Task added, but switched off: the time given is in the past, "
+                "so it will not run. Set a new time to switch it on.")
+    return ("Task added, but switched off: its schedule has no next run - the date "
+            "it names never occurs. Change the schedule to switch it on.")
+
+
 class TaskManagementService:
     """Service for comprehensive task management with complex business logic."""
 
@@ -307,8 +322,7 @@ class TaskManagementService:
                 success=True,
                 task_data=scheduled_task.to_dict(),
                 message="Task added successfully" if scheduled_task.is_active else
-                        "Task added, but switched off: the time given is in the past, "
-                        "so it will not run. Set a new time to switch it on."
+                        _switched_off_message(scheduled_task)
             )
 
         except (ImportError, AttributeError, RuntimeError) as e:
