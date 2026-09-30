@@ -416,6 +416,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The /api/mech/status answer reports the donated total with its cents (12.99, not 12).
 - The task API refuses a target_is_group that is not a real true or false; the text "false" no
   longer turns a container task into a group task.
+- The donation API refuses a publish_to_discord that is not a real true or false; the text "false"
+  no longer announces the donation in Discord.
 
 ### 🐛 The mech's picture and gift, the update notice
 

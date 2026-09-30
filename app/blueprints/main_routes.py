@@ -480,6 +480,11 @@ def submit_donation():
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
+        # A real boolean: the service tests truthiness, so "false" announced the
+        # donation in Discord, which cannot be taken back (review D29; stage 4
+        # review before v3.1.0, 32)
+        if not isinstance(data.get('publish_to_discord', True), bool):
+            return jsonify({'success': False, 'error': 'publish_to_discord must be true or false'}), 400
 
         # Use DonationService to handle business logic
         from services.web.donation_service import get_donation_service, DonationRequest
