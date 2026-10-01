@@ -34,7 +34,7 @@ Updating from v3.0 is a plain image update.
 - An admins.json or config.json that cannot be read is reported and left alone instead of being
   replaced by the next save.
 - A review before this release went through every part again and fixed well over a hundred
-  smaller defects, each with its own test. 8,340 tests pass.
+  smaller defects, each with its own test. 8,348 tests pass.
 
 ## Messages that tidy up after themselves
 
