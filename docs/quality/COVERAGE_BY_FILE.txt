@@ -109,16 +109,16 @@ app/web/two_factor.py	8	NONE
 app/web_ui.py	36	pass1:s35:1-36
 cogs/__init__.py	7	pass2:s01:1-7
 cogs/action_effect.py	179	pass2:s02:1-144  [the wait, moved out of control_ui.py 2026-09-24]
-cogs/admin_overview.py	1047	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
+cogs/admin_overview.py	1049	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/admin_ui.py	388	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
-cogs/background_loops.py	868	v3rev:1-652
+cogs/background_loops.py	876	v3rev:1-652
 cogs/channel_lifecycle.py	649	v3rev2:1-646
 cogs/control_helpers.py	426	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/control_ui.py	1449	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
 cogs/ddc_ui.py	280	passE:written-2026-09-21
-cogs/docker_control.py	1259	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
-cogs/donation_ui.py	735	NONE
+cogs/docker_control.py	1261	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
+cogs/donation_ui.py	737	NONE
 cogs/enhanced_info_modal_simple.py	704	passE:E27+bothscans:519-700
 cogs/group_control.py	366	NONE
 cogs/help_embed.py	96	NONE
@@ -144,7 +144,7 @@ services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/alert_webhook.py	104	NONE
 services/automation/auto_action_config_service.py	961	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	402	passE:bothscans+E25
-services/automation/automation_service.py	1078	passE:bothscans+E25 v3rev:1-676
+services/automation/automation_service.py	1080	passE:bothscans+E25 v3rev:1-676
 services/automation/container_watch.py	224	v3rev:1-157
 services/automation/image_updates.py	282	v3rev:1-164
 services/automation/maintenance.py	124	NONE
@@ -164,8 +164,9 @@ services/config/group_references.py	153	NONE
 services/config/group_service.py	436	NONE
 services/config/server_config_service.py	241	passE:E33:read-in-full
 services/discord/__init__.py	20	passE:read-in-full
-services/discord/channel_cleanup_service.py	526	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
+services/discord/channel_cleanup_service.py	530	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
 services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s14:1-169  [15 of 184 lines never in a package]
+services/discord/message_lifetimes.py	156	new 2026-10-01 (message lifetimes, operator 2026-09-30), written with its tests
 services/discord/embed_helper_service.py	227	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
 services/discord/status_overview_service.py	389	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_proxy/__init__.py	2	NONE
@@ -211,7 +212,7 @@ services/infrastructure/event_manager.py	119	pass1:s19:1-118
 services/infrastructure/game_query_service.py	740	pass1:s19:1-525  [28 of 553 lines never in a package; PlayerList, a2s_version and get_player_list new 2026-09-28 (v3.1.0), written with their tests]
 services/infrastructure/game_query_support_service.py	413	pass1:s20:1-282  [59 of 341 lines never in a package]
 services/infrastructure/spam_protection_service.py	628	pass1:s20:1-504  [49 of 553 lines never in a package]
-services/infrastructure/update_notifier.py	326	pass1:s20:1-213  [22 of 235 lines never in a package]
+services/infrastructure/update_notifier.py	328	pass1:s20:1-213  [22 of 235 lines never in a package]
 services/mech/__init__.py	30	pass1:s20:1-30
 services/mech/animation_cache_service.py	1823	pass1:s21:1-1813  [33 of 1846 lines never in a package]
 services/mech/animation_disk_cache.py	76	NONE
@@ -236,14 +237,14 @@ services/member_count/__init__.py	17	pass1:s25:1-17
 services/member_count/service.py	296	pass1:s25:1-287  [9 of 296 lines never in a package]
 services/scheduling/__init__.py	36	pass1:s25:1-36
 services/scheduling/cron_check.py	40	NONE
-services/scheduling/donation_message_service.py	243	pass1:s25:1-196  [19 of 215 lines never in a package]
+services/scheduling/donation_message_service.py	245	pass1:s25:1-196  [19 of 215 lines never in a package]
 services/scheduling/group_tasks.py	96	NONE
 services/scheduling/runtime.py	231	pass1:s25:1-201
 services/scheduling/schedule_helpers.py	67	pass1:s25:1-248
 services/scheduling/scheduled_task.py	886	moved unchanged from scheduler.py 2026-09-28 (reviewed there: passE section26-by-hand)
 services/scheduling/scheduler.py	1299	pass1:s27:1996-2165 passE:section26-by-hand:1-2260  [read in full 2026-09-21, findings E1-E6, reviews/SECTION_26_SCHEDULER.md; ScheduledTask and the input parsing moved to scheduled_task.py and task_input.py 2026-09-28]
-services/scheduling/scheduler_service.py	724	pass1:s27:1-539  [13 of 552 lines never in a package]
-services/scheduling/player_gate.py	341	new 2026-09-28 (v3.1.0 player options), written with its tests
+services/scheduling/scheduler_service.py	726	pass1:s27:1-539  [13 of 552 lines never in a package]
+services/scheduling/player_gate.py	353	new 2026-09-28 (v3.1.0 player options), written with its tests
 services/scheduling/task_input.py	246	moved unchanged from scheduler.py 2026-09-28 (reviewed there: passE section26-by-hand)
 services/scheduling/task_timezone.py	71	new 2026-09-23 (the panel's timezone question), written test-first
 services/scheduling/task_writeback.py	119	NONE

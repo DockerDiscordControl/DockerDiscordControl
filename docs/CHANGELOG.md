@@ -460,6 +460,11 @@ All notable changes to DockerDiscordControl will be documented in this file.
   still needed ($0.29 was reported as 28 cents).
 - The delete button in the control panel's task list also says a task is gone when it was deleted
   elsewhere, instead of claiming a missing permission.
+- Every public message of DDC except the status and control overviews has a lifetime now, kept
+  over a restart: auto-action and watchdog notices 1 hour, a player warning until 15 minutes after
+  its action, a bulk summary 5 minutes, a thank-you for a donation 24 hours, the notice of a new
+  version 7 days; the scheduled donation reminder stays and is no longer swept away by the channel
+  cleanup.
 
 ### 🐛 The mech's picture and gift, the update notice
 

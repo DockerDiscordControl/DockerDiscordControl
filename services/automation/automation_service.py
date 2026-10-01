@@ -1020,7 +1020,9 @@ class AutomationService:
         try:
             channel = bot.get_channel(int(channel_id))
             if channel:
-                await channel.send(message)
+                # An hour in the channel (operator, 2026-09-30); the action log keeps it
+                from services.discord.message_lifetimes import post
+                await post(channel, "auto_action", message)
                 return True
             logger.warning(f"AAS: channel {channel_id} is unknown to the bot or not visible to it - "
                            f"a notice could not be delivered there")

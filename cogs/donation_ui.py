@@ -564,7 +564,9 @@ class DonationBroadcastModal(DDCModal):
                                 embed.add_field(name=_("Mech Status"), value=evolution_status, inline=False)
 
                             embed.set_footer(text="https://ddc.bot")
-                            await channel.send(embed=embed)
+                            # 24 hours (operator, 2026-09-30)
+                            from services.discord.message_lifetimes import post
+                            await post(channel, "donation_thanks", embed=embed)
                             sent_count += 1
                         elif channel is not None:
                             # Opted out in the web panel - counted on its own. It used

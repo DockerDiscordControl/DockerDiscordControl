@@ -1164,7 +1164,9 @@ def setup(bot):
                                 if donation_broadcasts:
                                     wanted_count += 1
                                 if channel and donation_broadcasts:
-                                    await channel.send(embed=embed)
+                                    # 24 hours (operator, 2026-09-30)
+                                    from services.discord.message_lifetimes import post
+                                    await post(channel, "donation_thanks", embed=embed)
                                     sent_count += 1
                                     logger.info(f"🔔 Successfully sent to channel {channel.name} ({channel_id_str})")
                                 else:

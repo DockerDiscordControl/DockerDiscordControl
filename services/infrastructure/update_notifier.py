@@ -293,7 +293,9 @@ class UpdateNotifier:
                 try:
                     channel = bot.get_channel(channel_id)
                     if channel:
-                        await channel.send(embed=embed)
+                        # 7 days (operator, 2026-09-30)
+                        from services.discord.message_lifetimes import post
+                        await post(channel, "update_notice", embed=embed)
                         sent_count += 1
                         told.append(channel_id)
                         logger.info(f"Update notification sent to channel {channel_id}")

@@ -202,7 +202,9 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
 
                         embed.set_footer(text=f"https://ddc.bot | {_('Monthly Donation Appeal')}")
 
-                        await channel.send(embed=embed)
+                        # Stays for good, spared by the channel cleanup (operator, 2026-09-30)
+                        from services.discord.message_lifetimes import post
+                        await post(channel, "donation_reminder", embed=embed)
                         sent_count += 1
                         logger.debug(f"Sent donation message to channel {channel_id}")
                     else:

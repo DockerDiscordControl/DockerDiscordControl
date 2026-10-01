@@ -274,7 +274,17 @@ def warning_channel_ids(config: Dict[str, Any]) -> List[int]:
     return seen
 
 
-async def post_warning(bot, text: str) -> int:
+# A warning stays until this long after the moment it announces (operator, 2026-09-30:
+# every message but the overviews has a lifetime)
+WARNING_STAYS_AFTER = 15 * 60
+
+
+def warning_lifetime(minutes: int) -> int:
+    """Seconds a warning of ``minutes`` before the action stays in its channel."""
+    return max(1, int(minutes)) * 60 + WARNING_STAYS_AFTER
+
+
+async def post_warning(bot, text: str, stays_for: int = WARNING_STAYS_AFTER) -> int:
     """Send the warning to every status and control channel; how many took it."""
     if bot is None:
         logger.warning(f"No bot to post the warning: {text}")
@@ -292,7 +302,8 @@ async def post_warning(bot, text: str) -> int:
             logger.warning(f"Warning channel {channel_id} is not reachable")
             continue
         try:
-            await channel.send(text)
+            from services.discord.message_lifetimes import post
+            await post(channel, "player_warning", text, lifetime=stays_for)
             sent += 1
         except Exception as e:  # discord errors of any kind: the next channel still gets it
             logger.warning(f"Warning could not be posted in {channel_id}: {e}")
@@ -335,7 +346,8 @@ async def hold_until_empty(options: Dict[str, Any], containers: List[str], actio
         if not warned and warning_due(options, due, now, counts):
             warned = True
             minutes = max(1, round((acting_at(options, due) - now) / 60))
-            await post_warning(bot, warning_text(label, action, minutes, counts))
+            await post_warning(bot, warning_text(label, action, minutes, counts),
+                               stays_for=warning_lifetime(minutes))
         if should_act(options, due, now, counts):
             return
         await sleep(max(1, min(poll_seconds, acting_at(options, due) - now)))

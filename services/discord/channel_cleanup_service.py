@@ -141,7 +141,11 @@ class ChannelCleanupService:
             ChannelCleanupResult with detailed operation statistics
         """
 
-        keep = set(keep_message_ids or ())
+        # And what may still live (services/discord/message_lifetimes.py): the
+        # cleanup at start and on a new overview deleted the reminder that was
+        # meant to stay (operator, 2026-09-30)
+        from services.discord.message_lifetimes import alive_ids
+        keep = set(keep_message_ids or ()) | alive_ids()
 
         def is_bot_but_not_preserved(message: discord.Message) -> bool:
             """Filter function that excludes Live Log, AAS and named messages."""

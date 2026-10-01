@@ -412,7 +412,8 @@ class SchedulerService:
         minutes = max(1, round((player_gate.acting_at(task.options, task.next_run_ts) - current_ts) / 60))
         text = player_gate.warning_text(task.container_name, task.action, minutes, counts)
         try:
-            await player_gate.post_warning(get_bot_instance(), text)
+            await player_gate.post_warning(get_bot_instance(), text,
+                                           stays_for=player_gate.warning_lifetime(minutes))
         except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             logger.error(f"Player warning for task {task.task_id} failed: {e}", exc_info=True)
 
@@ -425,7 +426,8 @@ class SchedulerService:
                        f"time - posting it now; the {task.action} waits {warn} minute(s)")
         text = player_gate.warning_text(task.container_name, task.action, warn, self._gate_counts(task))
         try:
-            await player_gate.post_warning(get_bot_instance(), text)
+            await player_gate.post_warning(get_bot_instance(), text,
+                                           stays_for=player_gate.warning_lifetime(warn))
         except (RuntimeError, AttributeError, TypeError, ValueError) as e:
             logger.error(f"Player warning for task {task.task_id} failed: {e}", exc_info=True)
 

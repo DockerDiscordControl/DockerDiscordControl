@@ -231,6 +231,14 @@ class BackgroundLoopsMixin:
     @survives_one_bad_cycle
     async def status_update_loop(self):
         """Periodically updates the cache with the latest container statuses."""
+        # Messages whose lifetime is up go first (services/discord/message_lifetimes.py);
+        # a failure there must not cost the status cycle
+        try:
+            from services.discord.message_lifetimes import sweep
+            await sweep(self.bot)
+        except Exception as e:  # noqa: BLE001 - see above
+            logger.error(f"Message lifetime sweep failed: {e}", exc_info=True)
+
         # Load configuration first
         config = load_config()
         if not config:

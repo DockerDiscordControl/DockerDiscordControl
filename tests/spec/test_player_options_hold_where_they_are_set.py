@@ -51,7 +51,7 @@ def _run_hold(monkeypatch, options, players):
     start = clock.now
     posted = []
 
-    async def _post(bot, text):
+    async def _post(bot, text, stays_for=None):  # stays_for: its lifetime (2026-10-01)
         posted.append((clock.now - start, text))
         return 1
     monkeypatch.setattr(player_gate, "post_warning", _post)

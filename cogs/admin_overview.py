@@ -191,7 +191,9 @@ async def answer_or_post(interaction, cog, channel_id: int, embed) -> None:
                      f"log: {embed.description}")
         return
     try:
-        await channel.send(embed=embed)
+        # Five minutes: it answers one press (operator, 2026-09-30)
+        from services.discord.message_lifetimes import post
+        await post(channel, "bulk_summary", embed=embed)
     except (discord.errors.DiscordException, RuntimeError, OSError) as error:
         logger.error(f"Bulk action: the summary could not be posted either ({error}): {embed.description}")
 

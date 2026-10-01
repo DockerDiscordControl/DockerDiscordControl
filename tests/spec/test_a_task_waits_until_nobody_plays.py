@@ -68,7 +68,7 @@ def world(monkeypatch):
         task.update_after_execution()
     monkeypatch.setattr(ss, "execute_task", _execute)
 
-    async def _post(bot, text):
+    async def _post(bot, text, stays_for=None):  # stays_for: its lifetime (2026-10-01)
         state["posted"].append(text)
         return 1
     monkeypatch.setattr(player_gate, "post_warning", _post)
