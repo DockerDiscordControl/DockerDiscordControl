@@ -24,6 +24,8 @@ Control your Docker containers directly from Discord! This application provides 
 - **A dead game server is not shown green:** a container that runs but whose game does not answer
   is drawn ⚠️.
 - **The web panel asks Docker once instead of once per container**, and only while it is used.
+- **Every message but the status and control overviews has a lifetime**, kept over a restart:
+  auto-action notices 1 hour, a donation's thank-you 24 hours, an update notice 7 days.
 - **A file that cannot be read is not written over:** an unreadable admins.json or config.json is
   reported and left alone instead of being replaced by the next save.
 - **A review before the release fixed well over a hundred smaller defects**, each with its own

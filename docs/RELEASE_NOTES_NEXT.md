@@ -36,6 +36,14 @@ Updating from v3.0 is a plain image update.
 - A review before this release went through every part again and fixed well over a hundred
   smaller defects, each with its own test. 8,340 tests pass.
 
+## Messages that tidy up after themselves
+
+- **Every public message but the status and control overviews has a lifetime**, and keeps it
+  over a restart of DDC: auto-action and watchdog notices 1 hour, a player warning until 15
+  minutes after its action, a thank-you for a donation 24 hours, the notice of a new DDC version
+  7 days. The scheduled donation reminder stays - and is no longer swept away when DDC cleans
+  its channels at start.
+
 ## Good to know
 
 - **A plaintext bot token is encrypted automatically** once a web panel password is set.
