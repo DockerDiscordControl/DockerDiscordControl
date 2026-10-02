@@ -120,7 +120,7 @@ cogs/ddc_ui.py	280	passE:written-2026-09-21
 cogs/docker_control.py	1265	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	737	NONE
 cogs/enhanced_info_modal_simple.py	704	passE:E27+bothscans:519-700
-cogs/group_control.py	366	NONE
+cogs/group_control.py	374	NONE
 cogs/help_embed.py	96	NONE
 cogs/info_extras.py	326	new 2026-09-28 (v3.1.0 game server, players and Docker facts in the info display), written with its tests
 cogs/loop_safety.py	103	v3rev2:1-98

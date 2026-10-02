@@ -474,6 +474,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   not only the last. DDC's own notices that expire by themselves leave it where it is.
 - Auto-action notices from before the message lifetimes no longer stay in the status and control
   channels for good; the channel cleanup spares a notice only while its hour runs.
+- A container's or group's private admin panel closes itself after five minutes without use, like
+  the other private panels; it used to stay until dismissed by hand.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -289,6 +289,10 @@ async def admin_panel_embed(cog, channel_id, selected: str, config: dict, app_co
     return embed
 
 
+# A private admin panel closes itself after this long without a press (operator, 2026-10-02)
+ADMIN_PANEL_SECONDS = 300
+
+
 def admin_control_view(cog, container_config: dict, is_running: bool):
     """The button row for the PRIVATE admin panel, with its way out.
 
@@ -317,6 +321,10 @@ def admin_control_view(cog, container_config: dict, is_running: bool):
     if wrench is not None:
         view.add_item(wrench)
     view.add_item(CloseButton())  # last on the action row
+    # Private, so it closes itself after five minutes without use, like the other
+    # private panels; it had no timeout and stayed until dismissed by hand
+    # (operator, 2026-10-02). Discord lets DDC delete it only within 15 minutes.
+    view.timeout = ADMIN_PANEL_SECONDS
     return view
 
 
