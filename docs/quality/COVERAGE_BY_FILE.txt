@@ -72,11 +72,12 @@ app/bot/factory.py	54	pass1:s33:1-44
 app/bot/runtime.py	68	pass1:s33:1-62
 app/bot/startup.py	39	pass1:s33:1-39
 app/bot/startup_context.py	57	pass1:s33:1-57
-app/bot/startup_steps/__init__.py	56	pass1:s33:1-52
+app/bot/startup_steps/__init__.py	59	pass1:s33:1-52
 app/bot/startup_steps/commands.py	126	pass1:s33:1-120
 app/bot/startup_steps/cooldowns.py	29	pass1:s33:1-29
 app/bot/startup_steps/diagnostics.py	26	pass1:s33:1-26
 app/bot/startup_steps/donation_panels.py	71	new 2026-09-23 (clears a donation panel a restart left behind), written test-first
+app/bot/startup_steps/private_panels.py	25	new 2026-10-02 (startup step for services/discord/private_panels.py), written with its tests
 app/bot/startup_steps/member_count.py	126	pass1:s33:1-120
 app/bot/startup_steps/notifications.py	35	pass1:s33:1-35
 app/bot/startup_steps/power.py	81	pass1:s33:1-36
@@ -116,7 +117,7 @@ cogs/background_loops.py	877	v3rev:1-652
 cogs/channel_lifecycle.py	649	v3rev2:1-646
 cogs/control_helpers.py	426	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/control_ui.py	1449	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
-cogs/ddc_ui.py	329	passE:written-2026-09-21
+cogs/ddc_ui.py	375	passE:written-2026-09-21
 cogs/docker_control.py	1265	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	744	NONE
 cogs/enhanced_info_modal_simple.py	704	passE:E27+bothscans:519-700
@@ -167,6 +168,7 @@ services/discord/__init__.py	20	passE:read-in-full
 services/discord/channel_cleanup_service.py	522	pass1:s14:plan pass2:s14:1-453  [46 of 499 lines never in a package]
 services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s14:1-169  [15 of 184 lines never in a package]
 services/discord/message_lifetimes.py	157	new 2026-10-01 (message lifetimes, operator 2026-09-30), written with its tests
+services/discord/private_panels.py	131	new 2026-10-02 (open private panels after a restart, operator 2026-10-02), written with its tests
 services/discord/embed_helper_service.py	227	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
 services/discord/status_overview_service.py	389	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_proxy/__init__.py	2	NONE

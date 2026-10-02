@@ -480,6 +480,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   mech selection and mech story panels used to stay until dismissed, the protected-info panel
   waited 30 minutes, the private donation panel could not delete itself, and a panel that had been
   used was deleted with an expired token.
+- Private panels that were open when DDC restarted are deleted when it starts again, as long as
+  Discord still allows it (15 minutes); a rebuild no longer leaves them standing.
 
 ### 🐛 The mech's picture and gift, the update notice
 

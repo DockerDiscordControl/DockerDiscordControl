@@ -24,6 +24,16 @@ DIRECTORIES = ("cogs", "services", "app", "utils")
 DEFS = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
+def _is_property_accessor(member) -> bool:
+    """@name.setter / .deleter: the second half of a property, not a second method.
+
+    Added 2026-10-02 with the first properties that override a py-cord one
+    (cogs/ddc_ui.py DDCView.message and .parent); the scan read them as dead code.
+    """
+    return any(isinstance(d, ast.Attribute) and d.attr in ("setter", "deleter", "getter")
+               for d in member.decorator_list)
+
+
 def _duplicates():
     found = []
     for directory in DIRECTORIES:
@@ -34,7 +44,7 @@ def _duplicates():
                     continue
                 lines = {}
                 for member in node.body:
-                    if isinstance(member, DEFS):
+                    if isinstance(member, DEFS) and not _is_property_accessor(member):
                         lines.setdefault(member.name, []).append(member.lineno)
                 found += [f"{path.relative_to(PROJECT)}: {node.name}.{name} at {at}"
                           for name, at in lines.items() if len(at) > 1]

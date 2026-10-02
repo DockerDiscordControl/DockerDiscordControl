@@ -158,6 +158,42 @@ class CloseButton(discord.ui.Button):
 class DDCView(discord.ui.View):
     """A view whose failing buttons answer the user, and which clears up after itself."""
 
+    # OPEN PRIVATE PANELS ARE WRITTEN DOWN (services/discord/private_panels.py), so
+    # a restart of DDC - which loses every timeout - can still delete them while
+    # their token lives (operator, 2026-10-02). py-cord tells a view where it went
+    # in one of two ways: a followup sets view.message, an answer sets view.parent.
+
+    @property
+    def message(self):
+        return discord.ui.View.message.fget(self)
+
+    @message.setter
+    def message(self, value) -> None:
+        discord.ui.View.message.fset(self, value)
+        if value is None or not self.timeout or not is_private_panel_message(value):
+            return
+        state = getattr(value, "_state", None)
+        webhook = getattr(state, "_webhook", None)
+        interaction = getattr(state, "_interaction", None)
+        from services.discord.private_panels import remember
+        if webhook is not None:
+            remember(self.id, getattr(webhook, "id", None), getattr(webhook, "token", None), value.id)
+        elif interaction is not None:
+            remember(self.id, getattr(interaction, "application_id", None),
+                     getattr(interaction, "token", None), "@original")
+
+    @property
+    def parent(self):
+        return self.__dict__.get("_ddc_parent")
+
+    @parent.setter
+    def parent(self, value) -> None:
+        self.__dict__["_ddc_parent"] = value
+        if value is not None and self.timeout and isinstance(self, PrivateView):
+            from services.discord.private_panels import remember
+            remember(self.id, getattr(value, "application_id", None),
+                     getattr(value, "token", None), "@original")
+
     def _dispatch_item(self, item, interaction):
         # THE MESSAGE THE PANEL WAS SENT WITH, kept before py-cord replaces it.
         # On every press py-cord sets view.message = interaction.message, a plain
@@ -197,6 +233,9 @@ class DDCView(discord.ui.View):
             return
         if getattr(original, "id", None) == panel.id:
             self._deleter = interaction
+            from services.discord.private_panels import remember
+            remember(self.id, getattr(interaction, "application_id", None),
+                     getattr(interaction, "token", None), "@original")
 
     async def on_timeout(self) -> None:
         """Take a finished private panel away instead of leaving a dead one.
@@ -225,6 +264,7 @@ class DDCView(discord.ui.View):
                     await parent.delete_original_response()
                 except (discord.NotFound, discord.Forbidden, discord.HTTPException) as error:
                     logger.debug("Could not remove a timed-out panel: %s", error)
+                self._forget_panel()
             return
         if not is_private_panel_message(message):
             return
@@ -248,6 +288,12 @@ class DDCView(discord.ui.View):
             # Already dismissed by hand, or past Discord's fifteen-minute
             # interaction token. Neither is worth an operator's attention.
             logger.debug("Could not remove a timed-out panel: %s", error)
+        self._forget_panel()
+
+    def _forget_panel(self) -> None:
+        """Gone (or no longer deletable): a restart has nothing to do for it."""
+        from services.discord.private_panels import forget
+        forget(self.id)
 
     async def on_error(self, error: Exception, item, interaction: discord.Interaction) -> None:
         logger.error("Button '%s' in %s failed (%s: %s)",
