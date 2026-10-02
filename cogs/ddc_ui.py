@@ -166,6 +166,33 @@ class DDCView(discord.ui.View):
             self._sent_message = sent
         return super()._dispatch_item(item, interaction)
 
+    async def _scheduled_task(self, item, interaction):
+        await super()._scheduled_task(item, interaction)
+        await self._remember_a_deleter(interaction)
+
+    async def _remember_a_deleter(self, interaction) -> None:
+        """Keep a press whose original response IS this private panel, to delete it with.
+
+        Each press starts the timeout again, but the message the panel was sent
+        with carries a token that dies fifteen minutes after the FIRST answer: a
+        panel used for a while timed out after it and stayed (operator's
+        question, 2026-10-02). A press answered by a deferred update or an edit
+        has the panel as its original response, and its token is fresh. A press
+        answered with a new message or a modal does not - asked, not guessed:
+        py-cord does not keep the response type.
+        """
+        panel = getattr(interaction, "message", None)
+        if panel is None or not self.timeout or not is_private_panel_message(panel):
+            return
+        try:
+            original = await interaction.original_response()
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException,
+                discord.ClientException, AttributeError) as error:
+            logger.debug("No deleter for a private panel from this press: %s", error)
+            return
+        if getattr(original, "id", None) == panel.id:
+            self._deleter = interaction
+
     async def on_timeout(self) -> None:
         """Take a finished private panel away instead of leaving a dead one.
 
@@ -193,8 +220,13 @@ class DDCView(discord.ui.View):
         if isinstance(synced, dict) and synced.get(message.id, self) is not self:
             return
 
+        deleter = getattr(self, "_deleter", None)
         try:
-            await message.delete()
+            if deleter is not None:
+                # The last press that answered on this panel: its token is fresh
+                await deleter.delete_original_response()
+            else:
+                await message.delete()
         except (discord.NotFound, discord.Forbidden, discord.HTTPException) as error:
             # Already dismissed by hand, or past Discord's fifteen-minute
             # interaction token. Neither is worth an operator's attention.
