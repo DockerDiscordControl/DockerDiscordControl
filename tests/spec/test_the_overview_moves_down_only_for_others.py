@@ -43,7 +43,7 @@ def _message(message_id, author_id, application_id=None):
 
 def _decide(below, alive=frozenset()):
     from cogs.channel_lifecycle import why_the_overview_must_move
-    return why_the_overview_must_move(below, own_ids={DDC}, managed_ids={9001, 9002}, alive_ids=set(alive))
+    return why_the_overview_must_move(below, own_ids={DDC}, managed_ids={9001, 9002}, passing_ids=set(alive))
 
 
 def test_a_person_behind_a_passing_notice_still_moves_it():
@@ -68,7 +68,7 @@ def test_ddc_recognised_by_its_application_id():
     message = _message(14, 1, application_id=DDC)
     from cogs.channel_lifecycle import why_the_overview_must_move
     assert why_the_overview_must_move([message], own_ids={DDC}, managed_ids={9001},
-                                      alive_ids={14}) is None
+                                      passing_ids={14}) is None
 
 
 @pytest.mark.asyncio

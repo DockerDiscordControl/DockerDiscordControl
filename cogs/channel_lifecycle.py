@@ -29,7 +29,7 @@ from .control_helpers import TRACKED_MESSAGE_KINDS, channel_was_built
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
-def why_the_overview_must_move(messages_below, own_ids, managed_ids, alive_ids):
+def why_the_overview_must_move(messages_below, own_ids, managed_ids, passing_ids):
     """Why the overview has to be posted anew at the bottom, or None when it may stay.
 
     THE POINT (operator, 2026-10-02): nobody should have to scroll to reach the
@@ -37,15 +37,16 @@ def why_the_overview_must_move(messages_below, own_ids, managed_ids, alive_ids):
     else under the overview does - a person, another bot, a webhook, or a DDC
     message without a running lifetime. Every message below counts, not only
     the last: a person's message followed by a join notice kept the overview up
-    there until the notice expired.
+    there until the notice expired. ``passing_ids`` are the notices the lifetime
+    registry knows, expired ones included: the sweep deletes them.
     """
     for message in messages_below:
         author_id = getattr(getattr(message, 'author', None), 'id', None)
         own = author_id in own_ids or getattr(message, 'application_id', None) in own_ids
         if not own:
             return f"a message from {getattr(message.author, 'name', author_id)} ({author_id})"
-        if message.id not in managed_ids and message.id not in alive_ids:
-            return f"DDC message {message.id} without a running lifetime"
+        if message.id not in managed_ids and message.id not in passing_ids:
+            return f"DDC message {message.id} without a lifetime"
     return None
 
 

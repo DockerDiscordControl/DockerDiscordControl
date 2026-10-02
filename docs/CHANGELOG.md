@@ -482,6 +482,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   used was deleted with an expired token.
 - Private panels that were open when DDC restarted are deleted when it starts again, as long as
   Discord still allows it (15 minutes); a rebuild no longer leaves them standing.
+- A notice whose lifetime just ran out no longer makes DDC post the overview anew in the seconds
+  before it is swept away; only the notice goes.
 
 ### 🐛 The mech's picture and gift, the update notice
 

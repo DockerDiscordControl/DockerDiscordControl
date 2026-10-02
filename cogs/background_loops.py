@@ -752,11 +752,13 @@ class BackgroundLoopsMixin:
                             # EVERY message under the overview, not only the last: a person's
                             # message followed by a join notice kept the overview up there
                             # until the notice expired (operator, 2026-10-02)
-                            from services.discord.message_lifetimes import alive_ids
+                            # Known to the lifetime registry, expired or not: a passing notice
+                            # the sweep deletes, never a reason to move (2026-10-02, 19:51)
+                            from services.discord.message_lifetimes import known_ids
                             from .channel_lifecycle import why_the_overview_must_move
                             below = await channel.history(after=discord.Object(id=min(managed_ids)),
                                                           limit=100).flatten()
-                            reason = why_the_overview_must_move(below, own_ids, managed_ids, alive_ids())
+                            reason = why_the_overview_must_move(below, own_ids, managed_ids, known_ids())
                         else:
                             # No tracking yet (right after a restart): only a foreign last
                             # message moves it - never delete an intact overview on a guess

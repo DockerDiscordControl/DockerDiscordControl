@@ -36,10 +36,10 @@ DDC = 7000
 def _moves(message_id, author_id=DDC):
     """Whether the overview (9001) must move with this one message under it."""
     from cogs.channel_lifecycle import why_the_overview_must_move
-    from services.discord.message_lifetimes import alive_ids
+    from services.discord.message_lifetimes import known_ids
     message = SimpleNamespace(id=message_id, author=SimpleNamespace(id=author_id, name="ddc"),
                               application_id=None)
-    return why_the_overview_must_move([message], {DDC}, {9001}, alive_ids()) is not None
+    return why_the_overview_must_move([message], {DDC}, {9001}, known_ids()) is not None
 
 
 @pytest.mark.asyncio
@@ -51,12 +51,14 @@ async def test_a_live_notice_does_not_bury_the_overview(lifetimes):  # noqa: F81
 
 
 @pytest.mark.asyncio
-async def test_an_expired_or_unknown_message_still_does(lifetimes):  # noqa: F811
+async def test_an_unknown_message_still_does_but_an_expired_notice_not(lifetimes):  # noqa: F811
+    """Until 19:51 on 2026-10-02 an expired notice moved the overview too; the
+    sweep deletes it, so it waits (test_an_expired_notice_waiting_for_the_sweep_...)."""
     module, clock = lifetimes
     channel = _Channel(111)
     notice = await module.post(channel, "bulk_summary", "summary")
     clock[0] += 301
-    assert _moves(notice.id) is True
+    assert _moves(notice.id) is False
     assert _moves(4242) is True
     assert _moves(9001) is False
 

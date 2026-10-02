@@ -116,6 +116,24 @@ def alive_ids(now: Optional[float] = None) -> Set[int]:
     return alive
 
 
+def known_ids() -> Set[int]:
+    """Every message id the registry holds, expired or not - DDC's passing notices.
+
+    An expired one is about to be swept; the inactivity check took it for a
+    stray in the seconds between its end and the sweep and posted the overview
+    anew (operator, 2026-10-02, 19:51).
+    """
+    with _lock:
+        records = _read()
+    known = set()
+    for key in records:
+        try:
+            known.add(int(key.split(":", 1)[1]))
+        except (IndexError, ValueError):
+            continue
+    return known
+
+
 async def sweep(bot) -> int:
     """Delete the messages whose time is up. Returns how many records it settled."""
     import discord
