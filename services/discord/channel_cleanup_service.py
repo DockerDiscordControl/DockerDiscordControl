@@ -126,11 +126,8 @@ class ChannelCleanupService:
         keep_message_ids=None
     ) -> ChannelCleanupResult:
         """
-        Delete bot messages while preserving Live Log and AAS messages.
-
-        This method replicates the complex Live Log preservation logic
-        from the original delete_bot_messages method, and also preserves
-        Auto-Action System (AAS) notification messages.
+        Delete bot messages while preserving Live Log messages, the tracked
+        ones and those whose lifetime still runs (services/discord/message_lifetimes.py).
 
         Args:
             channel: Discord text channel to clean
@@ -148,7 +145,7 @@ class ChannelCleanupService:
         keep = set(keep_message_ids or ()) | alive_ids()
 
         def is_bot_but_not_preserved(message: discord.Message) -> bool:
-            """Filter function that excludes Live Log, AAS and named messages."""
+            """Filter function that excludes Live Log, named and still-living messages."""
             if message.author != self.bot.user:
                 return False
 
@@ -176,15 +173,10 @@ class ChannelCleanupService:
                         logger.debug(f"Preserving Live Log message {message.id} with footer: {embed.footer.text}")
                         return False
 
-            # Check if this is an AAS (Auto-Action System) notification message
-            # AAS messages have pattern: "⚡ `action` **container** — *RuleName*" or "⚠️ ... — *RuleName*"
-            if message.content:
-                content = message.content
-                # AAS messages start with ⚡ or ⚠️ and contain " — *" (rule name in italics)
-                if (content.startswith("⚡") or content.startswith("⚠️")) and " — *" in content:
-                    logger.debug(f"Preserving AAS message {message.id}: {content[:50]}...")
-                    return False
-
+            # Auto-action notices are NOT spared for how they look any more. That
+            # rule ("⚡ ... — *Rule*") predates the message lifetimes and kept every
+            # notice for good; a notice inside its hour is in `keep` above, by the
+            # lifetime registry (operator, 2026-10-02).
             return True
 
         request = ChannelCleanupRequest(

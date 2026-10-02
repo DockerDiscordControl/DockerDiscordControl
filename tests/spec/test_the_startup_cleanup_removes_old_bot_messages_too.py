@@ -8,8 +8,10 @@ no age bound. So an old stray bot message was deleted when a young one
 happened to be there, and survived every cleanup when none was: the same
 channel, cleaned or not depending on luck.
 
-THE OPERATOR (2026-09-29): bot messages of any age go (live logs, the
-auto-action notices and the tracked messages are kept as before).
+THE OPERATOR (2026-09-29): bot messages of any age go (live logs and the
+tracked messages are kept as before). The auto-action notices were kept too
+until 2026-10-02; since then only a notice whose lifetime still runs is
+(test_an_old_auto_action_notice_is_cleaned_up).
 
 HOW THIS TEST CAN FAIL: a channel holding only an old stray bot message is
 left as it is; or the cleanup starts deleting what it preserves.
@@ -56,8 +58,8 @@ async def test_an_old_stray_bot_message_is_removed():
 @pytest.mark.asyncio
 async def test_what_is_preserved_stays():
     service = ChannelCleanupService(SimpleNamespace(user=BOT))
-    kept = _message(11, days_old=1, content="⚡ `restart` **valheim** — *Nightly*")
+    kept = _message(11, days_old=1, content="kept by its id")
     channel = _channel([kept, _message(12, days_old=1)])
     result = await service.delete_bot_messages_preserve_live_logs(
-        channel, "startup", keep_message_ids={13})
+        channel, "startup", keep_message_ids={11})
     assert result.messages_deleted == 1

@@ -472,6 +472,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The status overview is posted anew at the bottom when anyone but DDC wrote under it - a person,
   another bot or a webhook - after the channel's inactivity time; every message under it counts,
   not only the last. DDC's own notices that expire by themselves leave it where it is.
+- Auto-action notices from before the message lifetimes no longer stay in the status and control
+  channels for good; the channel cleanup spares a notice only while its hour runs.
 
 ### 🐛 The mech's picture and gift, the update notice
 

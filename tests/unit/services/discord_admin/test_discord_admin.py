@@ -546,7 +546,8 @@ class TestChannelCleanupServiceCore:
         live_log_msg.embeds = [embed]
         live_log_msg.delete = AsyncMock()
 
-        # AAS preserved message
+        # An auto-action notice: deleted too since 2026-10-02 - only a notice whose
+        # lifetime still runs is spared, by the registry (none here)
         aas_msg = _make_message(
             msg_id=201,
             author=bot.user,
@@ -557,13 +558,13 @@ class TestChannelCleanupServiceCore:
         plain = _make_message(msg_id=202, author=bot.user, content="hello")
 
         ch = _make_channel(messages=[live_log_msg, aas_msg, plain])
-        ch.purge = AsyncMock(return_value=[plain])
+        ch.purge = AsyncMock(return_value=[aas_msg, plain])
         svc = ChannelCleanupService(bot)
 
         result = await svc.delete_bot_messages_preserve_live_logs(ch, reason="live")
         assert result.success is True
-        # purge_deleted == 1 (only the plain message survives the filter)
-        assert result.purge_deleted == 1
+        # the notice and the plain message pass the filter; the live log stays
+        assert result.purge_deleted == 2
         assert result.method_used == "Discord purge API"
 
     @pytest.mark.asyncio
