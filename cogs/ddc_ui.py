@@ -214,7 +214,19 @@ class DDCView(discord.ui.View):
         admin-panel detection reads.
         """
         message = getattr(self, "_sent_message", None) or getattr(self, "message", None)
-        if message is None or not is_private_panel_message(message):
+        if message is None:
+            # Sent as the answer itself (response.send_message): py-cord gives such a
+            # view no message, only view.parent, and an unpressed panel was never
+            # deleted (2026-10-02). The answer to that interaction IS the panel; only
+            # a PrivateView's - nothing here says whether another answer was private.
+            parent = getattr(self, "parent", None)
+            if isinstance(self, PrivateView) and parent is not None:
+                try:
+                    await parent.delete_original_response()
+                except (discord.NotFound, discord.Forbidden, discord.HTTPException) as error:
+                    logger.debug("Could not remove a timed-out panel: %s", error)
+            return
+        if not is_private_panel_message(message):
             return
         # A MESSAGE THAT HAS MOVED ON. The container picker becomes the
         # container's admin panel by editing the same message; py-cord then
