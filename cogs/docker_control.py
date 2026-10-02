@@ -637,7 +637,11 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """Listens to messages to update channel activity for inactivity tracking."""
-        if message.author.bot:  # Ignore bot messages for triggering activity
+        # Only this DDC's own posts leave the timer alone. Another bot or a webhook
+        # writing under the overview buries it as much as a person does - every bot
+        # was ignored until 2026-10-02 (operator: the point is not having to scroll)
+        own = {getattr(self.bot.user, 'id', None), getattr(self.bot, 'application_id', None)} - {None}
+        if message.author.id in own or getattr(message, 'application_id', None) in own:
             return
         if not message.guild:  # Ignore DMs
             return

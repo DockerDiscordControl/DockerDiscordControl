@@ -5,7 +5,6 @@ Unit tests for the inactivity-loop "move overview to bottom" fix (FIX A) and the
 by-ID overview deletion that prevents duplicate overviews (Schritt 0).
 
 Covered:
-- DockerControlCog._overview_buried_by_stray (FIX A decision predicate)
 - DockerControlCog._delete_tracked_overview_messages (Schritt 0 by-ID delete)
 
 The cog is instantiated via object.__new__ to bypass its heavy __init__ - both
@@ -31,48 +30,10 @@ def _make_cog(tracking):
     return cog
 
 
-# ---------------------------------------------------------------------------
-# FIX A: _overview_buried_by_stray
-# ---------------------------------------------------------------------------
-
-class TestOverviewBuriedByStray:
-    def test_no_tracking_for_channel_returns_false(self):
-        """Guard: no tracking (e.g. fresh after restart) -> never regenerate on a bot msg."""
-        cog = _make_cog({})
-        assert cog._overview_buried_by_stray(111, 999) is False
-
-    def test_empty_tracking_dict_returns_false(self):
-        cog = _make_cog({111: {}})
-        assert cog._overview_buried_by_stray(111, 999) is False
-
-    def test_only_none_ids_returns_false(self):
-        """A tracked key mapped to None must not count as a managed id."""
-        cog = _make_cog({111: {"overview": None}})
-        assert cog._overview_buried_by_stray(111, 999) is False
-
-    def test_last_message_is_tracked_overview_returns_false(self):
-        """Overview is already at the bottom -> nothing to do."""
-        cog = _make_cog({111: {"overview": 500}})
-        assert cog._overview_buried_by_stray(111, 500) is False
-
-    def test_last_message_is_tracked_admin_overview_returns_false(self):
-        cog = _make_cog({111: {"admin_overview": 700}})
-        assert cog._overview_buried_by_stray(111, 700) is False
-
-    def test_stray_bot_message_below_overview_returns_true(self):
-        """A stray bot message (different id) buried our overview -> move it down."""
-        cog = _make_cog({111: {"overview": 500}})
-        assert cog._overview_buried_by_stray(111, 999) is True
-
-    def test_stray_below_admin_overview_returns_true(self):
-        cog = _make_cog({111: {"admin_overview": 700}})
-        assert cog._overview_buried_by_stray(111, 999) is True
-
-    def test_matches_any_tracked_id_not_just_overview_keys(self):
-        """Defensive: any tracked id (incl. legacy per-docker_name) counts as managed."""
-        cog = _make_cog({111: {"overview": 500, "Enshrouded": 600}})
-        assert cog._overview_buried_by_stray(111, 600) is False
-        assert cog._overview_buried_by_stray(111, 999) is True
+# FIX A's predicate _overview_buried_by_stray was replaced on 2026-10-02 by
+# cogs.channel_lifecycle.why_the_overview_must_move, which looks at every message
+# under the overview rather than the last one; its cases live in
+# tests/spec/test_the_overview_moves_down_only_for_others.py.
 
 
 # ---------------------------------------------------------------------------

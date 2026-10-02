@@ -746,31 +746,32 @@ class BackgroundLoopsMixin:
                             logger.warning(f"Bot user is None, cannot check message author. Skipping channel {channel_id}")
                             continue
 
-                        last_msg = history[0]
-                        bot_user_id = self.bot.user.id
-
-                        # Log detailed info for debugging recreation issues
-                        logger.debug(f"Channel {channel.name}: Last message author={last_msg.author.id} ({last_msg.author.name}), bot_id={bot_user_id}")
-
-                        # Check if last message is from our bot (by user ID or application ID)
-                        bot_app_id = getattr(self.bot, 'application_id', None)
-                        is_from_bot = (last_msg.author.id == bot_user_id or
-                                      (hasattr(last_msg, 'application_id') and bot_app_id and last_msg.application_id == bot_app_id))
-
-                        if is_from_bot:
-                            # FIX A: Distinguish our OWN managed overview/admin-overview (already at
-                            # the bottom -> nothing to do) from a STRAY bot message such as a
-                            # restart/update notification that has buried our overview.
-                            if not self._overview_buried_by_stray(channel_id, last_msg.id):
-                                self.last_channel_activity[channel_id] = now_utc
-                                logger.debug(f"Last message in channel {channel.name} ({channel_id}) is our managed overview (or no tracking) - resetting inactivity timer, no regeneration")
-                                continue
-
-                            # Our overview is buried under a stray bot message -> move it to the bottom
-                            logger.info(f"Channel {channel.name} ({channel_id}): own overview buried under stray bot message {last_msg.id} - will regenerate to move it to the bottom")
+                        own_ids = {self.bot.user.id, getattr(self.bot, 'application_id', None)} - {None}
+                        managed_ids = {i for i in self.channel_server_message_ids.get(channel_id, {}).values() if i}
+                        if managed_ids:
+                            # EVERY message under the overview, not only the last: a person's
+                            # message followed by a join notice kept the overview up there
+                            # until the notice expired (operator, 2026-10-02)
+                            from services.discord.message_lifetimes import alive_ids
+                            from .channel_lifecycle import why_the_overview_must_move
+                            below = await channel.history(after=discord.Object(id=min(managed_ids)),
+                                                          limit=100).flatten()
+                            reason = why_the_overview_must_move(below, own_ids, managed_ids, alive_ids())
                         else:
-                            # The last message is from a user (foreign), regenerate as before
-                            logger.info(f"Last message in channel {channel.name} is NOT from our bot (author_id={last_msg.author.id}, bot_id={bot_user_id}). Will regenerate")
+                            # No tracking yet (right after a restart): only a foreign last
+                            # message moves it - never delete an intact overview on a guess
+                            last_msg = history[0]
+                            own = (last_msg.author.id in own_ids
+                                   or getattr(last_msg, 'application_id', None) in own_ids)
+                            reason = None if own else f"a message from {last_msg.author.name} ({last_msg.author.id})"
+
+                        if reason is None:
+                            self.last_channel_activity[channel_id] = now_utc
+                            logger.debug(f"Channel {channel.name} ({channel_id}): nothing but the overview and "
+                                         f"DDC's passing notices below it - no regeneration")
+                            continue
+                        logger.info(f"Channel {channel.name} ({channel_id}): {reason} under the overview - "
+                                    f"moving it to the bottom")
 
                         # Determine the mode: control or status
                         has_control_permission = _channel_has_permission(channel_id, 'control', config)

@@ -30,11 +30,16 @@ import pytest
 from tests.spec.test_every_public_message_has_its_lifetime import _Channel, lifetimes  # noqa: F401
 
 
-def _cog(overview_id):
-    from cogs.docker_control import DockerControlCog
-    cog = DockerControlCog.__new__(DockerControlCog)
-    cog.channel_server_message_ids = {111: {"overview": overview_id}}
-    return cog
+DDC = 7000
+
+
+def _moves(message_id, author_id=DDC):
+    """Whether the overview (9001) must move with this one message under it."""
+    from cogs.channel_lifecycle import why_the_overview_must_move
+    from services.discord.message_lifetimes import alive_ids
+    message = SimpleNamespace(id=message_id, author=SimpleNamespace(id=author_id, name="ddc"),
+                              application_id=None)
+    return why_the_overview_must_move([message], {DDC}, {9001}, alive_ids()) is not None
 
 
 @pytest.mark.asyncio
@@ -42,7 +47,7 @@ async def test_a_live_notice_does_not_bury_the_overview(lifetimes):  # noqa: F81
     module, clock = lifetimes
     channel = _Channel(111)
     notice = await module.post(channel, "auto_action", "⚡ RESTART Icarus")
-    assert _cog(9001)._overview_buried_by_stray(111, notice.id) is False
+    assert _moves(notice.id) is False
 
 
 @pytest.mark.asyncio
@@ -51,9 +56,9 @@ async def test_an_expired_or_unknown_message_still_does(lifetimes):  # noqa: F81
     channel = _Channel(111)
     notice = await module.post(channel, "bulk_summary", "summary")
     clock[0] += 301
-    assert _cog(9001)._overview_buried_by_stray(111, notice.id) is True
-    assert _cog(9001)._overview_buried_by_stray(111, 4242) is True
-    assert _cog(9001)._overview_buried_by_stray(111, 9001) is False
+    assert _moves(notice.id) is True
+    assert _moves(4242) is True
+    assert _moves(9001) is False
 
 
 @pytest.mark.asyncio

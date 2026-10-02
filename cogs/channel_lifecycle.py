@@ -29,6 +29,26 @@ from .control_helpers import TRACKED_MESSAGE_KINDS, channel_was_built
 logger = setup_logger('ddc.docker_control', level=logging.INFO)
 
 
+def why_the_overview_must_move(messages_below, own_ids, managed_ids, alive_ids):
+    """Why the overview has to be posted anew at the bottom, or None when it may stay.
+
+    THE POINT (operator, 2026-10-02): nobody should have to scroll to reach the
+    overview. DDC's own notices that expire by themselves do not count; anything
+    else under the overview does - a person, another bot, a webhook, or a DDC
+    message without a running lifetime. Every message below counts, not only
+    the last: a person's message followed by a join notice kept the overview up
+    there until the notice expired.
+    """
+    for message in messages_below:
+        author_id = getattr(getattr(message, 'author', None), 'id', None)
+        own = author_id in own_ids or getattr(message, 'application_id', None) in own_ids
+        if not own:
+            return f"a message from {getattr(message.author, 'name', author_id)} ({author_id})"
+        if message.id not in managed_ids and message.id not in alive_ids:
+            return f"DDC message {message.id} without a running lifetime"
+    return None
+
+
 class ChannelLifecycleMixin:
     """Channel setup, teardown and regeneration, mixed into DockerControlCog."""
 
@@ -574,31 +594,6 @@ class ChannelLifecycleMixin:
 
         except (discord.errors.DiscordException, RuntimeError, ValueError, OSError) as e:
             logger.error(f"❌ CLEANUP FAILED for channel {channel.name}: {e}", exc_info=True)
-
-    def _overview_buried_by_stray(self, channel_id: int, last_msg_id: int) -> bool:
-        """FIX A predicate: should the inactivity loop move our overview to the bottom?
-
-        Called only when the channel's LAST message is bot-authored. Returns True when a
-        STRAY bot message (e.g. a restart/update notification) has buried our managed
-        overview, i.e. the last message is NOT one of our tracked overview/admin-overview
-        IDs. Returns False when:
-          - there is no tracking yet (e.g. right after a restart, before messages are
-            re-posted) -> keep the old, safe behavior and never regenerate on a bot
-            message (avoids deleting an intact overview / a regenerate storm), or
-          - the last message IS our managed overview (already at the bottom).
-        Foreign (non-bot) messages are handled by the caller and always regenerate.
-        """
-        tracked = self.channel_server_message_ids.get(channel_id, {})
-        managed_ids = set(tracked.values())
-        managed_ids.discard(None)
-        if not managed_ids:
-            return False
-        # A message whose lifetime still runs is not a stray: it stands below the
-        # overview until its time is up. Taking it for one posted the overview anew
-        # three minutes after a player joined and deleted the 30-minute join notice
-        # with it (operator, 2026-10-02: the overview stays where it is).
-        from services.discord.message_lifetimes import alive_ids
-        return last_msg_id not in managed_ids and last_msg_id not in alive_ids()
 
     async def _delete_tracked_overview_messages(self, channel: discord.TextChannel) -> None:
         """Delete the bot's own tracked overview / admin_overview messages by ID.

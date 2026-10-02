@@ -469,6 +469,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   makes DDC post the status overview anew under it; the overview stays where it is, and a join
   notice keeps its 30 minutes instead of being cleared three minutes later. Join notices are
   written to the log.
+- The status overview is posted anew at the bottom when anyone but DDC wrote under it - a person,
+  another bot or a webhook - after the channel's inactivity time; every message under it counts,
+  not only the last. DDC's own notices that expire by themselves leave it where it is.
 
 ### 🐛 The mech's picture and gift, the update notice
 
