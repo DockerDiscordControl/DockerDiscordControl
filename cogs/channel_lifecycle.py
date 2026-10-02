@@ -593,7 +593,12 @@ class ChannelLifecycleMixin:
         managed_ids.discard(None)
         if not managed_ids:
             return False
-        return last_msg_id not in managed_ids
+        # A message whose lifetime still runs is not a stray: it stands below the
+        # overview until its time is up. Taking it for one posted the overview anew
+        # three minutes after a player joined and deleted the 30-minute join notice
+        # with it (operator, 2026-10-02: the overview stays where it is).
+        from services.discord.message_lifetimes import alive_ids
+        return last_msg_id not in managed_ids and last_msg_id not in alive_ids()
 
     async def _delete_tracked_overview_messages(self, channel: discord.TextChannel) -> None:
         """Delete the bot's own tracked overview / admin_overview messages by ID.

@@ -77,7 +77,8 @@ def test_the_chosen_lifetimes():
     from services.discord.message_lifetimes import LIFETIMES
     assert LIFETIMES == {"auto_action": 3600, "donation_thanks": 24 * 3600,
                          "update_notice": 7 * 24 * 3600, "donation_reminder": None,
-                         "bulk_summary": 300, "player_warning": None}
+                         "bulk_summary": 300, "player_warning": None,
+                         "player_join": 30 * 60}   # added 2026-10-02 (cogs/player_joins.py)
 
 
 @pytest.mark.asyncio
@@ -124,7 +125,6 @@ def test_no_raw_public_send_outside_the_list():
         "cogs/channel_lifecycle.py",          # the status and control overviews
         "cogs/message_updates.py",            # the overviews, posted anew
         "cogs/slash_commands.py",             # /ss and the other answers to a command
-        "cogs/player_joins.py",               # delete_after: never spared by the cleanup
         "services/translation/translation_service.py",   # translated posts are content
         "services/discord/message_lifetimes.py",         # the one place that posts with a lifetime
     }

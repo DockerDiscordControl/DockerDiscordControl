@@ -465,6 +465,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
   its action, a bulk summary 5 minutes, a thank-you for a donation 24 hours, the notice of a new
   version 7 days; the scheduled donation reminder stays and is no longer swept away by the channel
   cleanup.
+- A notice with a running lifetime (a player join, an auto-action notice, a warning) no longer
+  makes DDC post the status overview anew under it; the overview stays where it is, and a join
+  notice keeps its 30 minutes instead of being cleared three minutes later. Join notices are
+  written to the log.
 
 ### 🐛 The mech's picture and gift, the update notice
 

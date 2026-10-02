@@ -39,10 +39,10 @@ cogs/action_effect.py:1-179
 cogs/admin_ui.py:1-388
 cogs/mech_ui.py:1-871
 
-## Section 04  (1578 lines, 3 pieces)
+## Section 04  (1583 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
 # Step 5 (2026-09-22): channel setup/teardown/regeneration moved to channel_lifecycle.py.
-cogs/channel_lifecycle.py:1-649
+cogs/channel_lifecycle.py:1-654
 cogs/docker_control.py:1-826
 cogs/loop_safety.py:1-103
 
@@ -70,13 +70,13 @@ cogs/donation_ui.py:1-737
 ## Section 08  (1127 lines, 1 piece)
 cogs/status_handlers.py:1-1127
 
-## Section 09  (1649 lines, 3 pieces)
+## Section 09  (1654 lines, 3 pieces)
 # v3.1.0, 2026-09-28: every container has an info display; who plays on a
 # game server and Docker's facts come from info_extras.py, read with the display
 # it fills; player_joins.py announces who joins, from the same player list.
 cogs/status_info_integration.py:1-1162
 cogs/info_extras.py:1-326
-cogs/player_joins.py:1-161
+cogs/player_joins.py:1-166
 
 ## Section 10  (1765 lines, 7 pieces)
 cogs/translation_manager.py:1-149
@@ -117,7 +117,7 @@ services/config/config_migration_service.py:1-509
 # this section at 2,039 of the 2,000 a section may hold. Section 13, where its
 # neighbours sit, is at 1,920 and had no room either.
 
-## Section 13  (1950 lines, 6 pieces)
+## Section 13  (1951 lines, 6 pieces)
 services/config/config_service.py:1-1321
 services/config/container_config_save_service.py:1-154
 services/config/server_config_service.py:1-241
@@ -129,7 +129,7 @@ services/config/channel_roles.py:1-58
 services/discord/__init__.py:1-20
 # message_lifetimes.py is new on 2026-10-01 (every public message gets a lifetime):
 # section 14 with the other services/discord files would reach 2,107 lines.
-services/discord/message_lifetimes.py:1-156
+services/discord/message_lifetimes.py:1-157
 
 ## Section 14  (1951 lines, 8 pieces)
 services/discord/channel_cleanup_service.py:1-530

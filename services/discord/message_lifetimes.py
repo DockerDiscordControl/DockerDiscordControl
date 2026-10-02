@@ -42,6 +42,7 @@ LIFETIMES: Dict[str, Optional[int]] = {
     "donation_reminder": None,
     "bulk_summary": 300,
     "player_warning": None,
+    "player_join": 30 * 60,            # cogs/player_joins.py
 }
 
 _FILE = "message_lifetimes.json"

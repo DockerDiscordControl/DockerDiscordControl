@@ -134,7 +134,12 @@ async def _post(bot, channel_ids: List[int], text: str) -> None:
         if channel is None:
             continue
         try:
-            await channel.send(text, delete_after=JOIN_NOTICE_STAYS_FOR)
+            # Through the lifetime registry, not delete_after: a restart forgot that
+            # timer, and a notice with a running lifetime does not move the overview
+            # (operator, 2026-10-02)
+            from services.discord.message_lifetimes import post
+            await post(channel, "player_join", text, lifetime=JOIN_NOTICE_STAYS_FOR)
+            logger.info(f"Join notice posted in {channel_id}: {text}")
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.warning(f"Join notice not posted in {channel_id}: {e}")
 

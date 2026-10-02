@@ -254,6 +254,7 @@ def test_the_notice_reaches_every_ticked_channel_and_goes_again():
 
         async def send(self, text, delete_after=None):
             sent.append((self.cid, text, delete_after))
+            return SimpleNamespace(id=len(sent))
     bot = SimpleNamespace(get_channel=lambda cid: _Channel(cid))
     config = {"channel_permissions": {"111111111111111111": {"player_joins": True},
                                       "222222222222222222": {"player_joins": False},
@@ -261,7 +262,9 @@ def test_the_notice_reaches_every_ticked_channel_and_goes_again():
     ids = player_joins.join_channel_ids(config)
     asyncio.run(player_joins._post(bot, ids, "👋 hi"))
     assert sorted(cid for cid, _, _ in sent) == [111111111111111111, 333333333333333333]
-    assert all(stay == player_joins.JOIN_NOTICE_STAYS_FOR for _, _, stay in sent)
+    # It goes again through the lifetime registry since 2026-10-02, not by a
+    # delete_after a restart forgets (test_a_message_with_a_lifetime_does_not_move_the_overview)
+    assert all(stay is None for _, _, stay in sent)
 
 
 def test_the_box_is_in_both_tables_and_saved():
