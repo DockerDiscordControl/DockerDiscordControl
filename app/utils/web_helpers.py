@@ -843,11 +843,10 @@ def mech_decay_worker(logger):
                 # get_state() triggers apply_decay_on_demand()
                 mech_state = mech_service.get_state()
 
-                # Log if offline (Power = 0) for debugging
-                if mech_state.is_offline:
-                    logger.info(f"[MECH_DECAY] Mech is OFFLINE (Power: $0.00) - offline animation active")
-                else:
-                    logger.debug(f"[MECH_DECAY] Power decay calculated: ${mech_state.power_current:.2f}")
+                # Said once per change, not every pass (services/mech/mech_power_notice.py)
+                from services.mech.mech_power_notice import note_power_state
+                note_power_state(mech_state)
+                logger.debug(f"[MECH_DECAY] Power decay calculated: ${mech_state.power_current:.2f}")
 
                 # Wait for the configured time, but check regularly for stop signal
                 check_interval = min(MECH_DECAY_INTERVAL, 5)  # Max 5 seconds without checking stop signal

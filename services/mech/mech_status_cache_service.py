@@ -306,11 +306,10 @@ class MechStatusCacheService:
                 loop = asyncio.get_running_loop()
                 mech_state = await loop.run_in_executor(None, mech_service.get_state)
 
-                # Log if offline (Power = 0) for debugging
-                if mech_state.is_offline:
-                    self.logger.info(f"[CACHE_REFRESH] Mech is OFFLINE (Power: $0.00) - offline animation active")
-                else:
-                    self.logger.debug(f"[CACHE_REFRESH] Power decay calculated: ${mech_state.power_current:.2f}")
+                # Said once per change, not every pass (services/mech/mech_power_notice.py)
+                from services.mech.mech_power_notice import note_power_state
+                note_power_state(mech_state)
+                self.logger.debug(f"[CACHE_REFRESH] Power decay calculated: ${mech_state.power_current:.2f}")
             except Exception as decay_error:
                 # Any failure here (service unavailable, PermissionError persisting the
                 # snapshot, ...) must not skip the cache refresh below

@@ -484,6 +484,8 @@ All notable changes to DockerDiscordControl will be documented in this file.
   Discord still allows it (15 minutes); a rebuild no longer leaves them standing.
 - A notice whose lifetime just ran out no longer makes DDC post the overview anew in the seconds
   before it is swept away; only the notice goes.
+- An empty mech is written to the log once when it runs dry and once when it has power again,
+  instead of two lines every 30 seconds.
 
 ### 🐛 The mech's picture and gift, the update notice
 
