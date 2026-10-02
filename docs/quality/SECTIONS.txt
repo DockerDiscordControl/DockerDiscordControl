@@ -29,7 +29,7 @@ cogs/control_ui.py:1-1449
 # press in this panel did, and the IPv6/URL addresses put section 01 at 2,010.
 cogs/action_effect.py:1-179
 
-## Section 03  (1259 lines, 2 pieces)
+## Section 03  (1262 lines, 2 pieces)
 # 315 lines shorter since 2026-09-24: six private helpers in this half of
 # control_ui.py were called by nothing and were deleted (see
 # tests/spec/test_no_private_helper_is_wired_to_nothing.py).
@@ -37,7 +37,7 @@ cogs/action_effect.py:1-179
 # mech panel to mech_ui.py, unchanged; this section holds the moved code, and
 # control_ui.py (1,405 lines) fits into section 02 alone.
 cogs/admin_ui.py:1-388
-cogs/mech_ui.py:1-871
+cogs/mech_ui.py:1-874
 
 ## Section 04  (1578 lines, 3 pieces)
 # Step 3 (2026-09-22): the loop-safety helpers moved to loop_safety.py.
@@ -61,20 +61,20 @@ cogs/slash_commands.py:1-852
 cogs/docker_control.py:845-1265
 cogs/background_loops.py:1-877
 
-## Section 07  (1441 lines, 2 pieces)
+## Section 07  (1448 lines, 2 pieces)
 cogs/enhanced_info_modal_simple.py:1-704
 # donation_ui.py came over from section 06 on 2026-09-29: the inactivity
 # check's guard for empty channels put section 06 at 2,007.
-cogs/donation_ui.py:1-737
+cogs/donation_ui.py:1-744
 
 ## Section 08  (1127 lines, 1 piece)
 cogs/status_handlers.py:1-1127
 
-## Section 09  (1654 lines, 3 pieces)
+## Section 09  (1658 lines, 3 pieces)
 # v3.1.0, 2026-09-28: every container has an info display; who plays on a
 # game server and Docker's facts come from info_extras.py, read with the display
 # it fills; player_joins.py announces who joins, from the same player list.
-cogs/status_info_integration.py:1-1162
+cogs/status_info_integration.py:1-1166
 cogs/info_extras.py:1-326
 cogs/player_joins.py:1-166
 
@@ -410,7 +410,7 @@ utils/token_security.py:1-283
 services/config/group_references.py:1-153
 services/config/group_service.py:1-436
 
-## Section 38  (1436 lines, 8 pieces)
+## Section 38  (1441 lines, 8 pieces)
 # Cut out of section 32 on 2026-09-21. Section 32 stood at 1,994 of the 2,000
 # lines a section may hold, and the next repair in main_routes.py (review D25)
 # did not fit. The section cut is an instrument for reading the code, not a
@@ -422,7 +422,7 @@ services/config/group_service.py:1-436
 # the v3.0 client factory and 34 reached 2,003; 35 had no room either.
 app/blueprints/security_routes.py:1-206
 app/web/compat.py:1-102
-cogs/ddc_ui.py:1-312
+cogs/ddc_ui.py:1-317
 # group_control.py joined on 2026-09-24 (new: a group offered and pressed
 # like a container, kept out of control_ui.py which is on the ceiling list).
 cogs/group_control.py:1-374

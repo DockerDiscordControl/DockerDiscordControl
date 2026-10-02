@@ -116,22 +116,22 @@ cogs/background_loops.py	877	v3rev:1-652
 cogs/channel_lifecycle.py	649	v3rev2:1-646
 cogs/control_helpers.py	426	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/control_ui.py	1449	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
-cogs/ddc_ui.py	312	passE:written-2026-09-21
+cogs/ddc_ui.py	317	passE:written-2026-09-21
 cogs/docker_control.py	1265	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
-cogs/donation_ui.py	737	NONE
+cogs/donation_ui.py	744	NONE
 cogs/enhanced_info_modal_simple.py	704	passE:E27+bothscans:519-700
 cogs/group_control.py	374	NONE
 cogs/help_embed.py	96	NONE
 cogs/info_extras.py	326	new 2026-09-28 (v3.1.0 game server, players and Docker facts in the info display), written with its tests
 cogs/loop_safety.py	103	v3rev2:1-98
-cogs/mech_ui.py	871	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
+cogs/mech_ui.py	874	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
 cogs/message_updates.py	771	v3rev2:1-791
 cogs/overview_embeds.py	629	v3rev2:1-964
 cogs/player_joins.py	166	new 2026-09-28 (v3.1.0 join announcements), written with its tests
 cogs/slash_commands.py	852	NONE
 cogs/stack_restart.py	333	v3rev:1-196
 cogs/status_handlers.py	1127	passE:E15,E16:80-200,560-700 v3rev2:1-1400
-cogs/status_info_integration.py	1162	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
+cogs/status_info_integration.py	1166	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1271	NONE
 cogs/task_player_options.py	139	new 2026-09-28 (v3.1.0 player options), written with its tests
 cogs/translation_manager.py	149	passE:E30:read-in-full

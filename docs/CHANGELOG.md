@@ -476,6 +476,10 @@ All notable changes to DockerDiscordControl will be documented in this file.
   channels for good; the channel cleanup spares a notice only while its hour runs.
 - A container's or group's private admin panel closes itself after five minutes without use, like
   the other private panels; it used to stay until dismissed by hand.
+- Private panels close within ten minutes without use and are deleted reliably: the mech details,
+  mech selection and mech story panels used to stay until dismissed, the protected-info panel
+  waited 30 minutes, the private donation panel could not delete itself, and a panel that had been
+  used was deleted with an expired token.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -1017,7 +1017,7 @@ class DockerControlCog(commands.Cog, StatusHandlersMixin, OverviewEmbedsMixin, S
                     self.bot.add_view(PersistentMechDonateView(self, channel_id))
                     self.bot.add_view(PersistentMechHistoryView(self, channel_id))
                     # Private (ephemeral) mech details: mech_private_donate/history_<channel_id>
-                    self.bot.add_view(MechDetailsView(self, channel_id))
+                    self.bot.add_view(MechDetailsView(self, channel_id, timeout=None))
                     # The overview messages themselves, bound to their tracked message ids
                     tracked = tracked or {}
                     if tracked.get('overview'):

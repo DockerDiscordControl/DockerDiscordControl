@@ -61,6 +61,11 @@ PROGRESS_STAYS_FOR = 1    # "Refreshing..." - the real answer replaces it at onc
 # A private panel whose ✕ would stand alone on a row closes itself instead
 # (operator, 2026-09-27: "the close button should never stand alone on a row").
 AUTO_CLOSE_SECONDS = 60
+# Discord lets DDC delete a private message only within fifteen minutes of the
+# answer that made it, so a private panel closes well inside that: five minutes
+# without use, ten at the most (operator, 2026-10-02)
+PRIVATE_PANEL_SECONDS = 300
+MAX_PRIVATE_SECONDS = 600
 CLOSE_CUSTOM_ID = "ddc_close_panel"
 
 

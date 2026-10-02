@@ -27,7 +27,8 @@ from .translation_manager import _
 import asyncio
 import aiohttp
 from services.automation import get_auto_action_config_service
-from .ddc_ui import NOTICE_STAYS_FOR, PROGRESS_STAYS_FOR, DDCView, CloseButton, PrivateView
+from .ddc_ui import (MAX_PRIVATE_SECONDS, NOTICE_STAYS_FOR, PROGRESS_STAYS_FOR, CloseButton, DDCView,
+                     PrivateView)
 # The task UI (buttons, dropdowns, creation and deletion views) lives in
 # task_ui.py since the Phase 3 split; the names stay importable from here.
 from .task_ui import (  # noqa: F401
@@ -61,7 +62,7 @@ async def _refused_at_the_press(interaction, container_name: str, *, deferred: b
     """True (and answered) when the presser may no longer act on this container.
 
     Asked at the press (SPEC Z5), not when the panel was opened: the info admin
-    view lives 890 s. Only the 🔒 button asked (review F3); 📝 and 📋 edited the
+    view lives up to ten minutes. Only the 🔒 button asked (review F3); 📝 and 📋 edited the
     info and showed the logs after the channel had lost 'control' or the admin
     their assignment (stage 4 review before v3.1.0, section 09).
     """
@@ -132,7 +133,9 @@ class ContainerInfoAdminView(PrivateView):
 
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any], message=None):
         # Set timeout to maximum (just under Discord's 15-minute limit)
-        super().__init__(timeout=890)  # 14.8 minutes timeout
+        # Ten minutes without use: 890 s left no room once a press had started
+        # the timeout again (2026-10-02)
+        super().__init__(timeout=MAX_PRIVATE_SECONDS)
         self.cog = cog_instance
         self.server_config = server_config
         self.info_config = info_config
@@ -896,7 +899,8 @@ class ProtectedInfoOnlyView(PrivateView):
     """
 
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any]):
-        super().__init__(timeout=1800)  # 30 minute timeout
+        # Ten minutes: thirty outlived the fifteen in which DDC may delete it
+        super().__init__(timeout=MAX_PRIVATE_SECONDS)
         self.cog = cog_instance
         self.server_config = server_config
         self.info_config = info_config

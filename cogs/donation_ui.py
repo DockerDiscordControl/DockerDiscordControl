@@ -21,7 +21,7 @@ import discord
 from services.config.config_service import load_config
 from utils.logging_utils import setup_logger
 
-from .ddc_ui import NOTICE_STAYS_FOR, DDCModal, DDCView, CloseButton
+from .ddc_ui import MAX_PRIVATE_SECONDS, NOTICE_STAYS_FOR, DDCModal, DDCView, CloseButton
 from .translation_manager import _
 
 # Same logger name as the cog: log lines and log-based tests read as before the move.
@@ -72,7 +72,10 @@ class DonationView(DDCView):
 
     def __init__(self, donation_manager_available: bool, message=None, bot=None,
                  private: bool = False):
-        super().__init__(timeout=890)  # 14.8 minutes (just under Discord's 15-minute limit)
+        # Public (/donate): 890 s, just under Discord's 15-minute limit, deleted by
+        # its own timer. Private: the shared limit and deletion path (2026-10-02)
+        super().__init__(timeout=MAX_PRIVATE_SECONDS if private else 890)
+        self.private = private
         self.donation_manager_available = donation_manager_available
         self.message = message  # Store reference to the message for auto-delete
         self.auto_delete_task = None
@@ -118,6 +121,10 @@ class DonationView(DDCView):
 
     async def on_timeout(self):
         """Called when the view times out."""
+        if self.private:
+            # message.delete() is the channel route, a 404 for an ephemeral
+            # message; the shared path deletes it with a fresh token
+            return await super().on_timeout()
         try:
             # Cancel auto-delete task if it exists
             if self.auto_delete_task and not self.auto_delete_task.done():

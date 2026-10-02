@@ -9,7 +9,7 @@ the Admin button from admin_ui, neither of which imports this module back.
 """
 
 import io
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import discord
 from discord.ui import Button
@@ -19,7 +19,7 @@ from utils.logging_utils import get_module_logger
 
 from .admin_ui import AdminButton
 from .control_ui import HelpButton, InfoDropdownButton
-from .ddc_ui import NOTICE_STAYS_FOR, DDCView, PrivateView
+from .ddc_ui import NOTICE_STAYS_FOR, PRIVATE_PANEL_SECONDS, DDCView, PrivateView
 from .translation_manager import _
 
 if TYPE_CHECKING:
@@ -394,7 +394,7 @@ class MechSelectionView(PrivateView):
     """View with buttons for each unlocked mech."""
 
     def __init__(self, cog_instance: 'DockerControlCog', current_level: int):
-        super().__init__(timeout=None)
+        super().__init__(timeout=PRIVATE_PANEL_SECONDS)
         self.cog = cog_instance
         self.current_level = current_level
 
@@ -624,7 +624,7 @@ class MechStoryView(PrivateView):
     """View with Read Story and Play Song buttons - only for unlocked mechs."""
 
     def __init__(self, cog_instance: 'DockerControlCog', level: int, unlocked: bool = True):
-        super().__init__(timeout=None)
+        super().__init__(timeout=PRIVATE_PANEL_SECONDS)
         self.cog = cog_instance
         self.level = level
         self.unlocked = unlocked
@@ -783,8 +783,11 @@ class PlaySongButton(Button):
 class MechDetailsView(PrivateView):
     """View for private mech details messages with Spenden and History buttons."""
 
-    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int):
-        super().__init__(timeout=None)  # Persistent view - buttons never expire
+    def __init__(self, cog_instance: 'DockerControlCog', channel_id: int,
+                 timeout: Optional[float] = PRIVATE_PANEL_SECONDS):
+        # Sent privately, it closes after five minutes; registered at start as a
+        # persistent view (bot.add_view) it must have timeout=None
+        super().__init__(timeout=timeout)
         self.cog = cog_instance
         self.channel_id = channel_id
 
