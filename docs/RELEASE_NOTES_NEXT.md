@@ -23,8 +23,9 @@ Updating from v3.0 is a plain image update.
 - **Every container has an info display now**: uptime, restarts, health, the image's version and
   whether a newer image is in the registry (checked every six hours, never pulled) - and for a
   game server who is playing, with the game, its version and the port to connect to.
-- **Player joins can be announced** in a channel ("👋 Anna joined Valheim (2/10)"); off unless
-  you tick "Player joins" for the channel.
+- **Player joins can be announced** ("👋 Anna joined Valheim (2/10)"): you tick "Player joins"
+  for the channels where they appear, and switch them off for single game servers in the
+  container's info dialog (on by default).
 - **A dead game server is shown ⚠️, not green**: its container runs, but the game does not answer.
 
 ## Quieter, and more careful
@@ -34,7 +35,7 @@ Updating from v3.0 is a plain image update.
 - An admins.json or config.json that cannot be read is reported and left alone instead of being
   replaced by the next save.
 - A review before this release went through every part again and fixed well over a hundred
-  smaller defects, each with its own test. 8,348 tests pass.
+  smaller defects, each with its own test. 8,378 tests pass.
 
 ## Messages that tidy up after themselves
 
@@ -43,6 +44,12 @@ Updating from v3.0 is a plain image update.
   minutes after its action, a thank-you for a donation 24 hours, the notice of a new DDC version
   7 days. The scheduled donation reminder stays - and is no longer swept away when DDC cleans
   its channels at start.
+- **The overview stays where it is** while only such notices stand below it - no new post, no
+  jumping. When a person, another bot or a webhook writes under it, it moves to the bottom after
+  the channel's inactivity time, so nobody has to scroll for it.
+- **Private panels close after at most ten minutes unused** (the admin panel after five) and are
+  deleted reliably - with a fresh token after every press, and also when DDC restarts while one
+  is open.
 
 ## Good to know
 
@@ -51,5 +58,7 @@ Updating from v3.0 is a plain image update.
 - **An out-of-range query port is refused** when you save, with a message, instead of being kept.
 - **A container that never answers a player query is asked for 15 minutes and then left alone**,
   as intended; before, every such container was asked every minute for as long as it ran.
+- **A quieter log:** an empty mech is written down once when it runs dry and once when it has
+  power again, instead of two lines every 30 seconds; each join notice gets a line.
 
 Everything in detail: [docs/CHANGELOG.md](docs/CHANGELOG.md)
