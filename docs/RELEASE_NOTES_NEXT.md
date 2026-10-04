@@ -21,7 +21,7 @@ Updating from v3.0 is a plain image update.
 ## Who is playing, in the info display
 
 - **Every container has an info display now**: uptime, restarts, health, the image's version and
-  whether a newer image is in the registry (checked every six hours, never pulled) - and for a
+  whether a newer image is in the registry (checked every six hours, never pulled), and for a
   game server who is playing, with the game, its version and the port to connect to.
 - **Player joins can be announced** ("👋 Anna joined Valheim (2/10)"): you tick "Player joins"
   for the channels where they appear, and switch them off for single game servers in the
@@ -30,8 +30,14 @@ Updating from v3.0 is a plain image update.
 
 ## Quieter, and more careful
 
-- The web panel asks Docker once per refresh instead of once per container, and only while
-  somebody uses the panel.
+- **The web panel asks Docker once instead of once per container**, and only while somebody
+  uses it: on a host with 37 containers, 2 requests instead of 38 every 30 seconds, and none at
+  all once nobody has looked for five minutes.
+- **One beat for everything that asks Docker.** The status messages were edited by a loop of
+  their own beside the status loop, which fetched on its own when it found the data too old. Now
+  one loop fetches once per beat and feeds everything from it: the overviews, player counts, join
+  notices and the watchdog, which before saw only every second fetch. "Every minute" means every
+  minute again (it was every two), and "last update" is when DDC actually looked.
 - An admins.json or config.json that cannot be read is reported and left alone instead of being
   replaced by the next save.
 - A review before this release went through every part again and fixed well over a hundred
@@ -42,13 +48,13 @@ Updating from v3.0 is a plain image update.
 - **Every public message but the status and control overviews has a lifetime**, and keeps it
   over a restart of DDC: auto-action and watchdog notices 1 hour, a player warning until 15
   minutes after its action, a thank-you for a donation 24 hours, the notice of a new DDC version
-  7 days. The scheduled donation reminder stays - and is no longer swept away when DDC cleans
+  7 days. The scheduled donation reminder stays, and is no longer swept away when DDC cleans
   its channels at start.
-- **The overview stays where it is** while only such notices stand below it - no new post, no
+- **The overview stays where it is** while only such notices stand below it: no new post, no
   jumping. When a person, another bot or a webhook writes under it, it moves to the bottom after
   the channel's inactivity time, so nobody has to scroll for it.
 - **Private panels close after at most ten minutes unused** (the admin panel after five) and are
-  deleted reliably - with a fresh token after every press, and also when DDC restarts while one
+  deleted reliably, with a fresh token after every press, and also when DDC restarts while one
   is open.
 
 ## Good to know

@@ -14,16 +14,21 @@ Control your Docker containers directly from Discord! This application provides 
 
 **Updating from v3.0 is a plain image update.**
 
-- **A restart or stop can wait for an empty server** - "restart daily at 4, but only once nobody
-  plays, at the latest at 6" - with a warning to the players before it, in scheduled tasks and
+- **A restart or stop can wait for an empty server:** "restart daily at 4, but only once nobody
+  plays, at the latest at 6", with a warning to the players before it, in scheduled tasks and
   auto-actions alike. DDC wakes up for the warning time the admin set; if it could not warn in
   time, it warns and waits that long before acting.
 - **Every container has an info display**, with who is playing on a game server, its version,
   uptime, restarts and health, and whether a newer image is in the registry. Player joins can be
-  announced - you choose the channels, and per container which game servers.
+  announced: you choose the channels, and per container which game servers.
 - **A dead game server is not shown green:** a container that runs but whose game does not answer
   is drawn ⚠️.
-- **The web panel asks Docker once instead of once per container**, and only while it is used.
+- **The web panel asks Docker once instead of once per container**, and only while it is used:
+  on a host with 37 containers, 2 requests instead of 38 every 30 seconds, and none at all once
+  nobody has looked for five minutes.
+- **One beat for everything that asks Docker:** one loop fetches once per beat and feeds the
+  overviews, player counts, join notices and the watchdog from it, instead of a second loop that
+  fetched on its own. "Every minute" means every minute again.
 - **Every message but the status and control overviews has a lifetime**, kept over a restart:
   auto-action notices 1 hour, a join notice 30 minutes, a donation's thank-you 24 hours, an update
   notice 7 days. The overview stays where it is while only such notices stand below it, and moves
