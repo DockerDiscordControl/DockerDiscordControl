@@ -1676,5 +1676,7 @@
   "Thu": "木",
   "Fri": "金",
   "Sat": "土",
-  "Sun": "日"
+  "Sun": "日",
+  "web.server.query_joins_label": "プレイヤー参加を通知する",
+  "web.server.query_joins_help": "「プレイヤー参加」にチェックが入ったチャンネルに投稿され、30分後に消えます。"
 }

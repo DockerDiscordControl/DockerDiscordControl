@@ -1676,5 +1676,7 @@
   "Thu": "jue",
   "Fri": "vie",
   "Sat": "sáb",
-  "Sun": "dom"
+  "Sun": "dom",
+  "web.server.query_joins_label": "Anunciar entradas de jugadores",
+  "web.server.query_joins_help": "Se publica en los canales con «Entradas de jugadores» marcado y desaparece tras 30 minutos."
 }

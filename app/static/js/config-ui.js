@@ -416,6 +416,12 @@ function openContainerInfoModal(containerName) {
         const pv = queryPortInput.value;
         modalQueryPort.value = (pv && pv !== '0') ? pv : '';
     }
+    // Join notices: on unless the container has "0" (saved before the setting: empty, on)
+    const queryJoinsInput = document.querySelector(`input[name="query_joins_${containerName}"]`);
+    const modalQueryJoins = document.getElementById('modal-query-joins');
+    if (modalQueryJoins && queryJoinsInput) {
+        modalQueryJoins.checked = queryJoinsInput.value !== '0';
+    }
     if (modalQueryToken && queryTokenInput) {
         modalQueryToken.value = queryTokenInput.value || '';
     }
@@ -487,6 +493,9 @@ function saveContainerInfo() {
     // Empty port -> 0 (auto-detect)
     if (queryPortInput) queryPortInput.value = document.getElementById('modal-query-port')?.value || '0';
     if (queryTokenInput) queryTokenInput.value = document.getElementById('modal-query-token')?.value || '';
+    const queryJoinsInput = document.querySelector(`input[name="query_joins_${containerName}"]`);
+    const modalQueryJoins = document.getElementById('modal-query-joins');
+    if (queryJoinsInput && modalQueryJoins) queryJoinsInput.value = modalQueryJoins.checked ? '1' : '0';
 
     // Update button styling based on enabled state
     const infoButton = document.querySelector(`button.info-btn[data-container="${containerName}"]`);

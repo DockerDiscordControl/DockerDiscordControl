@@ -1676,5 +1676,7 @@
   "Thu": "Per",
   "Fri": "Cum",
   "Sat": "Cmt",
-  "Sun": "Paz"
+  "Sun": "Paz",
+  "web.server.query_joins_label": "Oyuncu katılımlarını duyur",
+  "web.server.query_joins_help": "“Oyuncu katılımları” işaretli kanallarda paylaşılır; 30 dakika sonra kaybolur."
 }

@@ -1676,5 +1676,7 @@
   "Thu": "jeu",
   "Fri": "ven",
   "Sat": "sam",
-  "Sun": "dim"
+  "Sun": "dim",
+  "web.server.query_joins_label": "Annoncer les arrivées de joueurs",
+  "web.server.query_joins_help": "Publié dans les canaux où « Arrivées de joueurs » est coché ; disparaît après 30 minutes."
 }

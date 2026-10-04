@@ -1676,5 +1676,7 @@
   "Thu": "čet",
   "Fri": "pet",
   "Sat": "sub",
-  "Sun": "ned"
+  "Sun": "ned",
+  "web.server.query_joins_label": "Najavi pridruživanja igrača",
+  "web.server.query_joins_help": "Objavljuje se u kanalima u kojima je označeno „Pridruživanja igrača” i nestaje nakon 30 minuta."
 }

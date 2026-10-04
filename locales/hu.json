@@ -1676,5 +1676,7 @@
   "Thu": "Cs",
   "Fri": "P",
   "Sat": "Szo",
-  "Sun": "V"
+  "Sun": "V",
+  "web.server.query_joins_label": "Csatlakozások bejelentése",
+  "web.server.query_joins_help": "Azokban a csatornákban jelenik meg, ahol a „Csatlakozások” be van jelölve, és 30 perc után eltűnik."
 }

@@ -1676,5 +1676,7 @@
   "Thu": "Kam",
   "Fri": "Jum",
   "Sat": "Sab",
-  "Sun": "Min"
+  "Sun": "Min",
+  "web.server.query_joins_label": "Umumkan pemain bergabung",
+  "web.server.query_joins_help": "Diposting di saluran yang mencentang “Pemain bergabung”; hilang setelah 30 menit."
 }

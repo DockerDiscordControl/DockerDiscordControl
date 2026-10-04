@@ -1676,5 +1676,7 @@
   "Thu": "do",
   "Fri": "vr",
   "Sat": "za",
-  "Sun": "zo"
+  "Sun": "zo",
+  "web.server.query_joins_label": "Spelers die binnenkomen melden",
+  "web.server.query_joins_help": "Verschijnt in de kanalen waar ‘Spelers die binnenkomen’ is aangevinkt en verdwijnt na 30 minuten."
 }

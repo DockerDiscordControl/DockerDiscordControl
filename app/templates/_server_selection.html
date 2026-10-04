@@ -136,6 +136,8 @@
                         <input type="hidden" name="query_host_{{ container.name }}" value="{{ server_config.get('query_host', '') }}">
                         <input type="hidden" name="query_port_{{ container.name }}" value="{{ server_config.get('query_port', 0) }}">
                         <input type="hidden" name="query_token_{{ container.name }}" value="{{ server_config.get('query_token', '') }}">
+                        {# Join notices for this container (operator, 2026-10-04); on unless switched off #}
+                        <input type="hidden" name="query_joins_{{ container.name }}" value="{{ '1' if server_config.get('announce_joins', True) else '0' }}">
                         {# Hidden inputs for container info configuration.
                            info_version carries the version of the info block THIS page
                            was rendered with. The save compares it and leaves a container
@@ -358,6 +360,12 @@
                             <label for="modal-query-token" class="form-label"><i class="bi bi-key"></i> <span id="modal-query-token-label">{{ _t('web.server.query_token_label') }}</span></label>
                             <input type="text" class="form-control" id="modal-query-token" data-saves-itself="true" maxlength="1024" placeholder="{{ _t('web.server.query_token_placeholder') }}" autocomplete="off">
                             <div class="form-text" id="modal-query-token-help">{{ _t('web.server.query_token_help') }}</div>
+                        </div>
+                        {# Join notices per container; WHERE they appear is the channel's "Player joins" box #}
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="modal-query-joins" data-saves-itself="true">
+                            <label class="form-check-label" for="modal-query-joins">{{ _t('web.server.query_joins_label') }}</label>
+                            <div class="form-text">{{ _t('web.server.query_joins_help') }}</div>
                         </div>
                         {# Manual re-test: probe 3x (60s apart) to unlock the checkbox if the server answers #}
                         <div class="mt-2 d-flex align-items-center flex-wrap gap-2">

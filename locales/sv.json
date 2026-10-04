@@ -1676,5 +1676,7 @@
   "Thu": "tor",
   "Fri": "fre",
   "Sat": "lör",
-  "Sun": "sön"
+  "Sun": "sön",
+  "web.server.query_joins_label": "Meddela spelare som ansluter",
+  "web.server.query_joins_help": "Publiceras i kanalerna där ”Spelare som ansluter” är ikryssat och försvinner efter 30 minuter."
 }

@@ -1676,5 +1676,7 @@
   "Thu": "N",
   "Fri": "R",
   "Sat": "L",
-  "Sun": "P"
+  "Sun": "P",
+  "web.server.query_joins_label": "Teata mängijate liitumisest",
+  "web.server.query_joins_help": "Postitatakse kanalitesse, kus „Mängijate liitumised“ on märgitud, ja kaob 30 minuti pärast."
 }

@@ -1676,5 +1676,7 @@
   "Thu": "to",
   "Fri": "pe",
   "Sat": "la",
-  "Sun": "su"
+  "Sun": "su",
+  "web.server.query_joins_label": "Ilmoita liittyvistä pelaajista",
+  "web.server.query_joins_help": "Julkaistaan kanavilla, joissa ”Liittyvät pelaajat” on valittuna, ja katoaa 30 minuutin kuluttua."
 }

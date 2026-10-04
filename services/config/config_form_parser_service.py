@@ -187,6 +187,9 @@ class ConfigFormParserService:
                 query_port=form_data.get(f'query_port_{container_name}', 0),
                 query_token=form_data.get(f'query_token_{container_name}', ''),
             )
+            # Join notices for this container (operator, 2026-10-04): "0" switches them
+            # off; no field (a page from before the setting) leaves them on
+            query_config['announce_joins'] = str(form_data.get(f'query_joins_{container_name}', '1')) != '0'
 
             servers.append({
                 'docker_name': container_name,
@@ -327,6 +330,7 @@ class ConfigFormParserService:
         'order_', 'status_channel_', 'control_channel_', 'status_', 'control_',
         'old_status_channel_', 'old_control_channel_',
         'query_enabled_', 'query_protocol_', 'query_host_', 'query_port_', 'query_token_',
+        'query_joins_',
         'env_',  # advanced settings -> folded into config['advanced_settings'] separately
         'info_',  # container info (incl. info_protected_password_*) -> config/containers/*.json
     )

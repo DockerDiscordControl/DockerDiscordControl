@@ -1676,5 +1676,7 @@
   "Thu": "tor",
   "Fri": "fre",
   "Sat": "lør",
-  "Sun": "søn"
+  "Sun": "søn",
+  "web.server.query_joins_label": "Meld spillere der kommer",
+  "web.server.query_joins_help": "Vises i kanalerne, hvor “Spillere der kommer” er markeret, og forsvinder efter 30 minutter."
 }

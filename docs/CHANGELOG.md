@@ -486,6 +486,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
   before it is swept away; only the notice goes.
 - An empty mech is written to the log once when it runs dry and once when it has power again,
   instead of two lines every 30 seconds.
+- Join notices can be switched per container: the container's info dialog in the web panel has a
+  "announce player joins" box (on by default); the channel's "Player joins" box still decides
+  where they appear.
 
 ### 🐛 The mech's picture and gift, the update notice
 

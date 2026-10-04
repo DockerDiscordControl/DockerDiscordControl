@@ -1676,5 +1676,7 @@
   "Thu": "Čt",
   "Fri": "Pá",
   "Sat": "So",
-  "Sun": "Ne"
+  "Sun": "Ne",
+  "web.server.query_joins_label": "Oznamovat připojení hráčů",
+  "web.server.query_joins_help": "Zobrazí se v kanálech se zaškrtnutým „Připojení hráčů“ a po 30 minutách zmizí."
 }

@@ -1676,5 +1676,7 @@
   "Thu": "Kha",
   "Fri": "Jum",
   "Sat": "Sab",
-  "Sun": "Ahd"
+  "Sun": "Ahd",
+  "web.server.query_joins_label": "Umumkan pemain menyertai",
+  "web.server.query_joins_help": "Disiarkan dalam saluran yang menandakan “Pemain menyertai”; hilang selepas 30 minit."
 }

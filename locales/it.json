@@ -1676,5 +1676,7 @@
   "Thu": "gio",
   "Fri": "ven",
   "Sat": "sab",
-  "Sun": "dom"
+  "Sun": "dom",
+  "web.server.query_joins_label": "Annuncia ingressi giocatori",
+  "web.server.query_joins_help": "Pubblicato nei canali in cui è spuntato «Ingressi giocatori»; scompare dopo 30 minuti."
 }

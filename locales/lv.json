@@ -1676,5 +1676,7 @@
   "Thu": "C",
   "Fri": "Pk",
   "Sat": "S",
-  "Sun": "Sv"
+  "Sun": "Sv",
+  "web.server.query_joins_label": "Paziņot par spēlētāju pievienošanos",
+  "web.server.query_joins_help": "Tiek publicēts kanālos, kur atzīmēts “Spēlētāju pievienošanās”, un pazūd pēc 30 minūtēm."
 }

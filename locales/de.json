@@ -1676,5 +1676,7 @@
   "Thu": "Do",
   "Fri": "Fr",
   "Sat": "Sa",
-  "Sun": "So"
+  "Sun": "So",
+  "web.server.query_joins_label": "Beitritte dieses Servers melden",
+  "web.server.query_joins_help": "Erscheint in den Kanälen, in denen „Beitritte“ angehakt ist, und verschwindet nach 30 Minuten."
 }

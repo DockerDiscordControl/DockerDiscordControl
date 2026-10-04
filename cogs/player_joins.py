@@ -106,7 +106,9 @@ class JoinWatcher:
         notices = []
         for name, count in counts.items():
             server = servers.get(name) or {}
-            if not server.get('query_enabled') or count is None:
+            # Switched off for this container in its info dialog (operator, 2026-10-04);
+            # a container saved before the setting is announced
+            if not server.get('query_enabled') or count is None or not server.get('announce_joins', True):
                 continue
             before = self.known.get(name)
             players = None

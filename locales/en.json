@@ -1676,5 +1676,7 @@
   "Thu": "Thu",
   "Fri": "Fri",
   "Sat": "Sat",
-  "Sun": "Sun"
+  "Sun": "Sun",
+  "web.server.query_joins_label": "Announce player joins",
+  "web.server.query_joins_help": "Posted in the channels where “Player joins” is ticked; it disappears after 30 minutes."
 }

@@ -1676,5 +1676,7 @@
   "Thu": "T5",
   "Fri": "T6",
   "Sat": "T7",
-  "Sun": "CN"
+  "Sun": "CN",
+  "web.server.query_joins_label": "Thông báo người chơi tham gia",
+  "web.server.query_joins_help": "Được đăng trong các kênh có đánh dấu “Người chơi tham gia”; biến mất sau 30 phút."
 }

@@ -1676,5 +1676,7 @@
   "Thu": "czw",
   "Fri": "pt",
   "Sat": "sob",
-  "Sun": "niedz"
+  "Sun": "niedz",
+  "web.server.query_joins_label": "Ogłaszaj dołączenia graczy",
+  "web.server.query_joins_help": "Publikowane na kanałach z zaznaczonym „Dołączenia graczy”; znika po 30 minutach."
 }
