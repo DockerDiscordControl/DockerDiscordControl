@@ -31,4 +31,4 @@ async def test_the_footer_names_the_missing_mech(cog_with_a_broken_mech):  # noq
     footer = embed.footer.text if embed.footer else ""
     assert footer != "https://ddc.bot" and "unavailable" in footer.lower(), (
         f"the mech section vanished without a word: {footer!r}")
-    assert footer.endswith("https://ddc.bot")
+    assert footer.split()[-1] == "https://ddc.bot"
