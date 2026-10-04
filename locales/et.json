@@ -1678,5 +1678,6 @@
   "Sat": "L",
   "Sun": "P",
   "web.server.query_joins_label": "Teata mängijate liitumisest",
-  "web.server.query_joins_help": "Postitatakse kanalitesse, kus „Mängijate liitumised“ on märgitud, ja kaob 30 minuti pärast."
+  "web.server.query_joins_help": "Postitatakse kanalitesse, kus „Mängijate liitumised“ on märgitud, ja kaob 30 minuti pärast.",
+  "web.server.query_token_missing": "Mängijate arvu jaoks on veel puudu: {field}"
 }

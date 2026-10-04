@@ -1678,5 +1678,6 @@
   "Sat": "T7",
   "Sun": "CN",
   "web.server.query_joins_label": "Thông báo người chơi tham gia",
-  "web.server.query_joins_help": "Được đăng trong các kênh có đánh dấu “Người chơi tham gia”; biến mất sau 30 phút."
+  "web.server.query_joins_help": "Được đăng trong các kênh có đánh dấu “Người chơi tham gia”; biến mất sau 30 phút.",
+  "web.server.query_token_missing": "Số người chơi vẫn cần: {field}"
 }

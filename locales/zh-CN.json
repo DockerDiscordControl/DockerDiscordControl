@@ -1678,5 +1678,6 @@
   "Sat": "周六",
   "Sun": "周日",
   "web.server.query_joins_label": "通知玩家加入",
-  "web.server.query_joins_help": "发布在勾选了“玩家加入”的频道中，30 分钟后消失。"
+  "web.server.query_joins_help": "发布在勾选了“玩家加入”的频道中，30 分钟后消失。",
+  "web.server.query_token_missing": "玩家人数还需要：{field}"
 }

@@ -1678,5 +1678,6 @@
   "Sat": "lør",
   "Sun": "søn",
   "web.server.query_joins_label": "Meld spillere som blir med",
-  "web.server.query_joins_help": "Vises i kanalene der «Spillere som blir med» er krysset av, og forsvinner etter 30 minutter."
+  "web.server.query_joins_help": "Vises i kanalene der «Spillere som blir med» er krysset av, og forsvinner etter 30 minutter.",
+  "web.server.query_token_missing": "Spillertallet mangler fortsatt: {field}"
 }

@@ -1678,5 +1678,6 @@
   "Sat": "sub",
   "Sun": "ned",
   "web.server.query_joins_label": "Najavi pridruživanja igrača",
-  "web.server.query_joins_help": "Objavljuje se u kanalima u kojima je označeno „Pridruživanja igrača” i nestaje nakon 30 minuta."
+  "web.server.query_joins_help": "Objavljuje se u kanalima u kojima je označeno „Pridruživanja igrača” i nestaje nakon 30 minuta.",
+  "web.server.query_token_missing": "Za broj igrača još nedostaje: {field}"
 }

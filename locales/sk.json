@@ -1678,5 +1678,6 @@
   "Sat": "So",
   "Sun": "Ne",
   "web.server.query_joins_label": "Oznamovať pripojenia hráčov",
-  "web.server.query_joins_help": "Zobrazí sa v kanáloch so začiarknutým „Pripojenia hráčov“ a po 30 minútach zmizne."
+  "web.server.query_joins_help": "Zobrazí sa v kanáloch so začiarknutým „Pripojenia hráčov“ a po 30 minútach zmizne.",
+  "web.server.query_token_missing": "Pre počet hráčov ešte chýba: {field}"
 }

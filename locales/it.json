@@ -1678,5 +1678,6 @@
   "Sat": "sab",
   "Sun": "dom",
   "web.server.query_joins_label": "Annuncia ingressi giocatori",
-  "web.server.query_joins_help": "Pubblicato nei canali in cui è spuntato «Ingressi giocatori»; scompare dopo 30 minuti."
+  "web.server.query_joins_help": "Pubblicato nei canali in cui è spuntato «Ingressi giocatori»; scompare dopo 30 minuti.",
+  "web.server.query_token_missing": "Per il numero di giocatori manca ancora: {field}"
 }

@@ -1678,5 +1678,6 @@
   "Sat": "ש׳",
   "Sun": "א׳",
   "web.server.query_joins_label": "הכרזה על הצטרפות שחקנים",
-  "web.server.query_joins_help": "מתפרסם בערוצים שבהם „הצטרפות שחקנים” מסומן, ונעלם אחרי 30 דקות."
+  "web.server.query_joins_help": "מתפרסם בערוצים שבהם „הצטרפות שחקנים” מסומן, ונעלם אחרי 30 דקות.",
+  "web.server.query_token_missing": "למספר השחקנים עדיין חסר: {field}"
 }

@@ -130,6 +130,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const queryProtocolSelect = document.getElementById('modal-query-protocol');
     if (queryProtocolSelect) {
         queryProtocolSelect.addEventListener('change', updateQueryTokenVisibility);
+        queryProtocolSelect.addEventListener('change', updateTokenNeededMark);
+    }
+    const queryTokenField = document.getElementById('modal-query-token');
+    if (queryTokenField) {
+        queryTokenField.addEventListener('input', updateTokenNeededMark);
     }
 
     // Manual game-query re-test button (3 tries, 60s apart)
@@ -211,6 +216,28 @@ function updateQueryTokenVisibility() {
         const helpEl = document.getElementById('modal-query-token-help');
         if (lblEl && lbl) lblEl.textContent = lbl;
         if (helpEl && help) helpEl.textContent = help;
+    }
+}
+
+// The glowing Info button says "configuration required"; the dialog says what:
+// a hint at its top naming the field, and the field glowing like the button.
+// Same condition as updateInfoGlow, read from the dialog's own fields so typing
+// a token or choosing another protocol clears it at once (operator, 2026-10-04).
+function updateTokenNeededMark() {
+    const name = document.getElementById('modal-container-name')?.value;
+    const hint = document.getElementById('modal-query-needs-config');
+    const field = document.getElementById('modal-query-token');
+    if (!name || !hint || !field) return;
+    const enabledCb = document.querySelector('.query-enabled-checkbox[data-container="' + name + '"]');
+    const proto = document.getElementById('modal-query-protocol')?.value || 'source';
+    const needed = !!(enabledCb && enabledCb.checked) && QUERY_TOKEN_PROTOCOLS.includes(proto)
+        && !(field.value || '').trim();
+    hint.style.display = needed ? 'block' : 'none';
+    field.classList.toggle('query-token-needs-config', needed);
+    const text = document.getElementById('modal-query-needs-config-text');
+    if (needed && text) {
+        const label = document.getElementById('modal-query-token-label')?.textContent || '';
+        text.textContent = (text.dataset.template || '').replace('{field}', label);
     }
 }
 
@@ -427,6 +454,7 @@ function openContainerInfoModal(containerName) {
     }
     // The token field is only relevant for token protocols (Satisfactory)
     updateQueryTokenVisibility();
+    updateTokenNeededMark();
     // Clear any leftover re-test status/spinner from a previously opened container
     resetQueryRetestUI();
 

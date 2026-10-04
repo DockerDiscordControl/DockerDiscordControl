@@ -1678,5 +1678,6 @@
   "Sat": "토",
   "Sun": "일",
   "web.server.query_joins_label": "플레이어 접속 알림",
-  "web.server.query_joins_help": "“플레이어 접속”이(가) 체크된 채널에 게시되며 30분 후 사라집니다."
+  "web.server.query_joins_help": "“플레이어 접속”이(가) 체크된 채널에 게시되며 30분 후 사라집니다.",
+  "web.server.query_token_missing": "플레이어 수에 아직 필요합니다: {field}"
 }

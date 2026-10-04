@@ -1678,5 +1678,6 @@
   "Sat": "Sab",
   "Sun": "Ahd",
   "web.server.query_joins_label": "Umumkan pemain menyertai",
-  "web.server.query_joins_help": "Disiarkan dalam saluran yang menandakan “Pemain menyertai”; hilang selepas 30 minit."
+  "web.server.query_joins_help": "Disiarkan dalam saluran yang menandakan “Pemain menyertai”; hilang selepas 30 minit.",
+  "web.server.query_token_missing": "Bilangan pemain masih memerlukan: {field}"
 }

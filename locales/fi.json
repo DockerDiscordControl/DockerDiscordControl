@@ -1678,5 +1678,6 @@
   "Sat": "la",
   "Sun": "su",
   "web.server.query_joins_label": "Ilmoita liittyvistä pelaajista",
-  "web.server.query_joins_help": "Julkaistaan kanavilla, joissa ”Liittyvät pelaajat” on valittuna, ja katoaa 30 minuutin kuluttua."
+  "web.server.query_joins_help": "Julkaistaan kanavilla, joissa ”Liittyvät pelaajat” on valittuna, ja katoaa 30 minuutin kuluttua.",
+  "web.server.query_token_missing": "Pelaajamäärä tarvitsee vielä: {field}"
 }

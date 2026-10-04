@@ -267,6 +267,12 @@
                    The FIELDS must stay here: saveConfigAjax collects #config-form. #}
                 <div id="containerInfoForm">
                     <input type="hidden" id="modal-container-name" name="container_name">
+                    {# What the glowing Info button asks for, said where the dialog opens; the
+                       field itself glows too (operator, 2026-10-04). Shown by config-ui.js. #}
+                    <div class="alert alert-warning py-2 mb-3" id="modal-query-needs-config" style="display:none;" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <span id="modal-query-needs-config-text" data-template="{{ _t('web.server.query_token_missing') }}"></span>
+                    </div>
 
                     {# IP and Port Settings - Top Row #}
                     <div class="row mb-3">
@@ -427,6 +433,11 @@
    (e.g. a token protocol like Satisfactory is selected but no token has been entered) */
 .info-btn-needs-config {
     color: #ffc107 !important;
+    border-color: #ffc107 !important;
+    animation: ddcConfigGlow 1.6s ease-in-out infinite;
+}
+/* The field the glowing Info button asks for, inside the dialog */
+.query-token-needs-config {
     border-color: #ffc107 !important;
     animation: ddcConfigGlow 1.6s ease-in-out infinite;
 }

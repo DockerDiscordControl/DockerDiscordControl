@@ -1678,5 +1678,6 @@
   "Sat": "Št",
   "Sun": "Sk",
   "web.server.query_joins_label": "Pranešti apie žaidėjų prisijungimus",
-  "web.server.query_joins_help": "Skelbiama kanaluose, kuriuose pažymėta „Žaidėjų prisijungimai“, ir dingsta po 30 minučių."
+  "web.server.query_joins_help": "Skelbiama kanaluose, kuriuose pažymėta „Žaidėjų prisijungimai“, ir dingsta po 30 minučių.",
+  "web.server.query_token_missing": "Žaidėjų skaičiui dar trūksta: {field}"
 }

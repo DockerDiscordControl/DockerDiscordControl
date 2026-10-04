@@ -1678,5 +1678,6 @@
   "Sat": "sob",
   "Sun": "niedz",
   "web.server.query_joins_label": "Ogłaszaj dołączenia graczy",
-  "web.server.query_joins_help": "Publikowane na kanałach z zaznaczonym „Dołączenia graczy”; znika po 30 minutach."
+  "web.server.query_joins_help": "Publikowane na kanałach z zaznaczonym „Dołączenia graczy”; znika po 30 minutach.",
+  "web.server.query_token_missing": "Do liczby graczy brakuje jeszcze: {field}"
 }

@@ -1678,5 +1678,6 @@
   "Sat": "lør",
   "Sun": "søn",
   "web.server.query_joins_label": "Meld spillere der kommer",
-  "web.server.query_joins_help": "Vises i kanalerne, hvor “Spillere der kommer” er markeret, og forsvinder efter 30 minutter."
+  "web.server.query_joins_help": "Vises i kanalerne, hvor “Spillere der kommer” er markeret, og forsvinder efter 30 minutter.",
+  "web.server.query_token_missing": "Spillertallet mangler stadig: {field}"
 }

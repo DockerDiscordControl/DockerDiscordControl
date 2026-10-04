@@ -489,6 +489,9 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - Join notices can be switched per container: the container's info dialog in the web panel has a
   "announce player joins" box (on by default); the channel's "Player joins" box still decides
   where they appear.
+- When the Info button of a container glows because its player count needs a token (Satisfactory,
+  Palworld), the dialog now says so at its top and the token field glows as well; typing the token
+  clears both.
 
 ### 🐛 The mech's picture and gift, the update notice
 

@@ -1678,5 +1678,6 @@
   "Sat": "Cmt",
   "Sun": "Paz",
   "web.server.query_joins_label": "Oyuncu katılımlarını duyur",
-  "web.server.query_joins_help": "“Oyuncu katılımları” işaretli kanallarda paylaşılır; 30 dakika sonra kaybolur."
+  "web.server.query_joins_help": "“Oyuncu katılımları” işaretli kanallarda paylaşılır; 30 dakika sonra kaybolur.",
+  "web.server.query_token_missing": "Oyuncu sayısı için hâlâ eksik: {field}"
 }

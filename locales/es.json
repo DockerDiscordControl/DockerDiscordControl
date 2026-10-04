@@ -1678,5 +1678,6 @@
   "Sat": "sáb",
   "Sun": "dom",
   "web.server.query_joins_label": "Anunciar entradas de jugadores",
-  "web.server.query_joins_help": "Se publica en los canales con «Entradas de jugadores» marcado y desaparece tras 30 minutos."
+  "web.server.query_joins_help": "Se publica en los canales con «Entradas de jugadores» marcado y desaparece tras 30 minutos.",
+  "web.server.query_token_missing": "Para el número de jugadores aún falta: {field}"
 }
