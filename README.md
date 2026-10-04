@@ -10,7 +10,7 @@ Control your Docker containers directly from Discord! This application provides 
 
 ## 🆕 Latest Updates
 
-### ✅ **v3.1.0 (2026-09-30) - Only when nobody plays, and who is playing**
+### ✅ **v3.1.0 (2026-10-05) - Only when nobody plays, and who is playing**
 
 **Updating from v3.0 is a plain image update.**
 
