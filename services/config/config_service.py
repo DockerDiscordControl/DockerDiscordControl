@@ -477,10 +477,10 @@ class ConfigService:
                 except ConfigUnreadableForWrite as merge_err:
                     logger.error(f"Not saving: {merge_err}")
                     return ConfigServiceResult(success=False, message=str(merge_err))
-                for field in _critical_fields:
-                    if field in existing and existing[field] and field not in main_config:
-                        main_config[field] = existing[field]
-                        logger.info(f"Preserved critical field '{field}' from existing config")
+                preserved = [f for f in _critical_fields if existing.get(f) and f not in main_config]
+                main_config.update({f: existing[f] for f in preserved})
+                if preserved:  # a count, not the names: they include the password hash (CodeQL #91)
+                    logger.info(f"Preserved {len(preserved)} critical field(s) from existing config")
 
                 # === Token Self-Repair ===
                 # Before the decrypted copy is dropped for good: if the stored token does not
