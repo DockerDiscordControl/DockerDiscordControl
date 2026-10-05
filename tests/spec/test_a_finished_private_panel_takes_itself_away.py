@@ -28,10 +28,10 @@ the base class asks the message itself whether it is private, with the same
 flags check the admin-panel detection uses, and a public message is left alone
 whatever its timeout says.
 
-DELIBERATELY NOT CHANGED: DonationView and ContainerInfoAdminView already
-define on_timeout and keep it. LiveLogView kept one too, greying its buttons
-out, until 2026-10-05; it now stops its live update and goes through this one
-(tests/spec/test_the_live_log_panel_goes_after_its_timeout.py).
+DELIBERATELY NOT CHANGED: DonationView already defines on_timeout and keeps
+it. ContainerInfoAdminView and LiveLogView kept one too until 2026-10-05; both
+now go through this one (tests/spec/test_a_used_info_panel_goes_too.py,
+tests/spec/test_the_live_log_panel_goes_after_its_timeout.py).
 
 HOW THIS TEST CAN FAIL: a private panel outliving its own view, or - far worse
 - a public one being deleted by a timeout.

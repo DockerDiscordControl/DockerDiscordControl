@@ -116,7 +116,7 @@ cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
 cogs/background_loops.py	879	v3rev:1-652
 cogs/channel_lifecycle.py	650	v3rev2:1-646
 cogs/control_helpers.py	426	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
-cogs/control_ui.py	1449	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
+cogs/control_ui.py	1445	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
 cogs/ddc_ui.py	375	passE:written-2026-09-21
 cogs/docker_control.py	1265	passE:read-in-full-2026-09-21:loops,embeds,modals,init,commands
 cogs/donation_ui.py	744	NONE
@@ -132,7 +132,7 @@ cogs/player_joins.py	168	new 2026-09-28 (v3.1.0 join announcements), written wit
 cogs/slash_commands.py	852	NONE
 cogs/stack_restart.py	333	v3rev:1-196
 cogs/status_handlers.py	1127	passE:E15,E16:80-200,560-700 v3rev2:1-1400
-cogs/status_info_integration.py	1096	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
+cogs/status_info_integration.py	1063	passE:buttons+loops+bothscans:32-76,159-225,291-560,1028-1089,2030-2203 v3rev2:1-1261
 cogs/task_ui.py	1271	NONE
 cogs/task_player_options.py	139	new 2026-09-28 (v3.1.0 player options), written with its tests
 cogs/translation_manager.py	149	passE:E30:read-in-full

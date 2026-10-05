@@ -886,9 +886,7 @@ class InfoButton(Button):
                     # Add admin buttons for editing
                     admin_view = ContainerInfoAdminView(self.cog, self.server_config, empty_info_config)
                     message = await interaction.followup.send(embed=embed, view=admin_view, ephemeral=True)
-                    # Update view with message reference and start auto-delete timer
                     admin_view.message = message
-                    admin_view.auto_delete_task = asyncio.create_task(admin_view.start_auto_delete_timer())
                     return
                 # Without control the display opens all the same: restarts, health, players (v3.1.0)
 
@@ -914,9 +912,7 @@ class InfoButton(Button):
                 logger.info(f"InfoButton (ControlView) created admin view for {docker_name} in control channel {channel_id}")
 
                 message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-                # Update view with message reference and start auto-delete timer
                 view.message = message
-                view.auto_delete_task = asyncio.create_task(view.start_auto_delete_timer())
             else:
                 logger.warning(f"InfoButton (ControlView) no control permission for {docker_name} in channel {channel_id}")
                 await interaction.followup.send(embed=embed, ephemeral=True)

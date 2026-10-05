@@ -197,10 +197,15 @@ def _panel_zone():
 class ContainerInfoAdminView(PrivateView):
     """
     Admin view for container info with Edit and Debug buttons (control channels only).
+
+    IT ENDS LIKE EVERY PRIVATE PANEL (DDCView.on_timeout). Until 2026-10-05 it
+    kept an on_timeout and an 885-second timer of its own, both deleting
+    ``self.message``; after the first press py-cord sets that to the plain
+    message, whose delete() is the channel route - a 404 for an ephemeral
+    message - so a used info panel stayed until dismissed by hand.
     """
 
     def __init__(self, cog_instance, server_config: Dict[str, Any], info_config: Dict[str, Any], message=None):
-        # Set timeout to maximum (just under Discord's 15-minute limit)
         # Ten minutes without use: 890 s left no room once a press had started
         # the timeout again (2026-10-02)
         super().__init__(timeout=MAX_PRIVATE_SECONDS)
@@ -208,8 +213,8 @@ class ContainerInfoAdminView(PrivateView):
         self.server_config = server_config
         self.info_config = info_config
         self.container_name = server_config.get('docker_name')
-        self.message = message  # Store reference to the message for auto-delete
-        self.auto_delete_task = None
+        if message is not None:
+            self.message = message
 
         # Add Edit Info button
         self.add_item(EditInfoButton(cog_instance, server_config, info_config))
@@ -222,44 +227,6 @@ class ContainerInfoAdminView(PrivateView):
 
         # Add Debug button
         self.add_item(DebugLogsButton(cog_instance, server_config))
-
-    async def on_timeout(self):
-        """Called when the view times out."""
-        try:
-            # Cancel auto-delete task if it exists
-            if self.auto_delete_task and not self.auto_delete_task.done():
-                self.auto_delete_task.cancel()
-
-            # Delete the message when timeout occurs
-            if self.message:
-                logger.info("ContainerInfoAdminView timeout reached, deleting message to prevent inactive buttons")
-                try:
-                    await self.message.delete()
-                except discord.NotFound:
-                    logger.debug("Message already deleted")
-                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-                    logger.error(f"Error deleting info message on timeout: {e}", exc_info=True)
-        except (RuntimeError, ValueError, KeyError) as e:
-            logger.error(f"Error in ContainerInfoAdminView.on_timeout: {e}", exc_info=True)
-
-    async def start_auto_delete_timer(self):
-        """Start the auto-delete timer that runs shortly before timeout."""
-        try:
-            # Wait for 885 seconds (14.75 minutes), then delete message
-            # This gives us a 5-second buffer before Discord's timeout
-            await asyncio.sleep(885)
-            if self.message:
-                logger.info("Auto-deleting info message before Discord timeout")
-                try:
-                    await self.message.delete()
-                except discord.NotFound:
-                    logger.debug("Message already deleted")
-                except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-                    logger.error(f"Error auto-deleting info message: {e}", exc_info=True)
-        except asyncio.CancelledError:
-            logger.debug("Auto-delete timer cancelled")
-        except (RuntimeError, ValueError, KeyError) as e:
-            logger.error(f"Error in auto-delete timer: {e}", exc_info=True)
 
 
 class ProtectedInfoEditButton(discord.ui.Button):
