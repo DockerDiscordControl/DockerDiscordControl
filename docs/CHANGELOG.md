@@ -6,6 +6,23 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ## v3.1.1 - not yet released
 
+### 💤 Stop a game server nobody plays on
+
+- **A new watchdog state: "a game server nobody plays on".** In the auto-action editor, tick it,
+  set "nobody online for (minutes)" (5 to 1440, 30 by default), tick the game servers it watches
+  and choose Stop or Notify: "stop Valheim when nobody was online for 30 minutes". It saves RAM and
+  CPU on servers that run empty all night.
+- A server is reported once per empty stretch. Its minutes start again when somebody plays, when
+  it was down, and when it was started or restarted, by hand, by a task or by DDC, so a freshly
+  started server always gets the full time.
+- **A player count that cannot be read counts as empty.** The editor says so when you save a rule
+  for a server whose count DDC cannot read (it would be stopped that many minutes after every
+  start), and it warns when the rule's cooldown is longer than the minutes (each server could then
+  be stopped only once in that time).
+- The rule has to name its game servers: "none ticked = all" would stop every container that has
+  no players because it is not a game server. Only Stop and Notify are offered; a restart would
+  bring the same empty server back.
+
 ### 📋 The live-log panel, gone over
 
 The 📋 button in a container's info panel (control channels) opens its latest log lines, only for
