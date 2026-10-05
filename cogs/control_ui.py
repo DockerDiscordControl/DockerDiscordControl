@@ -58,7 +58,7 @@ def _clear_caches():
     _box_element_cache.clear()
     _container_static_data.clear()
     _view_template_cache.clear()
-    logger.info("All performance caches cleared")
+    logger.debug("All performance caches cleared")
 
 # =============================================================================
 # BOX ELEMENT CACHING

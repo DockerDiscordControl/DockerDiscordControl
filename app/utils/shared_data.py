@@ -74,9 +74,9 @@ def load_active_containers_from_config():
                 if container_name:
                     if is_active:
                         containers.append(container_name)
-                        logger.info(f"Loaded ACTIVE container '{container_name}' from {config_file.name}")
+                        logger.debug(f"Loaded ACTIVE container '{container_name}' from {config_file.name}")
                     else:
-                        logger.info(f"Skipped INACTIVE container '{container_name}' from {config_file.name}")
+                        logger.debug(f"Skipped INACTIVE container '{container_name}' from {config_file.name}")
                 else:
                     logger.warning(f"No container_name found in {config_file.name}")
 

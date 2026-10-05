@@ -538,7 +538,7 @@ class OverviewEmbedsMixin:
                     raise RuntimeError(f"Failed to get cached mech status for animation: {mech_cache_result.error_message}")
 
                 current_Power = mech_cache_result.power
-                logger.info(f"CACHE (collapsed): Using cached power data: {current_Power} (age: {mech_cache_result.cache_age_seconds:.1f}s)")
+                logger.debug(f"CACHE (collapsed): Using cached power data: {current_Power} (age: {mech_cache_result.cache_age_seconds:.1f}s)")
 
                 # Create mech animation with fallback
                 try:

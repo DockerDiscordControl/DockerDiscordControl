@@ -35,7 +35,7 @@ def _get_cached_mech_state(include_decimals=False):
         cache_result = cache_service.get_cached_status(cache_request)
 
         if cache_result.success:
-            current_app.logger.info(f"WEB UI: Using cached mech status (age: {cache_result.cache_age_seconds:.1f}s)")
+            current_app.logger.debug(f"WEB UI: Using cached mech status (age: {cache_result.cache_age_seconds:.1f}s)")
             # Create compatibility object from cache
             class CachedStateCompat:
                 def __init__(self, cache_result):

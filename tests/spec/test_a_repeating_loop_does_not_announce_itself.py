@@ -224,7 +224,9 @@ def test_per_cycle_code_reports_results_at_info_not_plans():
     says what came of it - "Docker cache updated with 37 containers",
     "Fast adaptive fetch completed in 80.5ms: 7/7", "Periodic message update
     finished. Total tasks: 2. Success: 2". That closing line is the one worth
-    having, and it stays.
+    having, and it stays - at INFO since 2026-10-05 only when the cycle failed
+    or found something (operator: "these routine lines to DEBUG"; see
+    tests/spec/test_a_quiet_beat_writes_nothing_at_info.py).
 
     The verb is the test because the verb is the decision: "Starting",
     "Attempting", "Processing" describe something that has not happened yet

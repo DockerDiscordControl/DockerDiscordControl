@@ -63,7 +63,7 @@ class DonationStatusService:
                     error="Failed to get mech state from cache"
                 )
 
-            self.logger.info(f"WEB UI: Using cached mech status (age: {mech_cache_result.cache_age_seconds:.1f}s)")
+            self.logger.debug(f"WEB UI: Using cached mech status (age: {mech_cache_result.cache_age_seconds:.1f}s)")
 
             # Step 3: Get speed information using cached data
             speed_info = self._calculate_speed_information(

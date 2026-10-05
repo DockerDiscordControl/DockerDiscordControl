@@ -308,7 +308,10 @@ class BackgroundLoopsMixin:
                 failed_names.update(n for n in container_names if n not in results)
                 self._mark_status_cache_refreshed(failed_names)
                 duration_ms = (time.time() - start_time) * 1000
-                logger.info(f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
+                # Every beat, so INFO only when something failed: a quiet beat wrote this
+                # and five more routine lines every minute (2026-10-05)
+                logger.log(logging.INFO if error_count else logging.DEBUG,
+                           f"[STATUS_LOOP] Cache updated: {success_count} success, {error_count} errors in {duration_ms:.1f}ms")
 
             await self._feed_container_watchdog(results, config)
 

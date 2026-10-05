@@ -387,7 +387,7 @@ class StatusHandlersMixin:
             logger.info(f"[INTELLIGENT_BULK_FETCH] Completed adaptive fetch in {total_elapsed:.1f}ms: "
                        f"{successful_fetches}/{len(container_names)} successful ({success_rate:.1f}%)")
         else:
-            logger.info(f"[INTELLIGENT_BULK_FETCH] Fast adaptive fetch completed in {total_elapsed:.1f}ms: "
+            logger.debug(f"[INTELLIGENT_BULK_FETCH] Fast adaptive fetch completed in {total_elapsed:.1f}ms: "
                        f"{successful_fetches}/{len(container_names)} containers with complete data")
 
         return status_results

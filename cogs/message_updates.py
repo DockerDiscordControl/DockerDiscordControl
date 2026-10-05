@@ -341,7 +341,8 @@ class MessageUpdatesMixin:
                 logger.error(f"Critical error during batched message edit processing: {e}", exc_info=True)
                 error_count = total_tasks  # Assume all failed
 
-            logger.info(f"Direct Cog Periodic message update finished. Total tasks: {total_tasks}. Success: {success_count}, NotFound: {not_found_count}, Errors: {error_count}, NoEmbed: {none_results_count}")
+            logger.log(logging.INFO if (error_count or not_found_count) else logging.DEBUG,
+                       f"Direct Cog Periodic message update finished. Total tasks: {total_tasks}. Success: {success_count}, NotFound: {not_found_count}, Errors: {error_count}, NoEmbed: {none_results_count}")
 
             if error_count > 0:
                 logger.warning(f"Encountered {error_count} errors during batched processing")

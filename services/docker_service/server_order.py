@@ -69,14 +69,14 @@ def load_server_order() -> List[str]:
     """
     try:
         if not os.path.exists(_order_file()):
-            logger.info("Server order file does not exist, returning empty list")
+            logger.debug("Server order file does not exist, returning empty list")
             return []
 
         with open(_order_file(), 'r') as f:
             data = json.load(f)
             server_order = data.get("server_order", [])
 
-        logger.info(f"Loaded server order: {server_order}")
+        logger.debug(f"Loaded server order: {server_order}")
         return server_order
     except (AttributeError, IOError, KeyError, OSError, PermissionError, RuntimeError, TypeError, json.JSONDecodeError) as e:
         logger.error(f"Error loading server order: {e}", exc_info=True)
