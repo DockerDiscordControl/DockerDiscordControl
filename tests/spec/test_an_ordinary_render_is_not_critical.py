@@ -46,22 +46,26 @@ async def _render(caplog):
              patch("services.mech.mech_status_cache_service.get_mech_status_cache_service",
                    return_value=service):
             await cog._create_overview_embed_collapsed([], {})
-    return caplog.records
+    return caplog.records, service
 
 
 @pytest.mark.asyncio
 async def test_the_render_reaches_the_progress_bars(caplog):
     """Premise: without this the test would pass on a render that never ran."""
-    records = await _render(caplog)
+    # Asked of the mech cache, not of a log line: "CACHE (collapsed): Using
+    # cached power data" was the evidence until it went to DEBUG with the
+    # other routine lines (2026-10-05), and a DEBUG line never reaches caplog
+    # here - the ddc logger filters it unless debug mode is on.
+    _records, service = await _render(caplog)
 
-    assert any("CACHE (collapsed)" in record.getMessage() for record in records), (
+    assert service.get_cached_status.called, (
         "the render did not get as far as the mech - the test would prove nothing"
     )
 
 
 @pytest.mark.asyncio
 async def test_nothing_is_logged_as_critical(caplog):
-    records = await _render(caplog)
+    records, _service = await _render(caplog)
 
     critical = [record.getMessage() for record in records
                 if record.levelno >= logging.CRITICAL]
