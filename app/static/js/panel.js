@@ -1361,6 +1361,15 @@
                  hideUnsavedChangesAlert();
                  hasUnsavedChanges = false; // Reset flag
 
+                 // A donation key switched the donations on or off: the page shows
+                 // the donation and mech cards by the state it was drawn with, so it
+                 // is drawn again (2026-10-05; until then only a manual reload did).
+                 if (typeof data.donations_disabled === 'boolean'
+                         && typeof window.DDC_DONATIONS_DISABLED === 'boolean'
+                         && data.donations_disabled !== window.DDC_DONATIONS_DISABLED) {
+                     setTimeout(() => window.location.reload(), 1500);
+                 }
+
                  // The timezone changed while tasks exist: ask whether they move
                  // along (app/static/js/timezone_question.js). Until 2026-09-26
                  // this handler ignored the question, so it was never put. A

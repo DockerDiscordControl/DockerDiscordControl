@@ -30,6 +30,9 @@
         running: {{ _t('web.restart.running')|tojson }},
         failed: {{ _t('web.restart.failed')|tojson }}
     };
+    // Whether a donation key switches the donations off, as this page was drawn
+    // (app/static/js/panel.js reloads after a save that changes it).
+    window.DDC_DONATIONS_DISABLED = {{ (donations_disabled is defined and donations_disabled)|tojson }};
     window.DDC_PANEL_URLS = {
         refreshContainers: "{{ url_for('main_bp.refresh_containers') }}",
         saveConfig: "{{ url_for('main_bp.save_config_api') }}",

@@ -188,7 +188,11 @@ def save_config_api():
                 'critical_settings_changed': save_result.critical_settings_changed,
                 # None unless the timezone changed and tasks still run in the
                 # old one; the panel turns it into a question (timezone_question.js).
-                'timezone_question': save_result.timezone_question
+                'timezone_question': save_result.timezone_question,
+                # Whether a donation key now switches the donations off: a save that
+                # changes it reloads the page, which until 2026-10-05 kept showing the
+                # donation and mech cards until the operator reloaded by hand.
+                'donations_disabled': _donations_disabled_now(),
             }
             logger.info(f"Configuration saved successfully via ConfigurationSaveService: {save_result.message}")
         else:
@@ -793,6 +797,16 @@ def reset_mech_difficulty():
         # Service dependency errors (mech web service unavailable)
         current_app.logger.error(f"Service dependency error in reset_mech_difficulty route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Service error: Unable to reset difficulty'}), 500
+
+def _donations_disabled_now():
+    """is_donations_disabled(), or None when it cannot be asked (the page then stays)."""
+    try:
+        from services.donation.donation_utils import is_donations_disabled
+        return is_donations_disabled()
+    except (ImportError, RuntimeError) as e:
+        current_app.logger.warning(f"Could not tell whether donations are disabled after the save: {e}")
+        return None
+
 
 @main_bp.route('/api/donation-key/check', methods=['POST'])
 @auth.login_required
