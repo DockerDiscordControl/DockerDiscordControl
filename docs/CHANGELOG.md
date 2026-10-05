@@ -23,6 +23,14 @@ All notable changes to DockerDiscordControl will be documented in this file.
   no players because it is not a game server. Only Stop and Notify are offered; a restart would
   bring the same empty server back.
 
+### 🔇 A quieter log
+
+- **A minute without a problem leaves no line at INFO.** The status beat wrote six routine lines
+  every minute, among them the whole server order with every container name, twice. They are
+  DEBUG now (shown with "Debug level" switched on); the beat's summary reaches the normal log
+  when something failed. The log was always bounded (Docker keeps 3 x 10 MB, discord.log 6 x
+  10 MB), but now it holds weeks instead of days, with the real events easy to find.
+
 ### 🔑 The donation key, checked once
 
 - **"Validate key" knew five of six keys.** The button checked its own copy of the key list in the
