@@ -25,6 +25,7 @@ datetime, timedelta, timezone, time = get_datetime_imports()
 from utils.common_helpers import get_public_ip
 from .translation_manager import _
 import asyncio
+import re
 import aiohttp
 from time import monotonic
 from services.automation import get_auto_action_config_service
@@ -79,6 +80,63 @@ async def _refused_at_the_press(interaction, container_name: str, *, deferred: b
         await interaction.response.send_message(text, ephemeral=True, delete_after=NOTICE_STAYS_FOR)
     return True
 
+# Room for log text in one embed: Discord allows 4096 characters in a description,
+# less the code fence around the lines and the "…" line that says the top was cut.
+LOG_ROOM = 4000
+_ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_DOCKER_STAMP = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.\d+)?(Z|[+-]\d\d:\d\d) ")
+
+
+def readable_log_lines(raw: str, zone=None) -> list:
+    """Docker's lines as people read them: no colour codes, the time in the panel's zone.
+
+    Docker stamps every line like ``2026-10-05T08:31:23.123456789Z``, 31 of the
+    1800 characters the panel had for a line of perhaps 60; colour codes came
+    through as ``[32m`` noise; a ``` in a line closed the code block early.
+    Returns ``(date, text)`` pairs, ``date`` None where a line has no stamp.
+    """
+    lines = []
+    for line in raw.replace("\r\n", "\n").split("\n"):
+        line = _ANSI.sub("", line).replace("\r", "").replace("```", "`\u200b``")
+        stamp = _DOCKER_STAMP.match(line)
+        if stamp is None:
+            lines.append((None, line))
+            continue
+        when = datetime.fromisoformat(stamp.group(1) + ("+00:00" if stamp.group(2) == "Z" else stamp.group(2)))
+        if zone is not None:
+            when = when.astimezone(zone)
+        lines.append((when.date(), when.strftime("%H:%M:%S") + " " + line[stamp.end():]))
+    while lines and not lines[-1][1].strip():
+        lines.pop()
+    return lines
+
+
+def fit_log_lines(lines: list, room: int = LOG_ROOM, today=None) -> str:
+    """The newest whole lines that fit ``room``, with a line wherever the date changes.
+
+    Cut at a line, never inside one (the panel used to show the last 1800
+    characters, starting mid-line), and say that the top was cut.
+    """
+    kept, used = [], 0
+    for date, text in reversed(lines):
+        cost = len(text) + 1 + (16 if kept and date != kept[-1][0] else 0)
+        if used + cost > room - 40:
+            break
+        kept.append((date, text))
+        used += cost
+    if not kept and lines:
+        kept = [(lines[-1][0], lines[-1][1][-(room - 40):])]
+    kept.reverse()
+    out, shown = [], today
+    for date, text in kept:
+        if date is not None and date != shown:
+            out.append(f"── {date.isoformat()} ──")
+            shown = date
+        out.append(text)
+    text = "\n".join(out)
+    return ("…\n" + text) if len(kept) < len(lines) else text
+
+
 async def container_logs_text(container_name: str) -> str:
     """Get the last N log lines for a container, ready for a Discord embed.
 
@@ -114,18 +172,27 @@ async def container_logs_text(container_name: str) -> str:
         # Run synchronous operation in thread pool to avoid blocking
         logs = await asyncio.get_event_loop().run_in_executor(None, get_logs_sync)
 
-        # Limit log output to prevent Discord message limits
-        if len(logs) > 1800:  # Leave room for embed formatting
-            logs = logs[-1800:]
-            logs = "...\n" + logs
-
-        return logs.strip() or "No logs available for this container."
+        zone = _panel_zone()
+        today = datetime.now(zone).date() if zone is not None else None
+        return fit_log_lines(readable_log_lines(logs, zone), today=today) or \
+            "No logs available for this container."
 
     except docker.errors.NotFound:
         return f"Container '{container_name}' not found."
     except (docker.errors.DockerException, RuntimeError, OSError) as e:
         logger.debug(f"Error getting logs for {container_name}: {e}")
         return f"Error retrieving logs: {str(e)[:100]}"
+
+def _panel_zone():
+    """The time zone set in the web panel, or None (then the lines keep UTC)."""
+    try:
+        from zoneinfo import ZoneInfo
+        from utils.time_utils import get_configured_timezone
+        return ZoneInfo(get_configured_timezone())
+    except (ImportError, ValueError, KeyError, OSError) as error:
+        logger.debug(f"Log lines keep UTC: {error}")
+        return None
+
 
 class ContainerInfoAdminView(PrivateView):
     """
