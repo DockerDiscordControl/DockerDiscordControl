@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Live updates ended · ▶️ starts them again",
   "🔄 refresh · ▶️ live updates": "🔄 refresh · ▶️ live updates",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · every {seconds} s · {remaining} more",
-  "📥 The last {lines} log lines of **{name}**": "📥 The last {lines} log lines of **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 The last {lines} log lines of **{name}**",
+  "There is no day {day} in {month}.": "There is no day {day} in {month}."
 }

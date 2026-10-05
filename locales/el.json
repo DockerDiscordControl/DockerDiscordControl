@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Οι ζωντανές ενημερώσεις τελείωσαν · το ▶️ τις ξεκινά ξανά",
   "🔄 refresh · ▶️ live updates": "🔄 ανανέωση · ▶️ ζωντανές ενημερώσεις",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Ζωντανά · κάθε {seconds} δ · ακόμη {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 Οι τελευταίες {lines} γραμμές καταγραφής του **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 Οι τελευταίες {lines} γραμμές καταγραφής του **{name}**",
+  "There is no day {day} in {month}.": "Δεν υπάρχει η ημέρα {day} τον {month}."
 }

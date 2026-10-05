@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Tiesioginiai atnaujinimai baigėsi · ▶️ juos paleidžia iš naujo",
   "🔄 refresh · ▶️ live updates": "🔄 atnaujinti · ▶️ tiesioginiai atnaujinimai",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Tiesiogiai · kas {seconds} s · dar {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 Paskutinės {lines} **{name}** žurnalo eilutės"
+  "📥 The last {lines} log lines of **{name}**": "📥 Paskutinės {lines} **{name}** žurnalo eilutės",
+  "There is no day {day} in {month}.": "Mėnesyje {month} nėra {day} dienos."
 }

@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Atualizações em direto terminadas · ▶️ reinicia-as",
   "🔄 refresh · ▶️ live updates": "🔄 atualizar · ▶️ atualizações em direto",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Em direto · a cada {seconds} s · mais {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 As últimas {lines} linhas de registo de **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 As últimas {lines} linhas de registo de **{name}**",
+  "There is no day {day} in {month}.": "Não existe o dia {day} em {month}."
 }

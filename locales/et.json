@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Otsevärskendused lõppesid · ▶️ käivitab need uuesti",
   "🔄 refresh · ▶️ live updates": "🔄 värskenda · ▶️ otsevärskendused",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Otse · iga {seconds} s järel · veel {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** viimased {lines} logirida"
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** viimased {lines} logirida",
+  "There is no day {day} in {month}.": "Kuul {month} ei ole päeva {day}."
 }

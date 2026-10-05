@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ به‌روزرسانی زنده پایان یافت · ▶️ آن را دوباره شروع می‌کند",
   "🔄 refresh · ▶️ live updates": "🔄 تازه‌سازی · ▶️ به‌روزرسانی زنده",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 زنده · هر {seconds} ثانیه · {remaining} بار دیگر",
-  "📥 The last {lines} log lines of **{name}**": "📥 آخرین {lines} خط لاگ **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 آخرین {lines} خط لاگ **{name}**",
+  "There is no day {day} in {month}.": "روز {day} در {month} وجود ندارد."
 }

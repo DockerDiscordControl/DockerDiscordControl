@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Tiešraides atjauninājumi beigušies · ▶️ tos sāk no jauna",
   "🔄 refresh · ▶️ live updates": "🔄 atsvaidzināt · ▶️ tiešraides atjauninājumi",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Tiešraide · ik pēc {seconds} s · vēl {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** pēdējās {lines} žurnāla rindas"
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** pēdējās {lines} žurnāla rindas",
+  "There is no day {day} in {month}.": "Mēnesī {month} nav {day}. datuma."
 }

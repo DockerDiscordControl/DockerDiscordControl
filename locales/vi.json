@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Cập nhật trực tiếp đã kết thúc · ▶️ để bắt đầu lại",
   "🔄 refresh · ▶️ live updates": "🔄 làm mới · ▶️ cập nhật trực tiếp",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Trực tiếp · mỗi {seconds} giây · còn {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 {lines} dòng nhật ký gần nhất của **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 {lines} dòng nhật ký gần nhất của **{name}**",
+  "There is no day {day} in {month}.": "Không có ngày {day} trong {month}."
 }

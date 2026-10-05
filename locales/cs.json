@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Živé aktualizace skončily · ▶️ je spustí znovu",
   "🔄 refresh · ▶️ live updates": "🔄 obnovit · ▶️ živé aktualizace",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Živě · každých {seconds} s · ještě {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 Posledních {lines} řádků logu **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 Posledních {lines} řádků logu **{name}**",
+  "There is no day {day} in {month}.": "Den {day}. v měsíci {month} neexistuje."
 }

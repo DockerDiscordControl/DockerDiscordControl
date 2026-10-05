@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Live-updates beëindigd · ▶️ start ze opnieuw",
   "🔄 refresh · ▶️ live updates": "🔄 vernieuwen · ▶️ live-updates",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · elke {seconds} s · nog {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 De laatste {lines} logregels van **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 De laatste {lines} logregels van **{name}**",
+  "There is no day {day} in {month}.": "{month} heeft geen dag {day}."
 }

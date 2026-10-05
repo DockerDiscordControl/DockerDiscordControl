@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Liveuppdateringarna är slut · ▶️ startar dem igen",
   "🔄 refresh · ▶️ live updates": "🔄 uppdatera · ▶️ liveuppdateringar",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · var {seconds}:e s · {remaining} till",
-  "📥 The last {lines} log lines of **{name}**": "📥 De senaste {lines} loggraderna från **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 De senaste {lines} loggraderna från **{name}**",
+  "There is no day {day} in {month}.": "Det finns ingen dag {day} i {month}."
 }

@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Актуализациите на живо приключиха · ▶️ ги стартира отново",
   "🔄 refresh · ▶️ live updates": "🔄 опресняване · ▶️ актуализации на живо",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 На живо · на всеки {seconds} с · още {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 Последните {lines} реда от лога на **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 Последните {lines} реда от лога на **{name}**",
+  "There is no day {day} in {month}.": "Няма ден {day} в {month}."
 }

@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Pembaruan langsung selesai · ▶️ memulainya lagi",
   "🔄 refresh · ▶️ live updates": "🔄 segarkan · ▶️ pembaruan langsung",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Langsung · setiap {seconds} dtk · {remaining} lagi",
-  "📥 The last {lines} log lines of **{name}**": "📥 {lines} baris log terakhir dari **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 {lines} baris log terakhir dari **{name}**",
+  "There is no day {day} in {month}.": "Tidak ada tanggal {day} di bulan {month}."
 }

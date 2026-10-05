@@ -983,6 +983,18 @@ class CreateTaskButton(discord.ui.Button):
                 month_val = int(self.view.selected_month)
                 year_val = int(self.view.selected_year)
 
+            # THE SAME RULE AS THE DROPDOWNS, at the press: a panel opened before
+            # they filtered (2026-10-05) can still hold 31 February. A yearly task
+            # for it ran on the 28th without a word; a one-time one was refused as
+            # "in the past".
+            from services.scheduling.task_input import date_exists
+            if month_val is not None and not date_exists(day_val, month_val, year_val):
+                when = month_names()[month_val - 1] + (f" {year_val}" if year_val else "")
+                await interaction.followup.send(
+                    f"❌ {_('There is no day {day} in {month}.').format(day=day_val, month=when)}",
+                    ephemeral=True, delete_after=NOTICE_STAYS_FOR)
+                return
+
             # Create ScheduledTask
             task = ScheduledTask(
                 task_id=str(uuid.uuid4()),

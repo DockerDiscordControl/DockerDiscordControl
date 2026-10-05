@@ -1677,5 +1677,6 @@
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Sprotne posodobitve so končane · ▶️ jih znova zažene",
   "🔄 refresh · ▶️ live updates": "🔄 osveži · ▶️ sprotne posodobitve",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 V živo · vsakih {seconds} s · še {remaining}",
-  "📥 The last {lines} log lines of **{name}**": "📥 Zadnjih {lines} vrstic dnevnika za **{name}**"
+  "📥 The last {lines} log lines of **{name}**": "📥 Zadnjih {lines} vrstic dnevnika za **{name}**",
+  "There is no day {day} in {month}.": "Meseca {month} ni {day}. dneva."
 }
