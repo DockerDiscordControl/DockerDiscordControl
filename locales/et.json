@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Automaatne konteinerite loendi värskendamine (keela ressursside säästmiseks)",
   "web.advanced.enable_bg_refresh_tooltip": "Veebiliides: värskenda konteinerite loendit automaatselt taustal. Keela, kui sul on palju konteinereid või piiratud ressursid.",
   "web.advanced.enable_live_logs": "Luba reaalajas logide funktsioon",
-  "web.advanced.enable_live_logs_hint": "Luba käsk /logs Discordis",
+  "web.advanced.enable_live_logs_hint": "Nupp 📋 konteineri infopaneelil (juhtkanalid)",
   "web.advanced.enable_live_logs_tooltip": "Discord: luba kasutajatel vaadata konteinerite logisid reaalajas Discordis. Keela Discord API kasutuse vähendamiseks ja logirämpsu vältimiseks.",
   "web.advanced.evolution_cost_multiplier": "Evolutsiooni kulu kordaja",
   "web.advanced.evolution_cost_multiplier_tooltip": "Kohandab Mechi evolutsiooni kulude raskusastet 20 tasemega. Lihtne (0.5x) teeb evolutsiooni poole odavamaks, Raske (2.0x) teeb selle topelt kallimaks. Saavutatud tasemed jäävad igavesti lukustatuks.",

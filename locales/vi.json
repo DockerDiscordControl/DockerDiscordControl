@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Tự động làm mới danh sách container (tắt để tiết kiệm tài nguyên)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Tự động làm mới danh sách container ở nền. Tắt nếu bạn có nhiều container hoặc tài nguyên hạn chế.",
   "web.advanced.enable_live_logs": "Bật tính năng nhật ký trực tiếp",
-  "web.advanced.enable_live_logs_hint": "Bật lệnh /logs trong Discord",
+  "web.advanced.enable_live_logs_hint": "Nút 📋 trong bảng thông tin của container (kênh điều khiển)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Cho phép người dùng xem nhật ký container trực tiếp trong Discord. Tắt để giảm sử dụng Discord API và ngăn spam nhật ký.",
   "web.advanced.evolution_cost_multiplier": "Hệ số chi phí tiến hóa",
   "web.advanced.evolution_cost_multiplier_tooltip": "Điều chỉnh độ khó của chi phí tiến hóa mech với 20 bước chi tiết. Dễ (0.5x) giảm nửa giá tiến hóa, Khó (2.0x) tăng gấp đôi giá. Các cấp đã đạt được sẽ khóa vĩnh viễn.",

@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Containerlijst automatisch vernieuwen (uitschakelen om resources te besparen)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Containerlijst automatisch vernieuwen op de achtergrond. Uitschakelen als je veel containers hebt of beperkte resources.",
   "web.advanced.enable_live_logs": "Live Logs-functie inschakelen",
-  "web.advanced.enable_live_logs_hint": "Opdracht /logs inschakelen in Discord",
+  "web.advanced.enable_live_logs_hint": "De 📋-knop in het infopaneel van een container (beheerkanalen)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Gebruikers toestaan live containerlogbestanden te bekijken in Discord. Uitschakelen om Discord API-gebruik te verminderen en logspam te voorkomen.",
   "web.advanced.evolution_cost_multiplier": "Evolutiekostenvermenigvuldiger",
   "web.advanced.evolution_cost_multiplier_tooltip": "Past de moeilijkheidsgraad van Mech-evolutiekosten aan met 20 gedetailleerde stappen. Makkelijk (0,5x) maakt evolutie half zo duur, Moeilijk (2,0x) maakt het dubbel zo duur. Behaalde levels blijven voor altijd vergrendeld.",

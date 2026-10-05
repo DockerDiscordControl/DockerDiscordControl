@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Automatisk opdatering af containerlisten (deaktiver for at spare ressourcer)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Opdater containerlisten automatisk i baggrunden. Deaktiver hvis du har mange containere eller begrænsede ressourcer.",
   "web.advanced.enable_live_logs": "Aktiver livelogfiler",
-  "web.advanced.enable_live_logs_hint": "Aktiver /logs-kommandoen i Discord",
+  "web.advanced.enable_live_logs_hint": "Knappen 📋 i en containers infopanel (kontrolkanaler)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Tillad brugere at se livelogfiler for containere i Discord. Deaktiver for at reducere Discord API-brug og forhindre logspam.",
   "web.advanced.evolution_cost_multiplier": "Evolutionsomkostningsmultiplikator",
   "web.advanced.evolution_cost_multiplier_tooltip": "Justerer sværhedsgraden for mech-evolutionsomkostninger i 20 fine trin. Let (0.5x) halverer prisen på evolution, Svær (2.0x) fordobler den. Opnåede niveauer forbliver låst for altid.",

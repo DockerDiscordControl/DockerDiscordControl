@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Automatsko osvježavanje popisa kontejnera (onemogući za uštedu resursa)",
   "web.advanced.enable_bg_refresh_tooltip": "Web sučelje: Automatsko osvježavanje popisa kontejnera u pozadini. Onemogući ako imaš mnogo kontejnera ili ograničene resurse.",
   "web.advanced.enable_live_logs": "Omogući značajku zapisa uživo",
-  "web.advanced.enable_live_logs_hint": "Omogući /logs naredbu u Discordu",
+  "web.advanced.enable_live_logs_hint": "Gumb 📋 na informacijskoj ploči kontejnera (kontrolni kanali)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Omogući korisnicima pregledavanje zapisa kontejnera uživo u Discordu. Onemogući za smanjenje korištenja Discord API-ja i sprečavanje spama zapisima.",
   "web.advanced.evolution_cost_multiplier": "Množitelj troškova evolucije",
   "web.advanced.evolution_cost_multiplier_tooltip": "Podešava težinu troškova evolucije mecha s 20 detaljnih koraka. Lako (0,5x) prepolovljava cijenu evolucije, Teško (2,0x) je udvostručuje. Dosegnute razine ostaju zauvijek zaključane.",

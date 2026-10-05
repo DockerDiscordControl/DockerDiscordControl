@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "कंटेनर सूची स्वतः-रिफ़्रेश (संसाधन बचत के लिए अक्षम करें)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: बैकग्राउंड में कंटेनर सूची स्वतः रिफ़्रेश करें। कई कंटेनर या सीमित संसाधन होने पर अक्षम करें।",
   "web.advanced.enable_live_logs": "लाइव लॉग सुविधा सक्षम करें",
-  "web.advanced.enable_live_logs_hint": "Discord में /logs कमांड सक्षम करें",
+  "web.advanced.enable_live_logs_hint": "कंटेनर के जानकारी पैनल में 📋 बटन (कंट्रोल चैनल)",
   "web.advanced.enable_live_logs_tooltip": "Discord: उपयोगकर्ताओं को Discord में लाइव कंटेनर लॉग देखने दें। Discord API उपयोग कम करने और लॉग स्पैम रोकने के लिए अक्षम करें।",
   "web.advanced.evolution_cost_multiplier": "विकास लागत गुणक",
   "web.advanced.evolution_cost_multiplier_tooltip": "20 बारीक चरणों के साथ Mech विकास लागत की कठिनाई समायोजित करता है। आसान (0.5x) विकास को आधी कीमत बनाता है, कठिन (2.0x) दोगुनी कीमत बनाता है। प्राप्त लेवल हमेशा के लिए लॉक रहते हैं।",

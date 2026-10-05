@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Actualisation automatique de la liste des conteneurs (désactivez pour économiser des ressources)",
   "web.advanced.enable_bg_refresh_tooltip": "Interface web : actualise automatiquement la liste des conteneurs en arrière-plan. Désactivez si vous avez beaucoup de conteneurs ou des ressources limitées.",
   "web.advanced.enable_live_logs": "Activer les journaux en direct",
-  "web.advanced.enable_live_logs_hint": "Activer la commande /logs dans Discord",
+  "web.advanced.enable_live_logs_hint": "Le bouton 📋 dans le panneau d'informations d'un conteneur (canaux de contrôle)",
   "web.advanced.enable_live_logs_tooltip": "Discord : permet aux utilisateurs de consulter les journaux des conteneurs en direct dans Discord. Désactivez pour réduire l'utilisation de l'API Discord et éviter le spam de journaux.",
   "web.advanced.evolution_cost_multiplier": "Multiplicateur de coût d'évolution",
   "web.advanced.evolution_cost_multiplier_tooltip": "Ajuste la difficulté des coûts d'évolution du mech avec 20 paliers. Facile (0,5x) divise les coûts par deux, Difficile (2,0x) les double. Les niveaux atteints restent verrouillés à jamais.",

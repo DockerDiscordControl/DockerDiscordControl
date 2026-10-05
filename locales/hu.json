@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Konténerlista automatikus frissítése (tiltsd le erőforrás megtakarításhoz)",
   "web.advanced.enable_bg_refresh_tooltip": "Webes felület: Konténerlista automatikus frissítése a háttérben. Tiltsd le, ha sok konténered van vagy korlátozott az erőforrás.",
   "web.advanced.enable_live_logs": "Élő naplók funkció engedélyezése",
-  "web.advanced.enable_live_logs_hint": "/logs parancs engedélyezése Discordban",
+  "web.advanced.enable_live_logs_hint": "A 📋 gomb egy konténer információs paneljén (vezérlőcsatornák)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Lehetővé teszi a felhasználóknak az élő konténer naplók megtekintését a Discordban. Tiltsd le a Discord API használat csökkentéséhez és a napló spam megelőzéséhez.",
   "web.advanced.evolution_cost_multiplier": "Evolúciós költség szorzó",
   "web.advanced.evolution_cost_multiplier_tooltip": "Beállítja a mech evolúciós költségek nehézségét 20 részletes lépésben. Könnyű (0,5x) felezi az evolúciós árat, Nehéz (2,0x) megduplázza. Az elért szintek örökre zárolva maradnak.",

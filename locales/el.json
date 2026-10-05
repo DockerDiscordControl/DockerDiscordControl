@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Αυτόματη ανανέωση λίστας containers (απενεργοποίηση για εξοικονόμηση πόρων)",
   "web.advanced.enable_bg_refresh_tooltip": "Διεπαφή ιστού: Αυτόματη ανανέωση της λίστας containers στο παρασκήνιο. Απενεργοποίησέ την αν έχεις πολλά containers ή περιορισμένους πόρους.",
   "web.advanced.enable_live_logs": "Ενεργοποίηση ζωντανών αρχείων καταγραφής",
-  "web.advanced.enable_live_logs_hint": "Ενεργοποίηση εντολής /logs στο Discord",
+  "web.advanced.enable_live_logs_hint": "Το κουμπί 📋 στον πίνακα πληροφοριών ενός κοντέινερ (κανάλια ελέγχου)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Επιτρέπει στους χρήστες να βλέπουν ζωντανά αρχεία καταγραφής container στο Discord. Απενεργοποίησέ το για λιγότερη χρήση του Discord API και για αποφυγή spam από logs.",
   "web.advanced.evolution_cost_multiplier": "Πολλαπλασιαστής κόστους εξέλιξης",
   "web.advanced.evolution_cost_multiplier_tooltip": "Ρυθμίζει τη δυσκολία του κόστους εξέλιξης του Mech σε 20 λεπτομερή βήματα. Το Εύκολο (0,5x) κάνει την εξέλιξη μισή τιμή, το Δύσκολο (2,0x) διπλή. Τα επίπεδα που επιτεύχθηκαν παραμένουν κλειδωμένα για πάντα.",

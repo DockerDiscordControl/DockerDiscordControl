@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "コンテナリストを自動更新（リソース節約のために無効化）",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: バックグラウンドでコンテナリストを自動更新します。多数のコンテナがある場合やリソースが限られている場合は無効にしてください。",
   "web.advanced.enable_live_logs": "ライブログ機能を有効化",
-  "web.advanced.enable_live_logs_hint": "Discordの/logsコマンドを有効化",
+  "web.advanced.enable_live_logs_hint": "コンテナーの情報パネルの 📋 ボタン（コントロールチャンネル）",
   "web.advanced.enable_live_logs_tooltip": "Discord: Discordでライブコンテナログを表示できるようにします。Discord APIの使用量を削減しログスパムを防止するには無効にしてください。",
   "web.advanced.evolution_cost_multiplier": "進化コスト倍率",
   "web.advanced.evolution_cost_multiplier_tooltip": "20段階の粒度でMech進化コストの難易度を調整します。簡単（0.5倍）で進化コストが半額に、難しい（2.0倍）で倍額になります。達成したレベルは永久にロックされます。",

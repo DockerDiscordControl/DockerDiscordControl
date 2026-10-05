@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "컨테이너 목록 자동 새로고침 (리소스 절약을 위해 비활성화)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: 백그라운드에서 컨테이너 목록을 자동으로 새로고침합니다. 컨테이너가 많거나 리소스가 제한된 경우 비활성화하세요.",
   "web.advanced.enable_live_logs": "실시간 로그 기능 활성화",
-  "web.advanced.enable_live_logs_hint": "Discord에서 /logs 명령어 활성화",
+  "web.advanced.enable_live_logs_hint": "컨테이너 정보 패널의 📋 버튼 (제어 채널)",
   "web.advanced.enable_live_logs_tooltip": "Discord: 사용자가 Discord에서 실시간 컨테이너 로그를 볼 수 있도록 합니다. Discord API 사용량을 줄이고 로그 스팸을 방지하려면 비활성화하세요.",
   "web.advanced.evolution_cost_multiplier": "진화 비용 배율",
   "web.advanced.evolution_cost_multiplier_tooltip": "20단계의 세밀한 조정으로 Mech 진화 비용의 난이도를 조절합니다. 쉬움(0.5x)은 진화 비용이 절반이 되고, 어려움(2.0x)은 두 배가 됩니다. 달성된 레벨은 영구적으로 유지됩니다.",

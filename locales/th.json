@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "รีเฟรชรายการ Container อัตโนมัติ (ปิดเพื่อประหยัดทรัพยากร)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: รีเฟรชรายการ Container อัตโนมัติในพื้นหลัง ปิดหากคุณมี Container จำนวนมากหรือทรัพยากรจำกัด",
   "web.advanced.enable_live_logs": "เปิดใช้งานฟีเจอร์บันทึกสด",
-  "web.advanced.enable_live_logs_hint": "เปิดใช้งานคำสั่ง /logs ใน Discord",
+  "web.advanced.enable_live_logs_hint": "ปุ่ม 📋 ในแผงข้อมูลของคอนเทนเนอร์ (ช่องควบคุม)",
   "web.advanced.enable_live_logs_tooltip": "Discord: อนุญาตให้ผู้ใช้ดูบันทึก Container สดใน Discord ปิดเพื่อลดการใช้ Discord API และป้องกันสแปมบันทึก",
   "web.advanced.evolution_cost_multiplier": "ตัวคูณค่าวิวัฒนาการ",
   "web.advanced.evolution_cost_multiplier_tooltip": "ปรับความยากของค่าวิวัฒนาการ Mech ด้วย 20 ขั้นละเอียด ง่าย (0.5x) ทำให้วิวัฒนาการลดราคาครึ่งหนึ่ง ยาก (2.0x) ทำให้ราคาเป็นสองเท่า เลเวลที่บรรลุแล้วจะล็อกถาวร",

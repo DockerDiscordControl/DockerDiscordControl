@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Аутоматско освежавање листе контејнера (онемогућите за уштеду ресурса)",
   "web.advanced.enable_bg_refresh_tooltip": "Веб интерфејс: Аутоматски освежава листу контејнера у позадини. Онемогућите ако имате много контејнера или ограничене ресурсе.",
   "web.advanced.enable_live_logs": "Омогући функцију дневника уживо",
-  "web.advanced.enable_live_logs_hint": "Омогући /logs команду у Discord",
+  "web.advanced.enable_live_logs_hint": "Дугме 📋 на инфо панелу контејнера (контролни канали)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Дозволите корисницима да прегледају дневнике контејнера уживо у Discord. Онемогућите за смањење коришћења Discord API-ја и спречавање спама дневника.",
   "web.advanced.evolution_cost_multiplier": "Множилац трошкова еволуције",
   "web.advanced.evolution_cost_multiplier_tooltip": "Подешава тежину трошкова еволуције Меха са 20 детаљних корака. Лако (0,5x) смањује трошкове еволуције на пола, Тешко (2,0x) их удвостручује. Достигнути нивои остају закључани заувек.",

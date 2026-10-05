@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Atualizar automaticamente a lista de contentores (desative para poupar recursos)",
   "web.advanced.enable_bg_refresh_tooltip": "Interface Web: Atualizar automaticamente a lista de contentores em segundo plano. Desative se tiver muitos contentores ou recursos limitados.",
   "web.advanced.enable_live_logs": "Ativar funcionalidade de Registos em Direto",
-  "web.advanced.enable_live_logs_hint": "Ativar comando /logs no Discord",
+  "web.advanced.enable_live_logs_hint": "O botão 📋 no painel de informações de um contentor (canais de controlo)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Permitir que os utilizadores vejam registos de contentores em direto no Discord. Desative para reduzir o uso da API do Discord e prevenir spam de registos.",
   "web.advanced.evolution_cost_multiplier": "Multiplicador de Custo de Evolução",
   "web.advanced.evolution_cost_multiplier_tooltip": "Ajusta a dificuldade dos custos de evolução do mech com 20 passos granulares. Fácil (0.5x) reduz o custo da evolução para metade, Difícil (2.0x) duplica-o. Níveis alcançados ficam bloqueados para sempre.",

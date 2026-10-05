@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "自动刷新容器列表（禁用可节省资源）",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI：在后台自动刷新容器列表。如果你有很多容器或资源有限，可以禁用。",
   "web.advanced.enable_live_logs": "启用实时日志功能",
-  "web.advanced.enable_live_logs_hint": "在 Discord 中启用 /logs 命令",
+  "web.advanced.enable_live_logs_hint": "容器信息面板中的 📋 按钮（控制频道）",
   "web.advanced.enable_live_logs_tooltip": "Discord：允许用户在 Discord 中查看实时容器日志。禁用可减少 Discord API 使用和防止日志刷屏。",
   "web.advanced.evolution_cost_multiplier": "进化费用倍率",
   "web.advanced.evolution_cost_multiplier_tooltip": "通过 20 个细粒度步骤调整机甲进化费用难度。简单（0.5 倍）使进化半价，困难（2.0 倍）使其翻倍。已达到的等级永久锁定。",

@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Samodejna osvežitev seznama vsebnikov (onemogočite za varčevanje virov)",
   "web.advanced.enable_bg_refresh_tooltip": "Spletni vmesnik: Samodejno osveži seznam vsebnikov v ozadju. Onemogočite, če imate veliko vsebnikov ali omejene vire.",
   "web.advanced.enable_live_logs": "Omogoči funkcijo dnevnikov v živo",
-  "web.advanced.enable_live_logs_hint": "Omogoči ukaz /logs v Discordu",
+  "web.advanced.enable_live_logs_hint": "Gumb 📋 na informacijski plošči vsebnika (nadzorni kanali)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Uporabnikom dovoli ogled dnevnikov vsebnikov v živo v Discordu. Onemogočite, da zmanjšate uporabo Discord API in preprečite spam dnevnikov.",
   "web.advanced.evolution_cost_multiplier": "Množilnik stroškov evolucije",
   "web.advanced.evolution_cost_multiplier_tooltip": "Prilagodi težavnost stroškov evolucije Mecha z 20 podrobnimi koraki. Enostavno (0,5x) zmanjša stroške evolucije na polovico, Težko (2,0x) jih podvoji. Dosežene ravni ostanejo zaklenjene za vedno.",

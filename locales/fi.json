@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Automaattinen säilölistan päivitys (poista käytöstä resurssien säästämiseksi)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Päivitä säilölista automaattisesti taustalla. Poista käytöstä jos sinulla on paljon säilöjä tai rajoitettuja resursseja.",
   "web.advanced.enable_live_logs": "Ota reaaliaikaiset lokit käyttöön",
-  "web.advanced.enable_live_logs_hint": "Ota /logs-komento käyttöön Discordissa",
+  "web.advanced.enable_live_logs_hint": "Kontin tietopaneelin 📋-painike (ohjauskanavat)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Salli käyttäjien tarkastella reaaliaikaisia säilölokeja Discordissa. Poista käytöstä vähentääksesi Discord API -käyttöä ja estääksesi lokiroskapostin.",
   "web.advanced.evolution_cost_multiplier": "Evoluutiokustannusten kerroin",
   "web.advanced.evolution_cost_multiplier_tooltip": "Säätää mech-evoluutiokustannusten vaikeustasoa 20 portaalla. Helppo (0.5x) tekee evoluutiosta puolihintaisen, Vaikea (2.0x) kaksinkertaistaa hinnan. Saavutetut tasot pysyvät lukittuina ikuisesti.",

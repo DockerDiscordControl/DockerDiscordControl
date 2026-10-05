@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Automātiski atjaunināt konteineru sarakstu (atspējot resursu taupīšanai)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Automātiski atjaunināt konteineru sarakstu fonā. Atspējojiet, ja jums ir daudz konteineru vai ierobežoti resursi.",
   "web.advanced.enable_live_logs": "Iespējot tiešraides žurnālu funkciju",
-  "web.advanced.enable_live_logs_hint": "Iespējot /logs komandu Discord",
+  "web.advanced.enable_live_logs_hint": "Poga 📋 konteinera informācijas panelī (vadības kanāli)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Ļaut lietotājiem skatīt tiešraides konteineru žurnālus Discord. Atspējojiet, lai samazinātu Discord API izmantošanu un novērstu žurnālu pārslogotību.",
   "web.advanced.evolution_cost_multiplier": "Evolūcijas izmaksu reizinātājs",
   "web.advanced.evolution_cost_multiplier_tooltip": "Pielāgo Mech evolūcijas izmaksu grūtību ar 20 detalizētiem soļiem. Viegli (0,5x) padara evolūciju par pusi lētāku, Grūti (2,0x) padara to divreiz dārgāku. Sasniegtie līmeņi paliek bloķēti uz visiem laikiem.",

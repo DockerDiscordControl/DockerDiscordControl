@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Automatyczne odświeżanie listy kontenerów (wyłącz, aby oszczędzać zasoby)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Automatyczne odświeżanie listy kontenerów w tle. Wyłącz, jeśli masz wiele kontenerów lub ograniczone zasoby.",
   "web.advanced.enable_live_logs": "Włącz funkcję logów na żywo",
-  "web.advanced.enable_live_logs_hint": "Włącz polecenie /logs w Discord",
+  "web.advanced.enable_live_logs_hint": "Przycisk 📋 w panelu informacji kontenera (kanały sterowania)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Zezwól użytkownikom na przeglądanie logów kontenerów na żywo w Discord. Wyłącz, aby zmniejszyć użycie Discord API i zapobiec spamowi logów.",
   "web.advanced.evolution_cost_multiplier": "Mnożnik kosztów ewolucji",
   "web.advanced.evolution_cost_multiplier_tooltip": "Dostosowuje trudność kosztów ewolucji Mecha w 20 krokach. Łatwy (0.5x) obniża cenę ewolucji o połowę, Trudny (2.0x) podwaja cenę. Osiągnięte poziomy pozostają zablokowane na zawsze.",

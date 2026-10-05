@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Auto-refresh the container list (disable to save resources)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Automatically refresh the container list in the background. Disable if you have many containers or limited resources.",
   "web.advanced.enable_live_logs": "Enable Live Logs feature",
-  "web.advanced.enable_live_logs_hint": "Enable /logs command in Discord",
+  "web.advanced.enable_live_logs_hint": "The 📋 button in a container's info panel (control channels)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Allow users to view live container logs in Discord. Disable to reduce Discord API usage and prevent log spam.",
   "web.advanced.evolution_cost_multiplier": "Evolution Cost Multiplier",
   "web.advanced.evolution_cost_multiplier_tooltip": "Adjusts the difficulty of mech evolution costs with 20 granular steps. Easy (0.5x) makes evolution half price, Hard (2.0x) makes it double price. Achieved levels stay locked forever.",

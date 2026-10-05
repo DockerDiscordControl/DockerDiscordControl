@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "自動重新整理容器列表（停用以節省資源）",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI：在背景自動重新整理容器列表。如果您有大量容器或資源有限，可停用此功能。",
   "web.advanced.enable_live_logs": "啟用即時日誌功能",
-  "web.advanced.enable_live_logs_hint": "在 Discord 中啟用 /logs 指令",
+  "web.advanced.enable_live_logs_hint": "容器資訊面板中的 📋 按鈕（控制頻道）",
   "web.advanced.enable_live_logs_tooltip": "Discord：允許使用者在 Discord 中查看即時容器日誌。停用以減少 Discord API 使用量並防止日誌洗版。",
   "web.advanced.evolution_cost_multiplier": "進化費用倍率",
   "web.advanced.evolution_cost_multiplier_tooltip": "透過 20 個精細步驟調整 Mech 進化費用的難度。簡單（0.5 倍）使進化費用減半，困難（2.0 倍）使費用加倍。已達成的等級永久鎖定。",

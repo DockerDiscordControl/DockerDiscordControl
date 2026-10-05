@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Segarkan otomatis daftar kontainer (nonaktifkan untuk hemat sumber daya)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Segarkan otomatis daftar kontainer di latar belakang. Nonaktifkan jika Anda memiliki banyak kontainer atau sumber daya terbatas.",
   "web.advanced.enable_live_logs": "Aktifkan fitur Live Logs",
-  "web.advanced.enable_live_logs_hint": "Aktifkan perintah /logs di Discord",
+  "web.advanced.enable_live_logs_hint": "Tombol 📋 di panel info kontainer (saluran kontrol)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Izinkan pengguna melihat log kontainer langsung di Discord. Nonaktifkan untuk mengurangi penggunaan Discord API dan mencegah spam log.",
   "web.advanced.evolution_cost_multiplier": "Pengganda Biaya Evolusi",
   "web.advanced.evolution_cost_multiplier_tooltip": "Menyesuaikan kesulitan biaya evolusi mech dengan 20 langkah granular. Mudah (0.5x) membuat evolusi setengah harga, Sulit (2.0x) membuatnya dua kali lipat. Level yang dicapai tetap terkunci selamanya.",

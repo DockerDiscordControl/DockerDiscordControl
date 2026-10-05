@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Segar semula senarai bekas secara automatik (nyahaktifkan untuk menjimatkan sumber)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Segar semula senarai bekas secara automatik di latar belakang. Nyahaktifkan jika anda mempunyai banyak bekas atau sumber terhad.",
   "web.advanced.enable_live_logs": "Aktifkan ciri Log Langsung",
-  "web.advanced.enable_live_logs_hint": "Aktifkan arahan /logs di Discord",
+  "web.advanced.enable_live_logs_hint": "Butang 📋 dalam panel maklumat kontena (saluran kawalan)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Benarkan pengguna melihat log bekas secara langsung dalam Discord. Nyahaktifkan untuk mengurangkan penggunaan Discord API dan mencegah spam log.",
   "web.advanced.evolution_cost_multiplier": "Pengganda Kos Evolusi",
   "web.advanced.evolution_cost_multiplier_tooltip": "Melaraskan kesukaran kos evolusi mech dengan 20 langkah halus. Mudah (0.5x) menjadikan evolusi separuh harga, Sukar (2.0x) menjadikannya dua kali ganda. Level yang dicapai kekal terkunci selama-lamanya.",

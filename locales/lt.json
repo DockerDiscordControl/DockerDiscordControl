@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Automatinis konteinerių sąrašo atnaujinimas (išjunkite resursų taupymui)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: automatiškai atnaujinti konteinerių sąrašą fone. Išjunkite, jei turite daug konteinerių ar ribotus resursus.",
   "web.advanced.enable_live_logs": "Įjungti tiesioginių žurnalų funkciją",
-  "web.advanced.enable_live_logs_hint": "Įjungti /logs komandą Discord",
+  "web.advanced.enable_live_logs_hint": "Mygtukas 📋 konteinerio informacijos skydelyje (valdymo kanalai)",
   "web.advanced.enable_live_logs_tooltip": "Discord: leisti naudotojams peržiūrėti tiesioginius konteinerių žurnalus Discord. Išjunkite, kad sumažintumėte Discord API naudojimą ir apsisaugotumėte nuo žurnalų šlamšto.",
   "web.advanced.evolution_cost_multiplier": "Evoliucijos kainos daugiklis",
   "web.advanced.evolution_cost_multiplier_tooltip": "Koreguoja Mech evoliucijos kainos sudėtingumą su 20 tikslių žingsnių. Lengva (0.5x) – evoliucija kainuoja perpus pigiau, Sunki (2.0x) – dvigubai brangiau. Pasiekti lygiai visam laikui užfiksuoti.",

@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Automatická obnova zoznamu kontajnerov (vypnite na úsporu zdrojov)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Automaticky obnovovať zoznam kontajnerov na pozadí. Vypnite, ak máte veľa kontajnerov alebo obmedzené zdroje.",
   "web.advanced.enable_live_logs": "Zapnúť funkciu živých logov",
-  "web.advanced.enable_live_logs_hint": "Zapnúť príkaz /logs v Discord",
+  "web.advanced.enable_live_logs_hint": "Tlačidlo 📋 v informačnom paneli kontajnera (ovládacie kanály)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Povoliť používateľom prezerať živé logy kontajnerov v Discord. Vypnite na zníženie využívania Discord API a prevenciu spamu logov.",
   "web.advanced.evolution_cost_multiplier": "Násobiteľ nákladov evolúcie",
   "web.advanced.evolution_cost_multiplier_tooltip": "Upravuje obtiažnosť nákladov evolúcie Mecha s 20 jemnými krokmi. Ľahká (0.5x) znižuje cenu evolúcie na polovicu, Ťažká (2.0x) ju zdvojnásobí. Dosiahnuté úrovne zostanú navždy uzamknuté.",

@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "تحديث تلقائي لقائمة الحاويات (عطّل لتوفير الموارد)",
   "web.advanced.enable_bg_refresh_tooltip": "واجهة الويب: تحديث قائمة الحاويات تلقائياً في الخلفية. عطّل إذا كان لديك العديد من الحاويات أو موارد محدودة.",
   "web.advanced.enable_live_logs": "تفعيل ميزة السجلات المباشرة",
-  "web.advanced.enable_live_logs_hint": "تفعيل أمر /logs في Discord",
+  "web.advanced.enable_live_logs_hint": "زر 📋 في لوحة معلومات الحاوية (قنوات التحكم)",
   "web.advanced.enable_live_logs_tooltip": "Discord: السماح للمستخدمين بعرض سجلات الحاوية المباشرة في Discord. عطّل لتقليل استخدام Discord API ومنع إغراق السجلات.",
   "web.advanced.evolution_cost_multiplier": "مضاعف تكلفة التطور",
   "web.advanced.evolution_cost_multiplier_tooltip": "يضبط صعوبة تكاليف تطور الـ Mech بـ 20 خطوة دقيقة. سهل (0.5×) يجعل التطور بنصف السعر، صعب (2.0×) يجعله بضعف السعر. المستويات المحققة تبقى مقفلة للأبد.",

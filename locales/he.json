@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "רענן אוטומטית רשימת קונטיינרים (בטל לחיסכון במשאבים)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: רענן אוטומטית רשימת קונטיינרים ברקע. בטל אם יש לך קונטיינרים רבים או משאבים מוגבלים.",
   "web.advanced.enable_live_logs": "הפעל תכונת יומנים חיים",
-  "web.advanced.enable_live_logs_hint": "הפעל פקודת /logs ב-Discord",
+  "web.advanced.enable_live_logs_hint": "כפתור 📋 בחלונית המידע של מכולה (ערוצי בקרה)",
   "web.advanced.enable_live_logs_tooltip": "Discord: אפשר למשתמשים לצפות ביומני קונטיינר חיים ב-Discord. בטל להפחתת שימוש ב-Discord API ומניעת ספאם יומנים.",
   "web.advanced.evolution_cost_multiplier": "מכפיל עלות התפתחות",
   "web.advanced.evolution_cost_multiplier_tooltip": "מתאים את רמת הקושי של עלויות התפתחות מק עם 20 צעדים מדוקדקים. קל (0.5x) הופך התפתחות לחצי מחיר, קשה (2.0x) מכפיל את המחיר. רמות שהושגו נעולות לנצח.",

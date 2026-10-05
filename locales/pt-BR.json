@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Atualizar automaticamente a lista de containers (desative para economia de recursos)",
   "web.advanced.enable_bg_refresh_tooltip": "Interface Web: Atualizar automaticamente a lista de containers em segundo plano. Desative se tiver muitos containers ou recursos limitados.",
   "web.advanced.enable_live_logs": "Ativar recurso de Logs ao Vivo",
-  "web.advanced.enable_live_logs_hint": "Ativar comando /logs no Discord",
+  "web.advanced.enable_live_logs_hint": "O botão 📋 no painel de informações de um contêiner (canais de controle)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Permitir que usuários vejam logs de containers ao vivo no Discord. Desative para reduzir o uso da API do Discord e prevenir spam de logs.",
   "web.advanced.evolution_cost_multiplier": "Multiplicador de Custo de Evolução",
   "web.advanced.evolution_cost_multiplier_tooltip": "Ajusta a dificuldade dos custos de evolução do mech com 20 etapas granulares. Fácil (0,5x) torna a evolução pela metade do preço, Difícil (2,0x) torna o dobro do preço. Níveis alcançados permanecem desbloqueados para sempre.",

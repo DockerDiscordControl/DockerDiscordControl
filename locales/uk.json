@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Автооновлення списку контейнерів (вимкніть для економії ресурсів)",
   "web.advanced.enable_bg_refresh_tooltip": "Веб-інтерфейс: автоматичне оновлення списку контейнерів у фоні. Вимкніть, якщо у вас багато контейнерів або обмежені ресурси.",
   "web.advanced.enable_live_logs": "Увімкнути функцію живих логів",
-  "web.advanced.enable_live_logs_hint": "Увімкнути команду /logs у Discord",
+  "web.advanced.enable_live_logs_hint": "Кнопка 📋 в інформаційній панелі контейнера (канали керування)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Дозволити користувачам переглядати живі логи контейнерів у Discord. Вимкніть для зменшення використання Discord API та запобігання спаму логів.",
   "web.advanced.evolution_cost_multiplier": "Множник вартості еволюції",
   "web.advanced.evolution_cost_multiplier_tooltip": "Регулює вартість еволюції Меха з 20 поступовими кроками. Легко (0.5x) робить еволюцію вдвічі дешевшою, Складно (2.0x) — вдвічі дорожчою. Досягнуті рівні зафіксовано назавжди.",

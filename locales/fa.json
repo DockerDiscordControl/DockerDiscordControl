@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "تازه‌سازی خودکار لیست کانتینرها (غیرفعال کنید برای صرفه‌جویی در منابع)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: تازه‌سازی خودکار لیست کانتینرها در پس‌زمینه. غیرفعال کنید اگر کانتینرهای زیادی دارید یا منابع محدودی دارید.",
   "web.advanced.enable_live_logs": "فعال‌سازی ویژگی لاگ‌های زنده",
-  "web.advanced.enable_live_logs_hint": "فعال‌سازی دستور /logs در Discord",
+  "web.advanced.enable_live_logs_hint": "دکمه 📋 در پنل اطلاعات کانتینر (کانال‌های کنترل)",
   "web.advanced.enable_live_logs_tooltip": "Discord: اجازه دهید کاربران لاگ‌های زنده کانتینر را در Discord مشاهده کنند. غیرفعال کنید تا استفاده از Discord API کاهش یابد و اسپم لاگ جلوگیری شود.",
   "web.advanced.evolution_cost_multiplier": "ضریب هزینه تکامل",
   "web.advanced.evolution_cost_multiplier_tooltip": "سختی هزینه‌های تکامل مک را با 20 مرحله دقیق تنظیم می‌کند. آسان (0.5x) تکامل را نصف قیمت و سخت (2.0x) دو برابر قیمت می‌کند. سطوح کسب شده برای همیشه قفل می‌مانند.",

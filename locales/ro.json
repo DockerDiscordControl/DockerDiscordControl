@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Reîmprospătare automată a listei de containere (dezactivați pentru economisirea resurselor)",
   "web.advanced.enable_bg_refresh_tooltip": "Web UI: Reîmprospătează automat lista de containere în fundal. Dezactivați dacă aveți multe containere sau resurse limitate.",
   "web.advanced.enable_live_logs": "Activează funcția Jurnale Live",
-  "web.advanced.enable_live_logs_hint": "Activează comanda /logs în Discord",
+  "web.advanced.enable_live_logs_hint": "Butonul 📋 din panoul de informații al unui container (canale de control)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Permite utilizatorilor să vizualizeze jurnalele live ale containerelor în Discord. Dezactivați pentru a reduce utilizarea API Discord și a preveni spam-ul în jurnale.",
   "web.advanced.evolution_cost_multiplier": "Multiplicator Cost Evoluție",
   "web.advanced.evolution_cost_multiplier_tooltip": "Ajustează dificultatea costurilor de evoluție a mech-ului cu 20 de trepte granulare. Ușor (0.5x) face evoluția la jumătate de preț, Greu (2.0x) o face dublu. Nivelurile atinse rămân blocate permanent.",

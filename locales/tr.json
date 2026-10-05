@@ -654,7 +654,7 @@
   "web.advanced.enable_bg_refresh_hint": "Konteyner listesini otomatik yenile (kaynak tasarrufu için devre dışı bırakın)",
   "web.advanced.enable_bg_refresh_tooltip": "Web Arayüzü: Konteyner listesini arka planda otomatik olarak yeniler. Çok sayıda konteyneriniz varsa veya kaynaklarınız sınırlıysa devre dışı bırakın.",
   "web.advanced.enable_live_logs": "Canlı Günlükler özelliğini etkinleştir",
-  "web.advanced.enable_live_logs_hint": "Discord'da /logs komutunu etkinleştir",
+  "web.advanced.enable_live_logs_hint": "Bir konteynerin bilgi panelindeki 📋 düğmesi (kontrol kanalları)",
   "web.advanced.enable_live_logs_tooltip": "Discord: Kullanıcıların Discord'da canlı konteyner günlüklerini görüntülemesine izin ver. Discord API kullanımını azaltmak ve günlük spam'ini önlemek için devre dışı bırakın.",
   "web.advanced.evolution_cost_multiplier": "Evrim Maliyet Çarpanı",
   "web.advanced.evolution_cost_multiplier_tooltip": "20 ayrıntılı adımla mech evrim maliyetlerinin zorluğunu ayarlar. Kolay (0.5x) evrimi yarı fiyatına, Zor (2.0x) iki katına çıkarır. Ulaşılan seviyeler sonsuza dek kilitli kalır.",
