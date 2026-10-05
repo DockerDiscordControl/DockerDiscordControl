@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Nama kontena tidak sah: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Kemas kini langsung tamat · ▶️ memulakannya semula",
   "🔄 refresh · ▶️ live updates": "🔄 segar semula · ▶️ kemas kini langsung",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Langsung · setiap {seconds} saat · {remaining} lagi"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Langsung · setiap {seconds} saat · {remaining} lagi",
+  "📥 The last {lines} log lines of **{name}**": "📥 {lines} baris log terakhir **{name}**"
 }

@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Virheellinen kontin nimi: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Reaaliaikaiset päivitykset päättyivät · ▶️ käynnistää ne uudelleen",
   "🔄 refresh · ▶️ live updates": "🔄 päivitä · ▶️ reaaliaikaiset päivitykset",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · {seconds} s välein · vielä {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · {seconds} s välein · vielä {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}**: viimeiset {lines} lokiriviä"
 }

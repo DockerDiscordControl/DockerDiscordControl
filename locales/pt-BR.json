@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Nome de contêiner inválido: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Atualizações ao vivo encerradas · ▶️ as reinicia",
   "🔄 refresh · ▶️ live updates": "🔄 atualizar · ▶️ atualizações ao vivo",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Ao vivo · a cada {seconds} s · mais {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Ao vivo · a cada {seconds} s · mais {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 As últimas {lines} linhas de log de **{name}**"
 }

@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "שם מכולה לא תקין: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ העדכונים החיים הסתיימו · ▶️ מפעיל אותם מחדש",
   "🔄 refresh · ▶️ live updates": "🔄 רענון · ▶️ עדכונים חיים",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 חי · כל {seconds} שנ׳ · עוד {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 חי · כל {seconds} שנ׳ · עוד {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 {lines} שורות היומן האחרונות של **{name}**"
 }

@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Neplatný názov kontajnera: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Živé aktualizácie skončili · ▶️ ich spustí znova",
   "🔄 refresh · ▶️ live updates": "🔄 obnoviť · ▶️ živé aktualizácie",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Naživo · každých {seconds} s · ešte {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Naživo · každých {seconds} s · ešte {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 Posledných {lines} riadkov logu **{name}**"
 }

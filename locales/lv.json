@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Nederīgs konteinera nosaukums: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Tiešraides atjauninājumi beigušies · ▶️ tos sāk no jauna",
   "🔄 refresh · ▶️ live updates": "🔄 atsvaidzināt · ▶️ tiešraides atjauninājumi",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Tiešraide · ik pēc {seconds} s · vēl {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Tiešraide · ik pēc {seconds} s · vēl {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** pēdējās {lines} žurnāla rindas"
 }

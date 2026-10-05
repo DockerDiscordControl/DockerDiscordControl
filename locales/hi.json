@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "अमान्य कंटेनर नाम: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ लाइव अपडेट समाप्त · ▶️ उन्हें फिर से शुरू करता है",
   "🔄 refresh · ▶️ live updates": "🔄 रीफ़्रेश · ▶️ लाइव अपडेट",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 लाइव · हर {seconds} सेकंड · {remaining} और"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 लाइव · हर {seconds} सेकंड · {remaining} और",
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** की अंतिम {lines} लॉग पंक्तियाँ"
 }

@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "ชื่อคอนเทนเนอร์ไม่ถูกต้อง: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ การอัปเดตสดสิ้นสุดแล้ว · ▶️ เริ่มใหม่",
   "🔄 refresh · ▶️ live updates": "🔄 รีเฟรช · ▶️ อัปเดตสด",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 สด · ทุก {seconds} วินาที · อีก {remaining} ครั้ง"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 สด · ทุก {seconds} วินาที · อีก {remaining} ครั้ง",
+  "📥 The last {lines} log lines of **{name}**": "📥 บันทึก {lines} บรรทัดล่าสุดของ **{name}**"
 }

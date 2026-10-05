@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Неважеће име контејнера: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Ажурирања уживо су завршена · ▶️ их поново покреће",
   "🔄 refresh · ▶️ live updates": "🔄 освежи · ▶️ ажурирања уживо",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Уживо · сваких {seconds} с · још {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Уживо · сваких {seconds} с · још {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 Последњих {lines} редова лога за **{name}**"
 }

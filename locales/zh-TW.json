@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "無效的容器名稱：{name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ 即時更新已結束 · ▶️ 重新開始",
   "🔄 refresh · ▶️ live updates": "🔄 重新整理 · ▶️ 即時更新",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 即時 · 每 {seconds} 秒 · 還剩 {remaining} 次"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 即時 · 每 {seconds} 秒 · 還剩 {remaining} 次",
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** 的最近 {lines} 行日誌"
 }

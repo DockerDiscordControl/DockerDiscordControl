@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "اسم حاوية غير صالح: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ انتهت التحديثات المباشرة · ▶️ يعيد تشغيلها",
   "🔄 refresh · ▶️ live updates": "🔄 تحديث · ▶️ تحديثات مباشرة",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 مباشر · كل {seconds} ث · {remaining} متبقية"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 مباشر · كل {seconds} ث · {remaining} متبقية",
+  "📥 The last {lines} log lines of **{name}**": "📥 آخر {lines} سطر من سجل **{name}**"
 }

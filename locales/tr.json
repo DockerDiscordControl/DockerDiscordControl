@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Geçersiz konteyner adı: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Canlı güncellemeler bitti · ▶️ yeniden başlatır",
   "🔄 refresh · ▶️ live updates": "🔄 yenile · ▶️ canlı güncellemeler",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Canlı · her {seconds} sn · {remaining} kez daha"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Canlı · her {seconds} sn · {remaining} kez daha",
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** için son {lines} kayıt satırı"
 }

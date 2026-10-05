@@ -137,23 +137,20 @@ def fit_log_lines(lines: list, room: int = LOG_ROOM, today=None) -> str:
     return ("…\n" + text) if len(kept) < len(lines) else text
 
 
-async def container_logs_text(container_name: str) -> str:
-    """Get the last N log lines for a container, ready for a Discord embed.
+async def read_container_logs(container_name: str, tail: int):
+    """Docker's last ``tail`` lines with their stamps, or the sentence to show instead.
 
-    Stood twice, character for character, as a method on LiveLogView and on
-    DebugLogsButton. Both used nothing but ``self.container_name``, so the copy
-    had no reason beyond convenience - and a copy is a correction that only ever
-    lands in one place. See docs/quality/STAGE0_INVENTORY.md section 7.
+    Returns ``(text, None)`` or ``(None, sentence)``. One reader for the panel
+    and the 📥 file, so both say the same when Docker does not answer.
     """
     try:
         import docker
         import asyncio
         from utils.common_helpers import validate_container_name
-        from utils.settings import get_setting
 
         # Validate container name for security
         if not validate_container_name(container_name):
-            return _("Invalid container name: {name}").format(name=container_name)
+            return None, _("Invalid container name: {name}").format(name=container_name)
 
         # Use synchronous Docker client for stable log retrieval
         def get_logs_sync():
@@ -163,25 +160,67 @@ async def container_logs_text(container_name: str) -> str:
             client = build_docker_client(timeout=60)
             try:
                 container = client.containers.get(container_name)
-                tail_lines = get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50)
-                logs_bytes = container.logs(tail=tail_lines, timestamps=True)
+                logs_bytes = container.logs(tail=tail, timestamps=True)
                 return logs_bytes.decode('utf-8', errors='replace')
             finally:
                 client.close()
 
         # Run synchronous operation in thread pool to avoid blocking
-        logs = await asyncio.get_event_loop().run_in_executor(None, get_logs_sync)
-
-        zone = _panel_zone()
-        today = datetime.now(zone).date() if zone is not None else None
-        return fit_log_lines(readable_log_lines(logs, zone), today=today) or \
-            _("No logs available for this container.")
+        return await asyncio.get_event_loop().run_in_executor(None, get_logs_sync), None
 
     except docker.errors.NotFound:
-        return _("Container '{name}' not found.").format(name=container_name)
+        return None, _("Container '{name}' not found.").format(name=container_name)
     except (docker.errors.DockerException, RuntimeError, OSError) as e:
         logger.debug(f"Error getting logs for {container_name}: {e}")
-        return _("Error retrieving logs: {error}").format(error=str(e)[:100])
+        return None, _("Error retrieving logs: {error}").format(error=str(e)[:100])
+
+
+async def container_logs_text(container_name: str) -> str:
+    """Get the last N log lines for a container, ready for a Discord embed.
+
+    Stood twice, character for character, as a method on LiveLogView and on
+    DebugLogsButton. Both used nothing but ``self.container_name``, so the copy
+    had no reason beyond convenience - and a copy is a correction that only ever
+    lands in one place. See docs/quality/STAGE0_INVENTORY.md section 7.
+    """
+    from utils.settings import get_setting
+    logs, problem = await read_container_logs(container_name, get_setting('DDC_LIVE_LOGS_TAIL_LINES', 50))
+    if problem is not None:
+        return problem
+    zone = _panel_zone()
+    today = datetime.now(zone).date() if zone is not None else None
+    return fit_log_lines(readable_log_lines(logs, zone), today=today) or \
+        _("No logs available for this container.")
+
+
+# The 📥 file: more than the panel can show, within what Discord takes from a bot.
+DOWNLOAD_LINES = 5000
+DOWNLOAD_BYTES = 8 * 1024 * 1024
+
+
+async def container_log_file(container_name: str):
+    """The last DOWNLOAD_LINES lines as a .log file, or the sentence to show instead.
+
+    Returns ``(discord.File, lines)`` or ``(None, sentence)``. Docker's full
+    stamps stay (a file is searched, not glanced at); colour codes go.
+    """
+    import io
+    logs, problem = await read_container_logs(container_name, DOWNLOAD_LINES)
+    if problem is not None:
+        return None, problem
+    lines = [_ANSI.sub("", line).replace("\r", "") for line in logs.split("\n")]
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if not lines:
+        return None, _("No logs available for this container.")
+    data = ("\n".join(lines) + "\n").encode("utf-8")
+    if len(data) > DOWNLOAD_BYTES:
+        data = data[-DOWNLOAD_BYTES:]
+        data = data[data.find(b"\n") + 1:]
+    stamp = datetime.now(_panel_zone() or timezone.utc).strftime("%Y%m%d-%H%M%S")
+    count = data.count(b"\n")
+    return discord.File(io.BytesIO(data), filename=f"{container_name}-{stamp}.log"), count
+
 
 def _panel_zone():
     """The time zone set in the web panel, or None (then the lines keep UTC)."""
@@ -413,7 +452,7 @@ class LiveLogView(DDCView):
         self._create_all_buttons()
 
     def _create_all_buttons(self):
-        """Create all buttons in the correct order: Refresh, Start/Stop, Close."""
+        """Create all buttons in the correct order: Refresh, Start/Stop, File, Close."""
         # Clear all existing buttons
         self.clear_items()
 
@@ -443,6 +482,15 @@ class LiveLogView(DDCView):
         )
         toggle_button.callback = self.toggle_updates
         self.add_item(toggle_button)
+
+        # 3. The whole log as a file (2026-10-05): more than a panel can show
+        download_button = discord.ui.Button(
+            emoji="📥",
+            style=discord.ButtonStyle.secondary,
+            custom_id='download_log'
+        )
+        download_button.callback = self.download_log
+        self.add_item(download_button)
 
         # The Close this method's own comment has promised since it was
         # written. It is added here and not by PrivateView because
@@ -607,6 +655,30 @@ class LiveLogView(DDCView):
                 logger.warning("Manual refresh failed - no logs retrieved")
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Manual refresh error: {e}", exc_info=True)
+
+    async def download_log(self, interaction: discord.Interaction):
+        """Send the last DOWNLOAD_LINES lines as a .log file, only to the presser.
+
+        A file of its own, not the panel: the panel keeps showing what it showed,
+        and the file stays when the panel goes at its timeout. Answered with a
+        deferred UPDATE, not a "thinking" message: the press starts the panel's
+        timeout again, so its token has to be the one that deletes the panel.
+        """
+        if await self._braked(interaction):
+            return
+        try:
+            await interaction.response.defer()
+            self._painter, self._token_since = interaction, monotonic()
+            file, lines = await container_log_file(self.container_name)
+            if file is None:
+                await interaction.followup.send(f"❌ {lines}", ephemeral=True)
+                return
+            await interaction.followup.send(
+                _("📥 The last {lines} log lines of **{name}**").format(lines=lines, name=self.display_name),
+                file=file, ephemeral=True)
+            logger.info(f"Log file of {self.container_name} sent to user {interaction.user.id} ({lines} lines)")
+        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
+            logger.error(f"Log file error for {self.container_name}: {e}", exc_info=True)
 
     async def toggle_updates(self, interaction: discord.Interaction):
         """Toggle auto-refresh updates - stop or start based on current state."""

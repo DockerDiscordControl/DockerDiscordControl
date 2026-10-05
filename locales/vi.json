@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Tên container không hợp lệ: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Cập nhật trực tiếp đã kết thúc · ▶️ để bắt đầu lại",
   "🔄 refresh · ▶️ live updates": "🔄 làm mới · ▶️ cập nhật trực tiếp",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Trực tiếp · mỗi {seconds} giây · còn {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Trực tiếp · mỗi {seconds} giây · còn {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 {lines} dòng nhật ký gần nhất của **{name}**"
 }

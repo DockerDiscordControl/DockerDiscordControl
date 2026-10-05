@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Nume de container nevalid: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Actualizările live s-au încheiat · ▶️ le pornește din nou",
   "🔄 refresh · ▶️ live updates": "🔄 reîmprospătează · ▶️ actualizări live",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · la fiecare {seconds} s · încă {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · la fiecare {seconds} s · încă {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 Ultimele {lines} linii de jurnal ale **{name}**"
 }

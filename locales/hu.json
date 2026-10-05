@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "Érvénytelen konténernév: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Az élő frissítés véget ért · ▶️ újraindítja",
   "🔄 refresh · ▶️ live updates": "🔄 frissítés · ▶️ élő frissítés",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Élő · {seconds} mp-enként · még {remaining}"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Élő · {seconds} mp-enként · még {remaining}",
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}** utolsó {lines} naplósora"
 }

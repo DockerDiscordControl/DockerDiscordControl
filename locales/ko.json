@@ -1686,5 +1686,6 @@
   "Invalid container name: {name}": "잘못된 컨테이너 이름: {name}",
   "⏸️ Live updates ended · ▶️ starts them again": "⏸️ 실시간 업데이트 종료 · ▶️ 로 다시 시작",
   "🔄 refresh · ▶️ live updates": "🔄 새로 고침 · ▶️ 실시간 업데이트",
-  "🔴 Live · every {seconds} s · {remaining} more": "🔴 실시간 · {seconds}초마다 · {remaining}회 남음"
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 실시간 · {seconds}초마다 · {remaining}회 남음",
+  "📥 The last {lines} log lines of **{name}**": "📥 **{name}**의 마지막 로그 {lines}줄"
 }
