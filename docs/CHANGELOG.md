@@ -23,6 +23,17 @@ All notable changes to DockerDiscordControl will be documented in this file.
   no players because it is not a game server. Only Stop and Notify are offered; a restart would
   bring the same empty server back.
 
+### 🔑 The donation key, checked once
+
+- **"Validate key" knew five of six keys.** The button checked its own copy of the key list in the
+  browser; the Abyss special edition key was called invalid there and accepted by the save. It now
+  asks the server, which checks by the same list as the save, and a check that cannot reach the
+  server says so instead of "invalid".
+- **No key in the browser any more.** The copy of the list, the valid keys printed to the browser
+  console, and the typed key printed on saving are gone.
+- **The panel redraws itself** after a save that switches the donations on or off by key, instead
+  of showing the donation and mech cards until a manual reload.
+
 ### 📋 The live-log panel, gone over
 
 The 📋 button in a container's info panel (control channels) opens its latest log lines, only for
