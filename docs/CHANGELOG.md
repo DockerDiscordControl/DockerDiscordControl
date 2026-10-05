@@ -38,6 +38,16 @@ you. It was looked at as a whole on 2026-10-05 ("is it flawless?"), and it was n
   stayed after its timeout: it deleted itself through a route Discord answers with 404 for a
   private message.
 
+### 📅 No task for a date that does not exist
+
+- **Discord offered 31 February.** After any day the month dropdown listed all twelve months. A
+  yearly task for 31 February was saved and ran on 28 February without a word; a one-time one was
+  refused as "in the past". Now the month dropdown offers only months that have the chosen day
+  (the 31st: seven), a one-time task's year dropdown only years in which the date exists (29
+  February: leap years), and "Create Task" refuses an impossible date from an older panel with
+  "There is no day 31 in February". 29 February stays possible for a yearly task and runs on the
+  28th in ordinary years, as in the web panel.
+
 ### 🔒 Code scanning
 
 - The saved config logs how many critical fields it kept, not their names (CodeQL #91: the names
