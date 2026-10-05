@@ -4,7 +4,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
-## Unreleased
+## v3.1.1 - not yet released
 
 ### 📋 The live-log panel, gone over
 
