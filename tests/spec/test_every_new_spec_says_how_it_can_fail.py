@@ -86,7 +86,6 @@ WITHOUT_A_NOTE = {
     "test_four_buttons_brake_through_the_service.py",
     "test_heartbeat_decision_survives_a_null_url.py",
     "test_info_buttons_brake_through_the_service.py",
-    "test_live_log_view_brakes_through_the_service.py",
     "test_loading_status_fits_narrow_screens.py",
     "test_log_button_brakes_through_the_service.py",
     "test_mech_buttons_ask_their_own_slider.py",
