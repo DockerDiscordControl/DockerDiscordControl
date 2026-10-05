@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 osveži · ▶️ sprotne posodobitve",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 V živo · vsakih {seconds} s · še {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 Zadnjih {lines} vrstic dnevnika za **{name}**",
-  "There is no day {day} in {month}.": "Meseca {month} ni {day}. dneva."
+  "There is no day {day} in {month}.": "Meseca {month} ni {day}. dneva.",
+  "web.aas.state_no_players": "je strežnik igre, na katerem nihče ne igra (ustavi ali obvesti; spodaj označi strežnike iger)",
+  "web.aas.empty_minutes": "nihče ni povezan že (minut)"
 }

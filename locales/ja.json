@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 更新 · ▶️ ライブ更新",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 ライブ · {seconds} 秒ごと · 残り {remaining} 回",
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** の最新 {lines} 行のログ",
-  "There is no day {day} in {month}.": "{month}に{day}日はありません。"
+  "There is no day {day} in {month}.": "{month}に{day}日はありません。",
+  "web.aas.state_no_players": "誰もプレイしていないゲームサーバーである（停止または通知。下でゲームサーバーにチェック）",
+  "web.aas.empty_minutes": "誰もオンラインでない時間（分）"
 }

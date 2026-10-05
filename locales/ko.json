@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 새로 고침 · ▶️ 실시간 업데이트",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 실시간 · {seconds}초마다 · {remaining}회 남음",
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}**의 마지막 로그 {lines}줄",
-  "There is no day {day} in {month}.": "{month}에는 {day}일이 없습니다."
+  "There is no day {day} in {month}.": "{month}에는 {day}일이 없습니다.",
+  "web.aas.state_no_players": "아무도 플레이하지 않는 게임 서버일 때 (중지 또는 알림, 아래에서 게임 서버 선택)",
+  "web.aas.empty_minutes": "아무도 접속하지 않은 시간 (분)"
 }

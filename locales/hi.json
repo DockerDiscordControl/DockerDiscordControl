@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 रीफ़्रेश · ▶️ लाइव अपडेट",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 लाइव · हर {seconds} सेकंड · {remaining} और",
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** की अंतिम {lines} लॉग पंक्तियाँ",
-  "There is no day {day} in {month}.": "{month} में दिन {day} नहीं होता।"
+  "There is no day {day} in {month}.": "{month} में दिन {day} नहीं होता।",
+  "web.aas.state_no_players": "ऐसा गेम सर्वर है जिस पर कोई नहीं खेल रहा (रोकें या सूचित करें; नीचे गेम सर्वर चुनें)",
+  "web.aas.empty_minutes": "इतने समय से कोई ऑनलाइन नहीं (मिनट)"
 }

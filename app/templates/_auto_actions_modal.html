@@ -222,6 +222,11 @@
                                     <input class="form-check-input aas-state-checkbox" type="checkbox" value="image_update" id="aasState_image_update">
                                     <label class="form-check-label" for="aasState_image_update">{{ _t('web.aas.state_image_update') }}</label>
                                 </div>
+                                {# The idle stop (2026-10-05): services/automation/container_watch.EmptyServerWatcher #}
+                                <div class="form-check">
+                                    <input class="form-check-input aas-state-checkbox" type="checkbox" value="no_players" id="aasState_no_players">
+                                    <label class="form-check-label" for="aasState_no_players">{{ _t('web.aas.state_no_players') }}</label>
+                                </div>
                             </div>
                             <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label" for="aasRuleRestartThreshold">{{ _t('web.aas.restart_threshold') }}</label>
@@ -255,6 +260,10 @@
                             <div class="col-md-3 d-flex flex-column">
                                 <label class="form-label" for="aasRuleResourceMinutes">{{ _t('web.aas.resource_minutes') }}</label>
                                 <input type="number" class="form-control mt-auto" id="aasRuleResourceMinutes" value="5" min="1" max="1440">
+                            </div>
+                            <div class="col-md-3 d-flex flex-column">
+                                <label class="form-label" for="aasRuleEmptyMinutes">{{ _t('web.aas.empty_minutes') }}</label>
+                                <input type="number" class="form-control mt-auto" id="aasRuleEmptyMinutes" value="30" min="5" max="1440">
                             </div>
                             <div class="col-12 form-text">{{ _t('web.aas.memory_threshold_hint') }}</div>
                             <div class="col-12 form-text">{{ _t('web.aas.container_state_hint') }}</div>

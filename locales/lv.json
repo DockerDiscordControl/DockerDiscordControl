@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 atsvaidzināt · ▶️ tiešraides atjauninājumi",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Tiešraide · ik pēc {seconds} s · vēl {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** pēdējās {lines} žurnāla rindas",
-  "There is no day {day} in {month}.": "Mēnesī {month} nav {day}. datuma."
+  "There is no day {day} in {month}.": "Mēnesī {month} nav {day}. datuma.",
+  "web.aas.state_no_players": "ir spēļu serveris, kurā neviens nespēlē (apturēt vai paziņot; atzīmē spēļu serverus zemāk)",
+  "web.aas.empty_minutes": "neviens nav tiešsaistē (minūtes)"
 }

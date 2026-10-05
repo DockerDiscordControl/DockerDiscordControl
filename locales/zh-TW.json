@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 重新整理 · ▶️ 即時更新",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 即時 · 每 {seconds} 秒 · 還剩 {remaining} 次",
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** 的最近 {lines} 行日誌",
-  "There is no day {day} in {month}.": "{month}沒有 {day} 日。"
+  "There is no day {day} in {month}.": "{month}沒有 {day} 日。",
+  "web.aas.state_no_players": "是一個無人在玩的遊戲伺服器（停止或通知；在下方勾選遊戲伺服器）",
+  "web.aas.empty_minutes": "無人在線已達（分鐘）"
 }

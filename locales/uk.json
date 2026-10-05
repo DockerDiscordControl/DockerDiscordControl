@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 оновити · ▶️ оновлення наживо",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Наживо · кожні {seconds} с · ще {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 Останні рядки журналу **{name}**: {lines}",
-  "There is no day {day} in {month}.": "У місяці {month} немає {day}-го числа."
+  "There is no day {day} in {month}.": "У місяці {month} немає {day}-го числа.",
+  "web.aas.state_no_players": "є ігровим сервером, на якому ніхто не грає (зупинити або сповістити; познач ігрові сервери нижче)",
+  "web.aas.empty_minutes": "нікого онлайн протягом (хвилин)"
 }

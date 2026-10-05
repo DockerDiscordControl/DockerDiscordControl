@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 obnovit · ▶️ živé aktualizace",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Živě · každých {seconds} s · ještě {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 Posledních {lines} řádků logu **{name}**",
-  "There is no day {day} in {month}.": "Den {day}. v měsíci {month} neexistuje."
+  "There is no day {day} in {month}.": "Den {day}. v měsíci {month} neexistuje.",
+  "web.aas.state_no_players": "je herní server, na kterém nikdo nehraje (zastavit nebo upozornit; zaškrtni herní servery níže)",
+  "web.aas.empty_minutes": "nikdo online po dobu (minuty)"
 }

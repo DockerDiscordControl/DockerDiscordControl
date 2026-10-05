@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 yenile · ▶️ canlı güncellemeler",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Canlı · her {seconds} sn · {remaining} kez daha",
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** için son {lines} kayıt satırı",
-  "There is no day {day} in {month}.": "{month} ayında {day}. gün yok."
+  "There is no day {day} in {month}.": "{month} ayında {day}. gün yok.",
+  "web.aas.state_no_players": "kimsenin oynamadığı bir oyun sunucusuysa (durdur veya bildir; aşağıdan oyun sunucularını işaretle)",
+  "web.aas.empty_minutes": "şu süredir kimse çevrimiçi değil (dakika)"
 }

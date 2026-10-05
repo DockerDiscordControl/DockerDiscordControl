@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 רענון · ▶️ עדכונים חיים",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 חי · כל {seconds} שנ׳ · עוד {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 {lines} שורות היומן האחרונות של **{name}**",
-  "There is no day {day} in {month}.": "אין יום {day} ב{month}."
+  "There is no day {day} in {month}.": "אין יום {day} ב{month}.",
+  "web.aas.state_no_players": "הוא שרת משחק שאף אחד לא משחק בו (עצירה או הודעה; סמן את שרתי המשחק למטה)",
+  "web.aas.empty_minutes": "אף אחד לא מחובר במשך (דקות)"
 }

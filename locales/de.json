@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 aktualisieren · ▶️ live mitlesen",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · alle {seconds} s · noch {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 Die letzten {lines} Log-Zeilen von **{name}**",
-  "There is no day {day} in {month}.": "Den {day}. gibt es im {month} nicht."
+  "There is no day {day} in {month}.": "Den {day}. gibt es im {month} nicht.",
+  "web.aas.state_no_players": "ein Spielserver ist, auf dem niemand spielt (stoppen oder melden; Spielserver unten anhaken)",
+  "web.aas.empty_minutes": "niemand online seit (Minuten)"
 }

@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 ανανέωση · ▶️ ζωντανές ενημερώσεις",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Ζωντανά · κάθε {seconds} δ · ακόμη {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 Οι τελευταίες {lines} γραμμές καταγραφής του **{name}**",
-  "There is no day {day} in {month}.": "Δεν υπάρχει η ημέρα {day} τον {month}."
+  "There is no day {day} in {month}.": "Δεν υπάρχει η ημέρα {day} τον {month}.",
+  "web.aas.state_no_players": "είναι διακομιστής παιχνιδιού όπου δεν παίζει κανείς (διακοπή ή ειδοποίηση· επίλεξε τους διακομιστές παρακάτω)",
+  "web.aas.empty_minutes": "κανείς συνδεδεμένος για (λεπτά)"
 }

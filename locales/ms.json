@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 segar semula · ▶️ kemas kini langsung",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Langsung · setiap {seconds} saat · {remaining} lagi",
   "📥 The last {lines} log lines of **{name}**": "📥 {lines} baris log terakhir **{name}**",
-  "There is no day {day} in {month}.": "Tiada hari {day} dalam {month}."
+  "There is no day {day} in {month}.": "Tiada hari {day} dalam {month}.",
+  "web.aas.state_no_players": "ialah pelayan permainan yang tiada siapa bermain (hentikan atau maklumkan; tandakan pelayan permainan di bawah)",
+  "web.aas.empty_minutes": "tiada sesiapa dalam talian selama (minit)"
 }

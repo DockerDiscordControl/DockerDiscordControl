@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 frissítés · ▶️ élő frissítés",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Élő · {seconds} mp-enként · még {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** utolsó {lines} naplósora",
-  "There is no day {day} in {month}.": "{month} hónapban nincs {day}. nap."
+  "There is no day {day} in {month}.": "{month} hónapban nincs {day}. nap.",
+  "web.aas.state_no_players": "olyan játékszerver, amelyen senki sem játszik (leállítás vagy értesítés; jelöld be lent a játékszervereket)",
+  "web.aas.empty_minutes": "senki sincs online ennyi ideje (perc)"
 }

@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 päivitä · ▶️ reaaliaikaiset päivitykset",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · {seconds} s välein · vielä {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}**: viimeiset {lines} lokiriviä",
-  "There is no day {day} in {month}.": "Kuukaudessa {month} ei ole päivää {day}."
+  "There is no day {day} in {month}.": "Kuukaudessa {month} ei ole päivää {day}.",
+  "web.aas.state_no_players": "on pelipalvelin, jolla kukaan ei pelaa (pysäytä tai ilmoita; valitse pelipalvelimet alta)",
+  "web.aas.empty_minutes": "ei ketään paikalla (minuuttia)"
 }

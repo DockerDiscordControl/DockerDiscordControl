@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 reîmprospătează · ▶️ actualizări live",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · la fiecare {seconds} s · încă {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 Ultimele {lines} linii de jurnal ale **{name}**",
-  "There is no day {day} in {month}.": "Nu există ziua {day} în {month}."
+  "There is no day {day} in {month}.": "Nu există ziua {day} în {month}.",
+  "web.aas.state_no_players": "este un server de joc pe care nu joacă nimeni (oprește sau anunță; bifează serverele de joc mai jos)",
+  "web.aas.empty_minutes": "nimeni online de (minute)"
 }

@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 vernieuwen · ▶️ live-updates",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · elke {seconds} s · nog {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 De laatste {lines} logregels van **{name}**",
-  "There is no day {day} in {month}.": "{month} heeft geen dag {day}."
+  "There is no day {day} in {month}.": "{month} heeft geen dag {day}.",
+  "web.aas.state_no_players": "een gameserver is waarop niemand speelt (stoppen of melden; vink de gameservers hieronder aan)",
+  "web.aas.empty_minutes": "niemand online sinds (minuten)"
 }

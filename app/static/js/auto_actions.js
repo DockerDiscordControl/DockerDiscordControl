@@ -497,6 +497,7 @@ function populateRuleForm(rule) {
         document.getElementById('aasRuleMemoryThreshold').value = rule.trigger.memory_threshold_percent || 90;
         document.getElementById('aasRuleMemoryThresholdMb').value = rule.trigger.memory_threshold_mb || 4096;
         document.getElementById('aasRuleResourceMinutes').value = rule.trigger.resource_minutes || 5;
+        document.getElementById('aasRuleEmptyMinutes').value = rule.trigger.empty_minutes || 30;
     }
     updateTriggerTypeFields();
 
@@ -672,6 +673,7 @@ async function saveContainerStateRule(ruleName, watchedContainers) {
             memory_threshold_percent: safeInt(document.getElementById('aasRuleMemoryThreshold').value, 90),
             memory_threshold_mb: safeInt(document.getElementById('aasRuleMemoryThresholdMb').value, 4096),
             resource_minutes: safeInt(document.getElementById('aasRuleResourceMinutes').value, 5),
+            empty_minutes: safeInt(document.getElementById('aasRuleEmptyMinutes').value, 30),
             channel_ids: [],
             keywords: [],
             required_keywords: [],

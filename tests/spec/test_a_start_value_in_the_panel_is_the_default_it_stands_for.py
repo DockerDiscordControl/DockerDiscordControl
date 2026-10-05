@@ -109,6 +109,7 @@ def _automation_defaults():
         "aasRuleMemoryThreshold": _field_default(TriggerConfig, "memory_threshold_percent"),
         "aasRuleMemoryThresholdMb": _field_default(TriggerConfig, "memory_threshold_mb"),
         "aasRuleResourceMinutes": _field_default(TriggerConfig, "resource_minutes"),
+        "aasRuleEmptyMinutes": _field_default(TriggerConfig, "empty_minutes"),
     }
 
 

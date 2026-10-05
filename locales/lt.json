@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 atnaujinti · ▶️ tiesioginiai atnaujinimai",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Tiesiogiai · kas {seconds} s · dar {remaining}",
   "📥 The last {lines} log lines of **{name}**": "📥 Paskutinės {lines} **{name}** žurnalo eilutės",
-  "There is no day {day} in {month}.": "Mėnesyje {month} nėra {day} dienos."
+  "There is no day {day} in {month}.": "Mėnesyje {month} nėra {day} dienos.",
+  "web.aas.state_no_players": "yra žaidimų serveris, kuriame niekas nežaidžia (sustabdyti arba pranešti; pažymėk žaidimų serverius žemiau)",
+  "web.aas.empty_minutes": "niekas neprisijungęs (minutės)"
 }

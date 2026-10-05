@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 refresh · ▶️ live updates",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · every {seconds} s · {remaining} more",
   "📥 The last {lines} log lines of **{name}**": "📥 The last {lines} log lines of **{name}**",
-  "There is no day {day} in {month}.": "There is no day {day} in {month}."
+  "There is no day {day} in {month}.": "There is no day {day} in {month}.",
+  "web.aas.state_no_players": "is a game server nobody plays on (stop or notify; tick the game servers below)",
+  "web.aas.empty_minutes": "nobody online for (minutes)"
 }

@@ -1678,5 +1678,7 @@
   "🔄 refresh · ▶️ live updates": "🔄 opdater · ▶️ live-opdateringer",
   "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · hvert {seconds}. s · {remaining} mere",
   "📥 The last {lines} log lines of **{name}**": "📥 De sidste {lines} loglinjer fra **{name}**",
-  "There is no day {day} in {month}.": "Der er ingen dag {day} i {month}."
+  "There is no day {day} in {month}.": "Der er ingen dag {day} i {month}.",
+  "web.aas.state_no_players": "er en spilserver, som ingen spiller på (stop eller giv besked; sæt flueben ved spilserverne nedenfor)",
+  "web.aas.empty_minutes": "ingen online i (minutter)"
 }

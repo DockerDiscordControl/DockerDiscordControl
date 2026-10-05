@@ -20,7 +20,9 @@ function makeEnv() {
     // stand-in made every case here fail on a null element.
     'aasRuleMemoryThresholdMb',
     // Added 2026-09-26: what the CPU percent is of (one core or the host).
-    'aasRuleCpuBasis'];
+    'aasRuleCpuBasis',
+    // Added 2026-10-05: minutes a game server may stand empty (no_players).
+    'aasRuleEmptyMinutes'];
   for (const id of ids) {
     els[id] = { id, value: '', checked: false, focus() {}, style: {},
       classList: { add() {}, remove() {}, toggle() {} } };
@@ -57,7 +59,7 @@ function makeEnv() {
     },
     get innerHTML() { return ''; },
   };
-  const states = ['stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory']
+  const states = ['stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory', 'no_players']
     .map(value => ({ value, checked: false }));
   const feedback = [{ value: '', checked: true }, { value: '555', checked: false }];
   els.aasRuleTargetContainersWrapper = targetWrapper;
@@ -195,6 +197,28 @@ const tests = {
     const again = edit.sent[0].body.trigger;
     assert.deepStrictEqual([again.cpu_threshold_percent, again.memory_threshold_percent, again.resource_minutes],
       [85, 95, 7]);
+  },
+
+  async 'the minutes without players are sent and kept on edit'() {
+    // The idle stop (2026-10-05): a game server empty for these minutes.
+    const env = makeEnv();
+    env.els.aasRuleName.value = 'Idle';
+    env.els.aasRuleTriggerType.value = 'container_state';
+    env.els.aasRuleActionType.value = 'STOP';
+    env.states[5].checked = true;  // no_players
+    env.els.aasRuleEmptyMinutes.value = '45';
+    await env.ctx.saveAASRule();
+    const trigger = env.sent[0].body.trigger;
+    assert.deepStrictEqual(trigger.states, ['no_players']);
+    assert.strictEqual(trigger.empty_minutes, 45);
+
+    const edit = makeEnv();
+    edit.ctx.populateRuleForm({ id: 'r', name: 'Idle', priority: 10, enabled: true,
+      trigger: { ...trigger, restart_threshold: 3, restart_window_minutes: 10 },
+      action: { type: 'STOP', containers: [], delay_seconds: 0, notification_channel_id: null },
+      safety: { cooldown_minutes: 30, cooldown_scope: 'container', only_if_running: true } });
+    await edit.ctx.saveAASRule();
+    assert.strictEqual(edit.sent[0].body.trigger.empty_minutes, 45);
   },
 
   async 'the cpu basis is sent and kept on edit'() {
