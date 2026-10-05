@@ -368,6 +368,7 @@ class LiveLogView(DDCView):
         self.refresh_count = 0
         self.message_ref = None  # Store message reference
         self.cog_instance = None  # Will be set when needed
+        self._painter = None  # the last press, whose token redraws the panel (see _show)
 
         # Create all buttons in the correct order
         self._create_all_buttons()
@@ -421,6 +422,21 @@ class LiveLogView(DDCView):
             self._auto_refresh_loop()
         )
 
+    async def _show(self, embed) -> None:
+        """Draw the panel through the newest token that may: the last press, else the opening.
+
+        THE PRESS ITSELF REDRAWS THE PANEL. Until 2026-10-05 every 🔄 and ▶️/⏹️
+        sent an extra private note ("Refreshing logs...", "Updating...") and
+        edited the panel through the token of the 📋 press that opened it. That
+        token dies fifteen minutes after the opening, and every button with it.
+        A press now answers with a deferred update and redraws through its own
+        token, which also lets DDCView delete the panel at its timeout.
+        """
+        if self._painter is not None:
+            await self._painter.edit_original_response(embed=embed, view=self)
+        elif self.message_ref is not None:
+            await self.message_ref.edit(embed=embed, view=self)
+
     async def _auto_refresh_loop(self):
         """Auto-refresh loop that updates logs at configured intervals."""
         import asyncio
@@ -434,7 +450,7 @@ class LiveLogView(DDCView):
                 # Get updated logs
                 logs = await container_logs_text(self.container_name)
 
-                if logs and self.message_ref:
+                if logs:
                     # Update embed
                     embed = discord.Embed(
                         title=f"🔍 Live Logs - {self.container_name}",
@@ -456,12 +472,10 @@ class LiveLogView(DDCView):
                         # Recreate all buttons with correct state (Stop -> Play)
                         self._create_all_buttons()
 
-                    # Update message
                     try:
-                        logger.debug(f"Auto-refresh updating message {self.message_ref.id} for container {self.container_name}")
-                        await self.message_ref.edit(embed=embed, view=self)
+                        await self._show(embed)
                     except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-                        logger.error(f"Auto-refresh update failed for message {self.message_ref.id}: {e}", exc_info=True)
+                        logger.error(f"Auto-refresh update failed for {self.container_name}: {e}", exc_info=True)
                         break
 
             # Ensure cleanup after loop ends
@@ -470,11 +484,13 @@ class LiveLogView(DDCView):
                 self.auto_refresh_task = None
                 # Update buttons one final time to show correct state
                 self._create_all_buttons()
-                if self.message_ref:
-                    try:
+                try:
+                    if self._painter is not None:
+                        await self._painter.edit_original_response(view=self)
+                    elif self.message_ref is not None:
                         await self.message_ref.edit(view=self)
-                    except (discord.errors.HTTPException, discord.errors.NotFound) as e:
-                        logger.debug(f"Failed to update buttons after auto-refresh end: {e}")
+                except (discord.errors.HTTPException, discord.errors.NotFound) as e:
+                    logger.debug(f"Failed to update buttons after auto-refresh end: {e}")
 
         except asyncio.CancelledError:
             logger.debug("Auto-refresh cancelled")
@@ -514,14 +530,10 @@ class LiveLogView(DDCView):
                 logger.error(f"Spam protection error for live log refresh button: {e}", exc_info=True)
 
         try:
-            # Immediately send response to avoid timeout
-            await interaction.response.send_message(_("🔄 Refreshing logs..."), ephemeral=True, delete_after=PROGRESS_STAYS_FOR)
-
-            # Get updated logs
+            await interaction.response.defer()
+            self._painter = interaction
             logs = await container_logs_text(self.container_name)
-
-            if logs and self.message_ref:
-                # Update the existing message for public messages
+            if logs:
                 embed = discord.Embed(
                     title=f"🔄 Debug Logs - {self.container_name}",
                     description=f"```\n{logs}\n```",
@@ -529,89 +541,52 @@ class LiveLogView(DDCView):
                     timestamp=datetime.now(timezone.utc)
                 )
                 embed.set_footer(text=_("🔄 Manually refreshed • Click again to update"))
-
-                try:
-                    await self.message_ref.edit(embed=embed, view=self)
-                    # Log refresh is visible in the message update, no additional confirmation needed
-                except (discord.errors.HTTPException, discord.errors.NotFound) as edit_error:
-                    logger.debug(f"Manual refresh edit failed: {edit_error}")
+                await self._show(embed)
             else:
                 logger.warning("Manual refresh failed - no logs retrieved")
-
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Manual refresh error: {e}", exc_info=True)
 
     async def toggle_updates(self, interaction: discord.Interaction):
         """Toggle auto-refresh updates - stop or start based on current state."""
+        import asyncio
         try:
-            # Immediately send response to avoid timeout
-            await interaction.response.send_message(_("⏳ Updating..."), ephemeral=True, delete_after=PROGRESS_STAYS_FOR)
+            await interaction.response.defer()
+            self._painter = interaction
 
-            # Check current state and toggle
             if self.auto_refresh_enabled and self.auto_refresh_task:
                 # Currently running - STOP
                 self.auto_refresh_task.cancel()
                 self.auto_refresh_enabled = False
-
-                # Update button state
                 self._create_all_buttons()
-
-                # Update embed
-                if self.message_ref:
-                    logs = await container_logs_text(self.container_name)
-                    embed = discord.Embed(
-                        title=f"⏹️ Debug Logs - {self.container_name}",
-                        description=f"```\n{logs}\n```",
-                        color=0xff6600,
-                        timestamp=datetime.now(timezone.utc)
-                    )
-                    embed.set_footer(text=_("⏹️ Auto-refresh stopped • Click Start to restart"))
-
-                    try:
-                        await self.message_ref.edit(embed=embed, view=self)
-                    except (discord.errors.HTTPException, discord.errors.NotFound) as e:
-                        logger.debug(f"Failed to update message after stop: {e}")
-                else:
-                    logger.debug("Auto-refresh stopped but no message reference")
-
+                logs = await container_logs_text(self.container_name)
+                embed = discord.Embed(
+                    title=f"⏹️ Debug Logs - {self.container_name}",
+                    description=f"```\n{logs}\n```",
+                    color=0xff6600,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                embed.set_footer(text=_("⏹️ Auto-refresh stopped • Click Start to restart"))
+                await self._show(embed)
             else:
                 # Currently stopped - START
                 self.refresh_count = 0
                 self.auto_refresh_enabled = True
-
-                # Update button state
                 self._create_all_buttons()
-
-                # Update embed and restart auto-refresh
-                if self.message_ref:
-                    logs = await container_logs_text(self.container_name)
-                    embed = discord.Embed(
-                        title=f"▶️ Live Logs - {self.container_name}",
-                        description=f"```\n{logs}\n```",
-                        color=0x00ff00,
-                        timestamp=datetime.now(timezone.utc)
-                    )
-                    embed.set_footer(text=_("▶️ Auto-refresh restarted • Updating every {seconds} seconds").format(
-                        seconds=self.refresh_interval))
-
-                    try:
-                        await self.message_ref.edit(embed=embed, view=self)
-
-                        # Restart auto-refresh task
-                        import asyncio
-                        self.auto_refresh_task = asyncio.create_task(
-                            self._auto_refresh_loop()
-                        )
-
-                        pass  # Successful restart is visible in the message update
-                    except (discord.errors.HTTPException, discord.errors.NotFound) as e:
-                        logger.debug(f"Failed to update message after restart: {e}")
-                else:
-                    logger.debug("Auto-refresh restarted but no message reference")
+                logs = await container_logs_text(self.container_name)
+                embed = discord.Embed(
+                    title=f"▶️ Live Logs - {self.container_name}",
+                    description=f"```\n{logs}\n```",
+                    color=0x00ff00,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                embed.set_footer(text=_("▶️ Auto-refresh restarted • Updating every {seconds} seconds").format(
+                    seconds=self.refresh_interval))
+                await self._show(embed)
+                self.auto_refresh_task = asyncio.create_task(self._auto_refresh_loop())
 
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Toggle updates error: {e}", exc_info=True)
-
 
     async def on_timeout(self):
         """Stop the live updates, then go like every private panel."""
