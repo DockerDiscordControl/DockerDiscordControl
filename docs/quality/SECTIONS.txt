@@ -264,7 +264,7 @@ services/scheduling/scheduler.py:1-1299
 # scheduled_task.py, the input parsing to task_input.py, unchanged. Together
 # with scheduler.py they would exceed the 2000 lines a section may hold.
 services/scheduling/scheduled_task.py:1-886
-services/scheduling/task_input.py:1-246
+services/scheduling/task_input.py:1-259
 
 ## Section 27  (930 lines, 2 pieces)
 services/status/status_cache_service.py:1-225
@@ -461,7 +461,7 @@ cogs/message_updates.py:1-771
 ## Section 41  (1271 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py
 # (2,403 -> 1234 lines); too large to join a neighbour.
-cogs/task_ui.py:1-1271
+cogs/task_ui.py:1-1275
 
 ## Section 42  (282 lines, 1 piece)
 # Phase 4d (2026-09-22): the image-update check. Section 11, where the other

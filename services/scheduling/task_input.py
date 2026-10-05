@@ -22,6 +22,19 @@ logger = get_module_logger('scheduler')
 
 # --- Validation & Parsing Functions (Maintain and adjust if needed) ---
 
+def date_exists(day: int, month: int, year: Optional[int] = None) -> bool:
+    """Whether ``day``.``month`` is a date; without a year, in some year (29 February is).
+
+    Without a year this is the rule _validate_yearly_cycle applies (it checks
+    against a leap year); with one, the rule of _validate_once_cycle. The task
+    dropdowns in Discord offer only what passes it (2026-10-05: they offered
+    31 February, and a yearly task for it ran on the 28th without a word).
+    """
+    import calendar
+    if not (1 <= month <= 12):
+        return False
+    return 1 <= day <= calendar.monthrange(year if year else 2024, month)[1]
+
 def _validate_time_parameters(hour: Optional[int], minute: Optional[int]) -> Tuple[bool, str]:
     """Validate hour and minute parameters."""
     if hour is None or not (0 <= hour <= 23):

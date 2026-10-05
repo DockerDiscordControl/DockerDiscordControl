@@ -669,12 +669,12 @@ class SimpleMonthdayDropdown(discord.ui.Select):
             self.view.add_item(time_dropdown)
         elif self.view.selected_cycle == 'yearly':
             # Yearly: after day comes month
-            month_dropdown = MonthDropdown()
+            month_dropdown = MonthDropdown(day=int(self.values[0]))
             month_dropdown.row = self.view.get_next_available_row()
             self.view.add_item(month_dropdown)
         elif self.view.selected_cycle == 'once':
             # Once: after day comes month
-            month_dropdown = MonthDropdown()
+            month_dropdown = MonthDropdown(day=int(self.values[0]))
             month_dropdown.row = self.view.get_next_available_row()
             self.view.add_item(month_dropdown)
 
@@ -686,21 +686,24 @@ class SimpleMonthdayDropdown(discord.ui.Select):
 
         await interaction.response.edit_message(embed=embed, view=self.view)
 
+def month_names() -> List[str]:
+    """The twelve month names in the bot's language, January first."""
+    return [_("January"), _("February"), _("March"), _("April"), _("May"), _("June"),
+            _("July"), _("August"), _("September"), _("October"), _("November"), _("December")]
+
+
 class MonthDropdown(discord.ui.Select):
-    """Dropdown for selecting month."""
+    """The months that have the chosen day: 31 is offered in seven, 30 in eleven.
 
-    def __init__(self):
-        months = [
-            _("January"), _("February"), _("March"), _("April"), _("May"), _("June"),
-            _("July"), _("August"), _("September"), _("October"), _("November"), _("December")
-        ]
+    It offered all twelve after any day, so 31 February could be picked; a
+    yearly task for it ran on the 28th without a word (2026-10-05).
+    """
 
-        options = []
-        for i, month in enumerate(months, 1):
-            options.append(discord.SelectOption(
-                label=month,
-                value=str(i)
-            ))
+    def __init__(self, day: Optional[int] = None):
+        from services.scheduling.task_input import date_exists
+        options = [discord.SelectOption(label=month, value=str(i))
+                   for i, month in enumerate(month_names(), 1)
+                   if day is None or date_exists(day, i)]
 
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose month..."), options=options)
@@ -737,7 +740,7 @@ class MonthDropdown(discord.ui.Select):
             for item in items_to_remove:
                 self.view.remove_item(item)
 
-            year_dropdown = YearDropdown()
+            year_dropdown = YearDropdown(day=int(self.view.selected_day), month=int(self.values[0]))
             year_dropdown.row = self.view.get_next_available_row()
             self.view.add_item(year_dropdown)
 
@@ -750,18 +753,19 @@ class MonthDropdown(discord.ui.Select):
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 class YearDropdown(discord.ui.Select):
-    """Dropdown for selecting year."""
+    """This year and the next ten, those in which the chosen date exists.
 
-    def __init__(self):
+    29 February is offered in leap years only (2026-10-05).
+    """
+
+    def __init__(self, day: Optional[int] = None, month: Optional[int] = None):
         from datetime import datetime
+        from services.scheduling.task_input import date_exists
         current_year = datetime.now().year
 
-        options = []
-        for year in range(current_year, current_year + 11):  # Current year + 10 years
-            options.append(discord.SelectOption(
-                label=str(year),
-                value=str(year)
-            ))
+        options = [discord.SelectOption(label=str(year), value=str(year))
+                   for year in range(current_year, current_year + 11)
+                   if day is None or month is None or date_exists(day, month, year)]
 
         # Dynamic row assignment
         super().__init__(placeholder=_("Choose year..."), options=options)
