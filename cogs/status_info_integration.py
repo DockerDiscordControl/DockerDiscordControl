@@ -513,9 +513,13 @@ class LiveLogView(DDCView):
         except (discord.errors.DiscordException, RuntimeError, OSError) as e:
             logger.error(f"Auto-refresh error: {e}", exc_info=True)
 
-    async def manual_refresh(self, interaction: discord.Interaction):
-        """Manual refresh button."""
-        # Check button cooldown first
+    async def _braked(self, interaction: discord.Interaction) -> bool:
+        """Whether the spam protection holds this press back (and has said so).
+
+        For 🔄 and, since 2026-10-05, for ▶️/⏹️ as well: the toggle had no brake
+        at all, and each press on ▶️ starts a live update that asks Docker every
+        few seconds.
+        """
         from services.infrastructure.spam_protection_service import get_spam_protection_service
         spam_manager = get_spam_protection_service()
 
@@ -524,10 +528,10 @@ class LiveLogView(DDCView):
         # dictionary the view created for itself. Two consequences: the
         # per-minute LIMIT from the panel had no effect (it counts in
         # add_user_cooldown, and this path never got there), and the lock died
-        # with the VIEW. That weighed especially here, because the live-log view
-        # renews itself (_start_auto_recreation rebuilds it 30 seconds before the
-        # timeout) - whoever waited that long lost every cooldown, without any
-        # of it being visible. The message was also untranslated; the existing
+        # with the VIEW. That weighed especially here while the live-log view
+        # still rebuilt itself every 270 s (until 2026-10-05): whoever waited
+        # that long lost every cooldown, without any of it being visible. The
+        # message was also untranslated; the existing
         # catalog entry is used now. Refused via send_message, because nothing
         # has been acknowledged at this point.
         if spam_manager.is_enabled():
@@ -540,11 +544,17 @@ class LiveLogView(DDCView):
                         ),
                         ephemeral=True, delete_after=NOTICE_STAYS_FOR
                     )
-                    return
+                    return True
                 spam_manager.add_user_cooldown(interaction.user.id, "live_refresh")
             except (RuntimeError, AttributeError, KeyError) as e:
                 logger.error(f"Spam protection error for live log refresh button: {e}", exc_info=True)
 
+        return False
+
+    async def manual_refresh(self, interaction: discord.Interaction):
+        """Manual refresh button."""
+        if await self._braked(interaction):
+            return
         try:
             await interaction.response.defer()
             self._painter, self._token_since = interaction, monotonic()
@@ -566,6 +576,8 @@ class LiveLogView(DDCView):
     async def toggle_updates(self, interaction: discord.Interaction):
         """Toggle auto-refresh updates - stop or start based on current state."""
         import asyncio
+        if await self._braked(interaction):
+            return
         try:
             await interaction.response.defer()
             self._painter, self._token_since = interaction, monotonic()

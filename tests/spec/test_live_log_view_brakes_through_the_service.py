@@ -216,3 +216,26 @@ async def test_the_storage_on_the_view_is_gone(tmp_path):
         f"The view still keeps {getattr(view, '_button_cooldowns', None)!r} "
         "- this lock does not survive the next self-renewal."
     )
+
+
+@pytest.mark.asyncio
+async def test_the_start_stop_button_brakes_too(tmp_path):
+    """FOUND 2026-10-05: ▶️/⏹️ had no brake at all, and every ▶️ starts a live
+    update that asks Docker every few seconds. It shares 🔄's bucket.
+
+    COUNTER-CHECK (2026-10-05): red before the change (the press was taken).
+    """
+    service = _service(tmp_path)
+    view = _view()
+    service.add_user_cooldown(USER, "live_refresh")
+    interaction = _interaction()
+
+    with patch(SPAM_PATH, return_value=service), \
+            patch("cogs.status_info_integration.container_logs_text",
+                  new=AsyncMock(return_value="")):
+        await view.toggle_updates(interaction)
+
+    interaction.response.defer.assert_not_awaited()
+    assert view.auto_refresh_enabled is False, "the held-back press started the live update"
+    args = interaction.response.send_message.await_args.args
+    assert "before using this button again" in args[0]
