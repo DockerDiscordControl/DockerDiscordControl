@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Syötä avain ensin",
   "web.advanced.key_invalid_purchase": "Virheellinen lisenssiavain. Osta kelvollinen lisenssi Buy Me a Coffeesta.",
   "web.advanced.key_status_default": "Syötä avain poistaaksesi kaikki lahjoitusominaisuudet käytöstä",
-  "web.advanced.key_status_invalid": "Virheellinen lisenssiavain - osta Buy Me a Coffeesta",
   "web.advanced.key_status_valid": "Kelvollinen lisenssiavain - lahjoitukset poistetaan käytöstä",
   "web.advanced.key_validated": "Lisenssiavain vahvistettu! Lahjoitukset poistetaan kokonaan käytöstä.",
   "web.advanced.live_logs_settings": "Reaaliaikaisten lokien asetukset",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}**: viimeiset {lines} lokiriviä",
   "There is no day {day} in {month}.": "Kuukaudessa {month} ei ole päivää {day}.",
   "web.aas.state_no_players": "on pelipalvelin, jolla kukaan ei pelaa (pysäytä tai ilmoita; valitse pelipalvelimet alta)",
-  "web.aas.empty_minutes": "ei ketään paikalla (minuuttia)"
+  "web.aas.empty_minutes": "ei ketään paikalla (minuuttia)",
+  "web.advanced.key_check_failed": "Avainta ei voitu tarkistaa. Yritä uudelleen."
 }

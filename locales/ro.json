@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Introduceți mai întâi o cheie",
   "web.advanced.key_invalid_purchase": "Cheie de licență invalidă. Cumpărați o licență validă de la Buy Me a Coffee.",
   "web.advanced.key_status_default": "Introduceți cheia pentru a dezactiva toate funcțiile de donație",
-  "web.advanced.key_status_invalid": "Cheie de licență invalidă - cumpărați de la Buy Me a Coffee",
   "web.advanced.key_status_valid": "Cheie de licență validă - donațiile vor fi dezactivate",
   "web.advanced.key_validated": "Cheie de licență validată! Donațiile vor fi complet dezactivate.",
   "web.advanced.live_logs_settings": "Setări Jurnale Live",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Ultimele {lines} linii de jurnal ale **{name}**",
   "There is no day {day} in {month}.": "Nu există ziua {day} în {month}.",
   "web.aas.state_no_players": "este un server de joc pe care nu joacă nimeni (oprește sau anunță; bifează serverele de joc mai jos)",
-  "web.aas.empty_minutes": "nimeni online de (minute)"
+  "web.aas.empty_minutes": "nimeni online de (minute)",
+  "web.advanced.key_check_failed": "Cheia nu a putut fi verificată. Încearcă din nou."
 }

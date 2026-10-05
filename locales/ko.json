@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "먼저 키를 입력해 주세요",
   "web.advanced.key_invalid_purchase": "유효하지 않은 라이선스 키입니다. Buy Me a Coffee에서 유효한 라이선스를 구매하세요.",
   "web.advanced.key_status_default": "모든 기부 기능을 비활성화하려면 키를 입력하세요",
-  "web.advanced.key_status_invalid": "유효하지 않은 라이선스 키 - Buy Me a Coffee에서 구매하세요",
   "web.advanced.key_status_valid": "유효한 라이선스 키 - 기부가 비활성화됩니다",
   "web.advanced.key_validated": "라이선스 키가 확인되었습니다! 기부가 완전히 비활성화됩니다.",
   "web.advanced.live_logs_settings": "실시간 로그 설정",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}**의 마지막 로그 {lines}줄",
   "There is no day {day} in {month}.": "{month}에는 {day}일이 없습니다.",
   "web.aas.state_no_players": "아무도 플레이하지 않는 게임 서버일 때 (중지 또는 알림, 아래에서 게임 서버 선택)",
-  "web.aas.empty_minutes": "아무도 접속하지 않은 시간 (분)"
+  "web.aas.empty_minutes": "아무도 접속하지 않은 시간 (분)",
+  "web.advanced.key_check_failed": "키를 확인할 수 없습니다. 다시 시도해 주세요."
 }

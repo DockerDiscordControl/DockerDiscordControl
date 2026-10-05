@@ -794,6 +794,25 @@ def reset_mech_difficulty():
         current_app.logger.error(f"Service dependency error in reset_mech_difficulty route: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Service error: Unable to reset difficulty'}), 500
 
+@main_bp.route('/api/donation-key/check', methods=['POST'])
+@auth.login_required
+def check_donation_key():
+    """Whether a donation key is valid, by the one list the save uses (utils/key_crypto.py).
+
+    "Validate key" in the advanced settings checked a copy of the key list kept
+    in the browser (advanced_settings_modal.js). It held five of the server's
+    six keys: the Abyss special edition key was called invalid there and
+    accepted by the save (2026-10-05). The copy also logged the valid keys to
+    the browser console, from a file the server hands out without a login.
+    """
+    data = request.get_json(silent=True) or {}
+    key = data.get('key')
+    if not isinstance(key, str) or not key.strip():
+        return jsonify({'success': False, 'error': 'No key given'}), 400
+    from services.donation.donation_utils import validate_donation_key
+    return jsonify({'success': True, 'valid': validate_donation_key(key.strip()[:200])})
+
+
 @main_bp.route('/api/donations/list')
 @auth.login_required
 def donations_api():

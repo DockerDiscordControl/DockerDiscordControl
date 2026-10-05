@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "請先輸入金鑰",
   "web.advanced.key_invalid_purchase": "無效的授權金鑰。請在 Buy Me a Coffee 購買有效授權。",
   "web.advanced.key_status_default": "輸入金鑰以停用所有捐款功能",
-  "web.advanced.key_status_invalid": "無效的授權金鑰 - 請至 Buy Me a Coffee 購買",
   "web.advanced.key_status_valid": "有效的授權金鑰 - 捐款功能將被停用",
   "web.advanced.key_validated": "授權金鑰已驗證！捐款功能將完全停用。",
   "web.advanced.live_logs_settings": "即時日誌設定",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** 的最近 {lines} 行日誌",
   "There is no day {day} in {month}.": "{month}沒有 {day} 日。",
   "web.aas.state_no_players": "是一個無人在玩的遊戲伺服器（停止或通知；在下方勾選遊戲伺服器）",
-  "web.aas.empty_minutes": "無人在線已達（分鐘）"
+  "web.aas.empty_minutes": "無人在線已達（分鐘）",
+  "web.advanced.key_check_failed": "無法檢查金鑰，請再試一次。"
 }

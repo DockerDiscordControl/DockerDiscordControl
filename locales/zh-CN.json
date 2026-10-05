@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "请先输入密钥",
   "web.advanced.key_invalid_purchase": "无效的许可证密钥。请在 Buy Me a Coffee 购买有效许可证。",
   "web.advanced.key_status_default": "输入密钥以禁用所有捐赠功能",
-  "web.advanced.key_status_invalid": "无效的许可证密钥 - 请在 Buy Me a Coffee 购买",
   "web.advanced.key_status_valid": "有效的许可证密钥 - 捐赠将被禁用",
   "web.advanced.key_validated": "许可证密钥已验证！捐赠将被完全禁用。",
   "web.advanced.live_logs_settings": "实时日志设置",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** 的最近 {lines} 行日志",
   "There is no day {day} in {month}.": "{month}没有 {day} 日。",
   "web.aas.state_no_players": "是一个无人在玩的游戏服务器（停止或通知；在下方勾选游戏服务器）",
-  "web.aas.empty_minutes": "无人在线已达（分钟）"
+  "web.aas.empty_minutes": "无人在线已达（分钟）",
+  "web.advanced.key_check_failed": "无法检查密钥，请重试。"
 }

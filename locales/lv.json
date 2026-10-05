@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Lūdzu, vispirms ievadiet atslēgu",
   "web.advanced.key_invalid_purchase": "Nederīga licences atslēga. Iegādājieties derīgu licenci Buy Me a Coffee.",
   "web.advanced.key_status_default": "Ievadiet atslēgu, lai atspējotu visas ziedojumu funkcijas",
-  "web.advanced.key_status_invalid": "Nederīga licences atslēga — iegādājieties Buy Me a Coffee",
   "web.advanced.key_status_valid": "Derīga licences atslēga — ziedojumi tiks atspējoti",
   "web.advanced.key_validated": "Licences atslēga apstiprināta! Ziedojumi tiks pilnībā atspējoti.",
   "web.advanced.live_logs_settings": "Tiešraides žurnālu iestatījumi",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** pēdējās {lines} žurnāla rindas",
   "There is no day {day} in {month}.": "Mēnesī {month} nav {day}. datuma.",
   "web.aas.state_no_players": "ir spēļu serveris, kurā neviens nespēlē (apturēt vai paziņot; atzīmē spēļu serverus zemāk)",
-  "web.aas.empty_minutes": "neviens nav tiešsaistē (minūtes)"
+  "web.aas.empty_minutes": "neviens nav tiešsaistē (minūtes)",
+  "web.advanced.key_check_failed": "Atslēgu neizdevās pārbaudīt. Mēģini vēlreiz."
 }

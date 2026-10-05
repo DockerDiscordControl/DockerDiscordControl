@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "אנא הזן מפתח תחילה",
   "web.advanced.key_invalid_purchase": "מפתח רישיון לא תקין. רכוש רישיון תקף ב-Buy Me a Coffee.",
   "web.advanced.key_status_default": "הזן מפתח להשבתת כל תכונות התרומה",
-  "web.advanced.key_status_invalid": "מפתח רישיון לא תקין - רכוש ב-Buy Me a Coffee",
   "web.advanced.key_status_valid": "מפתח רישיון תקף - תרומות יושבתו",
   "web.advanced.key_validated": "מפתח רישיון אומת! תרומות יושבתו לחלוטין.",
   "web.advanced.live_logs_settings": "הגדרות יומנים חיים",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 {lines} שורות היומן האחרונות של **{name}**",
   "There is no day {day} in {month}.": "אין יום {day} ב{month}.",
   "web.aas.state_no_players": "הוא שרת משחק שאף אחד לא משחק בו (עצירה או הודעה; סמן את שרתי המשחק למטה)",
-  "web.aas.empty_minutes": "אף אחד לא מחובר במשך (דקות)"
+  "web.aas.empty_minutes": "אף אחד לא מחובר במשך (דקות)",
+  "web.advanced.key_check_failed": "לא ניתן היה לבדוק את המפתח. נסה שוב."
 }

@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Kérjük, először adj meg egy kulcsot",
   "web.advanced.key_invalid_purchase": "Érvénytelen licenckulcs. Vásárolj érvényes licencet a Buy Me a Coffee-n.",
   "web.advanced.key_status_default": "Adj meg kulcsot az összes adományozási funkció letiltásához",
-  "web.advanced.key_status_invalid": "Érvénytelen licenckulcs - vásárolj a Buy Me a Coffee-n",
   "web.advanced.key_status_valid": "Érvényes licenckulcs - az adományozás le lesz tiltva",
   "web.advanced.key_validated": "Licenckulcs érvényesítve! Az adományozás teljesen le lesz tiltva.",
   "web.advanced.live_logs_settings": "Élő naplók beállítások",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** utolsó {lines} naplósora",
   "There is no day {day} in {month}.": "{month} hónapban nincs {day}. nap.",
   "web.aas.state_no_players": "olyan játékszerver, amelyen senki sem játszik (leállítás vagy értesítés; jelöld be lent a játékszervereket)",
-  "web.aas.empty_minutes": "senki sincs online ennyi ideje (perc)"
+  "web.aas.empty_minutes": "senki sincs online ennyi ideje (perc)",
+  "web.advanced.key_check_failed": "A kulcsot nem sikerült ellenőrizni. Próbáld újra."
 }

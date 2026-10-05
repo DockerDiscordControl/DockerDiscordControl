@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Please enter a key first",
   "web.advanced.key_invalid_purchase": "Invalid license key. Purchase a valid license at Buy Me a Coffee.",
   "web.advanced.key_status_default": "Enter key to disable all donation features",
-  "web.advanced.key_status_invalid": "Invalid license key - purchase at Buy Me a Coffee",
   "web.advanced.key_status_valid": "Valid license key - donations will be disabled",
   "web.advanced.key_validated": "License key validated! Donations will be completely disabled.",
   "web.advanced.live_logs_settings": "Live Logs Settings",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 The last {lines} log lines of **{name}**",
   "There is no day {day} in {month}.": "There is no day {day} in {month}.",
   "web.aas.state_no_players": "is a game server nobody plays on (stop or notify; tick the game servers below)",
-  "web.aas.empty_minutes": "nobody online for (minutes)"
+  "web.aas.empty_minutes": "nobody online for (minutes)",
+  "web.advanced.key_check_failed": "The key could not be checked. Please try again."
 }

@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "まずキーを入力してください",
   "web.advanced.key_invalid_purchase": "無効なライセンスキーです。Buy Me a Coffeeで有効なライセンスを購入してください。",
   "web.advanced.key_status_default": "すべての寄付機能を無効にするにはキーを入力してください",
-  "web.advanced.key_status_invalid": "無効なライセンスキー - Buy Me a Coffeeで購入してください",
   "web.advanced.key_status_valid": "有効なライセンスキー - 寄付が無効化されます",
   "web.advanced.key_validated": "ライセンスキーが検証されました！寄付は完全に無効化されます。",
   "web.advanced.live_logs_settings": "ライブログ設定",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** の最新 {lines} 行のログ",
   "There is no day {day} in {month}.": "{month}に{day}日はありません。",
   "web.aas.state_no_players": "誰もプレイしていないゲームサーバーである（停止または通知。下でゲームサーバーにチェック）",
-  "web.aas.empty_minutes": "誰もオンラインでない時間（分）"
+  "web.aas.empty_minutes": "誰もオンラインでない時間（分）",
+  "web.advanced.key_check_failed": "キーを確認できませんでした。もう一度お試しください。"
 }

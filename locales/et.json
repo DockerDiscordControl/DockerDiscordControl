@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Palun sisesta esmalt võti",
   "web.advanced.key_invalid_purchase": "Kehtetu litsentsivõti. Osta kehtiv litsents Buy Me a Coffee'st.",
   "web.advanced.key_status_default": "Sisesta võti kõigi annetuse funktsioonide keelamiseks",
-  "web.advanced.key_status_invalid": "Kehtetu litsentsivõti - osta Buy Me a Coffee'st",
   "web.advanced.key_status_valid": "Kehtiv litsentsivõti - annetused keelatakse",
   "web.advanced.key_validated": "Litsentsivõti kinnitatud! Annetused keelatakse täielikult.",
   "web.advanced.live_logs_settings": "Reaalajas logide seaded",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** viimased {lines} logirida",
   "There is no day {day} in {month}.": "Kuul {month} ei ole päeva {day}.",
   "web.aas.state_no_players": "on mänguserver, kus keegi ei mängi (peata või teavita; märgi mänguserverid allpool)",
-  "web.aas.empty_minutes": "keegi pole võrgus (minutit)"
+  "web.aas.empty_minutes": "keegi pole võrgus (minutit)",
+  "web.advanced.key_check_failed": "Võtit ei õnnestunud kontrollida. Proovi uuesti."
 }

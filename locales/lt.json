@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Pirmiausia įveskite raktą",
   "web.advanced.key_invalid_purchase": "Neteisingas licencijos raktas. Įsigykite galiojančią licenciją Buy Me a Coffee.",
   "web.advanced.key_status_default": "Įveskite raktą, kad išjungtumėte visas aukojimo funkcijas",
-  "web.advanced.key_status_invalid": "Neteisingas licencijos raktas – įsigykite Buy Me a Coffee",
   "web.advanced.key_status_valid": "Galiojantis licencijos raktas – aukojimas bus išjungtas",
   "web.advanced.key_validated": "Licencijos raktas patvirtintas! Aukojimas bus visiškai išjungtas.",
   "web.advanced.live_logs_settings": "Tiesioginių žurnalų nustatymai",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Paskutinės {lines} **{name}** žurnalo eilutės",
   "There is no day {day} in {month}.": "Mėnesyje {month} nėra {day} dienos.",
   "web.aas.state_no_players": "yra žaidimų serveris, kuriame niekas nežaidžia (sustabdyti arba pranešti; pažymėk žaidimų serverius žemiau)",
-  "web.aas.empty_minutes": "niekas neprisijungęs (minutės)"
+  "web.aas.empty_minutes": "niekas neprisijungęs (minutės)",
+  "web.advanced.key_check_failed": "Rakto patikrinti nepavyko. Bandyk dar kartą."
 }

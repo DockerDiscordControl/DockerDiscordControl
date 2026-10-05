@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Por favor, insira uma chave primeiro",
   "web.advanced.key_invalid_purchase": "Chave de licença inválida. Adquira uma licença válida no Buy Me a Coffee.",
   "web.advanced.key_status_default": "Insira a chave para desativar todos os recursos de doação",
-  "web.advanced.key_status_invalid": "Chave de licença inválida - adquira no Buy Me a Coffee",
   "web.advanced.key_status_valid": "Chave de licença válida - doações serão desativadas",
   "web.advanced.key_validated": "Chave de licença validada! As doações serão completamente desativadas.",
   "web.advanced.live_logs_settings": "Configurações de Logs ao Vivo",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 As últimas {lines} linhas de log de **{name}**",
   "There is no day {day} in {month}.": "Não existe o dia {day} em {month}.",
   "web.aas.state_no_players": "é um servidor de jogo em que ninguém joga (parar ou avisar; marque os servidores de jogo abaixo)",
-  "web.aas.empty_minutes": "ninguém online há (minutos)"
+  "web.aas.empty_minutes": "ninguém online há (minutos)",
+  "web.advanced.key_check_failed": "Não foi possível verificar a chave. Tente novamente."
 }

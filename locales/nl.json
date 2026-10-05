@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Voer eerst een sleutel in",
   "web.advanced.key_invalid_purchase": "Ongeldige licentiesleutel. Koop een geldige licentie bij Buy Me a Coffee.",
   "web.advanced.key_status_default": "Voer sleutel in om alle donatiefuncties uit te schakelen",
-  "web.advanced.key_status_invalid": "Ongeldige licentiesleutel - koop bij Buy Me a Coffee",
   "web.advanced.key_status_valid": "Geldige licentiesleutel - donaties worden uitgeschakeld",
   "web.advanced.key_validated": "Licentiesleutel gevalideerd! Donaties worden volledig uitgeschakeld.",
   "web.advanced.live_logs_settings": "Live Logs-instellingen",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 De laatste {lines} logregels van **{name}**",
   "There is no day {day} in {month}.": "{month} heeft geen dag {day}.",
   "web.aas.state_no_players": "een gameserver is waarop niemand speelt (stoppen of melden; vink de gameservers hieronder aan)",
-  "web.aas.empty_minutes": "niemand online sinds (minuten)"
+  "web.aas.empty_minutes": "niemand online sinds (minuten)",
+  "web.advanced.key_check_failed": "De sleutel kon niet worden gecontroleerd. Probeer het opnieuw."
 }

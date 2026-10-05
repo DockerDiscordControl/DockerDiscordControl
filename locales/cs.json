@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Nejprve prosím zadejte klíč",
   "web.advanced.key_invalid_purchase": "Neplatný licenční klíč. Zakupte platnou licenci na Buy Me a Coffee.",
   "web.advanced.key_status_default": "Zadejte klíč pro deaktivaci všech funkcí příspěvků",
-  "web.advanced.key_status_invalid": "Neplatný licenční klíč - zakupte na Buy Me a Coffee",
   "web.advanced.key_status_valid": "Platný licenční klíč - příspěvky budou deaktivovány",
   "web.advanced.key_validated": "Licenční klíč ověřen! Příspěvky budou kompletně deaktivovány.",
   "web.advanced.live_logs_settings": "Nastavení živých protokolů",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Posledních {lines} řádků logu **{name}**",
   "There is no day {day} in {month}.": "Den {day}. v měsíci {month} neexistuje.",
   "web.aas.state_no_players": "je herní server, na kterém nikdo nehraje (zastavit nebo upozornit; zaškrtni herní servery níže)",
-  "web.aas.empty_minutes": "nikdo online po dobu (minuty)"
+  "web.aas.empty_minutes": "nikdo online po dobu (minuty)",
+  "web.advanced.key_check_failed": "Klíč se nepodařilo ověřit. Zkus to znovu."
 }

@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Πρώτα εισήγαγε κλειδί",
   "web.advanced.key_invalid_purchase": "Μη έγκυρο κλειδί άδειας. Αγόρασε μια έγκυρη άδεια στο Buy Me a Coffee.",
   "web.advanced.key_status_default": "Εισήγαγε κλειδί για απενεργοποίηση λειτουργιών δωρεάς",
-  "web.advanced.key_status_invalid": "Μη έγκυρο κλειδί - αγόρασε στο Buy Me a Coffee",
   "web.advanced.key_status_valid": "Έγκυρο κλειδί - οι δωρεές θα απενεργοποιηθούν",
   "web.advanced.key_validated": "Το κλειδί άδειας επικυρώθηκε! Οι δωρεές θα απενεργοποιηθούν πλήρως.",
   "web.advanced.live_logs_settings": "Ρυθμίσεις ζωντανών αρχείων καταγραφής",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Οι τελευταίες {lines} γραμμές καταγραφής του **{name}**",
   "There is no day {day} in {month}.": "Δεν υπάρχει η ημέρα {day} τον {month}.",
   "web.aas.state_no_players": "είναι διακομιστής παιχνιδιού όπου δεν παίζει κανείς (διακοπή ή ειδοποίηση· επίλεξε τους διακομιστές παρακάτω)",
-  "web.aas.empty_minutes": "κανείς συνδεδεμένος για (λεπτά)"
+  "web.aas.empty_minutes": "κανείς συνδεδεμένος για (λεπτά)",
+  "web.advanced.key_check_failed": "Δεν ήταν δυνατός ο έλεγχος του κλειδιού. Δοκίμασε ξανά."
 }

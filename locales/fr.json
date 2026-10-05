@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Veuillez d'abord saisir une clé",
   "web.advanced.key_invalid_purchase": "Clé de licence invalide. Achetez une licence valide sur Buy Me a Coffee.",
   "web.advanced.key_status_default": "Saisissez une clé pour désactiver toutes les fonctionnalités de don",
-  "web.advanced.key_status_invalid": "Clé de licence invalide - achetez-la sur Buy Me a Coffee",
   "web.advanced.key_status_valid": "Clé de licence valide - les dons seront désactivés",
   "web.advanced.key_validated": "Clé de licence validée ! Les dons seront complètement désactivés.",
   "web.advanced.live_logs_settings": "Paramètres des journaux en direct",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Les {lines} dernières lignes du journal de **{name}**",
   "There is no day {day} in {month}.": "Le {day} n'existe pas en {month}.",
   "web.aas.state_no_players": "est un serveur de jeu sur lequel personne ne joue (arrêter ou notifier ; cochez les serveurs de jeu ci-dessous)",
-  "web.aas.empty_minutes": "personne en ligne depuis (minutes)"
+  "web.aas.empty_minutes": "personne en ligne depuis (minutes)",
+  "web.advanced.key_check_failed": "La clé n'a pas pu être vérifiée. Réessaie."
 }

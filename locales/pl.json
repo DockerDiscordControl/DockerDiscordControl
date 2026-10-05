@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Proszę najpierw wprowadzić klucz",
   "web.advanced.key_invalid_purchase": "Nieprawidłowy klucz licencji. Kup prawidłową licencję na Buy Me a Coffee.",
   "web.advanced.key_status_default": "Wprowadź klucz, aby wyłączyć wszystkie funkcje darowizn",
-  "web.advanced.key_status_invalid": "Nieprawidłowy klucz licencji - kup na Buy Me a Coffee",
   "web.advanced.key_status_valid": "Prawidłowy klucz licencji - darowizny zostaną wyłączone",
   "web.advanced.key_validated": "Klucz licencji zweryfikowany! Darowizny zostaną całkowicie wyłączone.",
   "web.advanced.live_logs_settings": "Ustawienia logów na żywo",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Ostatnie {lines} linii logu **{name}**",
   "There is no day {day} in {month}.": "W miesiącu {month} nie ma dnia {day}.",
   "web.aas.state_no_players": "jest serwerem gry, na którym nikt nie gra (zatrzymaj lub powiadom; zaznacz serwery gier poniżej)",
-  "web.aas.empty_minutes": "nikt online przez (minuty)"
+  "web.aas.empty_minutes": "nikt online przez (minuty)",
+  "web.advanced.key_check_failed": "Nie udało się sprawdzić klucza. Spróbuj ponownie."
 }

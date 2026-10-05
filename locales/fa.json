@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "لطفاً ابتدا یک کلید وارد کنید",
   "web.advanced.key_invalid_purchase": "کلید مجوز نامعتبر. یک مجوز معتبر در Buy Me a Coffee خریداری کنید.",
   "web.advanced.key_status_default": "کلید وارد کنید تا همه ویژگی‌های کمک مالی غیرفعال شوند",
-  "web.advanced.key_status_invalid": "کلید مجوز نامعتبر - در Buy Me a Coffee خریداری کنید",
   "web.advanced.key_status_valid": "کلید مجوز معتبر - کمک‌های مالی غیرفعال خواهند شد",
   "web.advanced.key_validated": "کلید مجوز تأیید شد! کمک‌های مالی کاملاً غیرفعال خواهند شد.",
   "web.advanced.live_logs_settings": "تنظیمات لاگ‌های زنده",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 آخرین {lines} خط لاگ **{name}**",
   "There is no day {day} in {month}.": "روز {day} در {month} وجود ندارد.",
   "web.aas.state_no_players": "سرور بازی‌ای است که کسی روی آن بازی نمی‌کند (توقف یا اعلان؛ سرورهای بازی را در پایین علامت بزن)",
-  "web.aas.empty_minutes": "هیچ‌کس آنلاین نیست به مدت (دقیقه)"
+  "web.aas.empty_minutes": "هیچ‌کس آنلاین نیست به مدت (دقیقه)",
+  "web.advanced.key_check_failed": "کلید بررسی نشد. دوباره تلاش کن."
 }

@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "يرجى إدخال مفتاح أولاً",
   "web.advanced.key_invalid_purchase": "مفتاح ترخيص غير صالح. اشترِ ترخيصاً صالحاً من Buy Me a Coffee.",
   "web.advanced.key_status_default": "أدخل مفتاحاً لتعطيل جميع ميزات التبرع",
-  "web.advanced.key_status_invalid": "مفتاح ترخيص غير صالح - اشترِ من Buy Me a Coffee",
   "web.advanced.key_status_valid": "مفتاح ترخيص صالح - سيتم تعطيل التبرعات",
   "web.advanced.key_validated": "تم التحقق من مفتاح الترخيص! سيتم تعطيل التبرعات بالكامل.",
   "web.advanced.live_logs_settings": "إعدادات السجلات المباشرة",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 آخر {lines} سطر من سجل **{name}**",
   "There is no day {day} in {month}.": "لا يوجد اليوم {day} في {month}.",
   "web.aas.state_no_players": "خادم ألعاب لا يلعب عليه أحد (إيقاف أو إشعار؛ حدّد خوادم الألعاب أدناه)",
-  "web.aas.empty_minutes": "لا أحد متصل لمدة (دقائق)"
+  "web.aas.empty_minutes": "لا أحد متصل لمدة (دقائق)",
+  "web.advanced.key_check_failed": "تعذّر التحقق من المفتاح. حاول مرة أخرى."
 }

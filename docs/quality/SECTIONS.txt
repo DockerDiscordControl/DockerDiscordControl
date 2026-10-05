@@ -311,7 +311,7 @@ app/blueprints/log_routes.py:1-242
 app/blueprints/action_log_routes.py:1-98
 
 ## Section 32  (1907 lines, 3 pieces)
-app/blueprints/main_routes.py:1-1335
+app/blueprints/main_routes.py:1-1354
 app/blueprints/tasks_bp.py:1-402
 # group_routes.py came over from section 33 on 2026-09-29, beside the other
 # blueprints: the translation Test button's fix put section 33 at 2,007.

@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Моля, първо въведи ключ",
   "web.advanced.key_invalid_purchase": "Невалиден лицензен ключ. Купи валиден лиценз от Buy Me a Coffee.",
   "web.advanced.key_status_default": "Въведи ключ, за да деактивираш всички функции за дарения",
-  "web.advanced.key_status_invalid": "Невалиден лицензен ключ - купи от Buy Me a Coffee",
   "web.advanced.key_status_valid": "Валиден лицензен ключ - даренията ще бъдат деактивирани",
   "web.advanced.key_validated": "Лицензният ключ е валидиран! Даренията ще бъдат напълно деактивирани.",
   "web.advanced.live_logs_settings": "Настройки за живи логове",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Последните {lines} реда от лога на **{name}**",
   "There is no day {day} in {month}.": "Няма ден {day} в {month}.",
   "web.aas.state_no_players": "е гейм сървър, на който никой не играе (спиране или известие; отметни гейм сървърите по-долу)",
-  "web.aas.empty_minutes": "никой онлайн от (минути)"
+  "web.aas.empty_minutes": "никой онлайн от (минути)",
+  "web.advanced.key_check_failed": "Ключът не можа да бъде проверен. Опитай отново."
 }

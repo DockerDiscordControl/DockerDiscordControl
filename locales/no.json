@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Vennligst skriv inn en nøkkel først",
   "web.advanced.key_invalid_purchase": "Ugyldig lisensnøkkel. Kjøp en gyldig lisens på Buy Me a Coffee.",
   "web.advanced.key_status_default": "Skriv inn nøkkel for å deaktivere alle donasjonsfunksjoner",
-  "web.advanced.key_status_invalid": "Ugyldig lisensnøkkel - kjøp på Buy Me a Coffee",
   "web.advanced.key_status_valid": "Gyldig lisensnøkkel - donasjoner vil bli deaktivert",
   "web.advanced.key_validated": "Lisensnøkkel validert! Donasjoner vil bli fullstendig deaktivert.",
   "web.advanced.live_logs_settings": "Innstillinger for direktelogger",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 De siste {lines} logglinjene fra **{name}**",
   "There is no day {day} in {month}.": "Det finnes ingen dag {day} i {month}.",
   "web.aas.state_no_players": "er en spillserver ingen spiller på (stopp eller varsle; huk av spillserverne nedenfor)",
-  "web.aas.empty_minutes": "ingen pålogget på (minutter)"
+  "web.aas.empty_minutes": "ingen pålogget på (minutter)",
+  "web.advanced.key_check_failed": "Nøkkelen kunne ikke kontrolleres. Prøv igjen."
 }

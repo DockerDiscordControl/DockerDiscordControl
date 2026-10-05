@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Silakan masukkan kunci terlebih dahulu",
   "web.advanced.key_invalid_purchase": "Kunci lisensi tidak valid. Beli lisensi valid di Buy Me a Coffee.",
   "web.advanced.key_status_default": "Masukkan kunci untuk menonaktifkan semua fitur donasi",
-  "web.advanced.key_status_invalid": "Kunci lisensi tidak valid - beli di Buy Me a Coffee",
   "web.advanced.key_status_valid": "Kunci lisensi valid - donasi akan dinonaktifkan",
   "web.advanced.key_validated": "Kunci lisensi tervalidasi! Donasi akan sepenuhnya dinonaktifkan.",
   "web.advanced.live_logs_settings": "Pengaturan Live Logs",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 {lines} baris log terakhir dari **{name}**",
   "There is no day {day} in {month}.": "Tidak ada tanggal {day} di bulan {month}.",
   "web.aas.state_no_players": "adalah server game yang tidak dimainkan siapa pun (hentikan atau beri tahu; centang server game di bawah)",
-  "web.aas.empty_minutes": "tidak ada yang online selama (menit)"
+  "web.aas.empty_minutes": "tidak ada yang online selama (menit)",
+  "web.advanced.key_check_failed": "Kunci tidak dapat diperiksa. Coba lagi."
 }

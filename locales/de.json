@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Bitte zuerst einen Schlüssel eingeben",
   "web.advanced.key_invalid_purchase": "Ungültiger Lizenzschlüssel. Kaufe einen gültigen Schlüssel bei Buy Me a Coffee.",
   "web.advanced.key_status_default": "Schlüssel eingeben, um alle Spenden-Funktionen zu deaktivieren",
-  "web.advanced.key_status_invalid": "Ungültiger Lizenzschlüssel – bei Buy Me a Coffee kaufen",
   "web.advanced.key_status_valid": "Gültiger Lizenzschlüssel – Spenden werden deaktiviert",
   "web.advanced.key_validated": "Lizenzschlüssel validiert! Spenden werden vollständig deaktiviert.",
   "web.advanced.live_logs_settings": "Live-Logs-Einstellungen",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Die letzten {lines} Log-Zeilen von **{name}**",
   "There is no day {day} in {month}.": "Den {day}. gibt es im {month} nicht.",
   "web.aas.state_no_players": "ein Spielserver ist, auf dem niemand spielt (stoppen oder melden; Spielserver unten anhaken)",
-  "web.aas.empty_minutes": "niemand online seit (Minuten)"
+  "web.aas.empty_minutes": "niemand online seit (Minuten)",
+  "web.advanced.key_check_failed": "Der Schlüssel konnte nicht geprüft werden. Bitte versuch es noch einmal."
 }

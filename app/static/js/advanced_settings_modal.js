@@ -113,69 +113,14 @@ function saveAdvancedSettings() {
 }
 
 function updateKeyStatus() {
+    // Typing only resets the line: whether a key is valid is the server's to say
+    // (validateDonationKey). Until 2026-10-05 every keystroke was checked against
+    // a copy of the key list kept in this file, which held five of six keys.
     const keyInput = document.getElementById('donation_disable_key');
     const keyStatus = document.getElementById('keyStatus');
-    
     if (keyInput && keyStatus) {
-        const keyValue = keyInput.value.trim();
-        if (!keyValue) {
-            keyStatus.textContent = t('web.advanced.key_status_default');
-            keyStatus.className = 'text-muted';
-        } else if (validateKeyFormat(keyValue)) {
-            keyStatus.textContent = '✅ ' + t('web.advanced.key_status_valid');
-            keyStatus.className = 'text-success';
-        } else {
-            keyStatus.textContent = '❌ ' + t('web.advanced.key_status_invalid');
-            keyStatus.className = 'text-danger';
-        }
-    }
-}
-
-function decryptKey(encryptedKey, cryptoKey = 'NothingToEncrypt') {
-    try {
-        // Decode base64
-        const encrypted = atob(encryptedKey);
-        
-        // Convert string to bytes (compatible with older browsers)
-        const keyBytes = [];
-        for (let i = 0; i < cryptoKey.length; i++) {
-            keyBytes.push(cryptoKey.charCodeAt(i));
-        }
-        
-        let decrypted = '';
-        for (let i = 0; i < encrypted.length; i++) {
-            const encByte = encrypted.charCodeAt(i);
-            const keyByte = keyBytes[i % keyBytes.length];
-            decrypted += String.fromCharCode(encByte ^ keyByte);
-        }
-        
-        return decrypted;
-    } catch (e) {
-        console.error('Key decryption failed:', e);
-        return '';
-    }
-}
-
-function validateKeyFormat(key) {
-    // Encrypted donation keys - use decryptKey() to get actual keys
-    const encryptedKeys = [
-        'Cis3RTk8KHldcSVWX0AoPHlCOVsnP0oNNQAoTkBJQkE=',          // Professional license
-        'Cis3RSUnIRE7DCMmX0E2TQ9CRzhbJUpjPgkjTjAxKDdjXURaXA==',    // Lifetime license
-        'CiA3Iyw8ShAmFi0sID1dNxo9OEVQKVMWQnA0LSVUICYLIj09JA==',    // Full product name
-        'Cis3RSohKhkqFy0qMzVdPwJXMUVdPDMHQnMjMiRUND0dLjYkLA==',    // Commercial license
-        'Cis3RVteVWFCACA3NysgJgc8MUVaNy9tQgcjKCpURzIfI1k4OyE='     // Enterprise edition
-    ];
-    
-    // Decrypt and check
-    try {
-        const validKeys = encryptedKeys.map(encrypted => decryptKey(encrypted));
-        console.log('Decrypted keys:', validKeys.slice(0, 2)); // Show first 2 for debugging
-        const result = validKeys.some(validKey => validKey.toUpperCase() === key.toUpperCase());
-        console.log('Key validation result:', result, 'for key:', key);
-        return result;
-    } catch (e) {
-        console.error('validateKeyFormat error:', e);
-        return false;
+        keyStatus.textContent = t('web.advanced.key_status_default');
+        keyStatus.className = 'text-muted';
     }
 }
 
@@ -212,12 +157,12 @@ function updateDonationStatus(isValid) {
     }
 }
 
-function validateDonationKey() {
+async function validateDonationKey() {
     const keyInput = document.getElementById('donation_disable_key');
     const keyStatus = document.getElementById('keyStatus');
-    
+
     if (!keyInput || !keyStatus) return;
-    
+
     const key = keyInput.value.trim();
     if (!key) {
         keyStatus.textContent = '❌ ' + t('web.advanced.key_enter_first');
@@ -226,7 +171,27 @@ function validateDonationKey() {
         return;
     }
 
-    if (validateKeyFormat(key)) {
+    // The server's list, the one the save checks against (/api/donation-key/check)
+    let valid;
+    try {
+        const response = await fetch('/api/donation-key/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: key })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || `HTTP ${response.status}`);
+        }
+        valid = data.valid === true;
+    } catch (e) {
+        console.error('The donation key could not be checked:', e.message);
+        keyStatus.textContent = '❌ ' + t('web.advanced.key_check_failed');
+        keyStatus.className = 'text-danger';
+        return;
+    }
+
+    if (valid) {
         keyStatus.textContent = '✅ ' + t('web.advanced.key_validated');
         keyStatus.className = 'text-success';
         updateDonationStatus(true);

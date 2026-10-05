@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Najprej vnesite ključ",
   "web.advanced.key_invalid_purchase": "Neveljaven licenčni ključ. Kupite veljavno licenco na Buy Me a Coffee.",
   "web.advanced.key_status_default": "Vnesite ključ za onemogočanje vseh funkcij donacij",
-  "web.advanced.key_status_invalid": "Neveljaven licenčni ključ - kupite na Buy Me a Coffee",
   "web.advanced.key_status_valid": "Veljaven licenčni ključ - donacije bodo onemogočene",
   "web.advanced.key_validated": "Licenčni ključ potrjen! Donacije bodo popolnoma onemogočene.",
   "web.advanced.live_logs_settings": "Nastavitve dnevnikov v živo",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Zadnjih {lines} vrstic dnevnika za **{name}**",
   "There is no day {day} in {month}.": "Meseca {month} ni {day}. dneva.",
   "web.aas.state_no_players": "je strežnik igre, na katerem nihče ne igra (ustavi ali obvesti; spodaj označi strežnike iger)",
-  "web.aas.empty_minutes": "nihče ni povezan že (minut)"
+  "web.aas.empty_minutes": "nihče ni povezan že (minut)",
+  "web.advanced.key_check_failed": "Ključa ni bilo mogoče preveriti. Poskusi znova."
 }

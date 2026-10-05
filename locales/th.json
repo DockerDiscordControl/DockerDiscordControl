@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "กรุณาใส่คีย์ก่อน",
   "web.advanced.key_invalid_purchase": "คีย์ใบอนุญาตไม่ถูกต้อง ซื้อใบอนุญาตที่ถูกต้องได้ที่ Buy Me a Coffee",
   "web.advanced.key_status_default": "ใส่คีย์เพื่อปิดใช้งานฟีเจอร์บริจาคทั้งหมด",
-  "web.advanced.key_status_invalid": "คีย์ใบอนุญาตไม่ถูกต้อง - ซื้อได้ที่ Buy Me a Coffee",
   "web.advanced.key_status_valid": "คีย์ใบอนุญาตถูกต้อง - การบริจาคจะถูกปิดใช้งาน",
   "web.advanced.key_validated": "ตรวจสอบคีย์ใบอนุญาตสำเร็จ! การบริจาคจะถูกปิดใช้งานทั้งหมด",
   "web.advanced.live_logs_settings": "การตั้งค่าบันทึกสด",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 บันทึก {lines} บรรทัดล่าสุดของ **{name}**",
   "There is no day {day} in {month}.": "ไม่มีวันที่ {day} ใน{month}",
   "web.aas.state_no_players": "เป็นเซิร์ฟเวอร์เกมที่ไม่มีใครเล่น (หยุดหรือแจ้งเตือน เลือกเซิร์ฟเวอร์เกมด้านล่าง)",
-  "web.aas.empty_minutes": "ไม่มีใครออนไลน์มา (นาที)"
+  "web.aas.empty_minutes": "ไม่มีใครออนไลน์มา (นาที)",
+  "web.advanced.key_check_failed": "ตรวจสอบคีย์ไม่ได้ ลองอีกครั้ง"
 }

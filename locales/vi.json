@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Vui lòng nhập khóa trước",
   "web.advanced.key_invalid_purchase": "Khóa giấy phép không hợp lệ. Mua giấy phép hợp lệ tại Buy Me a Coffee.",
   "web.advanced.key_status_default": "Nhập khóa để tắt tất cả tính năng đóng góp",
-  "web.advanced.key_status_invalid": "Khóa giấy phép không hợp lệ - mua tại Buy Me a Coffee",
   "web.advanced.key_status_valid": "Khóa giấy phép hợp lệ - đóng góp sẽ bị tắt",
   "web.advanced.key_validated": "Đã xác thực khóa giấy phép! Đóng góp sẽ bị tắt hoàn toàn.",
   "web.advanced.live_logs_settings": "Cài đặt nhật ký trực tiếp",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 {lines} dòng nhật ký gần nhất của **{name}**",
   "There is no day {day} in {month}.": "Không có ngày {day} trong {month}.",
   "web.aas.state_no_players": "là máy chủ game không ai chơi (dừng hoặc thông báo; đánh dấu các máy chủ game bên dưới)",
-  "web.aas.empty_minutes": "không ai trực tuyến trong (phút)"
+  "web.aas.empty_minutes": "không ai trực tuyến trong (phút)",
+  "web.advanced.key_check_failed": "Không thể kiểm tra khóa. Hãy thử lại."
 }

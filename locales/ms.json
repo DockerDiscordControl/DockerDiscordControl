@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Sila masukkan kunci terlebih dahulu",
   "web.advanced.key_invalid_purchase": "Kunci lesen tidak sah. Beli lesen yang sah di Buy Me a Coffee.",
   "web.advanced.key_status_default": "Masukkan kunci untuk menyahaktifkan semua ciri derma",
-  "web.advanced.key_status_invalid": "Kunci lesen tidak sah - beli di Buy Me a Coffee",
   "web.advanced.key_status_valid": "Kunci lesen sah - derma akan dinyahaktifkan",
   "web.advanced.key_validated": "Kunci lesen disahkan! Derma akan dinyahaktifkan sepenuhnya.",
   "web.advanced.live_logs_settings": "Tetapan Log Langsung",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 {lines} baris log terakhir **{name}**",
   "There is no day {day} in {month}.": "Tiada hari {day} dalam {month}.",
   "web.aas.state_no_players": "ialah pelayan permainan yang tiada siapa bermain (hentikan atau maklumkan; tandakan pelayan permainan di bawah)",
-  "web.aas.empty_minutes": "tiada sesiapa dalam talian selama (minit)"
+  "web.aas.empty_minutes": "tiada sesiapa dalam talian selama (minit)",
+  "web.advanced.key_check_failed": "Kunci tidak dapat disemak. Cuba lagi."
 }

@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Lütfen önce bir anahtar girin",
   "web.advanced.key_invalid_purchase": "Geçersiz lisans anahtarı. Buy Me a Coffee'den geçerli bir lisans satın alın.",
   "web.advanced.key_status_default": "Tüm bağış özelliklerini devre dışı bırakmak için anahtar girin",
-  "web.advanced.key_status_invalid": "Geçersiz lisans anahtarı - Buy Me a Coffee'den satın alın",
   "web.advanced.key_status_valid": "Geçerli lisans anahtarı - bağışlar devre dışı bırakılacak",
   "web.advanced.key_validated": "Lisans anahtarı doğrulandı! Bağışlar tamamen devre dışı bırakılacak.",
   "web.advanced.live_logs_settings": "Canlı Günlük Ayarları",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** için son {lines} kayıt satırı",
   "There is no day {day} in {month}.": "{month} ayında {day}. gün yok.",
   "web.aas.state_no_players": "kimsenin oynamadığı bir oyun sunucusuysa (durdur veya bildir; aşağıdan oyun sunucularını işaretle)",
-  "web.aas.empty_minutes": "şu süredir kimse çevrimiçi değil (dakika)"
+  "web.aas.empty_minutes": "şu süredir kimse çevrimiçi değil (dakika)",
+  "web.advanced.key_check_failed": "Anahtar kontrol edilemedi. Tekrar dene."
 }

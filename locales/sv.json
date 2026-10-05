@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Ange en nyckel först",
   "web.advanced.key_invalid_purchase": "Ogiltig licensnyckel. Köp en giltig licens på Buy Me a Coffee.",
   "web.advanced.key_status_default": "Ange nyckel för att inaktivera alla donationsfunktioner",
-  "web.advanced.key_status_invalid": "Ogiltig licensnyckel - köp på Buy Me a Coffee",
   "web.advanced.key_status_valid": "Giltig licensnyckel - donationer kommer att inaktiveras",
   "web.advanced.key_validated": "Licensnyckel validerad! Donationer kommer att helt inaktiveras.",
   "web.advanced.live_logs_settings": "Livelogginställningar",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 De senaste {lines} loggraderna från **{name}**",
   "There is no day {day} in {month}.": "Det finns ingen dag {day} i {month}.",
   "web.aas.state_no_players": "är en spelserver som ingen spelar på (stoppa eller meddela; kryssa i spelservrarna nedan)",
-  "web.aas.empty_minutes": "ingen online på (minuter)"
+  "web.aas.empty_minutes": "ingen online på (minuter)",
+  "web.advanced.key_check_failed": "Nyckeln kunde inte kontrolleras. Försök igen."
 }

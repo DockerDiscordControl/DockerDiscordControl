@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "Спочатку введіть ключ",
   "web.advanced.key_invalid_purchase": "Недійсний ліцензійний ключ. Придбайте дійсну ліцензію на Buy Me a Coffee.",
   "web.advanced.key_status_default": "Введіть ключ для вимкнення всіх функцій донатів",
-  "web.advanced.key_status_invalid": "Недійсний ліцензійний ключ — придбайте на Buy Me a Coffee",
   "web.advanced.key_status_valid": "Дійсний ліцензійний ключ — донати будуть вимкнені",
   "web.advanced.key_validated": "Ліцензійний ключ підтверджено! Донати будуть повністю вимкнені.",
   "web.advanced.live_logs_settings": "Налаштування живих логів",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 Останні рядки журналу **{name}**: {lines}",
   "There is no day {day} in {month}.": "У місяці {month} немає {day}-го числа.",
   "web.aas.state_no_players": "є ігровим сервером, на якому ніхто не грає (зупинити або сповістити; познач ігрові сервери нижче)",
-  "web.aas.empty_minutes": "нікого онлайн протягом (хвилин)"
+  "web.aas.empty_minutes": "нікого онлайн протягом (хвилин)",
+  "web.advanced.key_check_failed": "Не вдалося перевірити ключ. Спробуй ще раз."
 }

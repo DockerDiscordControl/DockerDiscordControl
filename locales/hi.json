@@ -665,7 +665,6 @@
   "web.advanced.key_enter_first": "कृपया पहले एक कुंजी दर्ज करें",
   "web.advanced.key_invalid_purchase": "अमान्य लाइसेंस कुंजी। Buy Me a Coffee पर मान्य लाइसेंस खरीदें।",
   "web.advanced.key_status_default": "सभी दान सुविधाएँ अक्षम करने के लिए कुंजी दर्ज करें",
-  "web.advanced.key_status_invalid": "अमान्य लाइसेंस कुंजी - Buy Me a Coffee पर खरीदें",
   "web.advanced.key_status_valid": "मान्य लाइसेंस कुंजी - दान अक्षम होंगे",
   "web.advanced.key_validated": "लाइसेंस कुंजी मान्य! दान पूरी तरह अक्षम होंगे।",
   "web.advanced.live_logs_settings": "लाइव लॉग सेटिंग्स",
@@ -1680,5 +1679,6 @@
   "📥 The last {lines} log lines of **{name}**": "📥 **{name}** की अंतिम {lines} लॉग पंक्तियाँ",
   "There is no day {day} in {month}.": "{month} में दिन {day} नहीं होता।",
   "web.aas.state_no_players": "ऐसा गेम सर्वर है जिस पर कोई नहीं खेल रहा (रोकें या सूचित करें; नीचे गेम सर्वर चुनें)",
-  "web.aas.empty_minutes": "इतने समय से कोई ऑनलाइन नहीं (मिनट)"
+  "web.aas.empty_minutes": "इतने समय से कोई ऑनलाइन नहीं (मिनट)",
+  "web.advanced.key_check_failed": "कुंजी की जाँच नहीं हो सकी। फिर से कोशिश करें।"
 }
