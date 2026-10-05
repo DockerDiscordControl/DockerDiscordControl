@@ -26,6 +26,7 @@ from utils.common_helpers import get_public_ip
 from .translation_manager import _
 import asyncio
 import aiohttp
+from time import monotonic
 from services.automation import get_auto_action_config_service
 from .ddc_ui import (MAX_PRIVATE_SECONDS, NOTICE_STAYS_FOR, PROGRESS_STAYS_FOR, CloseButton, DDCView,
                      PrivateView)
@@ -369,6 +370,7 @@ class LiveLogView(DDCView):
         self.message_ref = None  # Store message reference
         self.cog_instance = None  # Will be set when needed
         self._painter = None  # the last press, whose token redraws the panel (see _show)
+        self._token_since = monotonic()  # when the token _show draws with was issued
 
         # Create all buttons in the correct order
         self._create_all_buttons()
@@ -437,12 +439,26 @@ class LiveLogView(DDCView):
         elif self.message_ref is not None:
             await self.message_ref.edit(embed=embed, view=self)
 
+    def _may_draw_again(self) -> bool:
+        """Whether one more live update still leaves the panel deletable afterwards.
+
+        A private panel can only be edited and deleted with an interaction token,
+        and a token lives fifteen minutes. The live update runs up to 30 s x 100
+        updates by the settings, fifty minutes: from minute fifteen every edit
+        failed and the panel stayed, live footer and all (2026-10-05). So the
+        last update is the one after which a whole timeout still fits into the
+        token's life, with half a minute to spare.
+        """
+        next_draw = monotonic() + self.refresh_interval
+        return next_draw + (self.timeout or 0) + 30 <= self._token_since + 15 * 60
+
     async def _auto_refresh_loop(self):
         """Auto-refresh loop that updates logs at configured intervals."""
         import asyncio
 
         try:
-            while self.refresh_count < self.max_refreshes and self.auto_refresh_enabled:
+            while (self.refresh_count < self.max_refreshes and self.auto_refresh_enabled
+                   and self._may_draw_again()):
                 await asyncio.sleep(self.refresh_interval)  # Wait configured interval
 
                 self.refresh_count += 1
@@ -461,7 +477,7 @@ class LiveLogView(DDCView):
 
                     remaining = self.max_refreshes - self.refresh_count
 
-                    if remaining > 0:
+                    if remaining > 0 and self._may_draw_again():
                         embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
                     seconds=self.refresh_interval, remaining=remaining))
                     else:
@@ -531,7 +547,7 @@ class LiveLogView(DDCView):
 
         try:
             await interaction.response.defer()
-            self._painter = interaction
+            self._painter, self._token_since = interaction, monotonic()
             logs = await container_logs_text(self.container_name)
             if logs:
                 embed = discord.Embed(
@@ -552,7 +568,7 @@ class LiveLogView(DDCView):
         import asyncio
         try:
             await interaction.response.defer()
-            self._painter = interaction
+            self._painter, self._token_since = interaction, monotonic()
 
             if self.auto_refresh_enabled and self.auto_refresh_task:
                 # Currently running - STOP

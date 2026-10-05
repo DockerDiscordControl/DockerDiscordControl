@@ -74,7 +74,7 @@ cogs/status_handlers.py:1-1127
 # v3.1.0, 2026-09-28: every container has an info display; who plays on a
 # game server and Docker's facts come from info_extras.py, read with the display
 # it fills; player_joins.py announces who joins, from the same player list.
-cogs/status_info_integration.py:1-1032
+cogs/status_info_integration.py:1-1048
 cogs/info_extras.py:1-326
 cogs/player_joins.py:1-168
 
