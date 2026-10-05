@@ -1679,5 +1679,12 @@
   "Sun": "Нд",
   "web.server.query_joins_label": "Обявявай влизания на играчи",
   "web.server.query_joins_help": "Публикува се в каналите с отметка „Влизания на играчи“ и изчезва след 30 минути.",
-  "web.server.query_token_missing": "За броя на играчите още липсва: {field}"
+  "web.server.query_token_missing": "За броя на играчите още липсва: {field}",
+  "No logs available for this container.": "Няма налични логове за този контейнер.",
+  "Container '{name}' not found.": "Контейнерът '{name}' не е намерен.",
+  "Error retrieving logs: {error}": "Грешка при извличане на логовете: {error}",
+  "Invalid container name: {name}": "Невалидно име на контейнер: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Актуализациите на живо приключиха · ▶️ ги стартира отново",
+  "🔄 refresh · ▶️ live updates": "🔄 опресняване · ▶️ актуализации на живо",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 На живо · на всеки {seconds} с · още {remaining}"
 }

@@ -1679,5 +1679,12 @@
   "Sun": "P",
   "web.server.query_joins_label": "Teata mängijate liitumisest",
   "web.server.query_joins_help": "Postitatakse kanalitesse, kus „Mängijate liitumised“ on märgitud, ja kaob 30 minuti pärast.",
-  "web.server.query_token_missing": "Mängijate arvu jaoks on veel puudu: {field}"
+  "web.server.query_token_missing": "Mängijate arvu jaoks on veel puudu: {field}",
+  "No logs available for this container.": "Selle konteineri kohta logisid pole.",
+  "Container '{name}' not found.": "Konteinerit '{name}' ei leitud.",
+  "Error retrieving logs: {error}": "Viga logide hankimisel: {error}",
+  "Invalid container name: {name}": "Vigane konteineri nimi: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Otsevärskendused lõppesid · ▶️ käivitab need uuesti",
+  "🔄 refresh · ▶️ live updates": "🔄 värskenda · ▶️ otsevärskendused",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Otse · iga {seconds} s järel · veel {remaining}"
 }

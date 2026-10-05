@@ -1679,5 +1679,12 @@
   "Sun": "الأحد",
   "web.server.query_joins_label": "الإعلان عن انضمام اللاعبين",
   "web.server.query_joins_help": "يُنشر في القنوات التي فُعّل فيها «انضمام اللاعبين»، ويختفي بعد 30 دقيقة.",
-  "web.server.query_token_missing": "لا يزال عدد اللاعبين يحتاج إلى: {field}"
+  "web.server.query_token_missing": "لا يزال عدد اللاعبين يحتاج إلى: {field}",
+  "No logs available for this container.": "لا توجد سجلات لهذه الحاوية.",
+  "Container '{name}' not found.": "لم يتم العثور على الحاوية '{name}'.",
+  "Error retrieving logs: {error}": "خطأ في جلب السجلات: {error}",
+  "Invalid container name: {name}": "اسم حاوية غير صالح: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ انتهت التحديثات المباشرة · ▶️ يعيد تشغيلها",
+  "🔄 refresh · ▶️ live updates": "🔄 تحديث · ▶️ تحديثات مباشرة",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 مباشر · كل {seconds} ث · {remaining} متبقية"
 }

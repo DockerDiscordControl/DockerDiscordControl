@@ -1679,5 +1679,12 @@
   "Sun": "周日",
   "web.server.query_joins_label": "通知玩家加入",
   "web.server.query_joins_help": "发布在勾选了“玩家加入”的频道中，30 分钟后消失。",
-  "web.server.query_token_missing": "玩家人数还需要：{field}"
+  "web.server.query_token_missing": "玩家人数还需要：{field}",
+  "No logs available for this container.": "此容器没有可用的日志。",
+  "Container '{name}' not found.": "未找到容器 '{name}'。",
+  "Error retrieving logs: {error}": "获取日志时出错：{error}",
+  "Invalid container name: {name}": "无效的容器名称：{name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ 实时更新已结束 · ▶️ 重新开始",
+  "🔄 refresh · ▶️ live updates": "🔄 刷新 · ▶️ 实时更新",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 实时 · 每 {seconds} 秒 · 还剩 {remaining} 次"
 }

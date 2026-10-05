@@ -1679,5 +1679,12 @@
   "Sun": "søn",
   "web.server.query_joins_label": "Meld spillere som blir med",
   "web.server.query_joins_help": "Vises i kanalene der «Spillere som blir med» er krysset av, og forsvinner etter 30 minutter.",
-  "web.server.query_token_missing": "Spillertallet mangler fortsatt: {field}"
+  "web.server.query_token_missing": "Spillertallet mangler fortsatt: {field}",
+  "No logs available for this container.": "Det finnes ingen logger for denne containeren.",
+  "Container '{name}' not found.": "Fant ikke containeren '{name}'.",
+  "Error retrieving logs: {error}": "Feil ved henting av logger: {error}",
+  "Invalid container name: {name}": "Ugyldig containernavn: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Direkteoppdateringene er ferdige · ▶️ starter dem igjen",
+  "🔄 refresh · ▶️ live updates": "🔄 oppdater · ▶️ direkteoppdateringer",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Direkte · hvert {seconds}. s · {remaining} til"
 }

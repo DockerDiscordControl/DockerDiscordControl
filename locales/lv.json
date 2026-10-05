@@ -1679,5 +1679,12 @@
   "Sun": "Sv",
   "web.server.query_joins_label": "Paziņot par spēlētāju pievienošanos",
   "web.server.query_joins_help": "Tiek publicēts kanālos, kur atzīmēts “Spēlētāju pievienošanās”, un pazūd pēc 30 minūtēm.",
-  "web.server.query_token_missing": "Spēlētāju skaitam vēl trūkst: {field}"
+  "web.server.query_token_missing": "Spēlētāju skaitam vēl trūkst: {field}",
+  "No logs available for this container.": "Šim konteineram nav pieejamu žurnālu.",
+  "Container '{name}' not found.": "Konteiners '{name}' nav atrasts.",
+  "Error retrieving logs: {error}": "Kļūda, iegūstot žurnālus: {error}",
+  "Invalid container name: {name}": "Nederīgs konteinera nosaukums: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Tiešraides atjauninājumi beigušies · ▶️ tos sāk no jauna",
+  "🔄 refresh · ▶️ live updates": "🔄 atsvaidzināt · ▶️ tiešraides atjauninājumi",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Tiešraide · ik pēc {seconds} s · vēl {remaining}"
 }

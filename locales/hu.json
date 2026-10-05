@@ -1679,5 +1679,12 @@
   "Sun": "V",
   "web.server.query_joins_label": "Csatlakozások bejelentése",
   "web.server.query_joins_help": "Azokban a csatornákban jelenik meg, ahol a „Csatlakozások” be van jelölve, és 30 perc után eltűnik.",
-  "web.server.query_token_missing": "A játékosszámhoz még hiányzik: {field}"
+  "web.server.query_token_missing": "A játékosszámhoz még hiányzik: {field}",
+  "No logs available for this container.": "Ehhez a konténerhez nincs elérhető napló.",
+  "Container '{name}' not found.": "A(z) '{name}' konténer nem található.",
+  "Error retrieving logs: {error}": "Hiba a napló lekérésekor: {error}",
+  "Invalid container name: {name}": "Érvénytelen konténernév: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Az élő frissítés véget ért · ▶️ újraindítja",
+  "🔄 refresh · ▶️ live updates": "🔄 frissítés · ▶️ élő frissítés",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Élő · {seconds} mp-enként · még {remaining}"
 }

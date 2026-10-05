@@ -1679,5 +1679,12 @@
   "Sun": "su",
   "web.server.query_joins_label": "Ilmoita liittyvistä pelaajista",
   "web.server.query_joins_help": "Julkaistaan kanavilla, joissa ”Liittyvät pelaajat” on valittuna, ja katoaa 30 minuutin kuluttua.",
-  "web.server.query_token_missing": "Pelaajamäärä tarvitsee vielä: {field}"
+  "web.server.query_token_missing": "Pelaajamäärä tarvitsee vielä: {field}",
+  "No logs available for this container.": "Tälle kontille ei ole lokeja.",
+  "Container '{name}' not found.": "Konttia '{name}' ei löytynyt.",
+  "Error retrieving logs: {error}": "Virhe lokien hakemisessa: {error}",
+  "Invalid container name: {name}": "Virheellinen kontin nimi: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Reaaliaikaiset päivitykset päättyivät · ▶️ käynnistää ne uudelleen",
+  "🔄 refresh · ▶️ live updates": "🔄 päivitä · ▶️ reaaliaikaiset päivitykset",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · {seconds} s välein · vielä {remaining}"
 }

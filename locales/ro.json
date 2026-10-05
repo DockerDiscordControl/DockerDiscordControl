@@ -1679,5 +1679,12 @@
   "Sun": "dum",
   "web.server.query_joins_label": "Anunță intrările jucătorilor",
   "web.server.query_joins_help": "Apare în canalele în care „Intrări jucători” este bifat și dispare după 30 de minute.",
-  "web.server.query_token_missing": "Pentru numărul de jucători mai lipsește: {field}"
+  "web.server.query_token_missing": "Pentru numărul de jucători mai lipsește: {field}",
+  "No logs available for this container.": "Nu există jurnale pentru acest container.",
+  "Container '{name}' not found.": "Containerul '{name}' nu a fost găsit.",
+  "Error retrieving logs: {error}": "Eroare la preluarea jurnalelor: {error}",
+  "Invalid container name: {name}": "Nume de container nevalid: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Actualizările live s-au încheiat · ▶️ le pornește din nou",
+  "🔄 refresh · ▶️ live updates": "🔄 reîmprospătează · ▶️ actualizări live",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · la fiecare {seconds} s · încă {remaining}"
 }

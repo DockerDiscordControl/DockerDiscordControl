@@ -1679,5 +1679,12 @@
   "Sun": "Ahd",
   "web.server.query_joins_label": "Umumkan pemain menyertai",
   "web.server.query_joins_help": "Disiarkan dalam saluran yang menandakan “Pemain menyertai”; hilang selepas 30 minit.",
-  "web.server.query_token_missing": "Bilangan pemain masih memerlukan: {field}"
+  "web.server.query_token_missing": "Bilangan pemain masih memerlukan: {field}",
+  "No logs available for this container.": "Tiada log untuk kontena ini.",
+  "Container '{name}' not found.": "Kontena '{name}' tidak ditemui.",
+  "Error retrieving logs: {error}": "Ralat semasa mendapatkan log: {error}",
+  "Invalid container name: {name}": "Nama kontena tidak sah: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Kemas kini langsung tamat · ▶️ memulakannya semula",
+  "🔄 refresh · ▶️ live updates": "🔄 segar semula · ▶️ kemas kini langsung",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Langsung · setiap {seconds} saat · {remaining} lagi"
 }

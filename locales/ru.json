@@ -1679,5 +1679,12 @@
   "Sun": "Вс",
   "web.server.query_joins_label": "Сообщать о входе игроков",
   "web.server.query_joins_help": "Публикуется в каналах, где отмечено «Входы игроков», и исчезает через 30 минут.",
-  "web.server.query_token_missing": "Для числа игроков ещё не хватает: {field}"
+  "web.server.query_token_missing": "Для числа игроков ещё не хватает: {field}",
+  "No logs available for this container.": "Для этого контейнера нет журналов.",
+  "Container '{name}' not found.": "Контейнер '{name}' не найден.",
+  "Error retrieving logs: {error}": "Ошибка при получении журналов: {error}",
+  "Invalid container name: {name}": "Недопустимое имя контейнера: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Обновления в реальном времени завершены · ▶️ запускает их снова",
+  "🔄 refresh · ▶️ live updates": "🔄 обновить · ▶️ обновления в реальном времени",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 В реальном времени · каждые {seconds} с · ещё {remaining}"
 }

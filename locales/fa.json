@@ -1679,5 +1679,12 @@
   "Sun": "یکشنبه",
   "web.server.query_joins_label": "اعلام ورود بازیکنان",
   "web.server.query_joins_help": "در کانال‌هایی که «ورود بازیکنان» تیک خورده منتشر می‌شود و پس از ۳۰ دقیقه حذف می‌شود.",
-  "web.server.query_token_missing": "برای تعداد بازیکنان هنوز این لازم است: {field}"
+  "web.server.query_token_missing": "برای تعداد بازیکنان هنوز این لازم است: {field}",
+  "No logs available for this container.": "برای این کانتینر لاگی وجود ندارد.",
+  "Container '{name}' not found.": "کانتینر '{name}' پیدا نشد.",
+  "Error retrieving logs: {error}": "خطا در دریافت لاگ‌ها: {error}",
+  "Invalid container name: {name}": "نام کانتینر نامعتبر است: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ به‌روزرسانی زنده پایان یافت · ▶️ آن را دوباره شروع می‌کند",
+  "🔄 refresh · ▶️ live updates": "🔄 تازه‌سازی · ▶️ به‌روزرسانی زنده",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 زنده · هر {seconds} ثانیه · {remaining} بار دیگر"
 }

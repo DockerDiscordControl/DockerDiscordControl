@@ -1679,5 +1679,12 @@
   "Sun": "zo",
   "web.server.query_joins_label": "Spelers die binnenkomen melden",
   "web.server.query_joins_help": "Verschijnt in de kanalen waar ‘Spelers die binnenkomen’ is aangevinkt en verdwijnt na 30 minuten.",
-  "web.server.query_token_missing": "Voor het spelersaantal ontbreekt nog: {field}"
+  "web.server.query_token_missing": "Voor het spelersaantal ontbreekt nog: {field}",
+  "No logs available for this container.": "Er zijn geen logs voor deze container.",
+  "Container '{name}' not found.": "Container '{name}' niet gevonden.",
+  "Error retrieving logs: {error}": "Fout bij het ophalen van de logs: {error}",
+  "Invalid container name: {name}": "Ongeldige containernaam: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Live-updates beëindigd · ▶️ start ze opnieuw",
+  "🔄 refresh · ▶️ live updates": "🔄 vernieuwen · ▶️ live-updates",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · elke {seconds} s · nog {remaining}"
 }

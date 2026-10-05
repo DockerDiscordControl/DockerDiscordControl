@@ -1679,5 +1679,12 @@
   "Sun": "อา.",
   "web.server.query_joins_label": "ประกาศเมื่อผู้เล่นเข้าร่วม",
   "web.server.query_joins_help": "โพสต์ในช่องที่เลือก “ผู้เล่นเข้าร่วม” ไว้ และหายไปหลัง 30 นาที",
-  "web.server.query_token_missing": "จำนวนผู้เล่นยังต้องการ: {field}"
+  "web.server.query_token_missing": "จำนวนผู้เล่นยังต้องการ: {field}",
+  "No logs available for this container.": "ไม่มีบันทึกสำหรับคอนเทนเนอร์นี้",
+  "Container '{name}' not found.": "ไม่พบคอนเทนเนอร์ '{name}'",
+  "Error retrieving logs: {error}": "เกิดข้อผิดพลาดในการดึงบันทึก: {error}",
+  "Invalid container name: {name}": "ชื่อคอนเทนเนอร์ไม่ถูกต้อง: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ การอัปเดตสดสิ้นสุดแล้ว · ▶️ เริ่มใหม่",
+  "🔄 refresh · ▶️ live updates": "🔄 รีเฟรช · ▶️ อัปเดตสด",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 สด · ทุก {seconds} วินาที · อีก {remaining} ครั้ง"
 }

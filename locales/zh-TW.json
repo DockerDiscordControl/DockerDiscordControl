@@ -1679,5 +1679,12 @@
   "Sun": "週日",
   "web.server.query_joins_label": "通知玩家加入",
   "web.server.query_joins_help": "發布在勾選了「玩家加入」的頻道中，30 分鐘後消失。",
-  "web.server.query_token_missing": "玩家人數還需要：{field}"
+  "web.server.query_token_missing": "玩家人數還需要：{field}",
+  "No logs available for this container.": "此容器沒有可用的日誌。",
+  "Container '{name}' not found.": "找不到容器 '{name}'。",
+  "Error retrieving logs: {error}": "取得日誌時發生錯誤：{error}",
+  "Invalid container name: {name}": "無效的容器名稱：{name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ 即時更新已結束 · ▶️ 重新開始",
+  "🔄 refresh · ▶️ live updates": "🔄 重新整理 · ▶️ 即時更新",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 即時 · 每 {seconds} 秒 · 還剩 {remaining} 次"
 }

@@ -1679,5 +1679,12 @@
   "Sun": "dom",
   "web.server.query_joins_label": "Anunciar entradas de jogadores",
   "web.server.query_joins_help": "Publicado nos canais com “Entradas de jogadores” assinalado; desaparece após 30 minutos.",
-  "web.server.query_token_missing": "Para a contagem de jogadores ainda falta: {field}"
+  "web.server.query_token_missing": "Para a contagem de jogadores ainda falta: {field}",
+  "No logs available for this container.": "Não existem registos para este contentor.",
+  "Container '{name}' not found.": "Contentor '{name}' não encontrado.",
+  "Error retrieving logs: {error}": "Erro ao obter os registos: {error}",
+  "Invalid container name: {name}": "Nome de contentor inválido: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Atualizações em direto terminadas · ▶️ reinicia-as",
+  "🔄 refresh · ▶️ live updates": "🔄 atualizar · ▶️ atualizações em direto",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Em direto · a cada {seconds} s · mais {remaining}"
 }

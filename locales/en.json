@@ -1679,5 +1679,12 @@
   "Sun": "Sun",
   "web.server.query_joins_label": "Announce player joins",
   "web.server.query_joins_help": "Posted in the channels where “Player joins” is ticked; it disappears after 30 minutes.",
-  "web.server.query_token_missing": "The player count still needs: {field}"
+  "web.server.query_token_missing": "The player count still needs: {field}",
+  "No logs available for this container.": "No logs available for this container.",
+  "Container '{name}' not found.": "Container '{name}' not found.",
+  "Error retrieving logs: {error}": "Error retrieving logs: {error}",
+  "Invalid container name: {name}": "Invalid container name: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Live updates ended · ▶️ starts them again",
+  "🔄 refresh · ▶️ live updates": "🔄 refresh · ▶️ live updates",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · every {seconds} s · {remaining} more"
 }

@@ -1679,5 +1679,12 @@
   "Sun": "日",
   "web.server.query_joins_label": "プレイヤー参加を通知する",
   "web.server.query_joins_help": "「プレイヤー参加」にチェックが入ったチャンネルに投稿され、30分後に消えます。",
-  "web.server.query_token_missing": "プレイヤー数の取得にはまだ必要です: {field}"
+  "web.server.query_token_missing": "プレイヤー数の取得にはまだ必要です: {field}",
+  "No logs available for this container.": "このコンテナーのログはありません。",
+  "Container '{name}' not found.": "コンテナー '{name}' が見つかりません。",
+  "Error retrieving logs: {error}": "ログの取得中にエラーが発生しました: {error}",
+  "Invalid container name: {name}": "無効なコンテナー名: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ ライブ更新が終了しました · ▶️ で再開",
+  "🔄 refresh · ▶️ live updates": "🔄 更新 · ▶️ ライブ更新",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 ライブ · {seconds} 秒ごと · 残り {remaining} 回"
 }

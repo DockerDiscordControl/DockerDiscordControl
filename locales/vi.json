@@ -1679,5 +1679,12 @@
   "Sun": "CN",
   "web.server.query_joins_label": "Thông báo người chơi tham gia",
   "web.server.query_joins_help": "Được đăng trong các kênh có đánh dấu “Người chơi tham gia”; biến mất sau 30 phút.",
-  "web.server.query_token_missing": "Số người chơi vẫn cần: {field}"
+  "web.server.query_token_missing": "Số người chơi vẫn cần: {field}",
+  "No logs available for this container.": "Không có nhật ký cho container này.",
+  "Container '{name}' not found.": "Không tìm thấy container '{name}'.",
+  "Error retrieving logs: {error}": "Lỗi khi lấy nhật ký: {error}",
+  "Invalid container name: {name}": "Tên container không hợp lệ: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Cập nhật trực tiếp đã kết thúc · ▶️ để bắt đầu lại",
+  "🔄 refresh · ▶️ live updates": "🔄 làm mới · ▶️ cập nhật trực tiếp",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Trực tiếp · mỗi {seconds} giây · còn {remaining}"
 }

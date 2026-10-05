@@ -1679,5 +1679,12 @@
   "Sun": "א׳",
   "web.server.query_joins_label": "הכרזה על הצטרפות שחקנים",
   "web.server.query_joins_help": "מתפרסם בערוצים שבהם „הצטרפות שחקנים” מסומן, ונעלם אחרי 30 דקות.",
-  "web.server.query_token_missing": "למספר השחקנים עדיין חסר: {field}"
+  "web.server.query_token_missing": "למספר השחקנים עדיין חסר: {field}",
+  "No logs available for this container.": "אין יומנים זמינים עבור מכולה זו.",
+  "Container '{name}' not found.": "המכולה '{name}' לא נמצאה.",
+  "Error retrieving logs: {error}": "שגיאה בטעינת היומנים: {error}",
+  "Invalid container name: {name}": "שם מכולה לא תקין: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ העדכונים החיים הסתיימו · ▶️ מפעיל אותם מחדש",
+  "🔄 refresh · ▶️ live updates": "🔄 רענון · ▶️ עדכונים חיים",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 חי · כל {seconds} שנ׳ · עוד {remaining}"
 }

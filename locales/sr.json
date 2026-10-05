@@ -1679,5 +1679,12 @@
   "Sun": "нед",
   "web.server.query_joins_label": "Најави придруживања играча",
   "web.server.query_joins_help": "Објављује се у каналима где је означено „Придруживања играча“ и нестаје после 30 минута.",
-  "web.server.query_token_missing": "За број играча још недостаје: {field}"
+  "web.server.query_token_missing": "За број играча још недостаје: {field}",
+  "No logs available for this container.": "За овај контејнер нема доступних логова.",
+  "Container '{name}' not found.": "Контејнер '{name}' није пронађен.",
+  "Error retrieving logs: {error}": "Грешка при преузимању логова: {error}",
+  "Invalid container name: {name}": "Неважеће име контејнера: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Ажурирања уживо су завршена · ▶️ их поново покреће",
+  "🔄 refresh · ▶️ live updates": "🔄 освежи · ▶️ ажурирања уживо",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Уживо · сваких {seconds} с · још {remaining}"
 }

@@ -1679,5 +1679,12 @@
   "Sun": "Ne",
   "web.server.query_joins_label": "Oznamovať pripojenia hráčov",
   "web.server.query_joins_help": "Zobrazí sa v kanáloch so začiarknutým „Pripojenia hráčov“ a po 30 minútach zmizne.",
-  "web.server.query_token_missing": "Pre počet hráčov ešte chýba: {field}"
+  "web.server.query_token_missing": "Pre počet hráčov ešte chýba: {field}",
+  "No logs available for this container.": "Pre tento kontajner nie sú k dispozícii žiadne logy.",
+  "Container '{name}' not found.": "Kontajner '{name}' sa nenašiel.",
+  "Error retrieving logs: {error}": "Chyba pri načítaní logov: {error}",
+  "Invalid container name: {name}": "Neplatný názov kontajnera: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Živé aktualizácie skončili · ▶️ ich spustí znova",
+  "🔄 refresh · ▶️ live updates": "🔄 obnoviť · ▶️ živé aktualizácie",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Naživo · každých {seconds} s · ešte {remaining}"
 }

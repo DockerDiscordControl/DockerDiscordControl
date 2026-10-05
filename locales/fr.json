@@ -1679,5 +1679,12 @@
   "Sun": "dim",
   "web.server.query_joins_label": "Annoncer les arrivées de joueurs",
   "web.server.query_joins_help": "Publié dans les canaux où « Arrivées de joueurs » est coché ; disparaît après 30 minutes.",
-  "web.server.query_token_missing": "Pour le nombre de joueurs, il manque encore : {field}"
+  "web.server.query_token_missing": "Pour le nombre de joueurs, il manque encore : {field}",
+  "No logs available for this container.": "Aucun journal disponible pour ce conteneur.",
+  "Container '{name}' not found.": "Conteneur '{name}' introuvable.",
+  "Error retrieving logs: {error}": "Erreur lors de la récupération des journaux : {error}",
+  "Invalid container name: {name}": "Nom de conteneur invalide : {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Mises à jour en direct terminées · ▶️ les relance",
+  "🔄 refresh · ▶️ live updates": "🔄 actualiser · ▶️ mises à jour en direct",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 En direct · toutes les {seconds} s · encore {remaining}"
 }

@@ -1679,5 +1679,12 @@
   "Sun": "niedz",
   "web.server.query_joins_label": "Ogłaszaj dołączenia graczy",
   "web.server.query_joins_help": "Publikowane na kanałach z zaznaczonym „Dołączenia graczy”; znika po 30 minutach.",
-  "web.server.query_token_missing": "Do liczby graczy brakuje jeszcze: {field}"
+  "web.server.query_token_missing": "Do liczby graczy brakuje jeszcze: {field}",
+  "No logs available for this container.": "Brak logów dla tego kontenera.",
+  "Container '{name}' not found.": "Nie znaleziono kontenera '{name}'.",
+  "Error retrieving logs: {error}": "Błąd podczas pobierania logów: {error}",
+  "Invalid container name: {name}": "Nieprawidłowa nazwa kontenera: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Aktualizacje na żywo zakończone · ▶️ uruchamia je ponownie",
+  "🔄 refresh · ▶️ live updates": "🔄 odśwież · ▶️ aktualizacje na żywo",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Na żywo · co {seconds} s · jeszcze {remaining}"
 }

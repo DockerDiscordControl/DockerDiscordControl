@@ -1679,5 +1679,12 @@
   "Sun": "Κυρ",
   "web.server.query_joins_label": "Ανακοίνωση εισόδου παικτών",
   "web.server.query_joins_help": "Δημοσιεύεται στα κανάλια με επιλεγμένο το «Είσοδοι παικτών» και εξαφανίζεται μετά από 30 λεπτά.",
-  "web.server.query_token_missing": "Για τον αριθμό παικτών λείπει ακόμη: {field}"
+  "web.server.query_token_missing": "Για τον αριθμό παικτών λείπει ακόμη: {field}",
+  "No logs available for this container.": "Δεν υπάρχουν αρχεία καταγραφής για αυτό το κοντέινερ.",
+  "Container '{name}' not found.": "Το κοντέινερ '{name}' δεν βρέθηκε.",
+  "Error retrieving logs: {error}": "Σφάλμα κατά την ανάκτηση των αρχείων καταγραφής: {error}",
+  "Invalid container name: {name}": "Μη έγκυρο όνομα κοντέινερ: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Οι ζωντανές ενημερώσεις τελείωσαν · το ▶️ τις ξεκινά ξανά",
+  "🔄 refresh · ▶️ live updates": "🔄 ανανέωση · ▶️ ζωντανές ενημερώσεις",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Ζωντανά · κάθε {seconds} δ · ακόμη {remaining}"
 }

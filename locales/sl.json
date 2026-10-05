@@ -1679,5 +1679,12 @@
   "Sun": "ned",
   "web.server.query_joins_label": "Najavi pridružitve igralcev",
   "web.server.query_joins_help": "Objavi se v kanalih, kjer je označeno »Pridružitve igralcev«, in izgine po 30 minutah.",
-  "web.server.query_token_missing": "Za število igralcev še manjka: {field}"
+  "web.server.query_token_missing": "Za število igralcev še manjka: {field}",
+  "No logs available for this container.": "Za ta vsebnik ni dnevnikov.",
+  "Container '{name}' not found.": "Vsebnika '{name}' ni mogoče najti.",
+  "Error retrieving logs: {error}": "Napaka pri pridobivanju dnevnikov: {error}",
+  "Invalid container name: {name}": "Neveljavno ime vsebnika: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Sprotne posodobitve so končane · ▶️ jih znova zažene",
+  "🔄 refresh · ▶️ live updates": "🔄 osveži · ▶️ sprotne posodobitve",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 V živo · vsakih {seconds} s · še {remaining}"
 }

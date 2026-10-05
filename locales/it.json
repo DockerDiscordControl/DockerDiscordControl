@@ -1679,5 +1679,12 @@
   "Sun": "dom",
   "web.server.query_joins_label": "Annuncia ingressi giocatori",
   "web.server.query_joins_help": "Pubblicato nei canali in cui è spuntato «Ingressi giocatori»; scompare dopo 30 minuti.",
-  "web.server.query_token_missing": "Per il numero di giocatori manca ancora: {field}"
+  "web.server.query_token_missing": "Per il numero di giocatori manca ancora: {field}",
+  "No logs available for this container.": "Nessun log disponibile per questo container.",
+  "Container '{name}' not found.": "Container '{name}' non trovato.",
+  "Error retrieving logs: {error}": "Errore durante il recupero dei log: {error}",
+  "Invalid container name: {name}": "Nome del container non valido: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Aggiornamenti in diretta terminati · ▶️ li riavvia",
+  "🔄 refresh · ▶️ live updates": "🔄 aggiorna · ▶️ aggiornamenti in diretta",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 In diretta · ogni {seconds} s · ancora {remaining}"
 }

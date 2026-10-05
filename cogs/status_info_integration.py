@@ -153,7 +153,7 @@ async def container_logs_text(container_name: str) -> str:
 
         # Validate container name for security
         if not validate_container_name(container_name):
-            return f"Invalid container name format: {container_name}"
+            return _("Invalid container name: {name}").format(name=container_name)
 
         # Use synchronous Docker client for stable log retrieval
         def get_logs_sync():
@@ -175,13 +175,13 @@ async def container_logs_text(container_name: str) -> str:
         zone = _panel_zone()
         today = datetime.now(zone).date() if zone is not None else None
         return fit_log_lines(readable_log_lines(logs, zone), today=today) or \
-            "No logs available for this container."
+            _("No logs available for this container.")
 
     except docker.errors.NotFound:
-        return f"Container '{container_name}' not found."
+        return _("Container '{name}' not found.").format(name=container_name)
     except (docker.errors.DockerException, RuntimeError, OSError) as e:
         logger.debug(f"Error getting logs for {container_name}: {e}")
-        return f"Error retrieving logs: {str(e)[:100]}"
+        return _("Error retrieving logs: {error}").format(error=str(e)[:100])
 
 def _panel_zone():
     """The time zone set in the web panel, or None (then the lines keep UTC)."""
@@ -425,9 +425,12 @@ class LiveLogView(DDCView):
     answered "interaction failed".
     """
 
-    def __init__(self, container_name: str, auto_refresh: bool = False):
+    def __init__(self, container_name: str, auto_refresh: bool = False, display_name: str = None):
         from utils.settings import get_setting
         super().__init__(timeout=live_log_timeout())
+        self.display_name = display_name or container_name
+        self._ended = False  # the live update ran out (count or token window)
+        self._last_logs = None
         self.refresh_interval = get_setting('DDC_LIVE_LOGS_REFRESH_INTERVAL', 5)
         self.max_refreshes = get_setting('DDC_LIVE_LOGS_MAX_REFRESHES', 12)
         self.container_name = container_name
@@ -506,6 +509,28 @@ class LiveLogView(DDCView):
         elif self.message_ref is not None:
             await self.message_ref.edit(embed=embed, view=self)
 
+    def log_embed(self, logs: str) -> discord.Embed:
+        """The panel: one title, the state in the footer and the colour.
+
+        Until 2026-10-05 the title said what had last happened - "🔍 Live
+        Logs", "📄 Logs", "🔄 Debug Logs", "⏹️ Debug Logs", "▶️ Live Logs" -,
+        named the container once by its display name and then by its Docker
+        name, and the footers were built in five places.
+        """
+        if self.auto_refresh_enabled:
+            footer, colour = _("🔴 Live · every {seconds} s · {remaining} more").format(
+                seconds=self.refresh_interval,
+                remaining=max(0, self.max_refreshes - self.refresh_count)), 0x00ff00
+        elif self._ended:
+            footer, colour = _("⏸️ Live updates ended · ▶️ starts them again"), 0x808080
+        else:
+            footer, colour = _("🔄 refresh · ▶️ live updates"), 0x0099ff
+        self._last_logs = logs
+        embed = discord.Embed(title=f"📋 {self.display_name}", description=f"```\n{logs}\n```",
+                              color=colour, timestamp=datetime.now(timezone.utc))
+        embed.set_footer(text=footer)
+        return embed
+
     def _may_draw_again(self) -> bool:
         """Whether one more live update still leaves the panel deletable afterwards.
 
@@ -534,26 +559,11 @@ class LiveLogView(DDCView):
                 logs = await container_logs_text(self.container_name)
 
                 if logs:
-                    # Update embed
-                    embed = discord.Embed(
-                        title=f"🔍 Live Logs - {self.container_name}",
-                        description=f"```\n{logs}\n```",
-                        color=0x00ff00,
-                        timestamp=datetime.now(timezone.utc)
-                    )
-
-                    remaining = self.max_refreshes - self.refresh_count
-
-                    if remaining > 0 and self._may_draw_again():
-                        embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
-                    seconds=self.refresh_interval, remaining=remaining))
-                    else:
-                        embed.set_footer(text=_("✅ Auto-refresh completed • Click ▶️ to restart live updates"))
-                        embed.color = 0x808080  # Change to gray when done
-                        self.auto_refresh_enabled = False
-                        self.auto_refresh_task = None  # Clear task reference
-                        # Recreate all buttons with correct state (Stop -> Play)
+                    if self.refresh_count >= self.max_refreshes or not self._may_draw_again():
+                        self.auto_refresh_enabled, self._ended = False, True
+                        self.auto_refresh_task = None
                         self._create_all_buttons()
+                    embed = self.log_embed(logs)
 
                     try:
                         await self._show(embed)
@@ -561,19 +571,16 @@ class LiveLogView(DDCView):
                         logger.error(f"Auto-refresh update failed for {self.container_name}: {e}", exc_info=True)
                         break
 
-            # Ensure cleanup after loop ends
+            # Ended without a last drawing (a failed one, or no window left): say so
             if self.auto_refresh_enabled:
-                self.auto_refresh_enabled = False
+                self.auto_refresh_enabled, self._ended = False, True
                 self.auto_refresh_task = None
-                # Update buttons one final time to show correct state
                 self._create_all_buttons()
-                try:
-                    if self._painter is not None:
-                        await self._painter.edit_original_response(view=self)
-                    elif self.message_ref is not None:
-                        await self.message_ref.edit(view=self)
-                except (discord.errors.HTTPException, discord.errors.NotFound) as e:
-                    logger.debug(f"Failed to update buttons after auto-refresh end: {e}")
+                if self._last_logs is not None:
+                    try:
+                        await self._show(self.log_embed(self._last_logs))
+                    except (discord.errors.HTTPException, discord.errors.NotFound) as e:
+                        logger.debug(f"Failed to update buttons after auto-refresh end: {e}")
 
         except asyncio.CancelledError:
             logger.debug("Auto-refresh cancelled")
@@ -627,13 +634,7 @@ class LiveLogView(DDCView):
             self._painter, self._token_since = interaction, monotonic()
             logs = await container_logs_text(self.container_name)
             if logs:
-                embed = discord.Embed(
-                    title=f"🔄 Debug Logs - {self.container_name}",
-                    description=f"```\n{logs}\n```",
-                    color=0x0099ff,
-                    timestamp=datetime.now(timezone.utc)
-                )
-                embed.set_footer(text=_("🔄 Manually refreshed • Click again to update"))
+                embed = self.log_embed(logs)
                 await self._show(embed)
             else:
                 logger.warning("Manual refresh failed - no logs retrieved")
@@ -654,29 +655,14 @@ class LiveLogView(DDCView):
                 self.auto_refresh_task.cancel()
                 self.auto_refresh_enabled = False
                 self._create_all_buttons()
-                logs = await container_logs_text(self.container_name)
-                embed = discord.Embed(
-                    title=f"⏹️ Debug Logs - {self.container_name}",
-                    description=f"```\n{logs}\n```",
-                    color=0xff6600,
-                    timestamp=datetime.now(timezone.utc)
-                )
-                embed.set_footer(text=_("⏹️ Auto-refresh stopped • Click Start to restart"))
+                embed = self.log_embed(await container_logs_text(self.container_name))
                 await self._show(embed)
             else:
                 # Currently stopped - START
                 self.refresh_count = 0
-                self.auto_refresh_enabled = True
+                self.auto_refresh_enabled, self._ended = True, False
                 self._create_all_buttons()
-                logs = await container_logs_text(self.container_name)
-                embed = discord.Embed(
-                    title=f"▶️ Live Logs - {self.container_name}",
-                    description=f"```\n{logs}\n```",
-                    color=0x00ff00,
-                    timestamp=datetime.now(timezone.utc)
-                )
-                embed.set_footer(text=_("▶️ Auto-refresh restarted • Updating every {seconds} seconds").format(
-                    seconds=self.refresh_interval))
+                embed = self.log_embed(await container_logs_text(self.container_name))
                 await self._show(embed)
                 self.auto_refresh_task = asyncio.create_task(self._auto_refresh_loop())
 
@@ -771,27 +757,10 @@ class DebugLogsButton(discord.ui.Button):
             log_lines = await container_logs_text(self.container_name)
 
             if log_lines:
-                # Create live log view - auto-refresh based on setting
-                view = LiveLogView(self.container_name, auto_refresh=auto_start_enabled)
-                view.cog_instance = self.cog  # Set cog reference for recreation
-
-                # Create debug embed with appropriate title and color
-                if auto_start_enabled:
-                    # Auto-start enabled - show live indicator
-                    embed = discord.Embed(
-                        title=f"🔍 Live Logs - {self.server_config.get('name', self.container_name)}",
-                        description=f"```\n{log_lines}\n```",
-                        color=0x00ff00  # Green for live
-                    )
-                    embed.set_footer(text="https://ddc.bot")
-                else:
-                    # Auto-start disabled - show static logs
-                    embed = discord.Embed(
-                        title=f"📄 Logs - {self.server_config.get('name', self.container_name)}",
-                        description=f"```\n{log_lines}\n```",
-                        color=0x808080  # Gray for static
-                    )
-                    embed.set_footer(text=_("https://ddc.bot • Click ▶️ to start live updates"))
+                view = LiveLogView(self.container_name, auto_refresh=auto_start_enabled,
+                                   display_name=self.server_config.get('name'))
+                view.cog_instance = self.cog
+                embed = view.log_embed(log_lines)
 
                 # Send ephemeral message
                 message = await interaction.followup.send(embed=embed, view=view, ephemeral=True)

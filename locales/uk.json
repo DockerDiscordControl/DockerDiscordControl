@@ -1679,5 +1679,12 @@
   "Sun": "Нд",
   "web.server.query_joins_label": "Повідомляти про входи гравців",
   "web.server.query_joins_help": "Публікується в каналах, де позначено «Входи гравців», і зникає через 30 хвилин.",
-  "web.server.query_token_missing": "Для кількості гравців ще бракує: {field}"
+  "web.server.query_token_missing": "Для кількості гравців ще бракує: {field}",
+  "No logs available for this container.": "Для цього контейнера немає журналів.",
+  "Container '{name}' not found.": "Контейнер '{name}' не знайдено.",
+  "Error retrieving logs: {error}": "Помилка отримання журналів: {error}",
+  "Invalid container name: {name}": "Неприпустима назва контейнера: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Оновлення наживо завершено · ▶️ запускає їх знову",
+  "🔄 refresh · ▶️ live updates": "🔄 оновити · ▶️ оновлення наживо",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Наживо · кожні {seconds} с · ще {remaining}"
 }

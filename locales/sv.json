@@ -1679,5 +1679,12 @@
   "Sun": "sön",
   "web.server.query_joins_label": "Meddela spelare som ansluter",
   "web.server.query_joins_help": "Publiceras i kanalerna där ”Spelare som ansluter” är ikryssat och försvinner efter 30 minuter.",
-  "web.server.query_token_missing": "Spelarantalet behöver fortfarande: {field}"
+  "web.server.query_token_missing": "Spelarantalet behöver fortfarande: {field}",
+  "No logs available for this container.": "Det finns inga loggar för den här containern.",
+  "Container '{name}' not found.": "Containern '{name}' hittades inte.",
+  "Error retrieving logs: {error}": "Fel vid hämtning av loggar: {error}",
+  "Invalid container name: {name}": "Ogiltigt containernamn: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Liveuppdateringarna är slut · ▶️ startar dem igen",
+  "🔄 refresh · ▶️ live updates": "🔄 uppdatera · ▶️ liveuppdateringar",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Live · var {seconds}:e s · {remaining} till"
 }

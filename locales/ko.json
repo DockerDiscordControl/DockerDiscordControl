@@ -1679,5 +1679,12 @@
   "Sun": "일",
   "web.server.query_joins_label": "플레이어 접속 알림",
   "web.server.query_joins_help": "“플레이어 접속”이(가) 체크된 채널에 게시되며 30분 후 사라집니다.",
-  "web.server.query_token_missing": "플레이어 수에 아직 필요합니다: {field}"
+  "web.server.query_token_missing": "플레이어 수에 아직 필요합니다: {field}",
+  "No logs available for this container.": "이 컨테이너의 로그가 없습니다.",
+  "Container '{name}' not found.": "컨테이너 '{name}'을(를) 찾을 수 없습니다.",
+  "Error retrieving logs: {error}": "로그를 가져오는 중 오류: {error}",
+  "Invalid container name: {name}": "잘못된 컨테이너 이름: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ 실시간 업데이트 종료 · ▶️ 로 다시 시작",
+  "🔄 refresh · ▶️ live updates": "🔄 새로 고침 · ▶️ 실시간 업데이트",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 실시간 · {seconds}초마다 · {remaining}회 남음"
 }

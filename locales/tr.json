@@ -1679,5 +1679,12 @@
   "Sun": "Paz",
   "web.server.query_joins_label": "Oyuncu katılımlarını duyur",
   "web.server.query_joins_help": "“Oyuncu katılımları” işaretli kanallarda paylaşılır; 30 dakika sonra kaybolur.",
-  "web.server.query_token_missing": "Oyuncu sayısı için hâlâ eksik: {field}"
+  "web.server.query_token_missing": "Oyuncu sayısı için hâlâ eksik: {field}",
+  "No logs available for this container.": "Bu konteyner için kayıt yok.",
+  "Container '{name}' not found.": "'{name}' konteyneri bulunamadı.",
+  "Error retrieving logs: {error}": "Kayıtlar alınırken hata: {error}",
+  "Invalid container name: {name}": "Geçersiz konteyner adı: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Canlı güncellemeler bitti · ▶️ yeniden başlatır",
+  "🔄 refresh · ▶️ live updates": "🔄 yenile · ▶️ canlı güncellemeler",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Canlı · her {seconds} sn · {remaining} kez daha"
 }

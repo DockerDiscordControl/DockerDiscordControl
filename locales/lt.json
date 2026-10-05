@@ -1679,5 +1679,12 @@
   "Sun": "Sk",
   "web.server.query_joins_label": "Pranešti apie žaidėjų prisijungimus",
   "web.server.query_joins_help": "Skelbiama kanaluose, kuriuose pažymėta „Žaidėjų prisijungimai“, ir dingsta po 30 minučių.",
-  "web.server.query_token_missing": "Žaidėjų skaičiui dar trūksta: {field}"
+  "web.server.query_token_missing": "Žaidėjų skaičiui dar trūksta: {field}",
+  "No logs available for this container.": "Šiam konteineriui žurnalų nėra.",
+  "Container '{name}' not found.": "Konteineris '{name}' nerastas.",
+  "Error retrieving logs: {error}": "Klaida gaunant žurnalus: {error}",
+  "Invalid container name: {name}": "Netinkamas konteinerio pavadinimas: {name}",
+  "⏸️ Live updates ended · ▶️ starts them again": "⏸️ Tiesioginiai atnaujinimai baigėsi · ▶️ juos paleidžia iš naujo",
+  "🔄 refresh · ▶️ live updates": "🔄 atnaujinti · ▶️ tiesioginiai atnaujinimai",
+  "🔴 Live · every {seconds} s · {remaining} more": "🔴 Tiesiogiai · kas {seconds} s · dar {remaining}"
 }
