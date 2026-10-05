@@ -671,7 +671,7 @@ class LiveLogView(DDCView):
             self._painter, self._token_since = interaction, monotonic()
             file, lines = await container_log_file(self.container_name)
             if file is None:
-                await interaction.followup.send(f"❌ {lines}", ephemeral=True)
+                await interaction.followup.send(f"❌ {lines}", ephemeral=True, delete_after=NOTICE_STAYS_FOR)
                 return
             await interaction.followup.send(
                 _("📥 The last {lines} log lines of **{name}**").format(lines=lines, name=self.display_name),
