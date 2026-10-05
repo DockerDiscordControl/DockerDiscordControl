@@ -45,7 +45,8 @@ VALID_ACTION_TYPES = {'RESTART', 'STOP', 'START', 'RECREATE', 'NOTIFY'}
 TRIGGER_MESSAGE = 'message'
 TRIGGER_CONTAINER_STATE = 'container_state'
 TRIGGER_TYPES = (TRIGGER_MESSAGE, TRIGGER_CONTAINER_STATE)
-CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory', 'image_update')
+CONTAINER_STATES = ('stopped', 'unhealthy', 'restart_loop', 'high_cpu', 'high_memory', 'image_update',
+                    'no_players')
 MIN_RESTART_THRESHOLD, MAX_RESTART_THRESHOLD = 2, 50
 MIN_RESTART_WINDOW_MINUTES, MAX_RESTART_WINDOW_MINUTES = 1, 1440
 MIN_RESOURCE_PERCENT, MAX_RESOURCE_PERCENT = 10, 100
@@ -60,6 +61,12 @@ MAX_CPU_CORE_PERCENT = 6400
 # number, so keeping the two ranges apart makes "90" unambiguously a percentage.
 MIN_RESOURCE_MB, MAX_RESOURCE_MB = 128, 1024 * 1024
 MIN_RESOURCE_MINUTES, MAX_RESOURCE_MINUTES = 1, 1440
+# The idle stop (2026-10-05): minutes a game server may stand empty. Not below 5:
+# the status beat can be up to five minutes, and one poll is no stretch of time.
+MIN_EMPTY_MINUTES, MAX_EMPTY_MINUTES = 5, 1440
+# What an empty server may lead to: stopping it, or a notice. A restart would
+# bring the same empty server back.
+EMPTY_ACTIONS = ('STOP', 'NOTIFY')
 VALID_MATCH_MODES = {'any', 'all'}
 
 
@@ -332,6 +339,17 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
             and action_type != 'NOTIFY'):
         errors.append("An image-update rule can only notify: DDC cannot pull the new image, "
                       "so a restart would run the old one")
+    # THE IDLE STOP (2026-10-05). "No container ticked" means every container for
+    # the other states - here it would stop every container that is not a game
+    # server, whose count is 0 for good, 30 minutes after it started.
+    if trigger_type == TRIGGER_CONTAINER_STATE and 'no_players' in trigger.get('states', []):
+        if not trigger.get('containers'):
+            errors.append("A rule for empty game servers needs the game servers it watches: "
+                          "tick them, \"all\" would stop every container without players")
+        if action_type not in EMPTY_ACTIONS:
+            errors.append("A rule for empty game servers can only stop them or notify")
+        else:
+            _warn_about_the_idle_stop(trigger, rule_data.get('safety') or {}, action_type, warnings)
     # A container-state rule acts on the container the event is about.
     if action_type != 'NOTIFY' and not containers and trigger_type == TRIGGER_MESSAGE:
         errors.append("At least one target container is required for this action type")
@@ -395,6 +413,30 @@ def validate_rule_data(rule_data: Dict[str, Any], protected_containers: List[str
         return False, "; ".join(errors), warnings
     return True, "", warnings
 
+def _warn_about_the_idle_stop(trigger: Dict[str, Any], safety: Dict[str, Any], action_type: str,
+                              warnings: List[str]) -> None:
+    """What the operator should know when saving an idle-stop rule (warnings, not errors).
+
+    An unreadable player count counts as empty (operator, 2026-10-05), so a game
+    server whose count DDC cannot read is stopped that many minutes after every
+    start. And the rule's cooldown holds for each container: with the default
+    day, a server stopped tonight and started again tomorrow morning would not
+    be stopped again until tonight.
+    """
+    from services.automation.automation_service import _resolved
+    from services.scheduling.player_gate import query_problems
+    minutes = trigger.get('empty_minutes', 30)
+    problems = [p for c in _resolved(trigger.get('containers') or [], 'stop')
+                for p in query_problems(c, False)]
+    if problems:
+        warnings.append(f"The player count cannot be read, so the server counts as empty and is "
+                        f"stopped {minutes} minutes after every start: " + "; ".join(problems))
+    cooldown = safety.get('cooldown_minutes', 1440)
+    if action_type == 'STOP' and isinstance(cooldown, int) and cooldown > minutes:
+        warnings.append(f"The cooldown of {cooldown} minutes lets this rule stop each server at most "
+                        f"once in that time; for an idle stop, set it to {minutes} minutes or less")
+
+
 def _validate_container_state_trigger(trigger: Dict[str, Any], errors: List[str]) -> None:
     states = trigger.get('states', [])
     if not states:
@@ -424,6 +466,9 @@ def _validate_container_state_trigger(trigger: Dict[str, Any], errors: List[str]
     minutes = trigger.get('resource_minutes', 5)
     if not isinstance(minutes, int) or not MIN_RESOURCE_MINUTES <= minutes <= MAX_RESOURCE_MINUTES:
         errors.append(f"Resource duration must be between {MIN_RESOURCE_MINUTES} and {MAX_RESOURCE_MINUTES} minutes")
+    empty = trigger.get('empty_minutes', 30)
+    if not isinstance(empty, int) or not MIN_EMPTY_MINUTES <= empty <= MAX_EMPTY_MINUTES:
+        errors.append(f"Minutes without players must be between {MIN_EMPTY_MINUTES} and {MAX_EMPTY_MINUTES}")
 
 # --- Data Models ---
 
@@ -455,6 +500,8 @@ class TriggerConfig:
     memory_threshold_percent: int = 90
     memory_threshold_mb: int = 4096
     resource_minutes: int = 5
+    # no_players (2026-10-05): a game server empty for this many minutes
+    empty_minutes: int = 30
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TriggerConfig':
@@ -469,6 +516,7 @@ class TriggerConfig:
             memory_threshold_percent=data.get('memory_threshold_percent', 90),
             memory_threshold_mb=data.get('memory_threshold_mb', 4096),
             resource_minutes=data.get('resource_minutes', 5),
+            empty_minutes=data.get('empty_minutes', 30),
             channel_ids=data.get('channel_ids', []),
             keywords=data.get('keywords', []),
             required_keywords=data.get('required_keywords', []),
@@ -509,6 +557,7 @@ class TriggerConfig:
                 "memory_threshold_percent": self.memory_threshold_percent,
                 "memory_threshold_mb": self.memory_threshold_mb,
                 "resource_minutes": self.resource_minutes,
+                "empty_minutes": self.empty_minutes,
             })
         return data
 

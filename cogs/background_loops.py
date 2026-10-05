@@ -336,8 +336,9 @@ class BackgroundLoopsMixin:
         from services.automation.auto_action_config_service import (TRIGGER_CONTAINER_STATE,
                                                                     get_auto_action_config_service)
         from services.automation.automation_service import get_automation_service
-        from services.automation.container_watch import (RESTART_LOOP, RESOURCE_KINDS, ContainerState,
-                                                         ContainerWatcher, ResourceWatcher,
+        from services.automation.container_watch import (NO_PLAYERS, RESTART_LOOP, RESOURCE_KINDS,
+                                                         ContainerState, ContainerWatcher,
+                                                         EmptyServerWatcher, ResourceWatcher,
                                                          running_for_the_watchdog)
         from services.config.channel_roles import control_channel_ids
 
@@ -418,12 +419,24 @@ class BackgroundLoopsMixin:
                       for name, result in results.items()
                       if result.success and not getattr(result, 'not_found', False)}
             events.extend(watcher.observe(values, now))
+        # Empty game servers (2026-10-05): one watcher per "minutes without players".
+        # Not running gives None (not empty, not counted); an unreadable count gives 0,
+        # because the operator chose that it counts as empty.
+        empty_keys = {(NO_PLAYERS, r.trigger.empty_minutes) for r in rules if NO_PLAYERS in r.trigger.states}
+        if empty_keys:
+            players = {name: ((getattr(result, 'players_online', None) or 0)
+                              if running_for_the_watchdog(result) else None)
+                       for name, result in results.items()
+                       if result.success and not getattr(result, 'not_found', False)}
+            for key in empty_keys:
+                watcher = watchers.setdefault(key, EmptyServerWatcher(key[1]))
+                events.extend(watcher.observe(players, now, expected))
         # A setting no rule uses any more is forgotten, with its per-container
         # bookkeeping: the dict used to grow by one watcher per threshold the
         # operator ever typed, and a returning setting came back with its old
         # "already reported" memory, so a container hot the whole time stayed
         # unreported.
-        in_use = {'base'} | restart_keys | resource_keys
+        in_use = {'base'} | restart_keys | resource_keys | empty_keys
         for key in [k for k in watchers if k not in in_use]:
             del watchers[key]
         if not events:

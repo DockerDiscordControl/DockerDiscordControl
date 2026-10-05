@@ -222,3 +222,50 @@ class ResourceWatcher:
             else:
                 self._high_since.pop(name, None)
         return events
+
+
+NO_PLAYERS = "no_players"
+
+
+class EmptyServerWatcher:
+    """A running game server nobody has played on for ``minutes`` - once per empty stretch.
+
+    The idle stop (operator, 2026-10-05): "stop Valheim when nobody was online for
+    30 minutes". Fed per container the player count of this poll, or None when
+    the container is not running. A count that cannot be read arrives as 0: the
+    operator chose that an unreadable count counts as empty, and the panel says
+    so when the rule is saved.
+
+    The empty time starts when the server is first seen running and empty, so a
+    server that was just started - by hand, a task or after a stop - gets the
+    full ``minutes`` before it counts as idle. A container DDC itself has just
+    stopped or restarted (``expected``) starts afresh as well. After the event
+    the server is not reported again until somebody has played on it or it has
+    been down.
+    Test: tests/spec/test_an_empty_game_server_is_reported_once.py
+    """
+
+    def __init__(self, minutes: int):
+        self.minutes = minutes
+        self._empty_since: Dict[str, float] = {}
+        self._alerted: set = set()
+
+    def observe(self, players: Dict[str, Optional[int]], now: float,
+                expected: Iterable[str] = ()) -> List[WatchEvent]:
+        expected = set(expected)
+        events: List[WatchEvent] = []
+        for name, count in players.items():
+            if count is None or count > 0 or name in expected:
+                self._empty_since.pop(name, None)
+                self._alerted.discard(name)
+                continue
+            if name in self._alerted:
+                continue
+            since = self._empty_since.setdefault(name, now)
+            if now - since >= self.minutes * 60:
+                self._alerted.add(name)
+                events.append(WatchEvent(
+                    name, NO_PLAYERS,
+                    f"Nobody has played on '{name}' for {self.minutes} min.",
+                    window_minutes=self.minutes))
+        return events

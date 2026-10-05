@@ -789,6 +789,7 @@ class AutomationService:
             'high_cpu': [(trigger.cpu_threshold_percent, trigger.resource_minutes)],
             'high_memory': [(trigger.memory_threshold_percent, trigger.resource_minutes),
                             (trigger.memory_threshold_mb, trigger.resource_minutes)],
+            'no_players': [(None, trigger.empty_minutes)],
         }.get(event.kind)
         if event.kind == 'high_cpu' and getattr(event, 'unit', None) is not None:
             # Two CPU rules with the same number may mean different things -

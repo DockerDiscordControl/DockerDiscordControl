@@ -113,7 +113,7 @@ cogs/action_effect.py	179	pass2:s02:1-144  [the wait, moved out of control_ui.py
 cogs/admin_overview.py	1049	pass1:s01:plan pass2:s01:1-795  [105 of 900 lines never in a package]
 cogs/admin_ui.py	388	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
 cogs/auto_action_monitor.py	74	pass1:s01:plan pass2:s01:1-74
-cogs/background_loops.py	879	v3rev:1-652
+cogs/background_loops.py	892	v3rev:1-652
 cogs/channel_lifecycle.py	650	v3rev2:1-646
 cogs/control_helpers.py	426	pass1:s01:plan pass2:s01:1-205  [79 of 297 lines never in a package]
 cogs/control_ui.py	1445	pass1:s02:plan pass2:s02:1-1900 passE:E34+bothscans:1901-3650  [admin picker and mech panel moved to admin_ui.py and mech_ui.py 2026-09-28]
@@ -143,10 +143,10 @@ services/admin/__init__.py	5	passE:read-in-full
 services/admin/admin_service.py	461	passE:F1-feature-read:87-160,262-330
 services/automation/__init__.py	14	passE:bothscans+E25
 services/automation/alert_webhook.py	104	NONE
-services/automation/auto_action_config_service.py	961	passE:bothscans+E25 v3rev:1-813
+services/automation/auto_action_config_service.py	1010	passE:bothscans+E25 v3rev:1-813
 services/automation/auto_action_state_service.py	402	passE:bothscans+E25
-services/automation/automation_service.py	1080	passE:bothscans+E25 v3rev:1-676
-services/automation/container_watch.py	224	v3rev:1-157
+services/automation/automation_service.py	1081	passE:bothscans+E25 v3rev:1-676
+services/automation/container_watch.py	271	v3rev:1-157
 services/automation/image_updates.py	282	v3rev:1-164
 services/automation/maintenance.py	124	NONE
 services/automation/own_actions.py	116	NONE
