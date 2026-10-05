@@ -4,6 +4,46 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## Unreleased
+
+### 📋 The live-log panel, gone over
+
+The 📋 button in a container's info panel (control channels) opens its latest log lines, only for
+you. It was looked at as a whole on 2026-10-05 ("is it flawless?"), and it was not:
+
+- **It keeps its timeout and then goes.** "Message timeout (s)" in the Advanced Settings was read
+  and never used; the panel rebuilt itself every 270 seconds, never timed out, and fifteen minutes
+  after opening Discord refused the next rebuild and a dead panel stayed. Now the panel lasts as
+  long as set (30 to 600 s) after its last use and is deleted like every private panel.
+- **A press redraws it, without a note.** 🔄 and ▶️/⏹️ each sent an extra message ("Refreshing
+  logs...", "Updating...") and drew through the token of the opening press, which dies after
+  fifteen minutes; from then on no button worked. Each press now redraws the panel through its own
+  token.
+- **Live updates end in time.** The settings allow up to 100 updates every 30 s, fifty minutes,
+  far past the fifteen minutes a private panel can be edited. The live update now ends while the
+  panel can still be deleted, says so, and ▶️ starts it again.
+- **▶️/⏹️ brakes like 🔄.** It had no spam protection, and every ▶️ starts updates that ask Docker
+  every few seconds.
+- **More log in the panel.** It showed the last 1800 characters: Docker's stamp took 31 of a
+  typical line, colour codes came through as noise, the cut fell inside a line. Now up to 4000
+  characters of whole lines, the time as HH:MM:SS in the panel's time zone with a date line where
+  the date changes, without colour codes, and "…" on top when older lines were left out.
+- **One title.** "📋 <container>" stays; whether it is live, ended or still is in the footer and the
+  colour. The texts shown instead of log lines are translated.
+- **📥 The whole log as a file.** A new button sends the last 5000 lines as
+  `<container>-<time>.log`, privately, with Docker's full stamps and without colour codes.
+- **The switch names the real button.** "Enable Live Logs" was explained as "Enable /logs command
+  in Discord" in all 40 languages; there is no such command.
+- **The info panel around it goes too.** A container's info panel (📝 🔒 ⏰ 📋) that had been used
+  stayed after its timeout: it deleted itself through a route Discord answers with 404 for a
+  private message.
+
+### 🔒 Code scanning
+
+- The saved config logs how many critical fields it kept, not their names (CodeQL #91: the names
+  include the password hash and the token; only names were ever logged, never values).
+- A test compares the footer's last word with the URL instead of using `endswith()` (CodeQL #92).
+
 ## v3.1.0 - 2026-10-05
 
 ### ✨ Restart only when nobody plays
