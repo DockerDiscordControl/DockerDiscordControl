@@ -67,6 +67,19 @@ const cases = {
     assert.ok(h.status.textContent.includes('web.advanced.key_check_failed'), h.status.textContent);
   },
 
+  async 'saving the settings writes no key to the console'() {
+    // saveAdvancedSettings printed the key and every copied value (2026-10-05)
+    const h = harness({ body: { success: true, valid: true } });
+    const key = { name: 'donation_disable_key', value: 'DDC-SECRET-SAVED', type: 'text' };
+    const form = { querySelector: () => null, appendChild() {} };
+    const modal = { querySelectorAll: () => [key], querySelector: () => key };
+    h.sandbox.document.getElementById = (id) =>
+      ({ 'config-form': form, advancedSettingsModal: modal }[id] || null);
+    h.sandbox.document.createElement = () => ({});
+    h.sandbox.saveAdvancedSettings();
+    assert.ok(!h.logged.some(line => line.includes('DDC-')), h.logged.join('\n'));
+  },
+
   async 'nothing about a key reaches the console'() {
     const h = harness({ body: { success: true, valid: true } });
     h.input.value = 'DDC-SECRET-TYPED';

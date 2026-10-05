@@ -50,17 +50,9 @@ function saveAdvancedSettings() {
     if (mainForm && advancedModal) {
         // Get all input fields from the advanced settings modal
         const advancedInputs = advancedModal.querySelectorAll('input[name^="env_"], input[name="donation_disable_key"], input[name="mech_difficulty_multiplier"]');
-        
-        console.log(`Found ${advancedInputs.length} advanced inputs to copy`);
-        
-        // Specifically check for donation key
-        const donationKeyInput = advancedModal.querySelector('input[name="donation_disable_key"]');
-        if (donationKeyInput) {
-            console.log(`Donation key input found with value: "${donationKeyInput.value}"`);
-        } else {
-            console.log('WARNING: Donation key input NOT FOUND!');
-        }
-        
+
+        // No value is written to the console here: until 2026-10-05 this printed
+        // the donation key and every copied value, the key twice.
         advancedInputs.forEach(input => {
             // Find or create corresponding hidden input in main form
             let mainInput = mainForm.querySelector(`input[name="${input.name}"]`);
@@ -79,8 +71,7 @@ function saveAdvancedSettings() {
             } else {
                 mainInput.value = input.value;
             }
-            
-            console.log(`Copied ${input.name} = ${mainInput.value} to main form`);
+
         });
     }
     
