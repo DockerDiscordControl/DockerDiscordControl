@@ -98,9 +98,8 @@ def _service(tmp_path):
 
 
 def _view():
-    """Builds the REAL view - without starting the self-renewal task."""
-    with patch.object(LiveLogView, "_start_auto_recreation", lambda self: None):
-        return LiveLogView(CONTAINER, auto_refresh=False)
+    """Builds the REAL view (it no longer starts a self-renewal task, 2026-10-05)."""
+    return LiveLogView(CONTAINER, auto_refresh=False)
 
 
 def _interaction():

@@ -340,31 +340,37 @@ class EditInfoButton(discord.ui.Button):
             except Exception:
                 pass
 
+def live_log_timeout() -> int:
+    """The live-log panel's timeout: the setting "Message timeout (s)", 30-600."""
+    from utils.settings import get_setting
+    return max(30, min(get_setting('DDC_LIVE_LOGS_TIMEOUT', 120), MAX_PRIVATE_SECONDS))
+
+
 class LiveLogView(DDCView):
-    """View for live-updating debug logs with refresh controls."""
+    """A private panel with a container's latest log lines, refreshed on request or live.
+
+    IT ENDS LIKE EVERY PRIVATE PANEL: after the setting "Message timeout (s)"
+    without use, DDCView.on_timeout deletes it. Until v3.1.0 the setting was read
+    and dropped, the panel had a fixed 300 s and rebuilt itself every 270 s, so it
+    never timed out and was never deleted. Fifteen minutes after it was opened
+    Discord refused the next rebuild, and a dead panel stayed whose buttons only
+    answered "interaction failed".
+    """
 
     def __init__(self, container_name: str, auto_refresh: bool = False):
-        # Get configuration from environment variables
         from utils.settings import get_setting
-        timeout_seconds = get_setting('DDC_LIVE_LOGS_TIMEOUT', 120)
+        super().__init__(timeout=live_log_timeout())
         self.refresh_interval = get_setting('DDC_LIVE_LOGS_REFRESH_INTERVAL', 5)
         self.max_refreshes = get_setting('DDC_LIVE_LOGS_MAX_REFRESHES', 12)
-
-        # Set timeout to 5 minutes, but auto-recreate before timeout
-        super().__init__(timeout=300)
         self.container_name = container_name
         self.auto_refresh_enabled = auto_refresh
         self.auto_refresh_task = None
         self.refresh_count = 0
         self.message_ref = None  # Store message reference
         self.cog_instance = None  # Will be set when needed
-        self.recreation_task = None  # Task for auto-recreation
 
         # Create all buttons in the correct order
         self._create_all_buttons()
-
-        # Start auto-recreation task (recreate 30 seconds before timeout)
-        self._start_auto_recreation()
 
     def _create_all_buttons(self):
         """Create all buttons in the correct order: Refresh, Start/Stop, Close."""
@@ -403,96 +409,6 @@ class LiveLogView(DDCView):
         # _create_all_buttons clears the view and runs again on every
         # refresh, which would take an inherited button away.
         self.add_item(CloseButton())
-
-
-    def _start_auto_recreation(self):
-        """Start auto-recreation task to refresh the view before timeout."""
-        import asyncio
-        # Recreate 30 seconds before timeout (300s - 30s = 270s)
-        self.recreation_task = asyncio.create_task(self._auto_recreation_loop())
-
-    async def _auto_recreation_loop(self):
-        """Auto-recreation loop that refreshes the view before timeout."""
-        import asyncio
-        try:
-            # Wait for 270 seconds (30 seconds before timeout)
-            await asyncio.sleep(270)
-
-            # Only recreate if we have a message reference and the view is still active
-            if self.message_ref and not self.is_finished():
-                await self._recreate_view()
-
-        except asyncio.CancelledError:
-            logger.debug("Auto-recreation cancelled")
-        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-            logger.error(f"Auto-recreation error: {e}", exc_info=True)
-
-    async def _recreate_view(self):
-        """Recreate the Live Logs message with a fresh view."""
-        try:
-            if not self.message_ref:
-                return
-
-            logger.info(f"Auto-recreating Live Logs view for container {self.container_name}")
-
-            # Get current logs
-            logs = await container_logs_text(self.container_name)
-
-            # Create new view with same state
-            new_view = LiveLogView(self.container_name, self.auto_refresh_enabled)
-            new_view.refresh_count = self.refresh_count
-            new_view.cog_instance = self.cog_instance
-
-            # Determine embed based on current state
-            if self.auto_refresh_enabled and self.auto_refresh_task and not self.auto_refresh_task.done():
-                # Auto-refresh is currently running
-                remaining = self.max_refreshes - self.refresh_count
-                embed = discord.Embed(
-                    title=f"🔍 Live Logs - {self.container_name}",
-                    description=f"```\n{logs}\n```",
-                    color=0x00ff00,
-                    timestamp=datetime.now(timezone.utc)
-                )
-                embed.set_footer(text=_("🔄 Auto-refreshing every {seconds}s • {remaining} updates remaining").format(
-                    seconds=self.refresh_interval, remaining=remaining))
-            else:
-                # Auto-refresh is not running
-                embed = discord.Embed(
-                    title=f"📄 Logs - {self.container_name}",
-                    description=f"```\n{logs}\n```",
-                    color=0x0099ff,
-                    timestamp=datetime.now(timezone.utc)
-                )
-                embed.set_footer(text=_("📄 Static logs • Click ▶️ to start live updates"))
-
-            # Edit the message with new view
-            await self.message_ref.edit(embed=embed, view=new_view)
-
-            # Transfer message reference to new view
-            new_view.message_ref = self.message_ref
-
-            # Transfer auto-refresh task if running
-            if self.auto_refresh_enabled and self.auto_refresh_task and not self.auto_refresh_task.done():
-                # Cancel old task and start new one on new view
-                self.auto_refresh_task.cancel()
-                await new_view.start_auto_refresh(self.message_ref)
-
-            # Cancel our own tasks since we're being replaced
-            if self.auto_refresh_task:
-                self.auto_refresh_task.cancel()
-            if self.recreation_task:
-                self.recreation_task.cancel()
-            # And let go of the message: this view's own timeout fired 30 s
-            # later and edited the renewed panel back to itself with its buttons
-            # disabled (stage 4 review before v3.1.0, section 09). stop() also
-            # cancels py-cord's timeout task.
-            self.message_ref = None
-            self.stop()
-
-            logger.info(f"Successfully recreated Live Logs view for container {self.container_name}")
-
-        except (discord.errors.DiscordException, RuntimeError, OSError) as e:
-            logger.error(f"Failed to recreate Live Logs view for {self.container_name}: {e}", exc_info=True)
 
     async def start_auto_refresh(self, message):
         """Start auto-refresh task for live updates."""
@@ -698,36 +614,11 @@ class LiveLogView(DDCView):
 
 
     async def on_timeout(self):
-        """Handle view timeout by disabling buttons."""
-        try:
-            # Cancel any running auto-refresh task
-            if self.auto_refresh_task:
-                self.auto_refresh_task.cancel()
-                self.auto_refresh_enabled = False
-
-            # Cancel recreation task if running
-            if self.recreation_task:
-                self.recreation_task.cancel()
-
-            # Disable all buttons to show the view has timed out
-            for item in self.children:
-                if hasattr(item, 'disabled'):
-                    item.disabled = True
-
-            # Update the message to show buttons are disabled
-            if self.message_ref:
-                try:
-                    # Get current embed and update it
-                    current_embed = self.message_ref.embeds[0] if self.message_ref.embeds else None
-                    if current_embed:
-                        current_embed.set_footer(text=_("⏰ Live Logs view timed out • Use /info command to create new Live Logs"))
-                        current_embed.color = 0x808080  # Gray color
-                        await self.message_ref.edit(embed=current_embed, view=self)
-                    logger.info(f"Live Logs view timed out for container {self.container_name}")
-                except (discord.errors.HTTPException, discord.errors.NotFound) as e:
-                    logger.debug(f"Failed to update message on timeout: {e}")
-        except (RuntimeError, ValueError, KeyError) as e:
-            logger.error(f"Error in on_timeout: {e}", exc_info=True)
+        """Stop the live updates, then go like every private panel."""
+        if self.auto_refresh_task:
+            self.auto_refresh_task.cancel()
+        self.auto_refresh_enabled = False
+        await super().on_timeout()
 
 class DebugLogsButton(discord.ui.Button):
     """Debug logs button for container info admin view with live updates."""
