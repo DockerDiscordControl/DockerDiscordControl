@@ -135,7 +135,7 @@ services/discord/message_lifetimes.py:1-175
 services/discord/channel_cleanup_service.py:1-522
 services/discord/conditional_update_cache_service.py:1-184
 services/discord/embed_helper_service.py:1-227
-services/discord/status_overview_service.py:1-389
+services/discord/status_overview_service.py:1-402
 services/docker_service/self_restart.py:1-130
 services/docker_service/__init__.py:1-28
 services/docker_service/docker_action_service.py:1-321
@@ -456,7 +456,7 @@ services/web/two_factor_service.py:1-331
 ## Section 40  (771 lines, 1 piece)
 # Phase 3 cog split, step 4 (2026-09-22): the status and overview message
 # maintenance moved out of docker_control.py; too large to join a neighbour.
-cogs/message_updates.py:1-772
+cogs/message_updates.py:1-808
 
 ## Section 41  (1271 lines, 1 piece)
 # Phase 3, 2026-09-22: the task UI moved out of status_info_integration.py

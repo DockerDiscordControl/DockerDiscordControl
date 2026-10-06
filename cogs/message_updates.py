@@ -103,6 +103,39 @@ class MessageUpdatesMixin:
 
 
     # --- PERIODIC MESSAGE EDIT LOOP (FULL LOGIC, MOVED DIRECTLY INTO COG) ---
+    def _player_counts_changed(self) -> bool:
+        """Whether a game server's player count changed since the last beat (v3.1.1).
+
+        Read from the status cache this beat just filled, so the overview shows
+        the same count the join notice of this beat names. A count that could
+        not be read (None) changes nothing: a failed query would otherwise
+        redraw every overview and then redraw it back. A server that stopped
+        counts as 0. The first beat only remembers.
+        """
+        from services.config.server_config_service import get_server_config_service
+        seen = self.__dict__.setdefault('_overview_player_counts', {})
+        changed = False
+        try:
+            servers = get_server_config_service().get_all_servers() or []
+        except (ImportError, RuntimeError, OSError, ValueError) as e:
+            logger.debug(f"Player counts not compared this beat: {e}")
+            return False
+        for server in servers:
+            name = server.get('docker_name')
+            if not name or not server.get('query_enabled'):
+                continue
+            entry = self.status_cache_service.get(name)
+            data = (entry or {}).get('data')
+            if data is None or not getattr(data, 'success', False):
+                continue
+            count = getattr(data, 'players_online', None) if getattr(data, 'is_running', False) else 0
+            if count is None:
+                continue
+            if name in seen and seen[name] != count:
+                changed = True
+            seen[name] = count
+        return changed
+
     async def edit_due_messages(self):
         """Edit the messages that are due - called by the status loop after each fetch.
 
@@ -131,6 +164,7 @@ class MessageUpdatesMixin:
         logger.debug(f"Direct Cog Periodic Edit Loop: Checking {len(self.channel_server_message_ids)} channels with tracked messages.")
 
         tasks_to_run = []
+        players_changed = self._player_counts_changed()
 
         channel_permissions_config = config.get('channel_permissions', {})
         # Get default permissions from config
@@ -187,7 +221,8 @@ class MessageUpdatesMixin:
                             last_update_time=last_update_time,
                             reason="periodic_overview_check",
                             last_channel_activity=last_activity,
-                            beat_seconds=beat
+                            beat_seconds=beat,
+                            players_changed=players_changed
                         )
 
                         if decision.should_update:
@@ -228,7 +263,8 @@ class MessageUpdatesMixin:
                             last_update_time=last_update_time,
                             reason="periodic_admin_overview_check",
                             last_channel_activity=last_activity,
-                            beat_seconds=beat
+                            beat_seconds=beat,
+                            players_changed=players_changed
                         )
 
                         if decision.should_update:

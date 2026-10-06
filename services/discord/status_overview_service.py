@@ -87,7 +87,8 @@ class StatusOverviewService:
                            force_refresh: bool = False,
                            force_recreate: bool = False,
                            last_channel_activity: Optional[datetime] = None,
-                           beat_seconds: Optional[float] = None) -> UpdateDecision:
+                           beat_seconds: Optional[float] = None,
+                           players_changed: bool = False) -> UpdateDecision:
         """
         DECISION LAYER: Determine if and how status overview should be updated.
 
@@ -125,6 +126,18 @@ class StatusOverviewService:
                     should_recreate=False,
                     reason="auto_refresh_disabled_in_web_ui",
                     skip_reason="Auto-refresh disabled in Web UI for this channel"
+                )
+
+            # A PLAYER COUNT CHANGED (operator, 2026-10-06): the join notice came at once,
+            # the overview showed the new count only at the channel's next interval,
+            # ten minutes later. A change in what it shows is reason enough to redraw.
+            if players_changed:
+                return UpdateDecision(
+                    should_update=True,
+                    should_recreate=self._should_recreate_message(channel_id, config, force_recreate,
+                                                                  last_channel_activity),
+                    reason=f"players_changed_{reason}",
+                    next_check_time=self._calculate_next_check_time(datetime.now(timezone.utc), config)
                 )
 
             # CHECK UPDATE INTERVAL

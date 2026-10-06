@@ -126,7 +126,7 @@ cogs/help_embed.py	96	NONE
 cogs/info_extras.py	326	new 2026-09-28 (v3.1.0 game server, players and Docker facts in the info display), written with its tests
 cogs/loop_safety.py	103	v3rev2:1-98
 cogs/mech_ui.py	874	moved unchanged from control_ui.py 2026-09-28 (reviewed there: pass2:s02, passE)
-cogs/message_updates.py	772	v3rev2:1-791
+cogs/message_updates.py	808	v3rev2:1-791
 cogs/overview_embeds.py	629	v3rev2:1-964
 cogs/player_joins.py	168	new 2026-09-28 (v3.1.0 join announcements), written with its tests
 cogs/slash_commands.py	852	NONE
@@ -170,7 +170,7 @@ services/discord/conditional_update_cache_service.py	184	pass1:s14:plan pass2:s1
 services/discord/message_lifetimes.py	175	new 2026-10-01 (message lifetimes, operator 2026-09-30), written with its tests
 services/discord/private_panels.py	131	new 2026-10-02 (open private panels after a restart, operator 2026-10-02), written with its tests
 services/discord/embed_helper_service.py	227	pass1:s14:plan pass2:s14:1-163  [10 of 173 lines never in a package]
-services/discord/status_overview_service.py	389	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
+services/discord/status_overview_service.py	402	pass1:s14:plan pass2:s14:1-356  [7 of 363 lines never in a package]
 services/docker_proxy/__init__.py	2	NONE
 services/docker_proxy/allowlist_proxy.py	368	v3rev:1-272
 services/docker_service/__init__.py	28	pass2:s14:1-28
