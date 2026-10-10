@@ -4,7 +4,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
-## v3.1.1 - not yet released
+## v3.1.1 - 2026-10-10
 
 ### 💤 Stop a game server nobody plays on
 
@@ -22,6 +22,14 @@ All notable changes to DockerDiscordControl will be documented in this file.
 - The rule has to name its game servers: "none ticked = all" would stop every container that has
   no players because it is not a game server. Only Stop and Notify are offered; a restart would
   bring the same empty server back.
+
+### 👥 The overview shows a join at once
+
+- **A changed player count redraws the overview in the same beat.** The join notice came at once,
+  while the overview above it kept the old count until the channel's update interval, up to ten
+  minutes later. Now every beat compares the game servers' player counts with the last one, and a
+  change redraws every overview whose auto-refresh is on. A count that could not be read changes
+  nothing, so a failed query does not make the overview jump.
 
 ### 🔇 A quieter log
 
@@ -84,8 +92,13 @@ you. It was looked at as a whole on 2026-10-05 ("is it flawless?"), and it was n
   "There is no day 31 in February". 29 February stays possible for a yearly task and runs on the
   28th in ordinary years, as in the web panel.
 
-### 🔒 Code scanning
+### 🔒 Security
 
+- **No known vulnerability in the image.** Docker Scout flagged three high CVEs in the v3.1.0
+  image: CVE-2026-85091 in zlib (fixed in Alpine 3.24's 1.3.2-r1) and CVE-2026-77214 and
+  CVE-2026-102633 in expat (fixed in 2.9.0, which Alpine 3.24 does not carry yet; the image takes
+  expat and libexpat 2.9.0 from Alpine edge, nothing else). The base image moves to the current
+  Alpine 3.24. A Trivy scan of the new image finds nothing, in Alpine or Python packages.
 - The saved config logs how many critical fields it kept, not their names (CodeQL #91: the names
   include the password hash and the token; only names were ever logged, never values).
 - A test compares the footer's last word with the URL instead of using `endswith()` (CodeQL #92).

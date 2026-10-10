@@ -1,70 +1,58 @@
-# DDC v3.1.0: only when nobody plays, and who is playing
+# DDC v3.1.1: empty servers stop, and a cleaner image
 
-DRAFT for the operator. Nothing here is published until they say so. The v3.0 notes this file
+DRAFT for the operator. Nothing here is published until they say so. The v3.1.0 notes this file
 held before are in the release for that tag; the full list of changes is in `docs/CHANGELOG.md`.
 
 ---
 
-Updating from v3.0 is a plain image update.
+Updating from v3.1.0 is a plain image update.
 
-## Restart only when nobody plays
+## Stop a game server nobody plays on
 
-- **A scheduled restart or stop can wait for an empty server**, at most as long as you set
-  (1-720 minutes, 120 by default), and then happens anyway: "restart daily at 4, but only once
-  nobody plays, at the latest at 6". Auto-action rules take the same option.
-- **A warning before it**, in the status and control channels: "Valheim will restart in 10
-  minutes". DDC wakes up for the warning time you set; if it could not warn in time (it was
-  restarted, say), it warns then and waits that long before acting.
-- A player count that cannot be read counts as empty; whether it can be read is checked when
-  you save the task or rule, and the panel tells you.
+- **A new watchdog state: "a game server nobody plays on".** In the auto-action editor, tick it,
+  set "nobody online for (minutes)" (5 to 1440, 30 by default), tick the game servers it watches
+  and choose Stop or Notify: "stop Valheim when nobody was online for 30 minutes". It saves RAM and
+  CPU on servers that run empty all night.
+- A server is reported once per empty stretch, and a freshly started one always gets the full
+  minutes, whether you, a task or DDC started it.
+- A player count that cannot be read counts as empty; the editor says so when you save, and it
+  warns when the rule's cooldown is longer than the minutes.
 
-## Who is playing, in the info display
+## The overview shows a join at once
 
-- **Every container has an info display now**: uptime, restarts, health, the image's version and
-  whether a newer image is in the registry (checked every six hours, never pulled), and for a
-  game server who is playing, with the game, its version and the port to connect to.
-- **Player joins can be announced** ("👋 Anna joined Valheim (2/10)"): you tick "Player joins"
-  for the channels where they appear, and switch them off for single game servers in the
-  container's info dialog (on by default).
-- **A dead game server is shown ⚠️, not green**: its container runs, but the game does not answer.
+- A changed player count redraws the overview in the same minute as the join notice, instead of
+  at the channel's next update interval. A failed query does not make it jump.
 
-## Quieter, and more careful
+## The live-log panel, gone over
 
-- **The web panel asks Docker once instead of once per container**, and only while somebody
-  uses it: on a host with 37 containers, 2 requests instead of 38 every 30 seconds, and none at
-  all once nobody has looked for five minutes.
-- **One beat for everything that asks Docker.** The status messages were edited by a loop of
-  their own beside the status loop, which fetched on its own when it found the data too old. Now
-  one loop fetches once per beat and feeds everything from it: the overviews, player counts, join
-  notices and the watchdog, which before saw only every second fetch. "Every minute" means every
-  minute again (it was every two), and "last update" is when DDC actually looked.
-- An admins.json or config.json that cannot be read is reported and left alone instead of being
-  replaced by the next save.
-- A review before this release went through every part again and fixed well over a hundred
-  smaller defects, each with its own test. 8,378 tests pass.
+- **More of the log:** up to 4000 characters of whole lines, the time as HH:MM:SS in your time
+  zone, without colour codes.
+- **📥 the whole log as a file:** the last 5000 lines as `<container>-<time>.log`, only for you.
+- **It goes when it should:** "Message timeout (s)" now works, and the panel is deleted after it.
+  Buttons redraw the panel without extra notes, and live updates end before Discord stops
+  accepting edits.
+- One title, translated texts, and the switch in the web panel names the 📋 button instead of a
+  /logs command that never existed.
 
-## Messages that tidy up after themselves
+## Smaller things
 
-- **Every public message but the status and control overviews has a lifetime**, and keeps it
-  over a restart of DDC: auto-action and watchdog notices 1 hour, a player warning until 15
-  minutes after its action, a thank-you for a donation 24 hours, the notice of a new DDC version
-  7 days. The scheduled donation reminder stays, and is no longer swept away when DDC cleans
-  its channels at start.
-- **The overview stays where it is** while only such notices stand below it: no new post, no
-  jumping. When a person, another bot or a webhook writes under it, it moves to the bottom after
-  the channel's inactivity time, so nobody has to scroll for it.
-- **Private panels close after at most ten minutes unused** (the admin panel after five) and are
-  deleted reliably, with a fresh token after every press, and also when DDC restarts while one
-  is open.
+- **No task for a date that does not exist:** Discord's task dropdowns no longer offer 31
+  February, and an older panel that still holds one is refused with a clear sentence.
+- **"Validate key" asks the server**, by the same list the save uses. It knew only five of six
+  keys before, and no key list sits in the browser any more. The page redraws itself after a key
+  switches the donations on or off.
+- **A quieter log:** a minute without a problem leaves no line at INFO; the log was always bounded
+  and now holds weeks instead of days.
+- A used info panel in a control channel goes at its timeout like every private panel.
 
-## Good to know
+## Security
 
-- **A plaintext bot token is encrypted automatically** once a web panel password is set.
-- **At startup DDC clears its own old messages of any age** in its channels, not only recent ones.
-- **An out-of-range query port is refused** when you save, with a message, instead of being kept.
-- **A container that never answers a player query is asked for 15 minutes and then left alone**,
-  as intended; before, every such container was asked every minute for as long as it ran.
-- **A quieter log:** an empty mech is written down once when it runs dry and once when it has
-  power again, instead of two lines every 30 seconds; each join notice gets a line.
+- **No known vulnerability in the image.** Docker Scout flagged three high CVEs in the v3.1.0
+  image (zlib, expat). zlib is at Alpine 3.24's fixed version; expat and libexpat 2.9.0 come from
+  Alpine edge until 3.24 carries them. A Trivy scan of the new image finds nothing.
+- Two CodeQL findings are fixed: the saved config logs a count instead of the names of the fields
+  it kept, and a test no longer reads like a URL check.
+
+8,440 tests pass.
 
 Everything in detail: [docs/CHANGELOG.md](docs/CHANGELOG.md)

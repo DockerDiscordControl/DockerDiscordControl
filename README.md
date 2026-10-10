@@ -1,6 +1,6 @@
 # DockerDiscordControl v3.1.1 🐳
 
-[![Version](https://img.shields.io/badge/Version-v3.1.1-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v3.1.1) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-8378%20passed-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-71%25-green?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
+[![Version](https://img.shields.io/badge/Version-v3.1.1-brightgreen?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/releases/tag/v3.1.1) [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge)](https://python.org) [![Base Image](https://img.shields.io/badge/Base-Alpine%203.24-blueviolet?style=for-the-badge)](#-ultra-optimized-alpine-image) [![Tests](https://img.shields.io/badge/Tests-8440%20passed-success?style=for-the-badge)](#-testing--quality-assurance) [![Coverage](https://img.shields.io/badge/Coverage-71%25-green?style=for-the-badge)](#-testing--quality-assurance) [![Docker Pulls](https://img.shields.io/docker/pulls/dockerdiscordcontrol/dockerdiscordcontrol?style=for-the-badge)](https://hub.docker.com/r/dockerdiscordcontrol/dockerdiscordcontrol) [![Unraid](https://img.shields.io/badge/Unraid-Community%20Apps-orange?style=for-the-badge)](./docs/UNRAID.md) [![Wiki](https://img.shields.io/badge/Documentation-Wiki-lightgrey?style=for-the-badge)](https://github.com/DockerDiscordControl/DockerDiscordControl/wiki)
 
 A powerful Discord bot and web interface to manage Docker containers remotely. This application bridges the gap between Discord and your Docker environment, allowing container monitoring and control directly through Discord channels.
 
@@ -9,6 +9,27 @@ A powerful Discord bot and web interface to manage Docker containers remotely. T
 Control your Docker containers directly from Discord! This application provides a Discord bot and a web interface to manage Docker containers (start, stop, restart, view status) with a focus on stability, security, and performance. The default image is an ultra-optimized Alpine Linux build with the latest security patches and enhanced performance.
 
 ## 🆕 Latest Updates
+
+### ✅ **v3.1.1 (2026-10-10) - Empty servers stop, and a cleaner image**
+
+**Updating from v3.1.0 is a plain image update.**
+
+- **A game server nobody plays on can stop itself:** a new watchdog rule "a game server nobody
+  plays on" stops it (or notifies) after the minutes you set, 30 by default. It saves RAM and CPU
+  on servers that run empty all night.
+- **The overview shows a join at once**, in the same minute as the join notice, not at the next
+  update interval.
+- **The live-log panel, gone over:** up to 4000 characters of readable log lines in your time
+  zone, a 📥 button that sends the last 5000 lines as a file, and the panel goes after its timeout
+  instead of standing dead.
+- **No task for a date that does not exist:** Discord no longer offers 31 February.
+- **"Validate key" checks by the server's list**, the same one the save uses, and no key list
+  sits in the browser any more.
+- **A quieter log:** a minute without a problem leaves no line at INFO.
+- **No known vulnerability in the image** (zlib and expat updated).
+
+Everything in detail:
+[docs/CHANGELOG.md](https://github.com/DockerDiscordControl/DockerDiscordControl/blob/main/docs/CHANGELOG.md)
 
 ### ✅ **v3.1.0 (2026-10-05) - Only when nobody plays, and who is playing**
 
@@ -595,7 +616,7 @@ The former platform repositories (DockerDiscordControl-Linux, -Mac and -Windows)
 
 ## 🧪 Testing & Quality Assurance
 
-DockerDiscordControl maintains **71% test coverage** (8378 tests) with comprehensive automated testing.
+DockerDiscordControl maintains **71% test coverage** (8440 tests) with comprehensive automated testing.
 Measured over the whole application code — `services/`, `app/`, `utils/` and `cogs/` — with
 coverage 7.16.1 (28880 statements, 8286 uncovered). The service, web and utility layers sit at 88%;
 the Discord cog layer is the weak spot at roughly 28% and is where new tests are most needed —
