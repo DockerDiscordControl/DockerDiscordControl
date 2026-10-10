@@ -1,5 +1,5 @@
 # Multi-stage build for ultra-small production image
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS builder
+FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS builder
 
 WORKDIR /build
 
@@ -79,7 +79,7 @@ PY
 # Production stage - minimal runtime
 # Named so the CI can build it without cache: see no-cache-filters in
 # .github/workflows/docker-publish.yml - the apk upgrade below must really run.
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS runtime
+FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
 
 WORKDIR /app
 
@@ -98,6 +98,14 @@ RUN apk update && \
     su-exec \
     expat && \
     apk upgrade --no-cache && \
+    # expat from edge, its two packages only: CVE-2026-77214 and CVE-2026-102633 (high,
+    # Docker Scout, 2026-10-10) are fixed in expat 2.9.0, which Alpine 3.24 does not
+    # carry yet. BOTH packages: the library Python's pyexpat loads is libexpat, the
+    # package expat holds only xmlwf (taking expat alone left pyexpat on 2.8.5).
+    # They need nothing but musl, which stays the 3.24 one. pyexpat is loaded since
+    # opengsq's nadeo protocol imports xmlrpc. Drop this once v3.24/main serves 2.9.0.
+    apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        'expat>=2.9.0' 'libexpat>=2.9.0' && \
     rm -rf /var/cache/apk/*
 
 # Copy cleaned venv from builder
