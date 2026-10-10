@@ -22,7 +22,7 @@ jobs:
   # the tests do not run, nobody notices until it shows up on the user's server.
   # See SPEC.md Z10.
   test:
-    name: Testlauf (Gatter)
+    name: Test gate
     runs-on: ubuntu-latest
 
     steps:
