@@ -134,29 +134,22 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
         else:
             logger.info(f"Mech has power (${current_power:.2f}) - no power boost needed")
 
-        # Prepare message based on whether power boost was given
+        # THE APPEAL, REWRITTEN (operator, 2026-10-11: "very icon-heavy ... the
+        # community mech is a bit pushy"). It said "The community Mech needs your
+        # help" under nine emoji. Now: no emoji, one calm colour, and the Mech
+        # explained for what it is, a thank-you nothing in DDC depends on.
+        message_title = _("Support DDC")
+        message_description = _(
+            "DDC is free and open source. If it saves you time, a small donation helps keep it going.\n\n"
+            "About the Mech in the overview: it is a small thank-you for everyone who supports DDC. "
+            "Donations give it power, which runs down a little every day, and move it toward its next "
+            "level. Nothing in DDC depends on it.\n\n"
+            "Donate or learn more: https://ddc.bot"
+        )
         if power_boost_given:
-            message_title = _("🔋 Mech Motor Maintenance")
-            message_description = _(
-                "The Mech's power reached 0, but we've given it **$1.00** to keep the motor running! "
-                "⚡\n\n"
-                "**Help us keep the Mech alive and evolving!**\n"
-                "Every donation adds Power (movement) and Evolution Progress (leveling up).\n\n"
-                "💝 Support DDC and power the community Mech: https://ddc.bot"
-            )
-            message_color = 0xFFA500  # Orange - warning/maintenance
-        else:
-            message_title = _("💝 Support DDC & Power the Mech")
-            message_description = _(
-                "**The community Mech needs your help to keep evolving!**\n\n"
-                "Every donation:\n"
-                "• ⚡ Adds **Power** (keeps the Mech moving)\n"
-                "• 📊 Increases **Evolution Progress** (levels up)\n"
-                "• 💪 Supports DDC development\n\n"
-                "Thank you for being part of our community! 🙏\n"
-                "💝 Donate: https://ddc.bot"
-            )
-            message_color = 0x00ff41  # Green - standard donation appeal
+            message_description = (_("The Mech ran out of power, so DDC gave it $1 to keep it moving.")
+                                   + "\n\n" + message_description)
+        message_color = 0x5865F2  # Discord blurple: calm, neither warning nor alarm
 
         # Send message to all status channels if bot is available
         if bot:
@@ -198,15 +191,15 @@ async def execute_donation_message_task(bot: Optional[Any] = None) -> bool:
                             color=message_color
                         )
 
-                        # Add current mech stats (ProgressState fields)
-                        state_info = (
-                            f"🔋 Power: ${current_state.power_current:.2f}\n"
-                            f"📊 Level: {current_state.level} - {level_name}\n"
-                            f"🎯 Evolution: {current_state.evo_percent}%"
-                        )
-                        embed.add_field(name=_("Mech Status"), value=state_info, inline=False)
+                        # The Mech in one line, no emoji
+                        level = (f"{current_state.level}, {level_name}"
+                                 if level_name != f"Level {current_state.level}" else f"{current_state.level}")
+                        state_info = _("Power ${power} · Level {level} · {percent}% to the next level").format(
+                            power=f"{current_state.power_current:.2f}", level=level,
+                            percent=current_state.evo_percent)
+                        embed.add_field(name=_("Mech"), value=state_info, inline=False)
 
-                        embed.set_footer(text=f"https://ddc.bot | {_('Monthly Donation Appeal')}")
+                        embed.set_footer(text=f"https://ddc.bot · {_('once a month')}")
 
                         # Stays for good, spared by the channel cleanup (operator, 2026-09-30)
                         from services.discord.message_lifetimes import post

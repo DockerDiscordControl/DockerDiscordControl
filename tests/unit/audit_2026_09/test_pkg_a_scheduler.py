@@ -377,7 +377,8 @@ class TestA7DonationSystemTask:
         progress.add_system_donation.assert_called_once()
         stats = channel.send.await_args.kwargs["embed"].fields[0].value
         assert "$1.00" in stats
-        assert "3 - Rusty Mech" in stats
+        # One line since the appeal was rewritten (2026-10-11): "Level 3, Rusty Mech"
+        assert "Level 3, Rusty Mech" in stats
         assert "5%" in stats
 
 
