@@ -4,6 +4,14 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v3.1.2 - not yet released
+
+### 📝 Installation guide
+
+- The README's installation steps work as written: wiki links that landed on the wiki's home page
+  are fixed, the compose file names the published image so `docker compose pull` updates it, and
+  the direct Docker Hub example no longer logs everybody out at each update.
+
 ## v3.1.1 - 2026-10-10
 
 ### 💤 Stop a game server nobody plays on
