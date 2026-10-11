@@ -6,6 +6,15 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ## v3.1.2 - not yet released
 
+### 💝 A calmer donation appeal
+
+- **The monthly appeal no longer pushes.** It read "The community Mech needs your help to keep
+  evolving!" over nine emoji. Now it says that DDC is free and open source and a small donation
+  helps keep it going, and explains the Mech as a thank-you that nothing in DDC depends on: no
+  emoji, one calm colour, the Mech's state in one line. In all 40 languages.
+- **The appeal says in the log where it went** ("Donation message sent to N channels"). Its
+  module used a logger that dropped INFO, so the log showed only that the task had run.
+
 ### 📝 Installation guide
 
 - The README's installation steps work as written: wiki links that landed on the wiki's home page
