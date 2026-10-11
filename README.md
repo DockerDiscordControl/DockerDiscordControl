@@ -690,7 +690,7 @@ DDC includes HTTP Basic Auth and rate limiting, but these are designed for trust
 
 #### Prerequisites
 
-1. **Create Discord Bot**: [Bot Setup Guide](../../wiki/Discord‐Bot‐Setup)
+1. **Create Discord Bot**: [Bot Setup Guide](../../wiki/Discord-Bot-Setup)
 2. **Docker**: [Install Docker](https://docs.docker.com/engine/install/) + [Docker Compose](https://docs.docker.com/compose/install/)
 
 #### Installation Methods
@@ -698,33 +698,33 @@ DDC includes HTTP Basic Auth and rate limiting, but these are designed for trust
 **Method 1: Docker Compose (Recommended)**
 
 ```bash
-# Clone repository
-git clone https://github.com/DockerDiscordControl/DockerDiscordControl.git
-cd DockerDiscordControl
-
-# Create directories
+# Get the compose file (or clone the repository)
+mkdir ddc && cd ddc
+curl -fsSLO https://raw.githubusercontent.com/DockerDiscordControl/DockerDiscordControl/main/docker-compose.yml
 mkdir config logs
 
-# Create .env file with secure secret key
-echo "FLASK_SECRET_KEY=$(openssl rand -hex 32)" > .env
+# Start: pulls the image from Docker Hub
+docker compose up -d
 
-# Start container
-docker compose up --build -d
+# Update later
+docker compose pull && docker compose up -d
 ```
 
 **Method 2: Docker Hub (Direct)**
 
 ```bash
-# Pull and run latest Alpine-optimized image
 docker run -d --name ddc \
   -p 9374:9374 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
   -v ./config:/app/config \
   -v ./logs:/app/logs \
-  -e FLASK_SECRET_KEY="$(openssl rand -hex 32)" \
+  --log-opt max-size=10m --log-opt max-file=3 \
   --restart unless-stopped \
   dockerdiscordcontrol/dockerdiscordcontrol:latest
 ```
+
+No `FLASK_SECRET_KEY` needed: DDC creates one on the first start and keeps it in `config/`, so a
+new container (an update) does not log everybody out.
 
 **Method 3: Unraid (Recommended for Unraid users)**
 - Install via **Community Applications**
@@ -734,20 +734,16 @@ docker run -d --name ddc \
 
 #### First-Time Setup
 
-**🚀 Easy Web Setup (Recommended)**
+1. **Open the Web UI**: `http://<your-server-ip>:9374` (`https://` with `DDC_TLS_MODE=self-signed`)
+2. **Log in** with username `admin` and password `setup`. This works only until you have set a
+   password; after that it is closed. Or set `DDC_ADMIN_PASSWORD` before the first start.
+3. **Set your password**, then enter the bot token and Guild ID, the channels and the container
+   permissions.
+4. **Restart the container once** after entering the bot token and Guild ID; other settings apply
+   without a restart.
 
-1. **Access Web UI**: `http://<your-server-ip>:9374`
-2. **Setup Options**:
-   - **Method 1**: Visit `/setup` for guided web setup
-   - **Method 2**: Log in with username `admin` and password `setup` 
-   - **Method 3**: Set `DDC_ADMIN_PASSWORD=your_password` before starting
-
-3. **Complete Setup**: Configure bot token, Guild ID, container permissions
-4. **Restart**: `docker compose restart` after initial configuration
-
-**Security Note**: Default password is 'setup' for initial access. MUST be changed immediately after first login for security!
-
-**Upgrade from v1.1.3D**: Automatic migration! Your existing `config.json` will be automatically split into modular files and backed up. No manual action required.
+**Updating:** from v3.x it is a plain image update. Coming from v2.x, read
+[Upgrading to v3](../../wiki/Upgrading-to-v3) first.
 
 ## Environment Variables
 
@@ -767,7 +763,7 @@ DDC_ADMIN_PASSWORD=your_secure_password_here
 FLASK_SECRET_KEY=your-64-character-random-secret-key
 ```
 
-**Important**: The default password is 'setup' for security setup. You MUST change this immediately after first login. For production deployments, set DDC_ADMIN_PASSWORD before first start.
+**Important**: `admin` / `setup` only opens the first setup. Once you have set a password it no longer works. For an unattended install, set `DDC_ADMIN_PASSWORD` before the first start.
 
 ### Web UI Port
 
@@ -948,14 +944,14 @@ docker pull dockerdiscordcontrol/dockerdiscordcontrol:latest
 
 | Topic | Description |
 |-------|-------------|
-| [Installation Guide](../../wiki/Installation‐Guide) | Detailed setup for all platforms |
+| [Installation Guide](../../wiki/Installation-Guide) | Detailed setup for all platforms |
 | [Configuration](../../wiki/Configuration) | Web UI, permissions, channels |
-| [Auto-Action System](../../wiki/Auto‐Action‐System) | Automatic triggers, keywords, regex, webhooks |
-| [Status Watchdog](../../wiki/Status‐Watchdog) | Dead Man's Switch monitoring setup |
-| [Task System](../../wiki/Task‐System) | Automated scheduling system |
-| [Performance](../../wiki/Performance‐and‐Architecture) | V3.0 optimizations & monitoring |
-| [Alpine Migration](../../wiki/Alpine‐Linux‐Migration) | Benefits, security, optimization |
-| [Memory Optimization](../../wiki/Memory‐Optimization) | Resource management, limits |
+| [Auto-Action System](../../wiki/Auto-Action-System) | Automatic triggers, keywords, regex, webhooks |
+| [Status Watchdog](../../wiki/Container-Watchdog) | Dead Man's Switch monitoring setup |
+| [Task System](../../wiki/Task-System) | Automated scheduling system |
+| [Performance](../../wiki/Performance-and-Architecture) | V3.0 optimizations & monitoring |
+| [Alpine Migration](../../wiki/Alpine-Linux-Migration) | Benefits, security, optimization |
+| [Memory Optimization](../../wiki/Memory-Optimization) | Resource management, limits |
 | [Unraid Setup](docs/UNRAID.md) | Community Applications guide |
 | [Troubleshooting](../../wiki/Troubleshooting) | Common issues & solutions |
 | [Development](../../wiki/Development) | Contributing & development setup |

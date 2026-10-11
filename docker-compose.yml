@@ -3,8 +3,11 @@
 services:
   ddc: # Name of the service (freely selectable, here 'ddc')
     container_name: ddc # Equivalent to --name ddc
-    image: dockerdiscordcontrol # The image to be used (built by rebuild.sh)
-    build: . # Optional: Allows building the image with 'docker-compose build'
+    # The published image: "docker compose pull" fetches updates from Docker Hub.
+    # It named the local tag "dockerdiscordcontrol" until 2026-10-11, which only a
+    # build from the source creates, so a pull fetched nothing.
+    image: dockerdiscordcontrol/dockerdiscordcontrol:latest
+    build: . # Optional, from a clone: "docker compose up --build" builds it from the source
     restart: unless-stopped # Equivalent to --restart unless-stopped
     ports:
       - "9374:9374" # Equivalent to -p 9374:9374 (<host-port>:<container-port>)
@@ -29,7 +32,7 @@ services:
       # PGID: "100"    # Unraid's users
       # FLASK_SECRET_KEY: Optional, best set via a .env file. If empty, DDC generates a
       # random key once and keeps it in config/.flask_secret_key.
-      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-}
       # No DOCKER_HOST here: the image points it at the allowlist proxy
       # (unix:///run/ddc-proxy/docker.sock). Setting it to the raw socket sent
       # every "docker exec" session - reset_password.py, disable_2fa.py -
