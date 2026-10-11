@@ -14,11 +14,17 @@ This service:
 3. Sends a donation appeal message to all status channels
 """
 
-import logging
 from typing import Optional, Dict, Any
 import discord
 
-logger = logging.getLogger('ddc.donation_message_service')
+from utils.logging_utils import get_module_logger
+
+# Through get_module_logger, which gives the logger its level and its output. A
+# plain logging.getLogger('ddc....') inherits WARNING from the root: on
+# 2026-10-11 the month's appeal ran and the log showed only the scheduler's
+# "completed", not one of this module's INFO lines, so nobody could tell where
+# the appeal went.
+logger = get_module_logger('donation_message_service')
 
 _bot_instance: Optional[Any] = None
 
