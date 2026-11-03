@@ -22,10 +22,10 @@ itsdangerous>=2.2.0,<3.0.0
 click>=8.1.7,<10.0.0
 blinker>=1.8.2,<2.0.0
 MarkupSafe>=2.1.5,<4.0.0
-zope.event>=5.0,<6.0
-zope.interface>=6.2,<8.0
+zope.event>=5.0,<7.0
+zope.interface>=6.2,<9.0
 # gevent (required for async container lifecycle management)
-gevent==25.9.1
+gevent==26.9.0
 greenlet>=3.0.3,<4.0.0
 # Python Docker SDK (required)
 docker==7.1.0
