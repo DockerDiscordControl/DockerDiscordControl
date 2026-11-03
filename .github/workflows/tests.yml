@@ -49,6 +49,7 @@ permissions:
   actions: read          # Download artifacts
   pull-requests: write   # Comment on PRs
   statuses: write        # Update check statuses
+  id-token: write        # Codecov upload via OIDC (no upload token needed)
 
 jobs:
   unit-tests:
@@ -125,8 +126,12 @@ jobs:
 
       - name: Upload coverage reports
         if: matrix.python-version == '3.14'
-        uses: codecov/codecov-action@v3
+        # OIDC, not tokenless: tokenless uploads hit Codecov's shared rate limit
+        # ("Rate limit reached. Please upload with the Codecov repository upload
+        # token", CI log 2026-10-11) and coverage silently stopped arriving.
+        uses: codecov/codecov-action@v7
         with:
+          use_oidc: true
           files: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
