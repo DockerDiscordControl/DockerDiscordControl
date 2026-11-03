@@ -212,7 +212,8 @@ class MechDisplayCacheService:
 
                 # Create silhouette: keep transparent pixels transparent, make all others black
                 silhouette_data = []
-                for pixel in first_frame.getdata():
+                # get_flattened_data, not getdata: getdata is deprecated since Pillow 12.1.
+                for pixel in first_frame.get_flattened_data():
                     r, g, b, a = pixel
                     if a == 0:
                         # Keep transparent pixels transparent
