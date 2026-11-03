@@ -21,6 +21,20 @@ All notable changes to DockerDiscordControl will be documented in this file.
   are fixed, the compose file names the published image so `docker compose pull` updates it, and
   the direct Docker Hub example no longer logs everybody out at each update.
 
+### 🔒 Updated components
+
+- **Pillow 13.0.0** fixes two critical image-decoder flaws (CVE-2026-96639, CVE-2026-112398) and
+  some forty high and medium ones.
+- **Alpine 3.24.3** and Python 3.14.10 as the base; expat 2.10.0 now comes from Alpine 3.24
+  itself instead of edge.
+- **py-cord 2.8.1**, the first Discord library release that supports Python 3.14. A private panel
+  opened as a followup is no longer mistaken for the message it answers, which after a restart
+  could have deleted a public admin overview under 2.8.
+- gevent 26.9.0, docker-py 7.2.0, cachetools 7.2.8, current time zone data (pytz 2026.6),
+  Bootstrap 5.3.8 and Bootstrap Icons 1.13.2.
+- For developers: pylint 4.0.9 or newer (CVE-2026-114608), current GitHub actions on Node 24, and
+  coverage uploads to Codecov work again.
+
 ## v3.1.1 - 2026-10-10
 
 ### 💤 Stop a game server nobody plays on
