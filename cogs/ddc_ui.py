@@ -189,6 +189,11 @@ class DDCView(discord.ui.View):
     @parent.setter
     def parent(self, value) -> None:
         self.__dict__["_ddc_parent"] = value
+        # A followup was already noted by its own message: py-cord 2.8 sets parent
+        # right AFTER message on a followup, and "@original" of that interaction is
+        # the message it answers - after a defer(), the public one the button sits on.
+        if self.message is not None:
+            return
         if value is not None and self.timeout and isinstance(self, PrivateView):
             from services.discord.private_panels import remember
             remember(self.id, getattr(value, "application_id", None),
