@@ -32,8 +32,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
   could have deleted a public admin overview under 2.8.
 - gevent 26.9.0, docker-py 7.2.0, cachetools 7.2.8, current time zone data (pytz 2026.6),
   Bootstrap 5.3.8 and Bootstrap Icons 1.13.2.
-- For developers: pylint 4.0.9 or newer (CVE-2026-114608), current GitHub actions on Node 24, and
-  coverage uploads to Codecov work again.
+- For developers: pylint 4.0.9 or newer (CVE-2026-114608) and current GitHub actions on Node 24.
 
 ## v3.1.1 - 2026-10-10
 
