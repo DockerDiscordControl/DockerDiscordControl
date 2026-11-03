@@ -286,7 +286,7 @@ async def test_the_dropdown_puts_the_operators_words_first_too(monkeypatch):
     async def _defer(**_kwargs):
         return None
     # Deferred first, then the original response is edited (final check before v3.1.0)
-    interaction = SimpleNamespace(channel=None, user=SimpleNamespace(id=1, name="op"),
+    interaction = SimpleNamespace(channel=None, user=SimpleNamespace(id=1, name="op"), data={},
                                   response=SimpleNamespace(edit_message=_edit, defer=_defer,
                                                            is_done=lambda: False),
                                   edit_original_response=_edit)

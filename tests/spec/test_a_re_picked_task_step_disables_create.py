@@ -24,7 +24,7 @@ from cogs.task_ui import ActionDropdown, CycleDropdown, TaskCreationView, TimeDr
 
 async def _pick(view, kind, value):
     select = next(item for item in view.children if isinstance(item, kind))
-    select._interaction = object()
+    select._interaction = SimpleNamespace(data={})  # py-cord 2.8 reads .data in Select.values
     select._selected_values = [value]
 
     async def edit_message(**kwargs):
