@@ -98,6 +98,12 @@ RUN apk update && \
     su-exec \
     expat && \
     apk upgrade --no-cache && \
+    # sqlite-libs from edge, this one package only: CVE-2026-119586 (high, Docker
+    # Scout, 2026-11-04) is fixed in sqlite 3.54, which Alpine 3.24 does not carry
+    # yet. DDC never imports sqlite3; python3 depends on the library. It pulls
+    # nothing else, musl stays the 3.24 one. Drop this once v3.24/main serves 3.54.
+    apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        'sqlite-libs>=3.54' && \
     rm -rf /var/cache/apk/*
 
 # Copy cleaned venv from builder
