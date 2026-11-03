@@ -30,7 +30,7 @@ greenlet>=3.0.3,<4.0.0
 # Python Docker SDK (required)
 docker==7.2.0
 # audioop-lts only for Python 3.13+
-audioop-lts==0.2.1; python_version >= "3.13"
+audioop-lts==0.2.2; python_version >= "3.13"
 # Pillow for mech animations
 Pillow>=13.0.0,<14.0.0  # Security fix for CVE-2026-25990 + the 13.0.0 batch (CVE-2026-96639, CVE-2026-112398, JPEG/TIFF/PDF decoders)
 # CSRF protection — Flask-WTF provides the CSRFProtect middleware
