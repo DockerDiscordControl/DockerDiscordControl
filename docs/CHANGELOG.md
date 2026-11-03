@@ -4,7 +4,7 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
-## v3.1.2 - not yet released
+## v3.1.2 - 2026-11-03
 
 ### 💝 A calmer donation appeal
 
