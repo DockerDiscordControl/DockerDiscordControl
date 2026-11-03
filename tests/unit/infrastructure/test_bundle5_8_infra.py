@@ -356,19 +356,22 @@ class TestRequirementsUpperBounds:
         reqs = _parse_prod_requirements()
         assert "flask-wtf" in reqs, "Flask-WTF must be present in requirements.prod.txt"
 
+    # The contract is "pinned, and the same pin for tests as for the image" - not
+    # one version number, which every upgrade would have to repeat here.
     def test_docker_pinned_in_prod(self):
         reqs = _parse_prod_requirements()
         assert "docker" in reqs
-        assert reqs["docker"] == "==7.1.0", (
-            f"Expected docker==7.1.0 in prod, got {reqs['docker']!r}"
+        assert re.fullmatch(r"==\d+\.\d+\.\d+", reqs["docker"]), (
+            f"Expected an exact docker pin in prod, got {reqs['docker']!r}"
         )
 
     def test_docker_pinned_in_test_requirements(self):
         assert REQ_TEST_PATH.exists()
         text = _read_text(REQ_TEST_PATH)
+        prod = _parse_prod_requirements()["docker"]
         # Search for the pin (allow whitespace).
-        assert re.search(r"^docker==7\.1\.0\s*$", text, flags=re.MULTILINE), (
-            "Expected 'docker==7.1.0' in requirements-test.txt"
+        assert re.search(rf"^docker{re.escape(prod)}\s*$", text, flags=re.MULTILINE), (
+            f"Expected 'docker{prod}' in requirements-test.txt, the pin of the image"
         )
 
 
