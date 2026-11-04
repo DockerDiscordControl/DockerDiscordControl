@@ -6,11 +6,12 @@
 
 | Version | Support Status | Release Date | Notes |
 |---------|---------------|--------------|-------|
-| v3.1.2 | Current | 2026-11-03 | Pillow 13 (critical decoder fixes), Alpine 3.24.3, py-cord 2.8.1 |
-| v3.1.1 | Update to v3.1.2 | 2026-10-10 | Pillow before 13 has critical decoder flaws |
-| v3.1.0 | Update to v3.1.2 | 2026-10-05 | |
-| v3.0.1 | Update to v3.1.2 | 2026-09-27 | |
-| v3.0.0 | Update to v3.1.2 | 2026-09-27 | Open redirect after login, fixed in v3.0.1 |
+| v3.1.3 | Current | 2026-11-04 | sqlite 3.54 (CVE-2026-119586) |
+| v3.1.2 | Update to v3.1.3 | 2026-11-03 | sqlite 3.53.4 has CVE-2026-119586 (high) |
+| v3.1.1 | Update to v3.1.3 | 2026-10-10 | Pillow before 13 has critical decoder flaws |
+| v3.1.0 | Update to v3.1.3 | 2026-10-05 | |
+| v3.0.1 | Update to v3.1.3 | 2026-09-27 | |
+| v3.0.0 | Update to v3.1.3 | 2026-09-27 | Open redirect after login, fixed in v3.0.1 |
 | < v3.0.0 | Unsupported | - | Upgrade to the current release |
 
 Going back from v3.0 to v2.4.1 is not supported (see the v3.0 release notes).
