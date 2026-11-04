@@ -4,6 +4,15 @@ All notable changes to DockerDiscordControl will be documented in this file.
 
 ---
 
+## v3.1.3 - 2026-11-04
+
+### 🔒 sqlite 3.54
+
+- **sqlite-libs 3.54.1** replaces 3.53.4, which Docker Scout flags with CVE-2026-119586 (high).
+  DDC itself never uses sqlite; the library is in the image only because Alpine's Python package
+  depends on it. Alpine 3.24 does not carry 3.54 yet, so this one package comes from Alpine edge
+  until it does.
+
 ## v3.1.2 - 2026-11-03
 
 ### 💝 A calmer donation appeal
